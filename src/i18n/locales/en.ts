@@ -1,249 +1,291 @@
 
 export default {
-  // Navbar
-  "nav": {
-    "home": "Home",
-    "about": "About",
-    "services": "Services",
-    "contact": "Contact",
-    "login": "Login",
-    "dashboard": "Dashboard",
-    "language": "Language"
+  common: {
+    title: 'Study Abroad Agency',
+    welcome: 'Welcome to our agency',
+    login: 'Login',
+    register: 'Register',
+    logout: 'Logout',
+    profile: 'Profile',
+    dashboard: 'Dashboard',
+    applications: 'Applications',
+    programs: 'Programs',
+    services: 'Services',
+    appointments: 'Appointments',
+    messages: 'Messages',
+    notifications: 'Notifications',
+    payments: 'Payments',
+    destinations: 'Destinations',
+    settings: 'Settings',
+    about: 'About Us',
+    contact: 'Contact Us',
+    language: 'Language',
+    theme: 'Theme',
+    dark: 'Dark',
+    light: 'Light',
+    system: 'System',
+    search: 'Search',
+    submit: 'Submit',
+    cancel: 'Cancel',
+    save: 'Save',
+    edit: 'Edit',
+    delete: 'Delete',
+    close: 'Close',
+    loading: 'Loading...',
+    back: 'Back',
+    next: 'Next',
+    previous: 'Previous',
+    view: 'View',
+    details: 'Details',
+    apply: 'Apply',
+    currency: 'DZD',
+    resetFilters: 'Reset Filters',
   },
-
-  // Home/Landing
-  "landing": {
-    "hero": {
-      "title": "Your Gateway to International Opportunities",
-      "subtitle": "Specialized in Algerian student and professional mobility",
-      "cta": "Get Started"
-    },
-    "services": {
-      "title": "Our Services",
-      "subtitle": "Comprehensive support for your international journey"
-    },
-    "testimonials": {
-      "title": "Success Stories",
-      "subtitle": "Hear from our clients who achieved their dreams"
-    },
-    "stats": {
-      "title": "Our Impact",
-      "students": "Students Assisted",
-      "universities": "Partner Universities",
-      "countries": "Destination Countries",
-      "satisfaction": "Client Satisfaction"
-    }
+  auth: {
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    forgotPassword: 'Forgot Password?',
+    rememberMe: 'Remember Me',
+    loginTitle: 'Login to your account',
+    registerTitle: 'Create your account',
+    noAccount: 'Don\'t have an account?',
+    hasAccount: 'Already have an account?',
+    signUp: 'Sign Up',
+    signIn: 'Sign In',
+    resetPassword: 'Reset Password',
+    username: 'Username',
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    phone: 'Phone Number',
+    dateOfBirth: 'Date of Birth',
+    agreeTerms: 'I agree to the terms and conditions',
+    personalInfo: 'Personal Information',
+    accountInfo: 'Account Information',
   },
-
-  // About
-  "about": {
-    "title": "About Vista Agency",
-    "subtitle": "Leading Algerian international mobility consultancy since 2010",
-    "story": {
-      "title": "Our Story",
-      "p1": "Founded in 2010 in Algiers, Vista started as a small team with a big vision - to connect talented Algerians with international opportunities.",
-      "p2": "Over a decade later, we've grown into Algeria's premier education and career mobility agency, with offices in Algiers, Oran, and Constantine.",
-      "p3": "Our team of advisors includes former international students and professionals who understand the challenges and rewards of global mobility."
-    },
-    "values": {
-      "title": "Our Core Values",
-      "integrity": {
-        "title": "Integrity",
-        "description": "We provide honest guidance and transparent advice in every interaction"
-      },
-      "client": {
-        "title": "Client Focus",
-        "description": "Your success is our success - we tailor our services to your unique needs"
-      },
-      "excellence": {
-        "title": "Excellence",
-        "description": "We strive for the highest standards in all our services and operations"
-      },
-      "global": {
-        "title": "Global Mindset",
-        "description": "We embrace cultural diversity and international perspectives"
-      }
-    },
-    "mission": {
-      "title": "Our Mission",
-      "statement": "To empower Algerian students and professionals to reach their full potential through international education and career opportunities."
-    },
-    "vision": {
-      "title": "Our Vision",
-      "statement": "To be the most trusted bridge between Algeria and global opportunities, fostering a new generation of globally-minded leaders."
-    }
+  programs: {
+    title: 'Study Abroad Programs',
+    searchPlaceholder: 'Search programs by name or description',
+    filters: 'Filters',
+    priceRange: 'Price Range',
+    type: 'Program Type',
+    wilaya: 'Wilaya',
+    university: 'University',
+    language: 'Language',
+    status: 'Status',
+    selectStatus: 'Select status',
+    statusOpen: 'Open',
+    statusClosed: 'Closed',
+    statusComingSoon: 'Coming Soon',
+    all: 'All',
+    sortBy: 'Sort By',
+    sortByTitle: 'Title',
+    sortByPrice: 'Price',
+    sortByDuration: 'Duration',
+    sortByDate: 'Start Date',
+    none: 'None',
+    showing: 'Showing',
+    results: 'programs',
+    noResults: 'No programs found',
+    tryAdjusting: 'Try adjusting your filters or search term',
+    featured: 'Featured',
+    location: 'Location',
+    duration: 'Duration',
+    fees: 'Fees',
+    deadline: 'Deadline',
+    free: 'Free',
+    details: 'View Details',
   },
-
-  // Services
-  "services": {
-    "title": "Our Services",
-    "subtitle": "Comprehensive solutions for your international journey",
-    "learnMore": "Learn More",
-    "academic": {
-      "title": "Academic Counseling",
-      "description": "Personalized guidance for your educational journey",
-      "features": {
-        "f1": "University selection and application support",
-        "f2": "Scholarship and funding advice",
-        "f3": "Personal statement and CV preparation"
-      }
-    },
-    "career": {
-      "title": "Career Services",
-      "description": "Professional guidance for international careers",
-      "features": {
-        "f1": "International job placement assistance",
-        "f2": "CV and interview preparation",
-        "f3": "Career development planning"
-      }
-    },
-    "travel": {
-      "title": "Travel Arrangements",
-      "description": "Comprehensive travel planning and support",
-      "features": {
-        "f1": "Flight booking assistance",
-        "f2": "Pre-departure orientation",
-        "f3": "Airport pickup coordination"
-      }
-    },
-    "visa": {
-      "title": "Visa Assistance",
-      "description": "Expert guidance through visa processes",
-      "features": {
-        "f1": "Visa application preparation",
-        "f2": "Documentation review and advice",
-        "f3": "Interview preparation for visa applicants"
-      }
-    },
-    "accommodation": {
-      "title": "Accommodation Services",
-      "description": "Safe and suitable housing solutions",
-      "features": {
-        "f1": "Student accommodation arrangements",
-        "f2": "Short and long-term housing options",
-        "f3": "Pre-verified accommodation providers"
-      }
-    },
-    "language": {
-      "title": "Language Support",
-      "description": "Language preparation for international success",
-      "features": {
-        "f1": "IELTS, TOEFL, and TCF preparation",
-        "f2": "Language proficiency certification",
-        "f3": "Conversational language training"
-      }
-    },
-    "cta": {
-      "title": "Ready to Start Your Journey?",
-      "description": "Our team of expert advisors is ready to help you achieve your international goals.",
-      "button1": "Schedule a Consultation",
-      "button2": "Explore Programs"
-    }
+  dashboard: {
+    welcome: 'Welcome back',
+    overview: 'Overview',
+    stats: 'Stats',
+    recentActivity: 'Recent Activity',
+    upcomingAppointments: 'Upcoming Appointments',
+    pendingApplications: 'Pending Applications',
+    messages: 'Messages',
+    notifications: 'Notifications',
+    quickLinks: 'Quick Links',
   },
-
-  // Contact
-  "contact": {
-    "title": "Contact Us",
-    "subtitle": "We're here to answer your questions and support your journey",
-    "address": {
-      "title": "Visit Us",
-      "line1": "16 Boulevard Mohammed V",
-      "line2": "Algiers 16000, Algeria"
-    },
-    "email": {
-      "title": "Email Us",
-      "address": "info@vista-algeria.com"
-    },
-    "phone": {
-      "title": "Call Us",
-      "number": "+213 21 56 78 90"
-    },
-    "form": {
-      "title": "Send Us a Message",
-      "description": "We'll respond to your inquiry within 24 hours",
-      "firstName": "First Name",
-      "firstNamePlaceholder": "Enter your first name",
-      "lastName": "Last Name",
-      "lastNamePlaceholder": "Enter your last name",
-      "email": "Email",
-      "emailPlaceholder": "Enter your email address",
-      "subject": "Subject",
-      "subjectPlaceholder": "What is your message about?",
-      "message": "Message",
-      "messagePlaceholder": "Type your message here...",
-      "submit": "Send Message"
-    }
+  profile: {
+    personalInfo: 'Personal Information',
+    contact: 'Contact',
+    documents: 'Documents',
+    education: 'Education',
+    workExperience: 'Work Experience',
+    languages: 'Languages',
+    emergencyContact: 'Emergency Contact',
+    changePassword: 'Change Password',
+    completeProfile: 'Complete Your Profile',
+    nationality: 'Nationality',
+    passportNumber: 'Passport Number',
+    passportExpiry: 'Passport Expiry Date',
+    currentAddress: 'Current Address',
+    educationBackground: 'Education Background',
+    workHistory: 'Work History',
+    languageProficiency: 'Language Proficiency',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    uploadDocument: 'Upload Document',
+    documentType: 'Document Type',
   },
-
-  // Programs
-  "programs": {
-    "title": "Study Programs",
-    "subtitle": "Discover opportunities at prestigious institutions worldwide",
-    "filters": {
-      "title": "Filter Programs",
-      "country": "Country",
-      "level": "Education Level",
-      "duration": "Duration",
-      "field": "Field of Study",
-      "language": "Language",
-      "tuition": "Tuition Fees",
-      "apply": "Apply Filters",
-      "reset": "Reset",
-      "search": "Search programs...",
-      "sort": "Sort By",
-      "sortOptions": {
-        "relevance": "Relevance",
-        "nameAsc": "Name (A-Z)",
-        "nameDesc": "Name (Z-A)",
-        "dateNewest": "Newest First",
-        "dateOldest": "Oldest First",
-        "tuitionLow": "Tuition (Low to High)",
-        "tuitionHigh": "Tuition (High to Low)"
-      }
-    },
-    "card": {
-      "level": "Level",
-      "duration": "Duration",
-      "tuition": "Tuition",
-      "language": "Language",
-      "deadline": "Deadline",
-      "details": "View Details",
-      "apply": "Apply Now"
-    },
-    "details": {
-      "overview": "Overview",
-      "requirements": "Requirements",
-      "curriculum": "Curriculum",
-      "career": "Career Outcomes",
-      "fees": "Fees & Funding",
-      "apply": "How to Apply"
-    }
+  applications: {
+    myApplications: 'My Applications',
+    applicationId: 'Application ID',
+    program: 'Program',
+    status: 'Status',
+    submittedDate: 'Submitted Date',
+    trackApplication: 'Track Application',
+    newApplication: 'New Application',
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    underReview: 'Under Review',
+    additionalInfo: 'Additional Information Required',
+    applicationDetails: 'Application Details',
+    timeline: 'Timeline',
+    documents: 'Documents',
+    comments: 'Comments',
+    addComment: 'Add Comment',
   },
-
-  // Dashboard
-  "dashboard": {
-    "greeting": "Good {{time}}, {{name}}!",
-    "welcome": "Welcome back to your Vista dashboard. Here's an overview of your journey.",
-    "completeProfile": "Complete Your Profile",
-    "profileCompletion": "Profile Completion"
+  services: {
+    ourServices: 'Our Services',
+    visaSupport: 'Visa Support',
+    accommodationAssistance: 'Accommodation Assistance',
+    careerCounseling: 'Career Counseling',
+    languageClasses: 'Language Classes',
+    documentTranslation: 'Document Translation',
+    travelInsurance: 'Travel Insurance',
+    requestService: 'Request Service',
+    viewDetails: 'View Details',
+    serviceDescription: 'Service Description',
+    fees: 'Fees',
+    duration: 'Duration',
+    requirements: 'Requirements',
   },
-
-  // Common
-  "common": {
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "retry": "Retry",
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "view": "View",
-    "search": "Search",
-    "filter": "Filter",
-    "sort": "Sort",
-    "yes": "Yes",
-    "no": "No",
-    "success": "Success",
-    "failed": "Failed"
-  }
+  appointments: {
+    myAppointments: 'My Appointments',
+    scheduleAppointment: 'Schedule Appointment',
+    appointmentType: 'Appointment Type',
+    date: 'Date',
+    time: 'Time',
+    status: 'Status',
+    cancellationPolicy: 'Cancellation Policy',
+    reschedule: 'Reschedule',
+    cancel: 'Cancel',
+    completed: 'Completed',
+    upcoming: 'Upcoming',
+    cancelled: 'Cancelled',
+    missed: 'Missed',
+    selectDate: 'Select Date',
+    selectTime: 'Select Time',
+    appointmentDetails: 'Appointment Details',
+  },
+  messages: {
+    inbox: 'Inbox',
+    sent: 'Sent',
+    compose: 'Compose',
+    subject: 'Subject',
+    message: 'Message',
+    sender: 'Sender',
+    recipient: 'Recipient',
+    date: 'Date',
+    reply: 'Reply',
+    forward: 'Forward',
+    delete: 'Delete',
+    markAsRead: 'Mark as Read',
+    markAsUnread: 'Mark as Unread',
+    attachments: 'Attachments',
+    selectRecipient: 'Select Recipient',
+    sendMessage: 'Send Message',
+  },
+  notifications: {
+    all: 'All Notifications',
+    unread: 'Unread',
+    markAllAsRead: 'Mark All as Read',
+    clearAll: 'Clear All',
+    noNotifications: 'No Notifications',
+    applicationUpdate: 'Application Update',
+    appointmentReminder: 'Appointment Reminder',
+    paymentConfirmation: 'Payment Confirmation',
+    systemNotice: 'System Notice',
+  },
+  payments: {
+    myPayments: 'My Payments',
+    paymentHistory: 'Payment History',
+    makePayment: 'Make Payment',
+    paymentId: 'Payment ID',
+    amount: 'Amount',
+    date: 'Date',
+    method: 'Method',
+    status: 'Status',
+    description: 'Description',
+    receipt: 'Receipt',
+    downloadReceipt: 'Download Receipt',
+    paymentDetails: 'Payment Details',
+    successfulPayment: 'Successful Payment',
+    pendingPayment: 'Pending Payment',
+    failedPayment: 'Failed Payment',
+    refundedPayment: 'Refunded Payment',
+    selectPaymentMethod: 'Select Payment Method',
+    cardNumber: 'Card Number',
+    expiryDate: 'Expiry Date',
+    cvv: 'CVV',
+    nameOnCard: 'Name on Card',
+    billingAddress: 'Billing Address',
+  },
+  destinations: {
+    popularDestinations: 'Popular Destinations',
+    exploreDestinations: 'Explore Destinations',
+    country: 'Country',
+    city: 'City',
+    universities: 'Universities',
+    livingCosts: 'Living Costs',
+    visaRequirements: 'Visa Requirements',
+    culture: 'Culture',
+    climate: 'Climate',
+    transportation: 'Transportation',
+    accommodation: 'Accommodation',
+    safety: 'Safety',
+    healthInsurance: 'Health Insurance',
+    learMore: 'Learn More',
+    viewPrograms: 'View Programs',
+  },
+  footer: {
+    rights: 'All Rights Reserved',
+    terms: 'Terms of Service',
+    privacy: 'Privacy Policy',
+    contact: 'Contact Us',
+    followUs: 'Follow Us',
+    newsletter: 'Subscribe to our newsletter',
+    subscribe: 'Subscribe',
+    email: 'Email Address',
+  },
+  contact: {
+    getInTouch: 'Get in Touch',
+    fillForm: 'Fill out the form below to get in touch with us',
+    name: 'Your Name',
+    email: 'Email Address',
+    phone: 'Phone Number (Optional)',
+    subject: 'Subject',
+    message: 'Your Message',
+    send: 'Send Message',
+    address: 'Our Address',
+    phoneNumber: 'Phone Number',
+    emailUs: 'Email Us',
+    officeHours: 'Office Hours',
+    faq: 'Frequently Asked Questions',
+  },
+  about: {
+    ourMission: 'Our Mission',
+    ourVision: 'Our Vision',
+    ourValues: 'Our Values',
+    ourTeam: 'Our Team',
+    ourHistory: 'Our History',
+    whyUs: 'Why Choose Us',
+    testimonials: 'Testimonials',
+    partners: 'Our Partners',
+    accreditations: 'Accreditations',
+  },
 };

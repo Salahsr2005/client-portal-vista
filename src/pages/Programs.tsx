@@ -1,25 +1,17 @@
 
-import { useState, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
-import { useTranslation } from "react-i18next";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -27,701 +19,650 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
-import { 
-  Search, 
-  Filter, 
-  X, 
-  BookOpen, 
-  GraduationCap, 
-  Clock, 
-  CreditCard, 
-  GlobeIcon, 
-  Calendar,
-  ArrowDown,
-  ArrowUp,
-  ArrowDownAZ,
-  ArrowUpAZ
-} from "lucide-react";
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Link } from "react-router-dom";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { CheckIcon, FilterIcon, Search, SortAscIcon, SortDescIcon, Star } from 'lucide-react';
+import { mockPrograms, programTypes, algerianWilayas, algerianUniversities, languages, Program } from '@/utils/mockData';
 
-// Import mock data and helper functions
-import { programData } from "@/utils/mockData";
-
-export default function Programs() {
+const ProgramsPage = () => {
   const { t } = useTranslation();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
-    countries: [],
-    levels: [],
-    fields: [],
-    languages: [],
-    duration: [0, 60],
-    tuition: [0, 100000]
-  });
-  const [sortOption, setSortOption] = useState("relevance");
-  const [activeTab, setActiveTab] = useState("grid");
-  const [filteredPrograms, setFilteredPrograms] = useState(programData);
-  const [isFilteringActive, setIsFilteringActive] = useState(false);
-  
-  // Filter options from the programData
-  const countryOptions = [...new Set(programData.map(p => p.country))].sort();
-  const levelOptions = [...new Set(programData.map(p => p.level))].sort();
-  const fieldOptions = [...new Set(programData.map(p => p.field))].sort();
-  const languageOptions = [...new Set(programData.map(p => p.language))].sort();
-  
-  // Filter and sort programs when filters or sort option changes
+  const [programs, setPrograms] = useState<Program[]>(mockPrograms);
+  const [filteredPrograms, setFilteredPrograms] = useState<Program[]>(mockPrograms);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
+
+  // Filters
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedWilayas, setSelectedWilayas] = useState<string[]>([]);
+  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [priceRange, setPriceRange] = useState([0, 3000]);
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
+
+  // Handle price range change
+  const handlePriceRangeChange = (value: number[]) => {
+    setPriceRange(value);
+  };
+
+  // Handle type selection
+  const toggleType = (type: string) => {
+    if (selectedTypes.includes(type)) {
+      setSelectedTypes(selectedTypes.filter(t => t !== type));
+    } else {
+      setSelectedTypes([...selectedTypes, type]);
+    }
+  };
+
+  // Handle wilaya selection
+  const toggleWilaya = (wilaya: string) => {
+    if (selectedWilayas.includes(wilaya)) {
+      setSelectedWilayas(selectedWilayas.filter(w => w !== wilaya));
+    } else {
+      setSelectedWilayas([...selectedWilayas, wilaya]);
+    }
+  };
+
+  // Handle university selection
+  const toggleUniversity = (university: string) => {
+    if (selectedUniversities.includes(university)) {
+      setSelectedUniversities(selectedUniversities.filter(u => u !== university));
+    } else {
+      setSelectedUniversities([...selectedUniversities, university]);
+    }
+  };
+
+  // Handle language selection
+  const toggleLanguage = (language: string) => {
+    if (selectedLanguages.includes(language)) {
+      setSelectedLanguages(selectedLanguages.filter(l => l !== language));
+    } else {
+      setSelectedLanguages([...selectedLanguages, language]);
+    }
+  };
+
+  // Filter and sort programs
   useEffect(() => {
-    let result = [...programData];
+    let result = [...mockPrograms];
     
-    // Apply search term
+    // Search term filter
     if (searchTerm) {
-      result = result.filter(
-        program => 
-          program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          program.university.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          program.description.toLowerCase().includes(searchTerm.toLowerCase())
+      result = result.filter(program => 
+        program.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        program.description.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
-    // Apply filters
-    if (filters.countries.length > 0) {
-      result = result.filter(program => filters.countries.includes(program.country));
+    // Program type filter
+    if (selectedTypes.length > 0) {
+      result = result.filter(program => selectedTypes.includes(program.type));
     }
     
-    if (filters.levels.length > 0) {
-      result = result.filter(program => filters.levels.includes(program.level));
+    // Wilaya filter
+    if (selectedWilayas.length > 0) {
+      result = result.filter(program => selectedWilayas.includes(program.wilaya));
     }
     
-    if (filters.fields.length > 0) {
-      result = result.filter(program => filters.fields.includes(program.field));
+    // University filter
+    if (selectedUniversities.length > 0) {
+      result = result.filter(program => selectedUniversities.includes(program.university));
     }
     
-    if (filters.languages.length > 0) {
-      result = result.filter(program => filters.languages.includes(program.language));
+    // Language filter
+    if (selectedLanguages.length > 0) {
+      result = result.filter(program => selectedLanguages.includes(program.language));
     }
     
-    result = result.filter(
-      program => 
-        program.durationMonths >= filters.duration[0] && 
-        program.durationMonths <= filters.duration[1]
+    // Status filter
+    if (selectedStatus) {
+      result = result.filter(program => program.status === selectedStatus);
+    }
+    
+    // Price range filter
+    result = result.filter(program => 
+      program.fees >= priceRange[0] && program.fees <= priceRange[1]
     );
     
-    result = result.filter(
-      program => 
-        program.tuitionPerYear >= filters.tuition[0] && 
-        program.tuitionPerYear <= filters.tuition[1]
-    );
-    
-    // Apply sorting
-    switch (sortOption) {
-      case "nameAsc":
-        result.sort((a, b) => a.title.localeCompare(b.title));
-        break;
-      case "nameDesc":
-        result.sort((a, b) => b.title.localeCompare(a.title));
-        break;
-      case "dateNewest":
-        result.sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime());
-        break;
-      case "dateOldest":
-        result.sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
-        break;
-      case "tuitionLow":
-        result.sort((a, b) => a.tuitionPerYear - b.tuitionPerYear);
-        break;
-      case "tuitionHigh":
-        result.sort((a, b) => b.tuitionPerYear - a.tuitionPerYear);
-        break;
-      default:
-        // "relevance" is the default, no sorting needed
-        break;
+    // Sorting
+    if (sortBy) {
+      result.sort((a, b) => {
+        const aValue = a[sortBy as keyof Program];
+        const bValue = b[sortBy as keyof Program];
+        
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          return sortOrder === 'asc' 
+            ? aValue.localeCompare(bValue) 
+            : bValue.localeCompare(aValue);
+        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+          return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+        }
+        return 0;
+      });
     }
     
     setFilteredPrograms(result);
-    
-    // Check if any filter is active
-    const isActive = 
-      searchTerm !== "" || 
-      filters.countries.length > 0 || 
-      filters.levels.length > 0 || 
-      filters.fields.length > 0 || 
-      filters.languages.length > 0 || 
-      filters.duration[0] > 0 || 
-      filters.duration[1] < 60 || 
-      filters.tuition[0] > 0 || 
-      filters.tuition[1] < 100000;
-      
-    setIsFilteringActive(isActive);
-  }, [searchTerm, filters, sortOption]);
-  
-  const handleFilterChange = (type, value) => {
-    setFilters(prevFilters => {
-      const newFilters = { ...prevFilters };
-      
-      if (Array.isArray(newFilters[type])) {
-        if (newFilters[type].includes(value)) {
-          newFilters[type] = newFilters[type].filter(item => item !== value);
-        } else {
-          newFilters[type] = [...newFilters[type], value];
-        }
-      } else {
-        newFilters[type] = value;
-      }
-      
-      return newFilters;
-    });
-  };
-  
-  const resetFilters = () => {
-    setFilters({
-      countries: [],
-      levels: [],
-      fields: [],
-      languages: [],
-      duration: [0, 60],
-      tuition: [0, 100000]
-    });
-    setSearchTerm("");
-    setSortOption("relevance");
-  };
-  
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  }, [
+    searchTerm, 
+    selectedTypes, 
+    selectedWilayas, 
+    selectedUniversities, 
+    selectedLanguages, 
+    selectedStatus, 
+    priceRange, 
+    sortBy, 
+    sortOrder
+  ]);
 
-  const getSortIcon = () => {
-    switch (sortOption) {
-      case "nameAsc":
-        return <ArrowDownAZ className="ml-2 h-4 w-4" />;
-      case "nameDesc":
-        return <ArrowUpAZ className="ml-2 h-4 w-4" />;
-      case "tuitionLow":
-        return <ArrowDown className="ml-2 h-4 w-4" />;
-      case "tuitionHigh":
-        return <ArrowUp className="ml-2 h-4 w-4" />;
-      default:
-        return null;
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredPrograms.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredPrograms.length / itemsPerPage);
+
+  // Status badge colors
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'Open': return 'bg-green-500';
+      case 'Closed': return 'bg-red-500';
+      case 'Coming Soon': return 'bg-blue-500';
+      default: return 'bg-gray-500';
     }
   };
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <div className="container mx-auto px-4 py-24 md:py-32">
-        <div className="max-w-3xl mx-auto mb-16 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">{t("programs.title")}</h1>
-          <p className="text-xl text-muted-foreground">
-            {t("programs.subtitle")}
-          </p>
-        </div>
-        
-        {/* Search and Filter Bar */}
-        <div className="mb-8 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder={t("programs.filters.search")}
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
-                onClick={() => setSearchTerm("")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+        {/* Filter sidebar */}
+        <div className={`w-full md:w-1/4 lg:w-1/5 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-lg p-4 ${filterOpen ? 'block' : 'hidden md:block'}`}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">{t('programs.filters')}</h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="md:hidden" 
+              onClick={() => setFilterOpen(false)}
+            >
+              {t('common.close')}
+            </Button>
           </div>
           
-          <div className="flex gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Filter className={`h-4 w-4 ${isFilteringActive ? "text-primary" : ""}`} />
-                  {t("programs.filters.filter")}
-                  {isFilteringActive && (
-                    <Badge variant="default" className="ml-1">
-                      {Object.values(filters).flat().filter(v => typeof v !== 'number').length + 
-                        (filters.duration[0] > 0 || filters.duration[1] < 60 ? 1 : 0) + 
-                        (filters.tuition[0] > 0 || filters.tuition[1] < 100000 ? 1 : 0)}
-                    </Badge>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-0" align="end">
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">{t("programs.filters.title")}</h3>
-                    {isFilteringActive && (
-                      <Button variant="ghost" size="sm" onClick={resetFilters}>
-                        {t("programs.filters.reset")}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="p-4 max-h-[60vh] overflow-y-auto space-y-6">
-                  {/* Country Filter */}
-                  <div>
-                    <h4 className="font-medium mb-2">{t("programs.filters.country")}</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {countryOptions.map(country => (
-                        <div key={country} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`country-${country}`} 
-                            checked={filters.countries.includes(country)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                handleFilterChange('countries', country);
-                              } else {
-                                handleFilterChange('countries', country);
-                              }
-                            }}
-                          />
-                          <label 
-                            htmlFor={`country-${country}`}
-                            className="text-sm cursor-pointer"
-                          >
-                            {country}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Level Filter */}
-                  <div>
-                    <h4 className="font-medium mb-2">{t("programs.filters.level")}</h4>
-                    <div className="space-y-2">
-                      {levelOptions.map(level => (
-                        <div key={level} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`level-${level}`} 
-                            checked={filters.levels.includes(level)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                handleFilterChange('levels', level);
-                              } else {
-                                handleFilterChange('levels', level);
-                              }
-                            }}
-                          />
-                          <label 
-                            htmlFor={`level-${level}`}
-                            className="text-sm cursor-pointer"
-                          >
-                            {level}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Field of Study Filter */}
-                  <div>
-                    <h4 className="font-medium mb-2">{t("programs.filters.field")}</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      {fieldOptions.map(field => (
-                        <div key={field} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`field-${field}`} 
-                            checked={filters.fields.includes(field)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                handleFilterChange('fields', field);
-                              } else {
-                                handleFilterChange('fields', field);
-                              }
-                            }}
-                          />
-                          <label 
-                            htmlFor={`field-${field}`}
-                            className="text-sm cursor-pointer truncate"
-                          >
-                            {field}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Duration Filter */}
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <h4 className="font-medium">{t("programs.filters.duration")}</h4>
-                      <span className="text-sm text-muted-foreground">
-                        {filters.duration[0]} - {filters.duration[1]} {t("months")}
-                      </span>
-                    </div>
-                    <Slider
-                      defaultValue={[0, 60]}
-                      min={0}
-                      max={60}
-                      step={6}
-                      value={filters.duration}
-                      onValueChange={(value) => handleFilterChange('duration', value)}
-                    />
-                  </div>
-                  
-                  {/* Language Filter */}
-                  <div>
-                    <h4 className="font-medium mb-2">{t("programs.filters.language")}</h4>
-                    <div className="space-y-2">
-                      {languageOptions.map(language => (
-                        <div key={language} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`language-${language}`} 
-                            checked={filters.languages.includes(language)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                handleFilterChange('languages', language);
-                              } else {
-                                handleFilterChange('languages', language);
-                              }
-                            }}
-                          />
-                          <label 
-                            htmlFor={`language-${language}`}
-                            className="text-sm cursor-pointer"
-                          >
-                            {language}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Tuition Fee Filter */}
-                  <div>
-                    <div className="flex justify-between mb-2">
-                      <h4 className="font-medium">{t("programs.filters.tuition")}</h4>
-                      <span className="text-sm text-muted-foreground">
-                        {formatCurrency(filters.tuition[0])} - {formatCurrency(filters.tuition[1])}
-                      </span>
-                    </div>
-                    <Slider
-                      defaultValue={[0, 100000]}
-                      min={0}
-                      max={100000}
-                      step={5000}
-                      value={filters.tuition}
-                      onValueChange={(value) => handleFilterChange('tuition', value)}
-                    />
-                  </div>
-                </div>
-                
-                <div className="p-4 border-t">
-                  <Button 
-                    className="w-full"
-                    onClick={() => document.querySelector('[data-radix-popper-content-wrapper]')?.remove()}
-                  >
-                    {t("programs.filters.apply")}
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-            
-            <Select value={sortOption} onValueChange={setSortOption}>
-              <SelectTrigger className="w-[180px]">
-                <div className="flex items-center">
-                  <span>{t("programs.filters.sort")}</span>
-                  {getSortIcon()}
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="relevance">{t("programs.filters.sortOptions.relevance")}</SelectItem>
-                <SelectItem value="nameAsc">{t("programs.filters.sortOptions.nameAsc")}</SelectItem>
-                <SelectItem value="nameDesc">{t("programs.filters.sortOptions.nameDesc")}</SelectItem>
-                <SelectItem value="dateNewest">{t("programs.filters.sortOptions.dateNewest")}</SelectItem>
-                <SelectItem value="dateOldest">{t("programs.filters.sortOptions.dateOldest")}</SelectItem>
-                <SelectItem value="tuitionLow">{t("programs.filters.sortOptions.tuitionLow")}</SelectItem>
-                <SelectItem value="tuitionHigh">{t("programs.filters.sortOptions.tuitionHigh")}</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:block">
-              <TabsList>
-                <TabsTrigger value="grid" className="px-3">
-                  <div className="grid grid-cols-2 gap-0.5 h-4 w-4">
-                    <div className="bg-current rounded-sm"></div>
-                    <div className="bg-current rounded-sm"></div>
-                    <div className="bg-current rounded-sm"></div>
-                    <div className="bg-current rounded-sm"></div>
-                  </div>
-                </TabsTrigger>
-                <TabsTrigger value="list" className="px-3">
-                  <div className="flex flex-col gap-0.5 h-4 w-4 justify-center">
-                    <div className="h-0.5 bg-current rounded-sm"></div>
-                    <div className="h-0.5 bg-current rounded-sm"></div>
-                    <div className="h-0.5 bg-current rounded-sm"></div>
-                  </div>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-        </div>
-        
-        {/* Active Filters Display */}
-        {isFilteringActive && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            {filters.countries.map(country => (
-              <Badge key={`badge-country-${country}`} variant="secondary" className="flex items-center gap-1">
-                {country}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={() => handleFilterChange('countries', country)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-            {filters.levels.map(level => (
-              <Badge key={`badge-level-${level}`} variant="secondary" className="flex items-center gap-1">
-                {level}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={() => handleFilterChange('levels', level)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-            {filters.fields.map(field => (
-              <Badge key={`badge-field-${field}`} variant="secondary" className="flex items-center gap-1">
-                {field}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={() => handleFilterChange('fields', field)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-            {filters.languages.map(language => (
-              <Badge key={`badge-language-${language}`} variant="secondary" className="flex items-center gap-1">
-                {language}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={() => handleFilterChange('languages', language)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-            {(filters.duration[0] > 0 || filters.duration[1] < 60) && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                {filters.duration[0]}-{filters.duration[1]} {t("months")}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={() => handleFilterChange('duration', [0, 60])}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            )}
-            {(filters.tuition[0] > 0 || filters.tuition[1] < 100000) && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                {formatCurrency(filters.tuition[0])}-{formatCurrency(filters.tuition[1])}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={() => handleFilterChange('tuition', [0, 100000])}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            )}
-            {searchTerm && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                "{searchTerm}"
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-4 w-4 p-0 hover:bg-transparent"
-                  onClick={() => setSearchTerm("")}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            )}
-            {isFilteringActive && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-xs h-6"
-                onClick={resetFilters}
-              >
-                {t("programs.filters.reset")}
-              </Button>
-            )}
-          </div>
-        )}
-        
-        {/* Results Count */}
-        <div className="mb-6">
-          <p className="text-muted-foreground">
-            {filteredPrograms.length} {filteredPrograms.length === 1 ? "program" : "programs"} found
-          </p>
-        </div>
-        
-        {/* Programs Grid/List View */}
-        <TabsContent value="grid" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPrograms.map((program) => (
-              <Card key={program.id} className="shadow-sm hover:shadow-md transition-shadow">
-                <CardHeader className="relative p-0 overflow-hidden">
-                  <img 
-                    src={program.image} 
-                    alt={program.title}
-                    className="w-full h-48 object-cover"
+          <Accordion type="multiple" defaultValue={["price", "type", "status"]} className="w-full">
+            {/* Price Range Filter */}
+            <AccordionItem value="price">
+              <AccordionTrigger>{t('programs.priceRange')}</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4">
+                  <Slider 
+                    defaultValue={[0, 3000]} 
+                    max={3000} 
+                    step={100}
+                    value={priceRange}
+                    onValueChange={handlePriceRangeChange}
                   />
-                  <div className="absolute top-2 right-2">
-                    <Badge className="bg-white text-black">{program.country}</Badge>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-                    <div className="p-4 w-full">
-                      <h3 className="text-lg font-semibold text-white line-clamp-2">{program.title}</h3>
-                      <p className="text-white/80 text-sm">{program.university}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="grid grid-cols-2 gap-y-2 text-sm mb-3">
-                    <div className="flex items-center gap-2">
-                      <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                      <span>{program.level}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{program.durationMonths} {t("months")}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-muted-foreground" />
-                      <span>{formatCurrency(program.tuitionPerYear)}/year</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <GlobeIcon className="h-4 w-4 text-muted-foreground" />
-                      <span>{program.language}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>{t("programs.card.deadline")}: {new Date(program.deadline).toLocaleDateString()}</span>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex gap-2 pt-0">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    {t("programs.card.details")}
-                  </Button>
-                  <Button size="sm" className="flex-1">
-                    {t("programs.card.apply")}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="list" className="mt-0">
-          <div className="space-y-4">
-            {filteredPrograms.map((program) => (
-              <Card key={program.id} className="overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  <div className="md:w-1/4 relative">
-                    <img 
-                      src={program.image} 
-                      alt={program.title}
-                      className="w-full h-48 md:h-full object-cover"
-                    />
-                    <div className="absolute top-2 right-2">
-                      <Badge className="bg-white text-black">{program.country}</Badge>
-                    </div>
-                  </div>
-                  <div className="flex-1 p-6">
-                    <div className="mb-4">
-                      <h3 className="text-xl font-semibold mb-1">{program.title}</h3>
-                      <p className="text-muted-foreground">{program.university}</p>
-                    </div>
-                    
-                    <p className="mb-4 line-clamp-2">{program.description}</p>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-y-2 text-sm mb-4">
-                      <div className="flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                        <span>{program.level}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>{program.durationMonths} {t("months")}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        <span>{formatCurrency(program.tuitionPerYear)}/year</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <GlobeIcon className="h-4 w-4 text-muted-foreground" />
-                        <span>{program.language}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{t("programs.card.deadline")}: {new Date(program.deadline).toLocaleDateString()}</span>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          {t("programs.card.details")}
-                        </Button>
-                        <Button size="sm">
-                          {t("programs.card.apply")}
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="flex justify-between">
+                    <span>{priceRange[0]} {t('common.currency')}</span>
+                    <span>{priceRange[1]} {t('common.currency')}</span>
                   </div>
                 </div>
-              </Card>
-            ))}
+              </AccordionContent>
+            </AccordionItem>
+            
+            {/* Program Type Filter */}
+            <AccordionItem value="type">
+              <AccordionTrigger>{t('programs.type')}</AccordionTrigger>
+              <AccordionContent>
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-2">
+                    {programTypes.map((type) => (
+                      <div key={type} className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`w-full justify-start ${
+                            selectedTypes.includes(type) ? 'bg-primary/20' : ''
+                          }`}
+                          onClick={() => toggleType(type)}
+                        >
+                          {selectedTypes.includes(type) && (
+                            <CheckIcon className="mr-2 h-4 w-4" />
+                          )}
+                          {type}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </AccordionContent>
+            </AccordionItem>
+            
+            {/* Wilaya Filter */}
+            <AccordionItem value="wilaya">
+              <AccordionTrigger>{t('programs.wilaya')}</AccordionTrigger>
+              <AccordionContent>
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-2">
+                    {algerianWilayas.map((wilaya) => (
+                      <div key={wilaya} className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`w-full justify-start ${
+                            selectedWilayas.includes(wilaya) ? 'bg-primary/20' : ''
+                          }`}
+                          onClick={() => toggleWilaya(wilaya)}
+                        >
+                          {selectedWilayas.includes(wilaya) && (
+                            <CheckIcon className="mr-2 h-4 w-4" />
+                          )}
+                          {wilaya}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </AccordionContent>
+            </AccordionItem>
+            
+            {/* University Filter */}
+            <AccordionItem value="university">
+              <AccordionTrigger>{t('programs.university')}</AccordionTrigger>
+              <AccordionContent>
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-2">
+                    {algerianUniversities.map((university) => (
+                      <div key={university} className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`w-full justify-start ${
+                            selectedUniversities.includes(university) ? 'bg-primary/20' : ''
+                          }`}
+                          onClick={() => toggleUniversity(university)}
+                        >
+                          {selectedUniversities.includes(university) && (
+                            <CheckIcon className="mr-2 h-4 w-4" />
+                          )}
+                          {university}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </AccordionContent>
+            </AccordionItem>
+            
+            {/* Language Filter */}
+            <AccordionItem value="language">
+              <AccordionTrigger>{t('programs.language')}</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  {languages.map((language) => (
+                    <div key={language} className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`w-full justify-start ${
+                          selectedLanguages.includes(language) ? 'bg-primary/20' : ''
+                        }`}
+                        onClick={() => toggleLanguage(language)}
+                      >
+                        {selectedLanguages.includes(language) && (
+                          <CheckIcon className="mr-2 h-4 w-4" />
+                        )}
+                        {language}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+            
+            {/* Status Filter */}
+            <AccordionItem value="status">
+              <AccordionTrigger>{t('programs.status')}</AccordionTrigger>
+              <AccordionContent>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('programs.selectStatus') as string} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">
+                      {t('programs.all')}
+                    </SelectItem>
+                    <SelectItem value="Open">
+                      {t('programs.statusOpen')}
+                    </SelectItem>
+                    <SelectItem value="Closed">
+                      {t('programs.statusClosed')}
+                    </SelectItem>
+                    <SelectItem value="Coming Soon">
+                      {t('programs.statusComingSoon')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+          
+          <div className="mt-6 space-y-2">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => {
+                setSelectedTypes([]);
+                setSelectedWilayas([]);
+                setSelectedUniversities([]);
+                setSelectedLanguages([]);
+                setSelectedStatus('');
+                setPriceRange([0, 3000]);
+                setSortBy('');
+                setSortOrder('asc');
+                setSearchTerm('');
+              }}
+            >
+              {t('common.resetFilters')}
+            </Button>
           </div>
-        </TabsContent>
+        </div>
         
-        {/* No results message */}
-        {filteredPrograms.length === 0 && (
-          <div className="text-center py-16">
-            <BookOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No programs found</h3>
-            <p className="text-muted-foreground mb-6">Try adjusting your filters to find what you're looking for.</p>
-            <Button onClick={resetFilters}>Reset all filters</Button>
+        {/* Main content */}
+        <div className="w-full md:w-3/4 lg:w-4/5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 className="text-3xl font-bold">{t('programs.title')}</h1>
+            
+            <Button 
+              variant="outline" 
+              className="md:hidden w-full"
+              onClick={() => setFilterOpen(true)}
+            >
+              <FilterIcon className="mr-2 h-4 w-4" />
+              {t('programs.filters')}
+            </Button>
           </div>
-        )}
+          
+          {/* Search and sort */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-grow">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder={t('programs.searchPlaceholder') as string}
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder={t('programs.sortBy') as string} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    {t('programs.none')}
+                  </SelectItem>
+                  <SelectItem value="title">
+                    {t('programs.sortByTitle')}
+                  </SelectItem>
+                  <SelectItem value="fees">
+                    {t('programs.sortByPrice')}
+                  </SelectItem>
+                  <SelectItem value="duration">
+                    {t('programs.sortByDuration')}
+                  </SelectItem>
+                  <SelectItem value="startDate">
+                    {t('programs.sortByDate')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                disabled={!sortBy}
+              >
+                {sortOrder === 'asc' ? (
+                  <SortAscIcon className="h-4 w-4" />
+                ) : (
+                  <SortDescIcon className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Active Filters */}
+          {(selectedTypes.length > 0 || selectedWilayas.length > 0 || 
+            selectedUniversities.length > 0 || selectedLanguages.length > 0 || 
+            selectedStatus || priceRange[0] > 0 || priceRange[1] < 3000) && (
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2">
+                {selectedTypes.map(type => (
+                  <Badge key={type} variant="secondary" className="px-3 py-1">
+                    {type}
+                    <button 
+                      className="ml-2 text-xs" 
+                      onClick={() => toggleType(type)}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+                
+                {selectedWilayas.map(wilaya => (
+                  <Badge key={wilaya} variant="secondary" className="px-3 py-1">
+                    {wilaya}
+                    <button 
+                      className="ml-2 text-xs" 
+                      onClick={() => toggleWilaya(wilaya)}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+                
+                {selectedUniversities.map(uni => (
+                  <Badge key={uni} variant="secondary" className="px-3 py-1">
+                    {uni}
+                    <button 
+                      className="ml-2 text-xs" 
+                      onClick={() => toggleUniversity(uni)}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+                
+                {selectedLanguages.map(lang => (
+                  <Badge key={lang} variant="secondary" className="px-3 py-1">
+                    {lang}
+                    <button 
+                      className="ml-2 text-xs" 
+                      onClick={() => toggleLanguage(lang)}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+                
+                {selectedStatus && (
+                  <Badge variant="secondary" className="px-3 py-1">
+                    {selectedStatus}
+                    <button 
+                      className="ml-2 text-xs" 
+                      onClick={() => setSelectedStatus('')}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+                
+                {(priceRange[0] > 0 || priceRange[1] < 3000) && (
+                  <Badge variant="secondary" className="px-3 py-1">
+                    {priceRange[0]} - {priceRange[1]} {t('common.currency')}
+                    <button 
+                      className="ml-2 text-xs" 
+                      onClick={() => setPriceRange([0, 3000])}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Results count */}
+          <div className="mb-6">
+            <p className="text-sm text-muted-foreground">
+              {t('programs.showing')} {filteredPrograms.length} {t('programs.results')}
+            </p>
+          </div>
+          
+          {/* Program cards */}
+          {filteredPrograms.length === 0 ? (
+            <div className="text-center py-12">
+              <h3 className="text-xl font-medium mb-2">{t('programs.noResults')}</h3>
+              <p className="text-muted-foreground">{t('programs.tryAdjusting')}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {currentItems.map((program) => (
+                <Card key={program.id} className="flex flex-col h-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between">
+                      <Badge 
+                        className={getStatusColor(program.status)}
+                      >
+                        {program.status}
+                      </Badge>
+                      {program.featured && (
+                        <Badge variant="outline" className="bg-yellow-100 dark:bg-yellow-900">
+                          {t('programs.featured')}
+                        </Badge>
+                      )}
+                    </div>
+                    <CardTitle className="mt-2 line-clamp-2">{program.title}</CardTitle>
+                    <div className="flex items-center">
+                      <span className="flex items-center text-yellow-500">
+                        {Array(5).fill(0).map((_, i) => (
+                          <Star 
+                            key={i} 
+                            className={`h-4 w-4 ${i < Math.floor(program.rating) ? 'fill-current' : 'fill-none'}`} 
+                          />
+                        ))}
+                      </span>
+                      <span className="ml-2 text-sm text-muted-foreground">
+                        {program.rating.toFixed(1)}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-2 flex-grow">
+                    <CardDescription className="mb-4 line-clamp-3">
+                      {program.description}
+                    </CardDescription>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('programs.type')}:</span>
+                        <span className="font-medium">{program.type}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('programs.location')}:</span>
+                        <span className="font-medium">{program.location}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('programs.duration')}:</span>
+                        <span className="font-medium">{program.duration}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('programs.fees')}:</span>
+                        <span className="font-medium">
+                          {program.fees === 0 
+                            ? t('programs.free') 
+                            : `${program.fees} ${t('common.currency')}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('programs.language')}:</span>
+                        <span className="font-medium">{program.language}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{t('programs.deadline')}:</span>
+                        <span className="font-medium">{program.applicationDeadline}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2">
+                    <Button className="w-full">{t('programs.details')}</Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {filteredPrograms.length > 0 && (
+            <div className="mt-8">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <PaginationItem key={page}>
+                      <PaginationLink 
+                        isActive={currentPage === page}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default ProgramsPage;

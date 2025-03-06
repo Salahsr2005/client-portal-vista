@@ -1,249 +1,291 @@
 
 export default {
-  // Navbar
-  "nav": {
-    "home": "الرئيسية",
-    "about": "من نحن",
-    "services": "خدماتنا",
-    "contact": "اتصل بنا",
-    "login": "تسجيل الدخول",
-    "dashboard": "لوحة التحكم",
-    "language": "اللغة"
+  common: {
+    title: 'وكالة الدراسة في الخارج',
+    welcome: 'مرحبًا بكم في وكالتنا',
+    login: 'تسجيل الدخول',
+    register: 'التسجيل',
+    logout: 'تسجيل الخروج',
+    profile: 'الملف الشخصي',
+    dashboard: 'لوحة التحكم',
+    applications: 'الطلبات',
+    programs: 'البرامج',
+    services: 'الخدمات',
+    appointments: 'المواعيد',
+    messages: 'الرسائل',
+    notifications: 'الإشعارات',
+    payments: 'المدفوعات',
+    destinations: 'الوجهات',
+    settings: 'الإعدادات',
+    about: 'معلومات عنا',
+    contact: 'اتصل بنا',
+    language: 'اللغة',
+    theme: 'المظهر',
+    dark: 'داكن',
+    light: 'فاتح',
+    system: 'نظام',
+    search: 'بحث',
+    submit: 'إرسال',
+    cancel: 'إلغاء',
+    save: 'حفظ',
+    edit: 'تعديل',
+    delete: 'حذف',
+    close: 'إغلاق',
+    loading: 'جاري التحميل...',
+    back: 'رجوع',
+    next: 'التالي',
+    previous: 'السابق',
+    view: 'عرض',
+    details: 'التفاصيل',
+    apply: 'تقديم طلب',
+    currency: 'دج',
+    resetFilters: 'إعادة تعيين الفلاتر',
   },
-
-  // Home/Landing
-  "landing": {
-    "hero": {
-      "title": "بوابتك نحو الفرص العالمية",
-      "subtitle": "متخصصون في حركة الطلاب والمهنيين الجزائريين",
-      "cta": "ابدأ الآن"
-    },
-    "services": {
-      "title": "خدماتنا",
-      "subtitle": "دعم شامل لرحلتك الدولية"
-    },
-    "testimonials": {
-      "title": "قصص النجاح",
-      "subtitle": "اسمع من عملائنا الذين حققوا أحلامهم"
-    },
-    "stats": {
-      "title": "تأثيرنا",
-      "students": "الطلاب المساعدين",
-      "universities": "الجامعات الشريكة",
-      "countries": "الدول المستهدفة",
-      "satisfaction": "رضا العملاء"
-    }
+  auth: {
+    email: 'البريد الإلكتروني',
+    password: 'كلمة المرور',
+    confirmPassword: 'تأكيد كلمة المرور',
+    forgotPassword: 'نسيت كلمة المرور؟',
+    rememberMe: 'تذكرني',
+    loginTitle: 'تسجيل الدخول إلى حسابك',
+    registerTitle: 'إنشاء حساب جديد',
+    noAccount: 'ليس لديك حساب؟',
+    hasAccount: 'لديك حساب بالفعل؟',
+    signUp: 'إنشاء حساب',
+    signIn: 'تسجيل الدخول',
+    resetPassword: 'إعادة تعيين كلمة المرور',
+    username: 'اسم المستخدم',
+    firstName: 'الاسم الأول',
+    lastName: 'اسم العائلة',
+    phone: 'رقم الهاتف',
+    dateOfBirth: 'تاريخ الميلاد',
+    agreeTerms: 'أوافق على الشروط والأحكام',
+    personalInfo: 'المعلومات الشخصية',
+    accountInfo: 'معلومات الحساب',
   },
-
-  // About
-  "about": {
-    "title": "عن وكالة فيستا",
-    "subtitle": "شركة استشارات الحركة الدولية الجزائرية الرائدة منذ 2010",
-    "story": {
-      "title": "قصتنا",
-      "p1": "تأسست فيستا في عام 2010 في الجزائر العاصمة، بدأت كفريق صغير برؤية كبيرة - ربط الجزائريين الموهوبين بالفرص الدولية.",
-      "p2": "بعد أكثر من عقد، نمت لتصبح وكالة التنقل التعليمي والمهني الرائدة في الجزائر، مع مكاتب في الجزائر العاصمة وهران وقسنطينة.",
-      "p3": "يضم فريق مستشارينا طلابًا ومهنيين دوليين سابقين يفهمون تحديات ومكافآت التنقل العالمي."
-    },
-    "values": {
-      "title": "قيمنا الأساسية",
-      "integrity": {
-        "title": "النزاهة",
-        "description": "نقدم إرشادات صادقة ونصائح شفافة في كل تفاعل"
-      },
-      "client": {
-        "title": "التركيز على العميل",
-        "description": "نجاحك هو نجاحنا - نكيف خدماتنا لاحتياجاتك الفريدة"
-      },
-      "excellence": {
-        "title": "التميز",
-        "description": "نسعى لتحقيق أعلى المعايير في جميع خدماتنا وعملياتنا"
-      },
-      "global": {
-        "title": "عقلية عالمية",
-        "description": "نحتضن التنوع الثقافي والمنظورات الدولية"
-      }
-    },
-    "mission": {
-      "title": "مهمتنا",
-      "statement": "تمكين الطلاب والمهنيين الجزائريين من الوصول إلى كامل إمكاناتهم من خلال التعليم الدولي وفرص العمل."
-    },
-    "vision": {
-      "title": "رؤيتنا",
-      "statement": "أن نكون الجسر الأكثر موثوقية بين الجزائر والفرص العالمية، ورعاية جيل جديد من القادة ذوي العقلية العالمية."
-    }
+  programs: {
+    title: 'برامج الدراسة في الخارج',
+    searchPlaceholder: 'ابحث عن البرامج بالاسم أو الوصف',
+    filters: 'التصفية',
+    priceRange: 'نطاق السعر',
+    type: 'نوع البرنامج',
+    wilaya: 'الولاية',
+    university: 'الجامعة',
+    language: 'اللغة',
+    status: 'الحالة',
+    selectStatus: 'اختر الحالة',
+    statusOpen: 'مفتوح',
+    statusClosed: 'مغلق',
+    statusComingSoon: 'قريبًا',
+    all: 'الكل',
+    sortBy: 'ترتيب حسب',
+    sortByTitle: 'العنوان',
+    sortByPrice: 'السعر',
+    sortByDuration: 'المدة',
+    sortByDate: 'تاريخ البدء',
+    none: 'لا شيء',
+    showing: 'عرض',
+    results: 'برامج',
+    noResults: 'لا توجد برامج',
+    tryAdjusting: 'حاول تعديل عوامل التصفية أو مصطلح البحث',
+    featured: 'مميز',
+    location: 'الموقع',
+    duration: 'المدة',
+    fees: 'الرسوم',
+    deadline: 'الموعد النهائي',
+    free: 'مجاني',
+    details: 'عرض التفاصيل',
   },
-
-  // Services
-  "services": {
-    "title": "خدماتنا",
-    "subtitle": "حلول شاملة لرحلتك الدولية",
-    "learnMore": "معرفة المزيد",
-    "academic": {
-      "title": "الاستشارات الأكاديمية",
-      "description": "توجيه شخصي لرحلتك التعليمية",
-      "features": {
-        "f1": "اختيار الجامعة ودعم الطلبات",
-        "f2": "نصائح المنح الدراسية والتمويل",
-        "f3": "إعداد البيانات الشخصية والسيرة الذاتية"
-      }
-    },
-    "career": {
-      "title": "خدمات المهنية",
-      "description": "توجيه مهني للوظائف الدولية",
-      "features": {
-        "f1": "مساعدة التوظيف الدولي",
-        "f2": "إعداد السيرة الذاتية والمقابلة",
-        "f3": "تخطيط التطوير المهني"
-      }
-    },
-    "travel": {
-      "title": "ترتيبات السفر",
-      "description": "تخطيط سفر شامل ودعم",
-      "features": {
-        "f1": "مساعدة في حجز الرحلات",
-        "f2": "التوجيه قبل المغادرة",
-        "f3": "تنسيق الاستقبال في المطار"
-      }
-    },
-    "visa": {
-      "title": "مساعدة التأشيرة",
-      "description": "إرشاد خبير خلال عمليات التأشيرة",
-      "features": {
-        "f1": "إعداد طلب التأشيرة",
-        "f2": "مراجعة المستندات والنصائح",
-        "f3": "إعداد المقابلة لمقدمي طلبات التأشيرة"
-      }
-    },
-    "accommodation": {
-      "title": "خدمات الإقامة",
-      "description": "حلول سكن آمنة ومناسبة",
-      "features": {
-        "f1": "ترتيبات سكن الطلاب",
-        "f2": "خيارات سكن قصيرة وطويلة الأمد",
-        "f3": "مزودي سكن معتمدين مسبقًا"
-      }
-    },
-    "language": {
-      "title": "دعم اللغة",
-      "description": "إعداد لغوي للنجاح الدولي",
-      "features": {
-        "f1": "تحضير IELTS و TOEFL و TCF",
-        "f2": "شهادة الكفاءة اللغوية",
-        "f3": "تدريب لغوي محادثة"
-      }
-    },
-    "cta": {
-      "title": "هل أنت مستعد لبدء رحلتك؟",
-      "description": "فريقنا من المستشارين الخبراء جاهز لمساعدتك في تحقيق أهدافك الدولية.",
-      "button1": "جدولة استشارة",
-      "button2": "استكشاف البرامج"
-    }
+  dashboard: {
+    welcome: 'مرحباً بعودتك',
+    overview: 'نظرة عامة',
+    stats: 'الإحصائيات',
+    recentActivity: 'النشاط الأخير',
+    upcomingAppointments: 'المواعيد القادمة',
+    pendingApplications: 'الطلبات المعلقة',
+    messages: 'الرسائل',
+    notifications: 'الإشعارات',
+    quickLinks: 'روابط سريعة',
   },
-
-  // Contact
-  "contact": {
-    "title": "اتصل بنا",
-    "subtitle": "نحن هنا للإجابة على أسئلتك ودعم رحلتك",
-    "address": {
-      "title": "زورنا",
-      "line1": "16 شارع محمد الخامس",
-      "line2": "الجزائر 16000، الجزائر"
-    },
-    "email": {
-      "title": "راسلنا",
-      "address": "info@vista-algeria.com"
-    },
-    "phone": {
-      "title": "اتصل بنا",
-      "number": "+213 21 56 78 90"
-    },
-    "form": {
-      "title": "أرسل لنا رسالة",
-      "description": "سنرد على استفسارك خلال 24 ساعة",
-      "firstName": "الاسم الأول",
-      "firstNamePlaceholder": "أدخل اسمك الأول",
-      "lastName": "اسم العائلة",
-      "lastNamePlaceholder": "أدخل اسم العائلة",
-      "email": "البريد الإلكتروني",
-      "emailPlaceholder": "أدخل عنوان بريدك الإلكتروني",
-      "subject": "الموضوع",
-      "subjectPlaceholder": "ما هو موضوع رسالتك؟",
-      "message": "الرسالة",
-      "messagePlaceholder": "اكتب رسالتك هنا...",
-      "submit": "إرسال الرسالة"
-    }
+  profile: {
+    personalInfo: 'المعلومات الشخصية',
+    contact: 'معلومات الاتصال',
+    documents: 'المستندات',
+    education: 'التعليم',
+    workExperience: 'الخبرة العملية',
+    languages: 'اللغات',
+    emergencyContact: 'جهة اتصال للطوارئ',
+    changePassword: 'تغيير كلمة المرور',
+    completeProfile: 'أكمل ملفك الشخصي',
+    nationality: 'الجنسية',
+    passportNumber: 'رقم جواز السفر',
+    passportExpiry: 'تاريخ انتهاء جواز السفر',
+    currentAddress: 'العنوان الحالي',
+    educationBackground: 'الخلفية التعليمية',
+    workHistory: 'سجل العمل',
+    languageProficiency: 'إتقان اللغة',
+    currentPassword: 'كلمة المرور الحالية',
+    newPassword: 'كلمة المرور الجديدة',
+    confirmNewPassword: 'تأكيد كلمة المرور الجديدة',
+    uploadDocument: 'تحميل مستند',
+    documentType: 'نوع المستند',
   },
-
-  // Programs
-  "programs": {
-    "title": "برامج الدراسة",
-    "subtitle": "اكتشف الفرص في مؤسسات مرموقة في جميع أنحاء العالم",
-    "filters": {
-      "title": "تصفية البرامج",
-      "country": "البلد",
-      "level": "المستوى التعليمي",
-      "duration": "المدة",
-      "field": "مجال الدراسة",
-      "language": "اللغة",
-      "tuition": "الرسوم الدراسية",
-      "apply": "تطبيق الفلاتر",
-      "reset": "إعادة ضبط",
-      "search": "البحث عن البرامج...",
-      "sort": "ترتيب حسب",
-      "sortOptions": {
-        "relevance": "الصلة",
-        "nameAsc": "الاسم (أ-ي)",
-        "nameDesc": "الاسم (ي-أ)",
-        "dateNewest": "الأحدث أولاً",
-        "dateOldest": "الأقدم أولاً",
-        "tuitionLow": "الرسوم (من الأقل إلى الأعلى)",
-        "tuitionHigh": "الرسوم (من الأعلى إلى الأقل)"
-      }
-    },
-    "card": {
-      "level": "المستوى",
-      "duration": "المدة",
-      "tuition": "الرسوم",
-      "language": "اللغة",
-      "deadline": "الموعد النهائي",
-      "details": "عرض التفاصيل",
-      "apply": "تقديم الطلب الآن"
-    },
-    "details": {
-      "overview": "نظرة عامة",
-      "requirements": "المتطلبات",
-      "curriculum": "المنهج",
-      "career": "مسارات المهنية",
-      "fees": "الرسوم والتمويل",
-      "apply": "كيفية التقديم"
-    }
+  applications: {
+    myApplications: 'طلباتي',
+    applicationId: 'معرف الطلب',
+    program: 'البرنامج',
+    status: 'الحالة',
+    submittedDate: 'تاريخ التقديم',
+    trackApplication: 'تتبع الطلب',
+    newApplication: 'طلب جديد',
+    pending: 'معلق',
+    approved: 'موافق عليه',
+    rejected: 'مرفوض',
+    underReview: 'قيد المراجعة',
+    additionalInfo: 'مطلوب معلومات إضافية',
+    applicationDetails: 'تفاصيل الطلب',
+    timeline: 'الجدول الزمني',
+    documents: 'المستندات',
+    comments: 'التعليقات',
+    addComment: 'إضافة تعليق',
   },
-
-  // Dashboard
-  "dashboard": {
-    "greeting": "صباح الخير {{time}}، {{name}}!",
-    "welcome": "مرحبًا بعودتك إلى لوحة تحكم فيستا الخاصة بك. إليك نظرة عامة على رحلتك.",
-    "completeProfile": "أكمل ملفك الشخصي",
-    "profileCompletion": "اكتمال الملف الشخصي"
+  services: {
+    ourServices: 'خدماتنا',
+    visaSupport: 'دعم التأشيرة',
+    accommodationAssistance: 'مساعدة الإقامة',
+    careerCounseling: 'استشارات مهنية',
+    languageClasses: 'دروس لغة',
+    documentTranslation: 'ترجمة المستندات',
+    travelInsurance: 'تأمين السفر',
+    requestService: 'طلب خدمة',
+    viewDetails: 'عرض التفاصيل',
+    serviceDescription: 'وصف الخدمة',
+    fees: 'الرسوم',
+    duration: 'المدة',
+    requirements: 'المتطلبات',
   },
-
-  // Common
-  "common": {
-    "loading": "جاري التحميل...",
-    "error": "حدث خطأ",
-    "retry": "إعادة المحاولة",
-    "save": "حفظ",
-    "cancel": "إلغاء",
-    "delete": "حذف",
-    "edit": "تعديل",
-    "view": "عرض",
-    "search": "بحث",
-    "filter": "تصفية",
-    "sort": "ترتيب",
-    "yes": "نعم",
-    "no": "لا",
-    "success": "نجاح",
-    "failed": "فشل"
-  }
+  appointments: {
+    myAppointments: 'مواعيدي',
+    scheduleAppointment: 'جدولة موعد',
+    appointmentType: 'نوع الموعد',
+    date: 'التاريخ',
+    time: 'الوقت',
+    status: 'الحالة',
+    cancellationPolicy: 'سياسة الإلغاء',
+    reschedule: 'إعادة جدولة',
+    cancel: 'إلغاء',
+    completed: 'مكتمل',
+    upcoming: 'قادم',
+    cancelled: 'ملغي',
+    missed: 'فائت',
+    selectDate: 'اختر تاريخًا',
+    selectTime: 'اختر وقتًا',
+    appointmentDetails: 'تفاصيل الموعد',
+  },
+  messages: {
+    inbox: 'صندوق الوارد',
+    sent: 'المرسلة',
+    compose: 'إنشاء',
+    subject: 'الموضوع',
+    message: 'الرسالة',
+    sender: 'المرسل',
+    recipient: 'المستلم',
+    date: 'التاريخ',
+    reply: 'الرد',
+    forward: 'إعادة توجيه',
+    delete: 'حذف',
+    markAsRead: 'تحديد كمقروء',
+    markAsUnread: 'تحديد كغير مقروء',
+    attachments: 'المرفقات',
+    selectRecipient: 'اختر المستلم',
+    sendMessage: 'إرسال الرسالة',
+  },
+  notifications: {
+    all: 'جميع الإشعارات',
+    unread: 'غير مقروءة',
+    markAllAsRead: 'تحديد الكل كمقروءة',
+    clearAll: 'مسح الكل',
+    noNotifications: 'لا توجد إشعارات',
+    applicationUpdate: 'تحديث الطلب',
+    appointmentReminder: 'تذكير بالموعد',
+    paymentConfirmation: 'تأكيد الدفع',
+    systemNotice: 'إشعار النظام',
+  },
+  payments: {
+    myPayments: 'مدفوعاتي',
+    paymentHistory: 'سجل المدفوعات',
+    makePayment: 'إجراء الدفع',
+    paymentId: 'معرف الدفع',
+    amount: 'المبلغ',
+    date: 'التاريخ',
+    method: 'الطريقة',
+    status: 'الحالة',
+    description: 'الوصف',
+    receipt: 'الإيصال',
+    downloadReceipt: 'تنزيل الإيصال',
+    paymentDetails: 'تفاصيل الدفع',
+    successfulPayment: 'الدفع ناجح',
+    pendingPayment: 'الدفع معلق',
+    failedPayment: 'الدفع فاشل',
+    refundedPayment: 'المدفوعات المستردة',
+    selectPaymentMethod: 'اختر طريقة الدفع',
+    cardNumber: 'رقم البطاقة',
+    expiryDate: 'تاريخ الانتهاء',
+    cvv: 'رمز التحقق',
+    nameOnCard: 'الاسم على البطاقة',
+    billingAddress: 'عنوان الفوترة',
+  },
+  destinations: {
+    popularDestinations: 'الوجهات الشائعة',
+    exploreDestinations: 'استكشاف الوجهات',
+    country: 'البلد',
+    city: 'المدينة',
+    universities: 'الجامعات',
+    livingCosts: 'تكاليف المعيشة',
+    visaRequirements: 'متطلبات التأشيرة',
+    culture: 'الثقافة',
+    climate: 'المناخ',
+    transportation: 'المواصلات',
+    accommodation: 'الإقامة',
+    safety: 'الأمان',
+    healthInsurance: 'التأمين الصحي',
+    learMore: 'معرفة المزيد',
+    viewPrograms: 'عرض البرامج',
+  },
+  footer: {
+    rights: 'جميع الحقوق محفوظة',
+    terms: 'شروط الخدمة',
+    privacy: 'سياسة الخصوصية',
+    contact: 'اتصل بنا',
+    followUs: 'تابعنا',
+    newsletter: 'اشترك في نشرتنا الإخبارية',
+    subscribe: 'اشتراك',
+    email: 'البريد الإلكتروني',
+  },
+  contact: {
+    getInTouch: 'تواصل معنا',
+    fillForm: 'املأ النموذج أدناه للتواصل معنا',
+    name: 'اسمك',
+    email: 'البريد الإلكتروني',
+    phone: 'رقم الهاتف (اختياري)',
+    subject: 'الموضوع',
+    message: 'رسالتك',
+    send: 'إرسال الرسالة',
+    address: 'عنواننا',
+    phoneNumber: 'رقم الهاتف',
+    emailUs: 'راسلنا عبر البريد الإلكتروني',
+    officeHours: 'ساعات العمل',
+    faq: 'الأسئلة الشائعة',
+  },
+  about: {
+    ourMission: 'مهمتنا',
+    ourVision: 'رؤيتنا',
+    ourValues: 'قيمنا',
+    ourTeam: 'فريقنا',
+    ourHistory: 'تاريخنا',
+    whyUs: 'لماذا تختارنا',
+    testimonials: 'الشهادات',
+    partners: 'شركاؤنا',
+    accreditations: 'الاعتمادات',
+  },
 };

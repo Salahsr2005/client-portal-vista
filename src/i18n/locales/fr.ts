@@ -1,249 +1,291 @@
 
 export default {
-  // Navbar
-  "nav": {
-    "home": "Accueil",
-    "about": "À Propos",
-    "services": "Services",
-    "contact": "Contact",
-    "login": "Connexion",
-    "dashboard": "Tableau de Bord",
-    "language": "Langue"
+  common: {
+    title: 'Agence d\'Études à l\'Étranger',
+    welcome: 'Bienvenue dans notre agence',
+    login: 'Connexion',
+    register: 'Inscription',
+    logout: 'Déconnexion',
+    profile: 'Profil',
+    dashboard: 'Tableau de bord',
+    applications: 'Candidatures',
+    programs: 'Programmes',
+    services: 'Services',
+    appointments: 'Rendez-vous',
+    messages: 'Messages',
+    notifications: 'Notifications',
+    payments: 'Paiements',
+    destinations: 'Destinations',
+    settings: 'Paramètres',
+    about: 'À Propos',
+    contact: 'Contact',
+    language: 'Langue',
+    theme: 'Thème',
+    dark: 'Sombre',
+    light: 'Clair',
+    system: 'Système',
+    search: 'Rechercher',
+    submit: 'Soumettre',
+    cancel: 'Annuler',
+    save: 'Enregistrer',
+    edit: 'Modifier',
+    delete: 'Supprimer',
+    close: 'Fermer',
+    loading: 'Chargement...',
+    back: 'Retour',
+    next: 'Suivant',
+    previous: 'Précédent',
+    view: 'Voir',
+    details: 'Détails',
+    apply: 'Postuler',
+    currency: 'DZD',
+    resetFilters: 'Réinitialiser les filtres',
   },
-
-  // Home/Landing
-  "landing": {
-    "hero": {
-      "title": "Votre Passerelle vers les Opportunités Internationales",
-      "subtitle": "Spécialisé dans la mobilité des étudiants et professionnels algériens",
-      "cta": "Commencer"
-    },
-    "services": {
-      "title": "Nos Services",
-      "subtitle": "Un soutien complet pour votre parcours international"
-    },
-    "testimonials": {
-      "title": "Histoires de Réussite",
-      "subtitle": "Témoignages de nos clients qui ont réalisé leurs rêves"
-    },
-    "stats": {
-      "title": "Notre Impact",
-      "students": "Étudiants Assistés",
-      "universities": "Universités Partenaires",
-      "countries": "Pays de Destination",
-      "satisfaction": "Satisfaction Client"
-    }
+  auth: {
+    email: 'Email',
+    password: 'Mot de passe',
+    confirmPassword: 'Confirmer le mot de passe',
+    forgotPassword: 'Mot de passe oublié?',
+    rememberMe: 'Se souvenir de moi',
+    loginTitle: 'Connectez-vous à votre compte',
+    registerTitle: 'Créez votre compte',
+    noAccount: 'Vous n\'avez pas de compte?',
+    hasAccount: 'Vous avez déjà un compte?',
+    signUp: 'S\'inscrire',
+    signIn: 'Se connecter',
+    resetPassword: 'Réinitialiser le mot de passe',
+    username: 'Nom d\'utilisateur',
+    firstName: 'Prénom',
+    lastName: 'Nom',
+    phone: 'Numéro de téléphone',
+    dateOfBirth: 'Date de naissance',
+    agreeTerms: 'J\'accepte les termes et conditions',
+    personalInfo: 'Informations personnelles',
+    accountInfo: 'Informations du compte',
   },
-
-  // About
-  "about": {
-    "title": "À Propos de l'Agence Vista",
-    "subtitle": "Cabinet de conseil en mobilité internationale algérien depuis 2010",
-    "story": {
-      "title": "Notre Histoire",
-      "p1": "Fondée en 2010 à Alger, Vista a commencé comme une petite équipe avec une grande vision - connecter les Algériens talentueux avec des opportunités internationales.",
-      "p2": "Plus d'une décennie plus tard, nous sommes devenus la principale agence de mobilité éducative et professionnelle d'Algérie, avec des bureaux à Alger, Oran et Constantine.",
-      "p3": "Notre équipe de conseillers comprend d'anciens étudiants et professionnels internationaux qui comprennent les défis et les avantages de la mobilité mondiale."
-    },
-    "values": {
-      "title": "Nos Valeurs Fondamentales",
-      "integrity": {
-        "title": "Intégrité",
-        "description": "Nous fournissons des conseils honnêtes et transparents dans chaque interaction"
-      },
-      "client": {
-        "title": "Focus Client",
-        "description": "Votre succès est notre succès - nous adaptons nos services à vos besoins uniques"
-      },
-      "excellence": {
-        "title": "Excellence",
-        "description": "Nous visons les normes les plus élevées dans tous nos services et opérations"
-      },
-      "global": {
-        "title": "Esprit Global",
-        "description": "Nous embrassons la diversité culturelle et les perspectives internationales"
-      }
-    },
-    "mission": {
-      "title": "Notre Mission",
-      "statement": "Permettre aux étudiants et professionnels algériens d'atteindre leur plein potentiel grâce à l'éducation internationale et aux opportunités de carrière."
-    },
-    "vision": {
-      "title": "Notre Vision",
-      "statement": "Être le pont le plus fiable entre l'Algérie et les opportunités mondiales, favorisant une nouvelle génération de leaders à l'esprit global."
-    }
+  programs: {
+    title: 'Programmes d\'Études à l\'Étranger',
+    searchPlaceholder: 'Rechercher par nom ou description',
+    filters: 'Filtres',
+    priceRange: 'Gamme de prix',
+    type: 'Type de programme',
+    wilaya: 'Wilaya',
+    university: 'Université',
+    language: 'Langue',
+    status: 'Statut',
+    selectStatus: 'Sélectionner un statut',
+    statusOpen: 'Ouvert',
+    statusClosed: 'Fermé',
+    statusComingSoon: 'À venir',
+    all: 'Tous',
+    sortBy: 'Trier par',
+    sortByTitle: 'Titre',
+    sortByPrice: 'Prix',
+    sortByDuration: 'Durée',
+    sortByDate: 'Date de début',
+    none: 'Aucun',
+    showing: 'Affichage de',
+    results: 'programmes',
+    noResults: 'Aucun programme trouvé',
+    tryAdjusting: 'Essayez d\'ajuster vos filtres ou terme de recherche',
+    featured: 'En vedette',
+    location: 'Lieu',
+    duration: 'Durée',
+    fees: 'Frais',
+    deadline: 'Date limite',
+    free: 'Gratuit',
+    details: 'Voir les détails',
   },
-
-  // Services
-  "services": {
-    "title": "Nos Services",
-    "subtitle": "Des solutions complètes pour votre parcours international",
-    "learnMore": "En Savoir Plus",
-    "academic": {
-      "title": "Conseil Académique",
-      "description": "Orientation personnalisée pour votre parcours éducatif",
-      "features": {
-        "f1": "Sélection universitaire et soutien aux candidatures",
-        "f2": "Conseils en bourses et financement",
-        "f3": "Préparation de lettre de motivation et CV"
-      }
-    },
-    "career": {
-      "title": "Services de Carrière",
-      "description": "Orientation professionnelle pour carrières internationales",
-      "features": {
-        "f1": "Assistance au placement professionnel international",
-        "f2": "Préparation CV et entretien",
-        "f3": "Planification du développement de carrière"
-      }
-    },
-    "travel": {
-      "title": "Organisation de Voyage",
-      "description": "Planification complète et soutien au voyage",
-      "features": {
-        "f1": "Assistance à la réservation de vols",
-        "f2": "Orientation pré-départ",
-        "f3": "Coordination de l'accueil à l'aéroport"
-      }
-    },
-    "visa": {
-      "title": "Assistance Visa",
-      "description": "Conseils d'experts sur les processus de visa",
-      "features": {
-        "f1": "Préparation de demande de visa",
-        "f2": "Revue de documentation et conseils",
-        "f3": "Préparation à l'entretien pour demandeurs de visa"
-      }
-    },
-    "accommodation": {
-      "title": "Services d'Hébergement",
-      "description": "Solutions de logement sûres et adaptées",
-      "features": {
-        "f1": "Arrangements de logement étudiant",
-        "f2": "Options de logement à court et long terme",
-        "f3": "Fournisseurs d'hébergement pré-vérifiés"
-      }
-    },
-    "language": {
-      "title": "Soutien Linguistique",
-      "description": "Préparation linguistique pour réussir à l'international",
-      "features": {
-        "f1": "Préparation IELTS, TOEFL, et TCF",
-        "f2": "Certification de compétence linguistique",
-        "f3": "Formation linguistique conversationnelle"
-      }
-    },
-    "cta": {
-      "title": "Prêt à Commencer Votre Voyage?",
-      "description": "Notre équipe de conseillers experts est prête à vous aider à atteindre vos objectifs internationaux.",
-      "button1": "Planifier une Consultation",
-      "button2": "Explorer les Programmes"
-    }
+  dashboard: {
+    welcome: 'Bienvenue',
+    overview: 'Aperçu',
+    stats: 'Statistiques',
+    recentActivity: 'Activité récente',
+    upcomingAppointments: 'Rendez-vous à venir',
+    pendingApplications: 'Candidatures en attente',
+    messages: 'Messages',
+    notifications: 'Notifications',
+    quickLinks: 'Liens rapides',
   },
-
-  // Contact
-  "contact": {
-    "title": "Contactez-Nous",
-    "subtitle": "Nous sommes là pour répondre à vos questions et soutenir votre parcours",
-    "address": {
-      "title": "Visitez-Nous",
-      "line1": "16 Boulevard Mohammed V",
-      "line2": "Alger 16000, Algérie"
-    },
-    "email": {
-      "title": "Écrivez-Nous",
-      "address": "info@vista-algeria.com"
-    },
-    "phone": {
-      "title": "Appelez-Nous",
-      "number": "+213 21 56 78 90"
-    },
-    "form": {
-      "title": "Envoyez-Nous un Message",
-      "description": "Nous répondrons à votre demande dans les 24 heures",
-      "firstName": "Prénom",
-      "firstNamePlaceholder": "Entrez votre prénom",
-      "lastName": "Nom",
-      "lastNamePlaceholder": "Entrez votre nom",
-      "email": "Email",
-      "emailPlaceholder": "Entrez votre adresse email",
-      "subject": "Sujet",
-      "subjectPlaceholder": "De quoi concerne votre message?",
-      "message": "Message",
-      "messagePlaceholder": "Écrivez votre message ici...",
-      "submit": "Envoyer le Message"
-    }
+  profile: {
+    personalInfo: 'Informations personnelles',
+    contact: 'Contact',
+    documents: 'Documents',
+    education: 'Éducation',
+    workExperience: 'Expérience professionnelle',
+    languages: 'Langues',
+    emergencyContact: 'Contact d\'urgence',
+    changePassword: 'Changer le mot de passe',
+    completeProfile: 'Complétez votre profil',
+    nationality: 'Nationalité',
+    passportNumber: 'Numéro de passeport',
+    passportExpiry: 'Date d\'expiration du passeport',
+    currentAddress: 'Adresse actuelle',
+    educationBackground: 'Formation académique',
+    workHistory: 'Historique de travail',
+    languageProficiency: 'Compétences linguistiques',
+    currentPassword: 'Mot de passe actuel',
+    newPassword: 'Nouveau mot de passe',
+    confirmNewPassword: 'Confirmer le nouveau mot de passe',
+    uploadDocument: 'Télécharger un document',
+    documentType: 'Type de document',
   },
-
-  // Programs
-  "programs": {
-    "title": "Programmes d'Études",
-    "subtitle": "Découvrez des opportunités dans des institutions prestigieuses du monde entier",
-    "filters": {
-      "title": "Filtrer les Programmes",
-      "country": "Pays",
-      "level": "Niveau d'Éducation",
-      "duration": "Durée",
-      "field": "Domaine d'Étude",
-      "language": "Langue",
-      "tuition": "Frais de Scolarité",
-      "apply": "Appliquer les Filtres",
-      "reset": "Réinitialiser",
-      "search": "Rechercher des programmes...",
-      "sort": "Trier Par",
-      "sortOptions": {
-        "relevance": "Pertinence",
-        "nameAsc": "Nom (A-Z)",
-        "nameDesc": "Nom (Z-A)",
-        "dateNewest": "Plus Récent",
-        "dateOldest": "Plus Ancien",
-        "tuitionLow": "Frais (Bas à Élevé)",
-        "tuitionHigh": "Frais (Élevé à Bas)"
-      }
-    },
-    "card": {
-      "level": "Niveau",
-      "duration": "Durée",
-      "tuition": "Frais",
-      "language": "Langue",
-      "deadline": "Date Limite",
-      "details": "Voir les Détails",
-      "apply": "Postuler Maintenant"
-    },
-    "details": {
-      "overview": "Aperçu",
-      "requirements": "Prérequis",
-      "curriculum": "Programme",
-      "career": "Débouchés Professionnels",
-      "fees": "Frais & Financement",
-      "apply": "Comment Postuler"
-    }
+  applications: {
+    myApplications: 'Mes candidatures',
+    applicationId: 'ID de candidature',
+    program: 'Programme',
+    status: 'Statut',
+    submittedDate: 'Date de soumission',
+    trackApplication: 'Suivre la candidature',
+    newApplication: 'Nouvelle candidature',
+    pending: 'En attente',
+    approved: 'Approuvée',
+    rejected: 'Rejetée',
+    underReview: 'En cours de révision',
+    additionalInfo: 'Informations supplémentaires requises',
+    applicationDetails: 'Détails de la candidature',
+    timeline: 'Chronologie',
+    documents: 'Documents',
+    comments: 'Commentaires',
+    addComment: 'Ajouter un commentaire',
   },
-
-  // Dashboard
-  "dashboard": {
-    "greeting": "Bonjour {{time}}, {{name}}!",
-    "welcome": "Bienvenue sur votre tableau de bord Vista. Voici un aperçu de votre parcours.",
-    "completeProfile": "Compléter Votre Profil",
-    "profileCompletion": "Progression du Profil"
+  services: {
+    ourServices: 'Nos services',
+    visaSupport: 'Support de visa',
+    accommodationAssistance: 'Assistance au logement',
+    careerCounseling: 'Conseil de carrière',
+    languageClasses: 'Cours de langue',
+    documentTranslation: 'Traduction de documents',
+    travelInsurance: 'Assurance voyage',
+    requestService: 'Demander un service',
+    viewDetails: 'Voir les détails',
+    serviceDescription: 'Description du service',
+    fees: 'Frais',
+    duration: 'Durée',
+    requirements: 'Exigences',
   },
-
-  // Common
-  "common": {
-    "loading": "Chargement...",
-    "error": "Une erreur s'est produite",
-    "retry": "Réessayer",
-    "save": "Sauvegarder",
-    "cancel": "Annuler",
-    "delete": "Supprimer",
-    "edit": "Modifier",
-    "view": "Voir",
-    "search": "Rechercher",
-    "filter": "Filtrer",
-    "sort": "Trier",
-    "yes": "Oui",
-    "no": "Non",
-    "success": "Succès",
-    "failed": "Échec"
-  }
+  appointments: {
+    myAppointments: 'Mes rendez-vous',
+    scheduleAppointment: 'Planifier un rendez-vous',
+    appointmentType: 'Type de rendez-vous',
+    date: 'Date',
+    time: 'Heure',
+    status: 'Statut',
+    cancellationPolicy: 'Politique d\'annulation',
+    reschedule: 'Reprogrammer',
+    cancel: 'Annuler',
+    completed: 'Terminé',
+    upcoming: 'À venir',
+    cancelled: 'Annulé',
+    missed: 'Manqué',
+    selectDate: 'Sélectionner une date',
+    selectTime: 'Sélectionner une heure',
+    appointmentDetails: 'Détails du rendez-vous',
+  },
+  messages: {
+    inbox: 'Boîte de réception',
+    sent: 'Envoyés',
+    compose: 'Composer',
+    subject: 'Sujet',
+    message: 'Message',
+    sender: 'Expéditeur',
+    recipient: 'Destinataire',
+    date: 'Date',
+    reply: 'Répondre',
+    forward: 'Transférer',
+    delete: 'Supprimer',
+    markAsRead: 'Marquer comme lu',
+    markAsUnread: 'Marquer comme non lu',
+    attachments: 'Pièces jointes',
+    selectRecipient: 'Sélectionner un destinataire',
+    sendMessage: 'Envoyer le message',
+  },
+  notifications: {
+    all: 'Toutes les notifications',
+    unread: 'Non lues',
+    markAllAsRead: 'Marquer tout comme lu',
+    clearAll: 'Tout effacer',
+    noNotifications: 'Pas de notifications',
+    applicationUpdate: 'Mise à jour de candidature',
+    appointmentReminder: 'Rappel de rendez-vous',
+    paymentConfirmation: 'Confirmation de paiement',
+    systemNotice: 'Avis système',
+  },
+  payments: {
+    myPayments: 'Mes paiements',
+    paymentHistory: 'Historique des paiements',
+    makePayment: 'Effectuer un paiement',
+    paymentId: 'ID de paiement',
+    amount: 'Montant',
+    date: 'Date',
+    method: 'Méthode',
+    status: 'Statut',
+    description: 'Description',
+    receipt: 'Reçu',
+    downloadReceipt: 'Télécharger le reçu',
+    paymentDetails: 'Détails du paiement',
+    successfulPayment: 'Paiement réussi',
+    pendingPayment: 'Paiement en attente',
+    failedPayment: 'Paiement échoué',
+    refundedPayment: 'Paiement remboursé',
+    selectPaymentMethod: 'Sélectionner une méthode de paiement',
+    cardNumber: 'Numéro de carte',
+    expiryDate: 'Date d\'expiration',
+    cvv: 'CVV',
+    nameOnCard: 'Nom sur la carte',
+    billingAddress: 'Adresse de facturation',
+  },
+  destinations: {
+    popularDestinations: 'Destinations populaires',
+    exploreDestinations: 'Explorer les destinations',
+    country: 'Pays',
+    city: 'Ville',
+    universities: 'Universités',
+    livingCosts: 'Coût de la vie',
+    visaRequirements: 'Exigences de visa',
+    culture: 'Culture',
+    climate: 'Climat',
+    transportation: 'Transport',
+    accommodation: 'Hébergement',
+    safety: 'Sécurité',
+    healthInsurance: 'Assurance santé',
+    learMore: 'En savoir plus',
+    viewPrograms: 'Voir les programmes',
+  },
+  footer: {
+    rights: 'Tous droits réservés',
+    terms: 'Conditions d\'utilisation',
+    privacy: 'Politique de confidentialité',
+    contact: 'Contactez-nous',
+    followUs: 'Suivez-nous',
+    newsletter: 'Abonnez-vous à notre newsletter',
+    subscribe: 'S\'abonner',
+    email: 'Adresse email',
+  },
+  contact: {
+    getInTouch: 'Contactez-nous',
+    fillForm: 'Remplissez le formulaire ci-dessous pour nous contacter',
+    name: 'Votre nom',
+    email: 'Adresse email',
+    phone: 'Numéro de téléphone (Optionnel)',
+    subject: 'Sujet',
+    message: 'Votre message',
+    send: 'Envoyer le message',
+    address: 'Notre adresse',
+    phoneNumber: 'Numéro de téléphone',
+    emailUs: 'Envoyez-nous un email',
+    officeHours: 'Heures de bureau',
+    faq: 'Questions fréquemment posées',
+  },
+  about: {
+    ourMission: 'Notre mission',
+    ourVision: 'Notre vision',
+    ourValues: 'Nos valeurs',
+    ourTeam: 'Notre équipe',
+    ourHistory: 'Notre histoire',
+    whyUs: 'Pourquoi nous choisir',
+    testimonials: 'Témoignages',
+    partners: 'Nos partenaires',
+    accreditations: 'Accréditations',
+  },
 };
