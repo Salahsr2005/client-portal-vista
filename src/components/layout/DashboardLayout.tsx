@@ -127,9 +127,7 @@ export function DashboardLayout() {
 
       {/* Main Content */}
       <main
-        className={`flex-1 transition-all duration-300 ease-in-out ${
-          isSidebarOpen && !isMobile ? "lg:ml-64" : ""
-        }`}
+        className="flex-1"
       >
         {/* Header */}
         <header className="sticky top-0 z-40 glass-light dark:glass-dark px-4 py-3 flex items-center justify-between shadow-sm">
@@ -165,7 +163,7 @@ export function DashboardLayout() {
       {/* Backdrop for mobile */}
       {isSidebarOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
