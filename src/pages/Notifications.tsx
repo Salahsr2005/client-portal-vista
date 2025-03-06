@@ -1,320 +1,328 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Bell, Calendar, FileText, CreditCard, Clock, Trash2, Settings } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import {
+  Bell,
+  CheckCircle,
+  Calendar,
+  FileText,
+  AlertCircle,
+  MessageSquare,
+  Info,
+  X,
+  Settings,
+  CheckCheck,
+  MoreHorizontal,
+  Filter
+} from 'lucide-react';
 
-// Mock notification data
+// Sample data
 const notifications = [
   {
-    id: "notif-001",
-    title: "Application Status Updated",
-    message: "Your application for the Algerian-French Exchange Program has been approved.",
-    date: "2023-10-15T09:30:00",
+    id: 1,
+    title: "Application Status Update",
+    message: "Your application for the Algerian-French Exchange Program has moved to the interview stage.",
+    timestamp: "2 hours ago",
+    type: "application",
     read: false,
-    type: "application"
+    action: "View Application"
   },
   {
-    id: "notif-002",
+    id: 2,
     title: "Appointment Reminder",
-    message: "You have a Visa Consultation appointment tomorrow at 2:30 PM.",
-    date: "2023-10-18T14:00:00",
-    read: true,
-    type: "appointment"
-  },
-  {
-    id: "notif-003",
-    title: "Document Request",
-    message: "Please submit your academic transcript for your University Application by October 25.",
-    date: "2023-10-17T11:45:00",
+    message: "You have an Academic Advising session tomorrow at 10:00 AM. Location: Student Services Center, Room 102.",
+    timestamp: "5 hours ago",
+    type: "appointment",
     read: false,
-    type: "document"
+    action: "View Appointment"
   },
   {
-    id: "notif-004",
-    title: "Payment Received",
-    message: "We've received your payment of 2,500 DZD for Document Authentication services.",
-    date: "2023-10-16T10:15:00",
+    id: 3,
+    title: "Document Verification Complete",
+    message: "Your academic transcripts have been verified successfully. You can proceed with your application.",
+    timestamp: "Yesterday",
+    type: "document",
     read: true,
-    type: "payment"
+    action: "View Documents"
   },
   {
-    id: "notif-005",
+    id: 4,
     title: "New Message",
-    message: "You have received a new message regarding your scholarship application.",
-    date: "2023-10-15T16:00:00",
-    read: false,
-    type: "message"
+    message: "You have received a new message from Dr. Mohammed Cherif regarding your program enrollment.",
+    timestamp: "2 days ago",
+    type: "message",
+    read: true,
+    action: "Read Message"
   },
   {
-    id: "notif-006",
-    title: "Deadline Approaching",
-    message: "The application deadline for the Technology Entrepreneurship Workshop is in 3 days.",
-    date: "2023-10-14T09:00:00",
+    id: 5,
+    title: "Payment Due",
+    message: "Reminder: Your program fee payment is due in 5 days. Please complete the payment to secure your spot.",
+    timestamp: "3 days ago",
+    type: "payment",
+    read: false,
+    priority: "high",
+    action: "Make Payment"
+  },
+  {
+    id: 6,
+    title: "Scholarship Opportunity",
+    message: "New scholarship opportunity available for international exchange students. Application deadline: November 30, 2023.",
+    timestamp: "4 days ago",
+    type: "announcement",
     read: true,
-    type: "deadline"
+    action: "View Details"
+  },
+  {
+    id: 7,
+    title: "Deadline Extension",
+    message: "The application deadline for the Summer Research in Renewable Energy program has been extended to December 15, 2023.",
+    timestamp: "5 days ago",
+    type: "announcement",
+    read: true,
+    action: "View Program"
+  },
+  {
+    id: 8,
+    title: "System Maintenance",
+    message: "The student portal will be undergoing maintenance on Sunday, November 19, from 2:00 AM to 5:00 AM.",
+    timestamp: "1 week ago",
+    type: "system",
+    read: true,
+    action: null
   }
 ];
 
-const NotificationItem = ({ notification, onMarkAsRead, onDelete }: { notification: any, onMarkAsRead: (id: string) => void, onDelete: (id: string) => void }) => {
-  const date = new Date(notification.date);
-  const formattedDate = date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric"
-  });
-  const formattedTime = date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit"
-  });
-  
-  let icon;
-  switch (notification.type) {
-    case "application":
-      icon = <FileText className="h-5 w-5 text-blue-500" />;
-      break;
-    case "appointment":
-      icon = <Calendar className="h-5 w-5 text-green-500" />;
-      break;
-    case "document":
-      icon = <FileText className="h-5 w-5 text-yellow-500" />;
-      break;
-    case "payment":
-      icon = <CreditCard className="h-5 w-5 text-purple-500" />;
-      break;
-    case "message":
-      icon = <Bell className="h-5 w-5 text-red-500" />;
-      break;
-    case "deadline":
-      icon = <Clock className="h-5 w-5 text-orange-500" />;
-      break;
-    default:
-      icon = <Bell className="h-5 w-5 text-muted-foreground" />;
-  }
-  
-  return (
-    <Card className={`mb-4 ${!notification.read ? 'border-primary/40 bg-primary/5' : ''}`}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <div className="mt-1">{icon}</div>
-          <div className="flex-1">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-medium">{notification.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-              </div>
-              {!notification.read && (
-                <Badge variant="secondary" className="ml-2">New</Badge>
-              )}
-            </div>
-            <div className="flex justify-between items-center mt-3">
-              <span className="text-xs text-muted-foreground">
-                {formattedDate} at {formattedTime}
-              </span>
-              <div className="flex gap-2">
-                {!notification.read && (
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 px-2" 
-                    onClick={() => onMarkAsRead(notification.id)}
-                  >
-                    <Check className="h-4 w-4 mr-1" />
-                    Mark as read
-                  </Button>
-                )}
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="h-8 px-2 text-destructive hover:text-destructive" 
-                  onClick={() => onDelete(notification.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const NotificationsSettingsPanel = () => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Notification Settings</CardTitle>
-        <CardDescription>Manage how you receive notifications</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="font-medium">Email Notifications</h3>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-applications" className="flex-1">Application Updates</Label>
-              <Switch id="email-applications" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-appointments" className="flex-1">Appointment Reminders</Label>
-              <Switch id="email-appointments" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-documents" className="flex-1">Document Requests</Label>
-              <Switch id="email-documents" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-payments" className="flex-1">Payment Confirmations</Label>
-              <Switch id="email-payments" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-messages" className="flex-1">New Messages</Label>
-              <Switch id="email-messages" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-deadlines" className="flex-1">Deadline Reminders</Label>
-              <Switch id="email-deadlines" defaultChecked />
-            </div>
-          </div>
-        </div>
-        
-        <div className="space-y-4">
-          <h3 className="font-medium">Push Notifications</h3>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="push-applications" className="flex-1">Application Updates</Label>
-              <Switch id="push-applications" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="push-appointments" className="flex-1">Appointment Reminders</Label>
-              <Switch id="push-appointments" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="push-documents" className="flex-1">Document Requests</Label>
-              <Switch id="push-documents" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="push-payments" className="flex-1">Payment Confirmations</Label>
-              <Switch id="push-payments" />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="push-messages" className="flex-1">New Messages</Label>
-              <Switch id="push-messages" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="push-deadlines" className="flex-1">Deadline Reminders</Label>
-              <Switch id="push-deadlines" defaultChecked />
-            </div>
-          </div>
-        </div>
-        
-        <div className="pt-4">
-          <Button className="w-full">Save Settings</Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
 const NotificationsPage = () => {
   const [activeTab, setActiveTab] = useState("all");
-  const [notificationsList, setNotificationsList] = useState(notifications);
+  const [notificationList, setNotificationList] = useState(notifications);
   
-  const markAsRead = (id: string) => {
-    setNotificationsList(
-      notificationsList.map(notification => 
-        notification.id === id ? { ...notification, read: true } : notification
-      )
-    );
-  };
+  const filteredNotifications = notificationList.filter(notification => {
+    if (activeTab === "all") return true;
+    if (activeTab === "unread") return !notification.read;
+    return notification.type === activeTab;
+  });
   
-  const deleteNotification = (id: string) => {
-    setNotificationsList(
-      notificationsList.filter(notification => notification.id !== id)
-    );
-  };
+  const unreadCount = notificationList.filter(n => !n.read).length;
   
   const markAllAsRead = () => {
-    setNotificationsList(
-      notificationsList.map(notification => ({ ...notification, read: true }))
-    );
+    setNotificationList(notificationList.map(n => ({ ...n, read: true })));
   };
   
-  const clearAll = () => {
-    setNotificationsList([]);
+  const markAsRead = (id: number) => {
+    setNotificationList(notificationList.map(n => 
+      n.id === id ? { ...n, read: true } : n
+    ));
   };
   
-  const getFilteredNotifications = () => {
-    if (activeTab === "all") return notificationsList;
-    if (activeTab === "unread") return notificationsList.filter(n => !n.read);
-    return notificationsList.filter(n => n.type === activeTab);
+  const deleteNotification = (id: number) => {
+    setNotificationList(notificationList.filter(n => n.id !== id));
   };
   
-  const filteredNotifications = getFilteredNotifications();
-  const unreadCount = notificationsList.filter(n => !n.read).length;
-  
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "application":
+        return <FileText className="h-6 w-6 text-blue-500" />;
+      case "appointment":
+        return <Calendar className="h-6 w-6 text-purple-500" />;
+      case "document":
+        return <CheckCircle className="h-6 w-6 text-green-500" />;
+      case "message":
+        return <MessageSquare className="h-6 w-6 text-indigo-500" />;
+      case "payment":
+        return <AlertCircle className="h-6 w-6 text-red-500" />;
+      case "announcement":
+        return <Info className="h-6 w-6 text-yellow-500" />;
+      case "system":
+        return <Settings className="h-6 w-6 text-gray-500" />;
+      default:
+        return <Bell className="h-6 w-6 text-primary" />;
+    }
+  };
+
   return (
     <div className="container mx-auto">
-      <div className="flex flex-col space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold">Notifications</h1>
-            <p className="text-muted-foreground">
-              You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={markAllAsRead} disabled={unreadCount === 0}>
-              <Check className="mr-2 h-4 w-4" />
-              Mark all as read
-            </Button>
-            <Button variant="outline" onClick={clearAll} disabled={notificationsList.length === 0}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear all
-            </Button>
-          </div>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex items-center">
+          <h1 className="text-3xl font-bold">Notifications</h1>
+          {unreadCount > 0 && (
+            <Badge className="ml-3 bg-primary">
+              {unreadCount} New
+            </Badge>
+          )}
         </div>
+        <div className="flex gap-2 w-full md:w-auto">
+          <Button variant="outline" className="flex-1 md:flex-none" onClick={markAllAsRead}>
+            <CheckCheck className="mr-2 h-4 w-4" />
+            Mark All as Read
+          </Button>
+          <Button variant="outline" className="flex-1 md:flex-none">
+            <Filter className="mr-2 h-4 w-4" />
+            Preferences
+          </Button>
+        </div>
+      </div>
+      
+      <Tabs defaultValue="all" className="mb-8" onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="unread">
+            Unread
+            {unreadCount > 0 && <Badge className="ml-1">{unreadCount}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="application">Applications</TabsTrigger>
+          <TabsTrigger value="appointment">Appointments</TabsTrigger>
+          <TabsTrigger value="message">Messages</TabsTrigger>
+          <TabsTrigger value="announcement">Announcements</TabsTrigger>
+        </TabsList>
         
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 mb-6">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="unread">Unread</TabsTrigger>
-            <TabsTrigger value="application">Applications</TabsTrigger>
-            <TabsTrigger value="appointment">Appointments</TabsTrigger>
-          </TabsList>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <TabsContent value={activeTab} className="mt-0">
-                {filteredNotifications.length > 0 ? (
-                  filteredNotifications.map(notification => (
-                    <NotificationItem 
-                      key={notification.id} 
-                      notification={notification} 
-                      onMarkAsRead={markAsRead}
-                      onDelete={deleteNotification}
-                    />
-                  ))
-                ) : (
-                  <div className="py-12 text-center border rounded-lg">
-                    <Bell className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-4 text-lg font-medium">No notifications</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      You don't have any {activeTab !== "all" ? activeTab : ""} notifications.
-                    </p>
+        <TabsContent value="all" className="mt-0">
+          <p className="text-muted-foreground mb-6">
+            All notifications related to your account, applications, and services.
+          </p>
+        </TabsContent>
+        <TabsContent value="unread" className="mt-0">
+          <p className="text-muted-foreground mb-6">
+            Notifications you haven't read yet.
+          </p>
+        </TabsContent>
+        <TabsContent value="application" className="mt-0">
+          <p className="text-muted-foreground mb-6">
+            Updates and alerts about your program applications.
+          </p>
+        </TabsContent>
+        <TabsContent value="appointment" className="mt-0">
+          <p className="text-muted-foreground mb-6">
+            Reminders about upcoming and scheduled appointments.
+          </p>
+        </TabsContent>
+        <TabsContent value="message" className="mt-0">
+          <p className="text-muted-foreground mb-6">
+            New messages from advisors, administrators, and support staff.
+          </p>
+        </TabsContent>
+        <TabsContent value="announcement" className="mt-0">
+          <p className="text-muted-foreground mb-6">
+            General announcements about programs, events, and opportunities.
+          </p>
+        </TabsContent>
+      </Tabs>
+      
+      {filteredNotifications.length === 0 ? (
+        <div className="text-center py-12 bg-muted/50 rounded-lg">
+          <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-xl font-medium mb-2">No notifications</h3>
+          <p className="text-muted-foreground">
+            You don't have any {activeTab !== "all" && activeTab} notifications at the moment.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredNotifications.map((notification) => (
+            <Card 
+              key={notification.id} 
+              className={`transition-colors ${notification.read ? '' : 'border-primary/50 bg-primary/5'}`}
+            >
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  <div className="mt-1">
+                    {getNotificationIcon(notification.type)}
                   </div>
-                )}
-              </TabsContent>
-            </div>
-            
-            <div className="lg:col-span-1">
-              <NotificationsSettingsPanel />
-            </div>
-          </div>
-        </Tabs>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-medium mb-1">{notification.title}</h3>
+                        <p className="text-muted-foreground text-sm mb-3">
+                          {notification.message}
+                        </p>
+                      </div>
+                      <div className="flex items-center ml-4">
+                        {!notification.read && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8" 
+                            onClick={() => markAsRead(notification.id)}
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => deleteNotification(notification.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="capitalize">
+                          {notification.type}
+                        </Badge>
+                        {notification.priority === "high" && (
+                          <Badge className="bg-red-500">High Priority</Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {notification.timestamp}
+                        </span>
+                      </div>
+                      {notification.action && (
+                        <Button variant="link" size="sm" className="p-0">
+                          {notification.action}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      <div className="mt-8 bg-muted/50 rounded-lg p-6">
+        <h2 className="text-xl font-bold mb-4">Notification Settings</h2>
+        <p className="text-muted-foreground mb-4">
+          Customize how and when you receive notifications.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Email Notifications</CardTitle>
+              <CardDescription>
+                Choose which notifications are sent to your email.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button variant="outline" className="w-full">
+                <Settings className="mr-2 h-4 w-4" />
+                Configure Email Settings
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Notification Preferences</CardTitle>
+              <CardDescription>
+                Set your notification priorities and frequency.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Button variant="outline" className="w-full">
+                <Bell className="mr-2 h-4 w-4" />
+                Manage Preferences
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -1,166 +1,334 @@
 
-import React from "react";
+import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Locate, FileQuestion, Languages, Laptop, Users, Phone, Building, CreditCard } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  BookOpen, Briefcase, FileText, Users, Award, 
+  Calendar, Globe, MessageSquare, HelpCircle, Star
+} from 'lucide-react';
 
-const servicesData = [
+const services = [
   {
-    id: "service-1",
-    title: "Document Authentication",
-    description: "Get your academic documents authenticated and verified for international use.",
-    icon: FileQuestion,
-    price: "2,500 DZD",
-    processingTime: "3-5 business days",
-    popular: true
-  },
-  {
-    id: "service-2",
-    title: "Translation Services",
-    description: "Professional translation of documents into English, French, and other languages.",
-    icon: Languages,
-    price: "1,200 DZD per page",
-    processingTime: "2-3 business days",
-    popular: false
-  },
-  {
-    id: "service-3",
-    title: "CV & Personal Statement Review",
-    description: "Expert review and improvement of your CV and personal statements.",
-    icon: FileQuestion,
-    price: "3,000 DZD",
-    processingTime: "5 business days",
-    popular: true
-  },
-  {
-    id: "service-4",
-    title: "University Application Assistance",
-    description: "Complete guidance through the university application process.",
-    icon: Building,
-    price: "5,000 DZD",
-    processingTime: "Ongoing",
-    popular: true
-  },
-  {
-    id: "service-5",
-    title: "Visa Consultation",
-    description: "Expert advice on visa requirements and application procedures.",
-    icon: Locate,
-    price: "3,500 DZD",
-    processingTime: "1-2 business days",
-    popular: false
-  },
-  {
-    id: "service-6",
-    title: "Mock Interviews",
-    description: "Practice interviews with feedback to prepare for university and visa interviews.",
-    icon: Users,
-    price: "2,000 DZD per session",
-    processingTime: "By appointment",
-    popular: false
-  },
-  {
-    id: "service-7",
-    title: "Language Proficiency Preparation",
-    description: "IELTS, TOEFL, and TCF preparation courses and practice tests.",
+    id: 1,
+    title: "Academic Advising",
+    description: "Get personalized guidance on program selection and academic planning.",
     icon: BookOpen,
-    price: "7,500 DZD",
-    processingTime: "8 weeks course",
-    popular: true
+    category: "academic",
+    featured: true,
+    rating: 4.8
   },
   {
-    id: "service-8",
-    title: "Online Application Support",
-    description: "Assisted form-filling and digital document preparation.",
-    icon: Laptop,
-    price: "1,800 DZD",
-    processingTime: "Same day",
-    popular: false
+    id: 2,
+    title: "Career Counseling",
+    description: "Career planning and professional development consultations.",
+    icon: Briefcase,
+    category: "career",
+    featured: true,
+    rating: 4.7
   },
   {
-    id: "service-9",
-    title: "Accommodation Arrangement",
-    description: "Assistance in finding and securing accommodation abroad.",
-    icon: Building,
-    price: "4,000 DZD",
-    processingTime: "Varies",
-    popular: false
+    id: 3,
+    title: "Document Verification",
+    description: "Authentication and verification of academic and legal documents.",
+    icon: FileText,
+    category: "administrative",
+    featured: false,
+    rating: 4.5
+  },
+  {
+    id: 4,
+    title: "Networking Events",
+    description: "Connect with alumni and professionals from various fields.",
+    icon: Users,
+    category: "career",
+    featured: false,
+    rating: 4.6
+  },
+  {
+    id: 5,
+    title: "Scholarship Application Assistance",
+    description: "Help with finding and applying for relevant scholarships.",
+    icon: Award,
+    category: "financial",
+    featured: true,
+    rating: 4.9
+  },
+  {
+    id: 6,
+    title: "Visa Application Support",
+    description: "Guidance through the student visa application process.",
+    icon: Globe,
+    category: "administrative",
+    featured: true,
+    rating: 4.8
+  },
+  {
+    id: 7,
+    title: "Interview Preparation",
+    description: "Mock interviews and preparation for program interviews.",
+    icon: MessageSquare,
+    category: "career",
+    featured: false,
+    rating: 4.7
+  },
+  {
+    id: 8,
+    title: "Financial Aid Counseling",
+    description: "Information about financial aid options and budgeting advice.",
+    icon: HelpCircle,
+    category: "financial",
+    featured: false,
+    rating: 4.6
   }
 ];
 
-const ServiceCard = ({ service }: { service: any }) => {
-  const Icon = service.icon;
-  
-  return (
-    <Card className={`flex flex-col h-full ${service.popular ? 'border-primary/50' : ''}`}>
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div className="bg-primary/10 p-2 rounded-md">
-            <Icon className="h-6 w-6 text-primary" />
-          </div>
-          {service.popular && (
-            <Badge variant="secondary">Popular</Badge>
-          )}
-        </div>
-        <CardTitle className="mt-4">{service.title}</CardTitle>
-        <CardDescription>{service.description}</CardDescription>
-      </CardHeader>
-      <CardContent className="mt-auto">
-        <div className="flex justify-between items-center text-sm">
-          <span className="font-medium">Price:</span>
-          <span>{service.price}</span>
-        </div>
-        <div className="flex justify-between items-center text-sm mt-2">
-          <span className="font-medium">Processing Time:</span>
-          <span>{service.processingTime}</span>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button className="w-full">Book Service</Button>
-      </CardFooter>
-    </Card>
-  );
-};
+const testimonials = [
+  {
+    id: 1,
+    name: "Ahmed Benali",
+    service: "Academic Advising",
+    text: "The academic advising service was incredibly helpful. My advisor helped me choose the perfect program for my career goals.",
+    rating: 5
+  },
+  {
+    id: 2,
+    name: "Leila Hadad",
+    service: "Visa Application Support",
+    text: "Navigating the visa process was overwhelming until I used this service. They guided me through every step and my application was approved quickly.",
+    rating: 5
+  },
+  {
+    id: 3,
+    name: "Karim Taleb",
+    service: "Career Counseling",
+    text: "The career counselors provided insightful advice that helped me align my studies with my long-term professional goals.",
+    rating: 4
+  }
+];
+
+const upcomingEvents = [
+  {
+    id: 1,
+    title: "Scholarship Information Session",
+    date: "November 15, 2023",
+    time: "2:00 PM - 4:00 PM",
+    location: "Online Webinar",
+    category: "financial"
+  },
+  {
+    id: 2,
+    title: "CV Writing Workshop",
+    date: "November 20, 2023",
+    time: "10:00 AM - 12:00 PM",
+    location: "Career Center, Main Campus",
+    category: "career"
+  },
+  {
+    id: 3,
+    title: "Study Abroad Fair",
+    date: "December 5, 2023",
+    time: "9:00 AM - 5:00 PM",
+    location: "Exhibition Hall, University of Algiers",
+    category: "academic"
+  }
+];
 
 const ServicesPage = () => {
+  const [activeTab, setActiveTab] = React.useState("all");
+  
+  const filteredServices = services.filter(service => {
+    if (activeTab === "all") return true;
+    return service.category === activeTab;
+  });
+  
   return (
     <div className="container mx-auto">
-      <div className="flex flex-col space-y-6">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">Our Services</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Comprehensive support for your international education journey, from document preparation to language training.
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-bold">Student Services</h1>
+          <p className="text-muted-foreground mt-2">
+            Support services to help you succeed in your educational journey
           </p>
         </div>
+        <Button>
+          <Calendar className="mr-2 h-4 w-4" />
+          Book a Consultation
+        </Button>
+      </div>
+      
+      <Tabs defaultValue="all" className="mb-8" onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="all">All Services</TabsTrigger>
+          <TabsTrigger value="academic">Academic</TabsTrigger>
+          <TabsTrigger value="career">Career</TabsTrigger>
+          <TabsTrigger value="administrative">Administrative</TabsTrigger>
+          <TabsTrigger value="financial">Financial</TabsTrigger>
+        </TabsList>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {servicesData.map(service => (
-            <ServiceCard key={service.id} service={service} />
+        <TabsContent value="all" className="mt-4">
+          <p className="text-muted-foreground mb-6">
+            Explore all available services to support your educational and professional development.
+          </p>
+        </TabsContent>
+        <TabsContent value="academic" className="mt-4">
+          <p className="text-muted-foreground mb-6">
+            Services focused on academic support, advising, and educational planning.
+          </p>
+        </TabsContent>
+        <TabsContent value="career" className="mt-4">
+          <p className="text-muted-foreground mb-6">
+            Career development and professional growth services to prepare for your future.
+          </p>
+        </TabsContent>
+        <TabsContent value="administrative" className="mt-4">
+          <p className="text-muted-foreground mb-6">
+            Administrative support services including document processing and visa assistance.
+          </p>
+        </TabsContent>
+        <TabsContent value="financial" className="mt-4">
+          <p className="text-muted-foreground mb-6">
+            Financial assistance, scholarship information, and funding guidance.
+          </p>
+        </TabsContent>
+      </Tabs>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {filteredServices.map((service) => (
+          <Card key={service.id} className="relative">
+            {service.featured && (
+              <Badge className="absolute top-3 right-3 bg-yellow-500">
+                Featured
+              </Badge>
+            )}
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-primary/10 rounded-full">
+                  <service.icon className="h-5 w-5 text-primary" />
+                </div>
+                <Badge variant="outline">{service.category}</Badge>
+              </div>
+              <CardTitle>{service.title}</CardTitle>
+              <div className="flex items-center mt-1">
+                {Array(5).fill(0).map((_, i) => (
+                  <Star 
+                    key={i} 
+                    className={`h-4 w-4 ${i < Math.floor(service.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+                  />
+                ))}
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {service.rating.toFixed(1)}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>{service.description}</CardDescription>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full">Learn More</Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+      
+      {/* Testimonials Section */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">What Students Say</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {testimonials.map((testimonial) => (
+            <Card key={testimonial.id} className="bg-muted/50">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between">
+                  <div>
+                    <CardTitle className="text-lg">{testimonial.name}</CardTitle>
+                    <CardDescription>{testimonial.service}</CardDescription>
+                  </div>
+                  <div className="flex">
+                    {Array(5).fill(0).map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`h-4 w-4 ${i < testimonial.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="italic">"{testimonial.text}"</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
-        
-        <div className="bg-muted p-6 rounded-lg mt-12">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-xl font-bold">Need a custom service?</h3>
-              <p className="text-muted-foreground">
-                Contact our team to discuss your specific requirements.
-              </p>
-            </div>
-            <div className="flex gap-4">
-              <Button variant="outline" className="flex gap-2">
-                <Phone className="h-4 w-4" />
-                Call Us
-              </Button>
-              <Button className="flex gap-2">
-                <CreditCard className="h-4 w-4" />
-                Request Quote
-              </Button>
-            </div>
-          </div>
+      </div>
+      
+      {/* Upcoming Events */}
+      <div className="mb-12">
+        <h2 className="text-2xl font-bold mb-6">Upcoming Events</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {upcomingEvents.map((event) => (
+            <Card key={event.id}>
+              <CardHeader>
+                <Badge variant="outline">{event.category}</Badge>
+                <CardTitle className="text-lg mt-2">{event.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span>{event.date}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span>{event.time}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <span>{event.location}</span>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline" className="w-full">Register</Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       </div>
+      
+      {/* Contact Information */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Need Help?</CardTitle>
+          <CardDescription>
+            Our student services team is here to assist you with any questions or needs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center">
+              <MessageSquare className="h-5 w-5 mr-2 text-primary" />
+              <span>support@vista-education.com</span>
+            </div>
+            <div className="flex items-center">
+              <Phone className="h-5 w-5 mr-2 text-primary" />
+              <span>+213 555 123 456</span>
+            </div>
+            <div className="flex items-center">
+              <MapPin className="h-5 w-5 mr-2 text-primary" />
+              <span>Student Services Center, Main Campus</span>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex gap-4">
+          <Button className="flex-1">Contact Us</Button>
+          <Button variant="outline" className="flex-1">
+            <HelpCircle className="mr-2 h-4 w-4" />
+            FAQ
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

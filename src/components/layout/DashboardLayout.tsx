@@ -126,9 +126,7 @@ export function DashboardLayout() {
       </aside>
 
       {/* Main Content */}
-      <main
-        className="flex-1"
-      >
+      <main className="flex-1">
         {/* Header */}
         <header className="sticky top-0 z-40 glass-light dark:glass-dark px-4 py-3 flex items-center justify-between shadow-sm">
           <div className="flex items-center">
@@ -154,8 +152,8 @@ export function DashboardLayout() {
           </div>
         </header>
 
-        {/* Page Content */}
-        <div className="p-6">
+        {/* Page Content - This is where the Outlet renders our page content */}
+        <div className="p-6 h-[calc(100vh-4rem)] overflow-auto">
           <Outlet />
         </div>
       </main>
