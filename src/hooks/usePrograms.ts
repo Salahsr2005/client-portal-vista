@@ -6,28 +6,50 @@ export const usePrograms = () => {
   return useQuery({
     queryKey: ["programs"],
     queryFn: async () => {
+      // Fetch the programs
       const { data, error } = await supabase
         .from("programs")
-        .select("*, destinations(country_name)");
+        .select("*");
       
       if (error) {
         throw new Error(error.message);
       }
       
-      return data.map(program => ({
-        id: program.program_id,
-        name: program.program_name,
-        university: "University", // This field seems to be missing in your schema
-        location: program.destinations?.country_name || "Unknown",
-        type: "Masters", // This field seems to be missing in your schema
-        duration: program.duration || "Unknown",
-        tuition: program.fee ? `$${program.fee}` : "Contact for details",
-        rating: 4.5, // This field seems to be missing in your schema
-        deadline: new Date().toISOString().split('T')[0], // This field seems to be missing in your schema
-        subjects: program.description ? [program.description.split(' ')[0]] : ["General"], // This field seems to be missing in your schema
-        applicationFee: "$125", // This field seems to be missing in your schema
-        featured: program.is_active
-      }));
+      // Get destination info separately for each program
+      const programsWithDestinations = await Promise.all(
+        data.map(async (program) => {
+          let location = "Unknown";
+          
+          if (program.destination_id) {
+            const { data: destinationData, error: destinationError } = await supabase
+              .from("destinations")
+              .select("country_name")
+              .eq("destination_id", program.destination_id)
+              .single();
+            
+            if (!destinationError && destinationData) {
+              location = destinationData.country_name;
+            }
+          }
+          
+          return {
+            id: program.program_id,
+            name: program.program_name,
+            university: "University", // This field seems to be missing in your schema
+            location: location,
+            type: "Masters", // This field seems to be missing in your schema
+            duration: program.duration || "Unknown",
+            tuition: program.fee ? `$${program.fee}` : "Contact for details",
+            rating: 4.5, // This field seems to be missing in your schema
+            deadline: new Date().toISOString().split('T')[0], // This field seems to be missing in your schema
+            subjects: program.description ? [program.description.split(' ')[0]] : ["General"], // This field seems to be missing in your schema
+            applicationFee: "$125", // This field seems to be missing in your schema
+            featured: program.is_active
+          };
+        })
+      );
+      
+      return programsWithDestinations;
     },
   });
 };
