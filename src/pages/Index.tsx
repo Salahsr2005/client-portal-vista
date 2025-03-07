@@ -1,15 +1,173 @@
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ArrowRight, Check, Globe, Clock, Shield, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ArrowDown,
+  Users,
+  LayoutDashboard,
+  Calendar,
+  MessageSquare,
+  BarChart,
+  Clock,
+  Shield,
+} from "lucide-react";
+import { FeatureCard } from "@/components/landing/FeatureCard";
+import { PricingCard } from "@/components/landing/PricingCard";
+import { TestimonialCard } from "@/components/landing/TestimonialCard";
+import { NewsletterForm } from "@/components/landing/NewsletterForm";
+import { useQuery } from "@tanstack/react-query";
+
+// Mock data fetching function
+const fetchFeatures = async () => {
+  // In a real app, this would be fetched from an API
+  return [
+    {
+      id: 1,
+      title: "Intuitive Dashboard",
+      description: "Get a bird's-eye view of all your projects with our customizable dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      id: 2,
+      title: "Team Collaboration",
+      description: "Work seamlessly with your team members in real-time",
+      icon: Users,
+    },
+    {
+      id: 3,
+      title: "Advanced Scheduling",
+      description: "Plan your projects with our powerful scheduling tools",
+      icon: Calendar,
+    },
+    {
+      id: 4,
+      title: "Integrated Chat",
+      description: "Communicate with your team without leaving the platform",
+      icon: MessageSquare,
+    },
+    {
+      id: 5,
+      title: "Detailed Analytics",
+      description: "Make data-driven decisions with comprehensive project analytics",
+      icon: BarChart,
+    },
+    {
+      id: 6,
+      title: "Time Tracking",
+      description: "Monitor time spent on tasks and improve productivity",
+      icon: Clock,
+    },
+  ];
+};
+
+const fetchPricingPlans = async () => {
+  // In a real app, this would be fetched from an API
+  return [
+    {
+      id: 1,
+      name: "Starter",
+      price: { monthly: 15, yearly: 144 },
+      description: "Perfect for individuals and small teams getting started",
+      features: [
+        "Up to 5 projects",
+        "Basic analytics",
+        "24/7 support",
+        "1 team member",
+        "5GB storage",
+      ],
+      buttonText: "Get Started",
+      popular: false,
+    },
+    {
+      id: 2,
+      name: "Professional",
+      price: { monthly: 35, yearly: 336 },
+      description: "Ideal for growing teams with more complex needs",
+      features: [
+        "Unlimited projects",
+        "Advanced analytics",
+        "Priority support",
+        "Up to 10 team members",
+        "50GB storage",
+        "Custom reporting",
+        "API access",
+      ],
+      buttonText: "Try Pro",
+      popular: true,
+    },
+    {
+      id: 3,
+      name: "Enterprise",
+      price: { monthly: 99, yearly: 948 },
+      description: "Tailored solutions for large organizations",
+      features: [
+        "Unlimited everything",
+        "Dedicated account manager",
+        "Custom integrations",
+        "Advanced security",
+        "500GB storage",
+        "24/7 phone support",
+        "On-premise option",
+      ],
+      buttonText: "Contact Sales",
+      popular: false,
+    },
+  ];
+};
+
+const fetchTestimonials = async () => {
+  // In a real app, this would be fetched from an API
+  return [
+    {
+      id: 1,
+      name: "Sarah Johnson",
+      role: "Product Manager at TechCorp",
+      content: "TaskMaster Pro has transformed how our team collaborates. The intuitive interface and powerful features have increased our productivity by 40%.",
+      avatar: "/placeholder.svg",
+    },
+    {
+      id: 2,
+      name: "Michael Chen",
+      role: "CTO at StartupX",
+      content: "After trying numerous project management tools, TaskMaster Pro is the only one that met all our requirements. The analytics feature is a game-changer.",
+      avatar: "/placeholder.svg",
+    },
+    {
+      id: 3,
+      name: "Elena Rodriguez",
+      role: "Team Lead at DesignHub",
+      content: "The customizable workflows in TaskMaster Pro have allowed us to adapt the tool to our unique design process. Our clients are impressed with the results.",
+      avatar: "/placeholder.svg",
+    },
+  ];
+};
 
 export default function Index() {
   const featuresRef = useRef<HTMLDivElement>(null);
-  const servicesRef = useRef<HTMLDivElement>(null);
+  const pricingRef = useRef<HTMLDivElement>(null);
   const testimonialsRef = useRef<HTMLDivElement>(null);
+  const aboutRef = useRef<HTMLDivElement>(null);
+  const [isYearly, setIsYearly] = useState(false);
+
+  const { data: features = [] } = useQuery({
+    queryKey: ['features'],
+    queryFn: fetchFeatures,
+  });
+
+  const { data: pricingPlans = [] } = useQuery({
+    queryKey: ['pricing'],
+    queryFn: fetchPricingPlans,
+  });
+
+  const { data: testimonials = [] } = useQuery({
+    queryKey: ['testimonials'],
+    queryFn: fetchTestimonials,
+  });
 
   useEffect(() => {
     const observerOptions = {
@@ -41,6 +199,12 @@ export default function Index() {
     };
   }, []);
 
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background">
@@ -51,23 +215,26 @@ export default function Index() {
           <div className="container mx-auto max-w-6xl">
             <div className="flex flex-col items-center text-center">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-fade-in">
-                Your Journey to Global{" "}
-                <span className="text-gradient">Opportunities</span>
+                Streamline Your Projects with{" "}
+                <span className="text-gradient">TaskMaster Pro</span>
               </h1>
               <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mb-8 animate-fade-in animate-delay-100">
-                Vista connects you to educational and career opportunities around the world with personalized guidance every step of the way.
+                The all-in-one project management solution designed to boost productivity, enhance collaboration, and deliver results.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 animate-fade-in animate-delay-200">
                 <Link to="/register">
                   <Button size="lg" className="rounded-full">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                    Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/services">
-                  <Button size="lg" variant="outline" className="rounded-full">
-                    Explore Services
-                  </Button>
-                </Link>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="rounded-full"
+                  onClick={() => scrollToSection(featuresRef)}
+                >
+                  Learn More <ArrowDown className="ml-2 h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -80,104 +247,67 @@ export default function Index() {
         {/* Features */}
         <section ref={featuresRef} className="py-20 px-6 bg-secondary/50">
           <div className="container mx-auto max-w-6xl">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 animate-on-scroll opacity-0">
-              Why Choose <span className="text-gradient">Vista</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 animate-on-scroll opacity-0">
+              Powerful <span className="text-gradient">Features</span>
             </h2>
+            <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12 animate-on-scroll opacity-0">
+              Everything you need to manage your projects efficiently in one platform
+            </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {[
-                {
-                  icon: Globe,
-                  title: "Global Network",
-                  description: "Access opportunities from prestigious institutions and organizations worldwide"
-                },
-                {
-                  icon: Users,
-                  title: "Personalized Guidance",
-                  description: "Receive customized support tailored to your unique goals and qualifications"
-                },
-                {
-                  icon: Shield,
-                  title: "Secure Process",
-                  description: "Your information is protected with our state-of-the-art security protocols"
-                },
-                {
-                  icon: Clock,
-                  title: "Timely Updates",
-                  description: "Stay informed with real-time updates on your applications and appointments"
-                }
-              ].map((feature, index) => (
-                <div 
-                  key={index} 
-                  className="bg-card shadow-sm rounded-xl p-6 animate-on-scroll opacity-0"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="bg-primary/10 p-3 rounded-full w-fit mb-4">
-                    <feature.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground">{feature.description}</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {features.map((feature, index) => (
+                <FeatureCard
+                  key={feature.id}
+                  title={feature.title}
+                  description={feature.description}
+                  icon={feature.icon}
+                  index={index}
+                />
               ))}
             </div>
           </div>
         </section>
 
-        {/* Services */}
-        <section ref={servicesRef} className="py-20 px-6">
+        {/* Pricing */}
+        <section ref={pricingRef} className="py-20 px-6">
           <div className="container mx-auto max-w-6xl">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 animate-on-scroll opacity-0">
-              Our <span className="text-gradient">Services</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 animate-on-scroll opacity-0">
+              Flexible <span className="text-gradient">Pricing</span>
             </h2>
+            <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-8 animate-on-scroll opacity-0">
+              Choose the perfect plan for your needs
+            </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {[
-                {
-                  title: "Study Abroad Programs",
-                  description: "Undergraduate, graduate, and specialized programs at top universities worldwide",
-                  features: ["Application assistance", "Visa guidance", "Pre-departure orientation"]
-                },
-                {
-                  title: "Career Placements",
-                  description: "Connect with global employers looking for international talent",
-                  features: ["Resume building", "Interview preparation", "Employment contract review"]
-                },
-                {
-                  title: "Immigration Services",
-                  description: "Navigate complex immigration processes with expert guidance",
-                  features: ["Visa applications", "Permanent residency pathways", "Documentation assistance"]
-                },
-                {
-                  title: "Language Programs",
-                  description: "Enhance your language skills for academic and professional success",
-                  features: ["Certified language courses", "Test preparation", "Cultural adaptation"]
-                }
-              ].map((service, index) => (
-                <div 
-                  key={index} 
-                  className="glass rounded-xl p-8 animate-on-scroll opacity-0"
-                  style={{ animationDelay: `${index * 100}ms` }}
+            <div className="flex justify-center mb-12 animate-on-scroll opacity-0">
+              <div className="bg-muted rounded-full p-1 inline-flex items-center">
+                <button
+                  onClick={() => setIsYearly(false)}
+                  className={`px-4 py-2 rounded-full text-sm ${!isYearly ? 'bg-card shadow-sm' : ''}`}
                 >
-                  <h3 className="text-2xl font-semibold mb-3">{service.title}</h3>
-                  <p className="text-muted-foreground mb-6">{service.description}</p>
-                  <ul className="space-y-2">
-                    {service.features.map((feature, i) => (
-                      <li key={i} className="flex items-start">
-                        <Check className="h-5 w-5 text-primary shrink-0 mr-2 mt-0.5" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setIsYearly(true)}
+                  className={`px-4 py-2 rounded-full text-sm flex items-center ${isYearly ? 'bg-card shadow-sm' : ''}`}
+                >
+                  Yearly <span className="ml-1 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">Save 20%</span>
+                </button>
+              </div>
             </div>
             
-            <div className="text-center mt-12 animate-on-scroll opacity-0">
-              <Link to="/services">
-                <Button size="lg" variant="outline" className="rounded-full">
-                  View All Services
-                </Button>
-              </Link>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {pricingPlans.map((plan) => (
+                <PricingCard
+                  key={plan.id}
+                  name={plan.name}
+                  price={isYearly ? plan.price.yearly : plan.price.monthly}
+                  description={plan.description}
+                  features={plan.features}
+                  buttonText={plan.buttonText}
+                  popular={plan.popular}
+                  isYearly={isYearly}
+                />
+              ))}
             </div>
           </div>
         </section>
@@ -185,70 +315,88 @@ export default function Index() {
         {/* Testimonials */}
         <section ref={testimonialsRef} className="py-20 px-6 bg-secondary/50">
           <div className="container mx-auto max-w-6xl">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 animate-on-scroll opacity-0">
-              Client <span className="text-gradient">Testimonials</span>
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 animate-on-scroll opacity-0">
+              Customer <span className="text-gradient">Testimonials</span>
             </h2>
+            <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12 animate-on-scroll opacity-0">
+              See what our customers have to say about TaskMaster Pro
+            </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  quote: "Vista made my dream of studying at Oxford a reality. Their guidance was invaluable through every step of the process.",
-                  name: "Sarah L.",
-                  location: "United Kingdom"
-                },
-                {
-                  quote: "I secured a position at a leading tech company in Singapore with Vista's career placement services. Their network is truly global.",
-                  name: "Michael T.",
-                  location: "Singapore"
-                },
-                {
-                  quote: "The immigration process seemed impossible until I found Vista. They simplified everything and made it stress-free.",
-                  name: "Elena K.",
-                  location: "Canada"
-                }
-              ].map((testimonial, index) => (
-                <div 
-                  key={index} 
-                  className="bg-card shadow-sm rounded-xl p-6 animate-on-scroll opacity-0"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <span key={i} className="text-primary">★</span>
-                    ))}
-                  </div>
-                  <p className="italic mb-6">{testimonial.quote}</p>
-                  <div>
-                    <p className="font-semibold">{testimonial.name}</p>
-                    <p className="text-sm text-muted-foreground">{testimonial.location}</p>
-                  </div>
-                </div>
+              {testimonials.map((testimonial, index) => (
+                <TestimonialCard
+                  key={testimonial.id}
+                  name={testimonial.name}
+                  role={testimonial.role}
+                  content={testimonial.content}
+                  avatar={testimonial.avatar}
+                  index={index}
+                />
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA */}
+        {/* About */}
+        <section ref={aboutRef} className="py-20 px-6">
+          <div className="container mx-auto max-w-6xl">
+            <div className="flex flex-col md:flex-row gap-12 items-center">
+              <div className="md:w-1/2 animate-on-scroll opacity-0">
+                <div className="relative">
+                  <div className="w-full h-80 md:h-96 bg-gradient-to-br from-primary/30 to-primary/10 rounded-lg"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="glass p-4 rounded-xl w-32 h-32 flex items-center justify-center">
+                      <Shield className="w-16 h-16 text-primary" />
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-6 -right-6 glass p-4 rounded-xl">
+                    <div className="flex gap-2 items-center">
+                      <div className="h-3 w-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium">99.9% Uptime</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="md:w-1/2 animate-on-scroll opacity-0">
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                  About <span className="text-gradient">TaskMaster Pro</span>
+                </h2>
+                <p className="text-muted-foreground mb-4">
+                  TaskMaster Pro was founded in 2020 with a simple mission: to create the most intuitive, powerful, and flexible project management tool on the market.
+                </p>
+                <p className="text-muted-foreground mb-6">
+                  Our team of experienced developers and project management experts has worked tirelessly to build a solution that addresses the real-world challenges teams face every day.
+                </p>
+                <ul className="space-y-2 mb-8">
+                  {[
+                    "Built by a team with 50+ years of combined PM experience",
+                    "Trusted by over 10,000 companies worldwide",
+                    "Processing over 1 million tasks daily",
+                    "99.9% uptime guarantee",
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start">
+                      <Check className="h-5 w-5 text-primary shrink-0 mr-2 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Newsletter */}
         <section className="py-20 px-6 relative overflow-hidden">
           <div className="container mx-auto max-w-4xl relative z-10">
-            <div className="glass-light dark:glass-dark rounded-2xl p-10 text-center">
-              <h2 className="text-3xl md:text-4xl font-bold mb-6 animate-on-scroll opacity-0">
-                Ready to Begin Your <span className="text-gradient">Journey</span>?
+            <div className="glass-light dark:glass-dark rounded-2xl p-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 animate-on-scroll opacity-0">
+                Stay <span className="text-gradient">Updated</span>
               </h2>
-              <p className="text-lg mb-8 max-w-2xl mx-auto animate-on-scroll opacity-0" style={{ animationDelay: "100ms" }}>
-                Join thousands of clients who have successfully achieved their international education and career goals with Vista.
+              <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-8 animate-on-scroll opacity-0">
+                Subscribe to our newsletter for the latest features, tips, and special offers
               </p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4 animate-on-scroll opacity-0" style={{ animationDelay: "200ms" }}>
-                <Link to="/register">
-                  <Button size="lg" className="rounded-full">
-                    Create an Account
-                  </Button>
-                </Link>
-                <Link to="/contact">
-                  <Button size="lg" variant="outline" className="rounded-full">
-                    Contact an Advisor
-                  </Button>
-                </Link>
+              <div className="animate-on-scroll opacity-0">
+                <NewsletterForm />
               </div>
             </div>
           </div>
@@ -257,47 +405,74 @@ export default function Index() {
           <div className="absolute bottom-0 left-0 w-full h-1/2 bg-primary/5 -z-10"></div>
         </section>
 
+        {/* CTA */}
+        <section className="py-20 px-6 relative overflow-hidden">
+          <div className="container mx-auto max-w-4xl relative z-10">
+            <div className="glass-light dark:glass-dark rounded-2xl p-10 text-center">
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 animate-on-scroll opacity-0">
+                Ready to <span className="text-gradient">Transform</span> Your Project Management?
+              </h2>
+              <p className="text-lg mb-8 max-w-2xl mx-auto animate-on-scroll opacity-0" style={{ animationDelay: "100ms" }}>
+                Join thousands of teams who have already improved their productivity with TaskMaster Pro.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-4 animate-on-scroll opacity-0" style={{ animationDelay: "200ms" }}>
+                <Link to="/register">
+                  <Button size="lg" className="rounded-full">
+                    Start Free Trial
+                  </Button>
+                </Link>
+                <Link to="/contact">
+                  <Button size="lg" variant="outline" className="rounded-full">
+                    Contact Sales
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Footer */}
         <footer className="py-12 px-6 bg-muted/50">
           <div className="container mx-auto max-w-6xl">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
               <div>
-                <h3 className="text-xl font-semibold mb-4">Vista</h3>
-                <p className="text-muted-foreground">Your trusted partner for global opportunities and expert guidance.</p>
+                <h3 className="text-xl font-semibold mb-4">TaskMaster Pro</h3>
+                <p className="text-muted-foreground">Your complete solution for modern project management.</p>
               </div>
               
               <div>
-                <h4 className="font-medium mb-4">Quick Links</h4>
+                <h4 className="font-medium mb-4">Product</h4>
                 <ul className="space-y-2">
-                  <li><Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">Home</Link></li>
-                  <li><Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About Us</Link></li>
-                  <li><Link to="/services" className="text-muted-foreground hover:text-foreground transition-colors">Services</Link></li>
-                  <li><Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Features</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Integrations</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Changelog</a></li>
                 </ul>
               </div>
               
               <div>
-                <h4 className="font-medium mb-4">Services</h4>
+                <h4 className="font-medium mb-4">Resources</h4>
                 <ul className="space-y-2">
-                  <li><Link to="/services" className="text-muted-foreground hover:text-foreground transition-colors">Study Abroad</Link></li>
-                  <li><Link to="/services" className="text-muted-foreground hover:text-foreground transition-colors">Career Placements</Link></li>
-                  <li><Link to="/services" className="text-muted-foreground hover:text-foreground transition-colors">Immigration</Link></li>
-                  <li><Link to="/services" className="text-muted-foreground hover:text-foreground transition-colors">Language Programs</Link></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Documentation</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Blog</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Community</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Support</a></li>
                 </ul>
               </div>
               
               <div>
-                <h4 className="font-medium mb-4">Connect</h4>
+                <h4 className="font-medium mb-4">Company</h4>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">support@vista.com</a></li>
-                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">+1 (555) 123-4567</a></li>
-                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">123 Global Ave, New York</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">About</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Careers</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Contact</a></li>
+                  <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Partners</a></li>
                 </ul>
               </div>
             </div>
             
             <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center">
-              <p className="text-muted-foreground text-sm">© 2023 Vista. All rights reserved.</p>
+              <p className="text-muted-foreground text-sm">© 2023 TaskMaster Pro. All rights reserved.</p>
               <div className="flex space-x-4 mt-4 md:mt-0">
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a>
                 <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</a>
