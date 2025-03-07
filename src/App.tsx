@@ -15,6 +15,12 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import Programs from "./pages/Programs";
+import Applications from "./pages/Applications";
+import Appointments from "./pages/Appointments";
+import Services from "./pages/Services";
+import Notifications from "./pages/Notifications";
+import Payments from "./pages/Payments";
+import Destinations from "./pages/Destinations";
 
 // Layout
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -38,14 +44,14 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/applications" element={<h1 className="text-2xl font-bold">Applications</h1>} />
+              <Route path="/applications" element={<Applications />} />
               <Route path="/programs" element={<Programs />} />
-              <Route path="/services" element={<h1 className="text-2xl font-bold">Services</h1>} />
-              <Route path="/appointments" element={<h1 className="text-2xl font-bold">Appointments</h1>} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/appointments" element={<Appointments />} />
               <Route path="/messages" element={<Messages />} />
-              <Route path="/notifications" element={<h1 className="text-2xl font-bold">Notifications</h1>} />
-              <Route path="/payments" element={<h1 className="text-2xl font-bold">Payments</h1>} />
-              <Route path="/destinations" element={<h1 className="text-2xl font-bold">Destinations</h1>} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/destinations" element={<Destinations />} />
             </Route>
             
             {/* Catch-all route */}
