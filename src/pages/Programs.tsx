@@ -14,7 +14,8 @@ import {
   BookText,
   Info,
   DollarSign,
-  Calendar
+  Calendar,
+  Loader
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,94 +25,8 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-
-// Program data
-const programs = [
-  {
-    id: 1,
-    name: "Master of Computer Science",
-    university: "Stanford University",
-    location: "California, USA",
-    type: "Masters",
-    duration: "2 years",
-    tuition: "$57,000/year",
-    rating: 4.8,
-    deadline: "2023-12-01",
-    subjects: ["Computer Science", "Artificial Intelligence", "Machine Learning"],
-    applicationFee: "$125",
-    featured: true
-  },
-  {
-    id: 2,
-    name: "MBA",
-    university: "Harvard Business School",
-    location: "Massachusetts, USA",
-    type: "Masters",
-    duration: "2 years",
-    tuition: "$73,000/year",
-    rating: 4.9,
-    deadline: "2023-09-08",
-    subjects: ["Business", "Management", "Leadership"],
-    applicationFee: "$250",
-    featured: true
-  },
-  {
-    id: 3,
-    name: "MSc in Data Science",
-    university: "MIT",
-    location: "Massachusetts, USA",
-    type: "Masters",
-    duration: "1.5 years",
-    tuition: "$53,790/year",
-    rating: 4.7,
-    deadline: "2023-11-15",
-    subjects: ["Data Science", "Statistics", "Machine Learning"],
-    applicationFee: "$175",
-    featured: true
-  },
-  {
-    id: 4,
-    name: "Bachelor of Engineering",
-    university: "University of California, Berkeley",
-    location: "California, USA",
-    type: "Bachelor",
-    duration: "4 years",
-    tuition: "$43,980/year",
-    rating: 4.5,
-    deadline: "2023-11-30",
-    subjects: ["Engineering", "Computer Science", "Electrical Engineering"],
-    applicationFee: "$80",
-    featured: false
-  },
-  {
-    id: 5,
-    name: "PhD in AI and Machine Learning",
-    university: "Carnegie Mellon University",
-    location: "Pennsylvania, USA",
-    type: "PhD",
-    duration: "5 years",
-    tuition: "$45,800/year",
-    rating: 4.9,
-    deadline: "2023-12-15",
-    subjects: ["Artificial Intelligence", "Machine Learning", "Computer Vision"],
-    applicationFee: "$95",
-    featured: false
-  },
-  {
-    id: 6,
-    name: "MSc in Cybersecurity",
-    university: "University of Oxford",
-    location: "Oxford, UK",
-    type: "Masters",
-    duration: "1 year",
-    tuition: "£28,900/year",
-    rating: 4.6,
-    deadline: "2024-01-20",
-    subjects: ["Cybersecurity", "Network Security", "Cryptography"],
-    applicationFee: "£75",
-    featured: false
-  },
-];
+import { usePrograms } from "@/hooks/usePrograms";
+import { useToast } from "@/hooks/use-toast";
 
 // Display program rating stars
 const ProgramRating = ({ rating }: { rating: number }) => {
@@ -137,6 +52,8 @@ export default function Programs() {
   const [activeTab, setActiveTab] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 100]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const { data: programs = [], isLoading, error } = usePrograms();
+  const { toast } = useToast();
   
   // Handle program type filter
   const handleTypeChange = (type: string) => {
@@ -152,26 +69,30 @@ export default function Programs() {
     // Search filter
     const matchesSearch = 
       program.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      program.university.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      program.subjects.some(subject => subject.toLowerCase().includes(searchQuery.toLowerCase()));
+      (program.university && program.university.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (program.subjects && program.subjects.some(subject => subject.toLowerCase().includes(searchQuery.toLowerCase())));
     
     // Tab filter
     const matchesTab = 
       activeTab === "all" || 
       (activeTab === "featured" && program.featured) ||
-      program.type.toLowerCase() === activeTab.toLowerCase();
+      (program.type && program.type.toLowerCase() === activeTab.toLowerCase());
     
     // Program type filter
     const matchesType = 
       selectedTypes.length === 0 || 
-      selectedTypes.includes(program.type);
-    
-    // Price filter (simplified for demo, would need actual price extraction in real app)
-    // const price = parseInt(program.tuition.replace(/[^0-9]/g, ''));
-    // const matchesPrice = price >= priceRange[0] * 1000 && price <= priceRange[1] * 1000;
+      (program.type && selectedTypes.includes(program.type));
     
     return matchesSearch && matchesTab && matchesType;
   });
+
+  if (error) {
+    toast({
+      title: "Error",
+      description: "Failed to load programs. Please try again later.",
+      variant: "destructive",
+    });
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -263,7 +184,10 @@ export default function Programs() {
             </div>
             
             <div className="pt-2">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => {
+                setSelectedTypes([]);
+                setPriceRange([0, 100]);
+              }}>
                 Reset Filters
               </Button>
             </div>
@@ -306,8 +230,16 @@ export default function Programs() {
             </CardContent>
           </Card>
           
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex justify-center items-center p-12">
+              <Loader className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading programs...</span>
+            </div>
+          )}
+          
           {/* Programs grid */}
-          {filteredPrograms.length > 0 ? (
+          {!isLoading && filteredPrograms.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {filteredPrograms.map((program) => (
                 <Card key={program.id} className={program.featured ? "border-primary" : ""}>
@@ -323,36 +255,36 @@ export default function Programs() {
                     <CardTitle className="text-xl">{program.name}</CardTitle>
                     <CardDescription className="flex items-center">
                       <School className="h-4 w-4 mr-1" />
-                      {program.university}
+                      {program.university || "University"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center">
                         <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.location}</span>
+                        <span className="text-sm">{program.location || "Unknown location"}</span>
                       </div>
                       <div className="flex items-center">
                         <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.type}</span>
+                        <span className="text-sm">{program.type || "Various"}</span>
                       </div>
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.duration}</span>
+                        <span className="text-sm">{program.duration || "Varies"}</span>
                       </div>
                       <div className="flex items-center">
                         <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.tuition}</span>
+                        <span className="text-sm">{program.tuition || "Varies"}</span>
                       </div>
                     </div>
                     
                     <div>
                       <div className="flex justify-between mb-2">
                         <span className="text-sm">Program Rating</span>
-                        <ProgramRating rating={program.rating} />
+                        <ProgramRating rating={program.rating || 4.5} />
                       </div>
                       <div className="flex flex-wrap gap-1 mb-2">
-                        {program.subjects.map((subject, index) => (
+                        {program.subjects && program.subjects.map((subject, index) => (
                           <Badge key={index} variant="secondary" className="text-xs">
                             {subject}
                           </Badge>
@@ -361,11 +293,11 @@ export default function Programs() {
                       <div className="flex justify-between items-center text-sm mt-3">
                         <div className="flex items-center text-muted-foreground">
                           <Calendar className="h-4 w-4 mr-2" />
-                          <span>Deadline: {new Date(program.deadline).toLocaleDateString()}</span>
+                          <span>Deadline: {program.deadline ? new Date(program.deadline).toLocaleDateString() : "Contact for details"}</span>
                         </div>
                         <div className="flex items-center text-muted-foreground">
                           <Info className="h-4 w-4 mr-2" />
-                          <span>Fee: {program.applicationFee}</span>
+                          <span>Fee: {program.applicationFee || "Varies"}</span>
                         </div>
                       </div>
                     </div>
@@ -382,7 +314,7 @@ export default function Programs() {
                 </Card>
               ))}
             </div>
-          ) : (
+          ) : !isLoading ? (
             <Card className="py-12">
               <div className="text-center">
                 <Package className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-4" />
@@ -402,7 +334,7 @@ export default function Programs() {
                 </Button>
               </div>
             </Card>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

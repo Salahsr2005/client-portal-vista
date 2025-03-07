@@ -15,136 +15,159 @@ import {
   BarChart,
   Clock,
   Shield,
+  Loader,
 } from "lucide-react";
 import { FeatureCard } from "@/components/landing/FeatureCard";
 import { PricingCard } from "@/components/landing/PricingCard";
 import { TestimonialCard } from "@/components/landing/TestimonialCard";
 import { NewsletterForm } from "@/components/landing/NewsletterForm";
 import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Mock data fetching function
-const fetchFeatures = async () => {
-  // In a real app, this would be fetched from an API
-  return [
-    {
-      id: 1,
-      title: "Intuitive Dashboard",
-      description: "Get a bird's-eye view of all your projects with our customizable dashboard",
-      icon: LayoutDashboard,
+// Fetch features from Supabase or use static data
+const useFeatures = () => {
+  return useQuery({
+    queryKey: ['features'],
+    queryFn: async () => {
+      // In a real app with a features table, you'd fetch from Supabase
+      // Since we don't have a features table in your schema, we'll use static data
+      return [
+        {
+          id: 1,
+          title: "Intuitive Dashboard",
+          description: "Get a bird's-eye view of all your projects with our customizable dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          id: 2,
+          title: "Team Collaboration",
+          description: "Work seamlessly with your team members in real-time",
+          icon: Users,
+        },
+        {
+          id: 3,
+          title: "Advanced Scheduling",
+          description: "Plan your projects with our powerful scheduling tools",
+          icon: Calendar,
+        },
+        {
+          id: 4,
+          title: "Integrated Chat",
+          description: "Communicate with your team without leaving the platform",
+          icon: MessageSquare,
+        },
+        {
+          id: 5,
+          title: "Detailed Analytics",
+          description: "Make data-driven decisions with comprehensive project analytics",
+          icon: BarChart,
+        },
+        {
+          id: 6,
+          title: "Time Tracking",
+          description: "Monitor time spent on tasks and improve productivity",
+          icon: Clock,
+        },
+      ];
     },
-    {
-      id: 2,
-      title: "Team Collaboration",
-      description: "Work seamlessly with your team members in real-time",
-      icon: Users,
-    },
-    {
-      id: 3,
-      title: "Advanced Scheduling",
-      description: "Plan your projects with our powerful scheduling tools",
-      icon: Calendar,
-    },
-    {
-      id: 4,
-      title: "Integrated Chat",
-      description: "Communicate with your team without leaving the platform",
-      icon: MessageSquare,
-    },
-    {
-      id: 5,
-      title: "Detailed Analytics",
-      description: "Make data-driven decisions with comprehensive project analytics",
-      icon: BarChart,
-    },
-    {
-      id: 6,
-      title: "Time Tracking",
-      description: "Monitor time spent on tasks and improve productivity",
-      icon: Clock,
-    },
-  ];
+  });
 };
 
-const fetchPricingPlans = async () => {
-  // In a real app, this would be fetched from an API
-  return [
-    {
-      id: 1,
-      name: "Starter",
-      price: { monthly: 15, yearly: 144 },
-      description: "Perfect for individuals and small teams getting started",
-      features: [
-        "Up to 5 projects",
-        "Basic analytics",
-        "24/7 support",
-        "1 team member",
-        "5GB storage",
-      ],
-      buttonText: "Get Started",
-      popular: false,
+// Fetch pricing plans
+const usePricingPlans = () => {
+  return useQuery({
+    queryKey: ['pricing'],
+    queryFn: async () => {
+      // In a real app with a pricing_plans table, you'd fetch from Supabase
+      // Since we don't have a pricing_plans table in your schema, we'll use static data
+      return [
+        {
+          id: 1,
+          name: "Starter",
+          price: { monthly: 15, yearly: 144 },
+          description: "Perfect for individuals and small teams getting started",
+          features: [
+            "Up to 5 projects",
+            "Basic analytics",
+            "24/7 support",
+            "1 team member",
+            "5GB storage",
+          ],
+          buttonText: "Get Started",
+          popular: false,
+        },
+        {
+          id: 2,
+          name: "Professional",
+          price: { monthly: 35, yearly: 336 },
+          description: "Ideal for growing teams with more complex needs",
+          features: [
+            "Unlimited projects",
+            "Advanced analytics",
+            "Priority support",
+            "Up to 10 team members",
+            "50GB storage",
+            "Custom reporting",
+            "API access",
+          ],
+          buttonText: "Try Pro",
+          popular: true,
+        },
+        {
+          id: 3,
+          name: "Enterprise",
+          price: { monthly: 99, yearly: 948 },
+          description: "Tailored solutions for large organizations",
+          features: [
+            "Unlimited everything",
+            "Dedicated account manager",
+            "Custom integrations",
+            "Advanced security",
+            "500GB storage",
+            "24/7 phone support",
+            "On-premise option",
+          ],
+          buttonText: "Contact Sales",
+          popular: false,
+        },
+      ];
     },
-    {
-      id: 2,
-      name: "Professional",
-      price: { monthly: 35, yearly: 336 },
-      description: "Ideal for growing teams with more complex needs",
-      features: [
-        "Unlimited projects",
-        "Advanced analytics",
-        "Priority support",
-        "Up to 10 team members",
-        "50GB storage",
-        "Custom reporting",
-        "API access",
-      ],
-      buttonText: "Try Pro",
-      popular: true,
-    },
-    {
-      id: 3,
-      name: "Enterprise",
-      price: { monthly: 99, yearly: 948 },
-      description: "Tailored solutions for large organizations",
-      features: [
-        "Unlimited everything",
-        "Dedicated account manager",
-        "Custom integrations",
-        "Advanced security",
-        "500GB storage",
-        "24/7 phone support",
-        "On-premise option",
-      ],
-      buttonText: "Contact Sales",
-      popular: false,
-    },
-  ];
+  });
 };
 
-const fetchTestimonials = async () => {
-  // In a real app, this would be fetched from an API
-  return [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      role: "Product Manager at TechCorp",
-      content: "TaskMaster Pro has transformed how our team collaborates. The intuitive interface and powerful features have increased our productivity by 40%.",
-      avatar: "/placeholder.svg",
+// Fetch testimonials
+const useTestimonials = () => {
+  return useQuery({
+    queryKey: ['testimonials'],
+    queryFn: async () => {
+      // In a real app with a testimonials table, you'd fetch from Supabase
+      // Since we don't have a testimonials table in your schema, we'll use static data
+      return [
+        {
+          id: 1,
+          name: "Sarah Johnson",
+          role: "Product Manager at TechCorp",
+          content: "TaskMaster Pro has transformed how our team collaborates. The intuitive interface and powerful features have increased our productivity by 40%.",
+          avatar: "/placeholder.svg",
+        },
+        {
+          id: 2,
+          name: "Michael Chen",
+          role: "CTO at StartupX",
+          content: "After trying numerous project management tools, TaskMaster Pro is the only one that met all our requirements. The analytics feature is a game-changer.",
+          avatar: "/placeholder.svg",
+        },
+        {
+          id: 3,
+          name: "Elena Rodriguez",
+          role: "Team Lead at DesignHub",
+          content: "The customizable workflows in TaskMaster Pro have allowed us to adapt the tool to our unique design process. Our clients are impressed with the results.",
+          avatar: "/placeholder.svg",
+        },
+      ];
     },
-    {
-      id: 2,
-      name: "Michael Chen",
-      role: "CTO at StartupX",
-      content: "After trying numerous project management tools, TaskMaster Pro is the only one that met all our requirements. The analytics feature is a game-changer.",
-      avatar: "/placeholder.svg",
-    },
-    {
-      id: 3,
-      name: "Elena Rodriguez",
-      role: "Team Lead at DesignHub",
-      content: "The customizable workflows in TaskMaster Pro have allowed us to adapt the tool to our unique design process. Our clients are impressed with the results.",
-      avatar: "/placeholder.svg",
-    },
-  ];
+  });
 };
 
 export default function Index() {
@@ -153,21 +176,11 @@ export default function Index() {
   const testimonialsRef = useRef<HTMLDivElement>(null);
   const aboutRef = useRef<HTMLDivElement>(null);
   const [isYearly, setIsYearly] = useState(false);
+  const { user } = useAuth();
 
-  const { data: features = [] } = useQuery({
-    queryKey: ['features'],
-    queryFn: fetchFeatures,
-  });
-
-  const { data: pricingPlans = [] } = useQuery({
-    queryKey: ['pricing'],
-    queryFn: fetchPricingPlans,
-  });
-
-  const { data: testimonials = [] } = useQuery({
-    queryKey: ['testimonials'],
-    queryFn: fetchTestimonials,
-  });
+  const { data: features = [], isLoading: featuresLoading } = useFeatures();
+  const { data: pricingPlans = [], isLoading: pricingLoading } = usePricingPlans();
+  const { data: testimonials = [], isLoading: testimonialsLoading } = useTestimonials();
 
   useEffect(() => {
     const observerOptions = {
@@ -222,9 +235,9 @@ export default function Index() {
                 The all-in-one project management solution designed to boost productivity, enhance collaboration, and deliver results.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 animate-fade-in animate-delay-200">
-                <Link to="/register">
+                <Link to={user ? "/dashboard" : "/register"}>
                   <Button size="lg" className="rounded-full">
-                    Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
+                    {user ? "Go to Dashboard" : "Start Free Trial"} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Button 
@@ -254,17 +267,24 @@ export default function Index() {
               Everything you need to manage your projects efficiently in one platform
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {features.map((feature, index) => (
-                <FeatureCard
-                  key={feature.id}
-                  title={feature.title}
-                  description={feature.description}
-                  icon={feature.icon}
-                  index={index}
-                />
-              ))}
-            </div>
+            {featuresLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading features...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {features.map((feature, index) => (
+                  <FeatureCard
+                    key={feature.id}
+                    title={feature.title}
+                    description={feature.description}
+                    icon={feature.icon}
+                    index={index}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -295,20 +315,27 @@ export default function Index() {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {pricingPlans.map((plan) => (
-                <PricingCard
-                  key={plan.id}
-                  name={plan.name}
-                  price={isYearly ? plan.price.yearly : plan.price.monthly}
-                  description={plan.description}
-                  features={plan.features}
-                  buttonText={plan.buttonText}
-                  popular={plan.popular}
-                  isYearly={isYearly}
-                />
-              ))}
-            </div>
+            {pricingLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading pricing plans...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {pricingPlans.map((plan) => (
+                  <PricingCard
+                    key={plan.id}
+                    name={plan.name}
+                    price={isYearly ? plan.price.yearly : plan.price.monthly}
+                    description={plan.description}
+                    features={plan.features}
+                    buttonText={plan.buttonText}
+                    popular={plan.popular}
+                    isYearly={isYearly}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -322,18 +349,25 @@ export default function Index() {
               See what our customers have to say about TaskMaster Pro
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, index) => (
-                <TestimonialCard
-                  key={testimonial.id}
-                  name={testimonial.name}
-                  role={testimonial.role}
-                  content={testimonial.content}
-                  avatar={testimonial.avatar}
-                  index={index}
-                />
-              ))}
-            </div>
+            {testimonialsLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader className="h-8 w-8 animate-spin text-primary" />
+                <span className="ml-2">Loading testimonials...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {testimonials.map((testimonial, index) => (
+                  <TestimonialCard
+                    key={testimonial.id}
+                    name={testimonial.name}
+                    role={testimonial.role}
+                    content={testimonial.content}
+                    avatar={testimonial.avatar}
+                    index={index}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -416,9 +450,9 @@ export default function Index() {
                 Join thousands of teams who have already improved their productivity with TaskMaster Pro.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4 animate-on-scroll opacity-0" style={{ animationDelay: "200ms" }}>
-                <Link to="/register">
+                <Link to={user ? "/dashboard" : "/register"}>
                   <Button size="lg" className="rounded-full">
-                    Start Free Trial
+                    {user ? "Go to Dashboard" : "Start Free Trial"}
                   </Button>
                 </Link>
                 <Link to="/contact">
