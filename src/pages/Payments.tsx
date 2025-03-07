@@ -1,396 +1,355 @@
 
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { CreditCard, Receipt, Download, FileText, Plus, CheckCircle, Clock, AlertCircle, Search, Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { 
+  Search, 
+  Filter, 
+  MoreVertical, 
+  ArrowUpDown, 
+  CreditCard, 
+  Download,
+  CheckCircle2,
+  Clock,
+  XCircle
+} from "lucide-react";
 
-// Mock payment data
+// Mock data for payments
 const payments = [
   {
-    id: "payment-001",
-    service: "Document Authentication",
-    amount: 2500,
-    date: "2023-10-12",
+    id: "PMT-001",
+    date: "2023-10-10",
+    amount: 299.00,
+    description: "Visa Application Assistance",
     status: "completed",
     method: "Credit Card",
-    reference: "AUTH-12345"
+    cardLast4: "4242"
   },
   {
-    id: "payment-002",
-    service: "Visa Consultation",
-    amount: 3500,
-    date: "2023-10-15",
+    id: "PMT-002",
+    date: "2023-10-05",
+    amount: 149.00,
+    description: "Pre-Departure Orientation",
     status: "completed",
-    method: "Bank Transfer",
-    reference: "VISA-78901"
+    method: "PayPal",
+    cardLast4: null
   },
   {
-    id: "payment-003",
-    service: "University Application Fee",
-    amount: 5000,
-    date: "2023-10-18",
+    id: "PMT-003",
+    date: "2023-09-28",
+    amount: 349.00,
+    description: "Accommodation Placement Fee",
+    status: "completed",
+    method: "Credit Card",
+    cardLast4: "1234"
+  },
+  {
+    id: "PMT-004",
+    date: "2023-10-15",
+    amount: 499.00,
+    description: "Language Proficiency Test Prep",
     status: "pending",
     method: "Bank Transfer",
-    reference: "UNIV-23456"
+    cardLast4: null
   },
   {
-    id: "payment-004",
-    service: "IELTS Preparation Course",
-    amount: 7500,
-    date: "2023-10-05",
-    status: "completed",
+    id: "PMT-005",
+    date: "2023-09-20",
+    amount: 89.00,
+    description: "Airport Pickup & Transfer",
+    status: "failed",
     method: "Credit Card",
-    reference: "LANG-34567"
-  },
-  {
-    id: "payment-005",
-    service: "CV Review Service",
-    amount: 3000,
-    date: "2023-09-28",
-    status: "cancelled",
-    method: "Credit Card",
-    reference: "CV-45678",
-    reason: "Service no longer needed"
+    cardLast4: "5678"
   }
 ];
 
-// Mock invoices data
-const invoices = [
-  {
-    id: "inv-001",
-    service: "Document Authentication",
-    amount: 2500,
-    date: "2023-10-12",
-    dueDate: "2023-10-19",
-    status: "paid"
-  },
-  {
-    id: "inv-002",
-    service: "Visa Consultation",
-    amount: 3500,
-    date: "2023-10-15",
-    dueDate: "2023-10-22",
-    status: "paid"
-  },
-  {
-    id: "inv-003",
-    service: "University Application Fee",
-    amount: 5000,
-    date: "2023-10-18",
-    dueDate: "2023-10-25",
-    status: "unpaid"
-  },
-  {
-    id: "inv-004",
-    service: "IELTS Preparation Course",
-    amount: 7500,
-    date: "2023-10-05",
-    dueDate: "2023-10-12",
-    status: "paid"
-  },
-  {
-    id: "inv-005",
-    service: "CV Review Service",
-    amount: 3000,
-    date: "2023-09-28",
-    dueDate: "2023-10-05",
-    status: "cancelled"
-  }
-];
-
-// Payment methods
-const savedPaymentMethods = [
-  {
-    id: "pm-001",
-    type: "Credit Card",
-    last4: "4242",
-    expiry: "04/25",
-    brand: "Visa",
-    default: true
-  },
-  {
-    id: "pm-002",
-    type: "Bank Account",
-    bank: "Bank of Algeria",
-    last4: "7890",
-    default: false
-  }
-];
-
-const PaymentRow = ({ payment }: { payment: any }) => {
-  let statusBadge;
-  
-  switch (payment.status) {
+const getStatusColor = (status: string) => {
+  switch (status) {
     case "completed":
-      statusBadge = <Badge className="bg-green-500">Completed</Badge>;
-      break;
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
     case "pending":
-      statusBadge = <Badge variant="outline" className="text-yellow-500 border-yellow-500">Pending</Badge>;
-      break;
-    case "cancelled":
-      statusBadge = <Badge variant="destructive">Cancelled</Badge>;
-      break;
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
+    case "failed":
+      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
     default:
-      statusBadge = <Badge variant="outline">Unknown</Badge>;
+      return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100";
   }
-  
-  return (
-    <div className="grid grid-cols-12 items-center gap-4 py-4 border-b">
-      <div className="col-span-3 md:col-span-4">
-        <p className="font-medium">{payment.service}</p>
-        <p className="text-sm text-muted-foreground">Ref: {payment.reference}</p>
-      </div>
-      <div className="col-span-2 md:col-span-2 font-medium text-right">
-        {payment.amount.toLocaleString()} DZD
-      </div>
-      <div className="col-span-3 md:col-span-2 text-muted-foreground text-sm text-center">
-        {payment.date}
-      </div>
-      <div className="col-span-2 md:col-span-2 text-center">
-        {statusBadge}
-      </div>
-      <div className="col-span-2 md:col-span-2 text-right">
-        <Button size="sm" variant="ghost">
-          <Receipt className="h-4 w-4" />
-        </Button>
-        <Button size="sm" variant="ghost">
-          <Download className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
 };
 
-const InvoiceRow = ({ invoice, onPay }: { invoice: any, onPay: (id: string) => void }) => {
-  let statusBadge;
-  
-  switch (invoice.status) {
-    case "paid":
-      statusBadge = <Badge className="bg-green-500">Paid</Badge>;
-      break;
-    case "unpaid":
-      statusBadge = <Badge variant="outline" className="text-yellow-500 border-yellow-500">Unpaid</Badge>;
-      break;
-    case "cancelled":
-      statusBadge = <Badge variant="destructive">Cancelled</Badge>;
-      break;
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case "completed":
+      return <CheckCircle2 className="h-4 w-4 mr-1" />;
+    case "pending":
+      return <Clock className="h-4 w-4 mr-1" />;
+    case "failed":
+      return <XCircle className="h-4 w-4 mr-1" />;
     default:
-      statusBadge = <Badge variant="outline">Unknown</Badge>;
+      return null;
   }
-  
-  return (
-    <div className="grid grid-cols-12 items-center gap-4 py-4 border-b">
-      <div className="col-span-3 md:col-span-4">
-        <p className="font-medium">{invoice.service}</p>
-        <p className="text-sm text-muted-foreground">Due: {invoice.dueDate}</p>
-      </div>
-      <div className="col-span-2 md:col-span-2 font-medium text-right">
-        {invoice.amount.toLocaleString()} DZD
-      </div>
-      <div className="col-span-3 md:col-span-2 text-muted-foreground text-sm text-center">
-        {invoice.date}
-      </div>
-      <div className="col-span-2 md:col-span-2 text-center">
-        {statusBadge}
-      </div>
-      <div className="col-span-2 md:col-span-2 text-right">
-        {invoice.status === "unpaid" ? (
-          <Button size="sm" onClick={() => onPay(invoice.id)}>Pay</Button>
-        ) : (
-          <>
-            <Button size="sm" variant="ghost">
-              <FileText className="h-4 w-4" />
-            </Button>
-            <Button size="sm" variant="ghost">
-              <Download className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
-  );
 };
 
-const PaymentMethodCard = ({ method }: { method: any }) => {
-  return (
-    <Card className={`${method.default ? 'border-primary/50' : ''}`}>
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <CreditCard className="h-6 w-6 mr-3 text-primary" />
-            <div>
-              <p className="font-medium">{method.type}</p>
-              {method.type === "Credit Card" ? (
-                <p className="text-sm text-muted-foreground">
-                  {method.brand} •••• {method.last4} | Expires {method.expiry}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  {method.bank} •••• {method.last4}
-                </p>
-              )}
-            </div>
-          </div>
-          {method.default && <Badge variant="outline">Default</Badge>}
-        </div>
-      </CardContent>
-      <CardFooter className="px-4 py-2 flex justify-between border-t">
-        <Button variant="ghost" size="sm">Edit</Button>
-        <Button variant="ghost" size="sm" className="text-destructive">Remove</Button>
-      </CardFooter>
-    </Card>
-  );
-};
+// Calculate total amounts
+const totalPaid = payments
+  .filter(p => p.status === "completed")
+  .reduce((sum, payment) => sum + payment.amount, 0);
 
-const PaymentsPage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTab, setSelectedTab] = useState("payments");
+const pendingAmount = payments
+  .filter(p => p.status === "pending")
+  .reduce((sum, payment) => sum + payment.amount, 0);
 
-  const handlePayInvoice = (invoiceId: string) => {
-    console.log(`Processing payment for invoice ${invoiceId}`);
-    // Here would be the logic to handle payment
-  };
+export default function Payments() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("all");
   
-  // Filter payments based on search query
-  const filteredPayments = payments.filter(
-    payment => payment.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              payment.reference.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  // Filter invoices based on search query
-  const filteredInvoices = invoices.filter(
-    invoice => invoice.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              invoice.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
+  // Filter payments based on search term and filter
+  const filteredPayments = payments.filter(payment => {
+    const matchesSearch = payment.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         payment.id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (filter === "all") return matchesSearch;
+    return matchesSearch && payment.status === filter;
+  });
+
   return (
-    <div className="container mx-auto">
-      <div className="flex flex-col space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Payments & Invoices</h1>
-          <div className="flex space-x-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="w-60 pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Payment Method
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
+        <Button>
+          <CreditCard className="mr-2 h-4 w-4" />
+          Add Payment Method
+        </Button>
+      </div>
+      
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Total Paid</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalPaid.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Across {payments.filter(p => p.status === "completed").length} transactions
+            </p>
+          </CardContent>
+        </Card>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-3">
-            <Tabs defaultValue="payments" value={selectedTab} onValueChange={setSelectedTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="payments">Payments History</TabsTrigger>
-                <TabsTrigger value="invoices">Invoices</TabsTrigger>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Pending Payments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${pendingAmount.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {payments.filter(p => p.status === "pending").length} pending transactions
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Payment Methods</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">3</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Credit Card, PayPal, Bank Transfer
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>
+            View and manage your payment transactions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="all" className="w-full">
+            <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
+              <TabsList className="mb-4 sm:mb-0">
+                <TabsTrigger value="all" onClick={() => setFilter("all")}>All</TabsTrigger>
+                <TabsTrigger value="completed" onClick={() => setFilter("completed")}>Completed</TabsTrigger>
+                <TabsTrigger value="pending" onClick={() => setFilter("pending")}>Pending</TabsTrigger>
+                <TabsTrigger value="failed" onClick={() => setFilter("failed")}>Failed</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="payments" className="mt-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle>Payment History</CardTitle>
-                    <CardDescription>View all your past and pending payments</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-12 items-center gap-4 py-2 border-b font-medium">
-                      <div className="col-span-3 md:col-span-4">Service</div>
-                      <div className="col-span-2 md:col-span-2 text-right">Amount</div>
-                      <div className="col-span-3 md:col-span-2 text-center">Date</div>
-                      <div className="col-span-2 md:col-span-2 text-center">Status</div>
-                      <div className="col-span-2 md:col-span-2 text-right">Actions</div>
-                    </div>
-                    
-                    {filteredPayments.length > 0 ? (
-                      filteredPayments.map(payment => (
-                        <PaymentRow key={payment.id} payment={payment} />
-                      ))
-                    ) : (
-                      <div className="py-12 text-center">
-                        <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-4 text-lg font-medium">No payments found</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {searchQuery ? `No payments matching "${searchQuery}"` : "You haven't made any payments yet"}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="invoices" className="mt-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle>Invoices</CardTitle>
-                    <CardDescription>View and pay your pending invoices</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-12 items-center gap-4 py-2 border-b font-medium">
-                      <div className="col-span-3 md:col-span-4">Service</div>
-                      <div className="col-span-2 md:col-span-2 text-right">Amount</div>
-                      <div className="col-span-3 md:col-span-2 text-center">Issue Date</div>
-                      <div className="col-span-2 md:col-span-2 text-center">Status</div>
-                      <div className="col-span-2 md:col-span-2 text-right">Actions</div>
-                    </div>
-                    
-                    {filteredInvoices.length > 0 ? (
-                      filteredInvoices.map(invoice => (
-                        <InvoiceRow key={invoice.id} invoice={invoice} onPay={handlePayInvoice} />
-                      ))
-                    ) : (
-                      <div className="py-12 text-center">
-                        <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <h3 className="mt-4 text-lg font-medium">No invoices found</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {searchQuery ? `No invoices matching "${searchQuery}"` : "You don't have any invoices"}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-        
-        {selectedTab === "payments" && (
-          <>
-            <h2 className="text-xl font-semibold mt-4">Payment Methods</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {savedPaymentMethods.map(method => (
-                <PaymentMethodCard key={method.id} method={method} />
-              ))}
-              <Card className="border-dashed">
-                <CardContent className="p-6 flex flex-col items-center justify-center h-full text-center">
-                  <CreditCard className="h-10 w-10 mb-4 text-muted-foreground" />
-                  <h3 className="font-medium">Add New Payment Method</h3>
-                  <p className="text-sm text-muted-foreground mt-1 mb-4">
-                    Add a credit card or bank account for faster checkout
-                  </p>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Method
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="flex gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search payments..."
+                    className="pl-8 w-full sm:w-[250px]"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Sort By</DropdownMenuLabel>
+                    <DropdownMenuItem>Date (Newest)</DropdownMenuItem>
+                    <DropdownMenuItem>Date (Oldest)</DropdownMenuItem>
+                    <DropdownMenuItem>Amount (Highest)</DropdownMenuItem>
+                    <DropdownMenuItem>Amount (Lowest)</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Filter By</DropdownMenuLabel>
+                    <DropdownMenuItem>Credit Card</DropdownMenuItem>
+                    <DropdownMenuItem>PayPal</DropdownMenuItem>
+                    <DropdownMenuItem>Bank Transfer</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-          </>
-        )}
-      </div>
+            
+            <TabsContent value="all" className="m-0">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">ID</TableHead>
+                      <TableHead className="w-[120px]">
+                        <div className="flex items-center">
+                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
+                        </div>
+                      </TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[120px]">
+                        <div className="flex items-center">
+                          Amount <ArrowUpDown className="ml-1 h-4 w-4" />
+                        </div>
+                      </TableHead>
+                      <TableHead className="w-[120px]">Method</TableHead>
+                      <TableHead className="w-[120px]">Status</TableHead>
+                      <TableHead className="w-[80px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPayments.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-[200px] text-center">
+                          No payments found.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredPayments.map((payment) => (
+                        <TableRow key={payment.id}>
+                          <TableCell className="font-medium">{payment.id}</TableCell>
+                          <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                          <TableCell>{payment.description}</TableCell>
+                          <TableCell>${payment.amount.toFixed(2)}</TableCell>
+                          <TableCell>
+                            {payment.method}
+                            {payment.cardLast4 && <span className="text-xs text-muted-foreground ml-1">
+                              (•••• {payment.cardLast4})
+                            </span>}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`flex w-fit items-center ${getStatusColor(payment.status)}`} variant="outline">
+                              {getStatusIcon(payment.status)}
+                              <span className="capitalize">{payment.status}</span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>View Details</DropdownMenuItem>
+                                {payment.status === "completed" && (
+                                  <DropdownMenuItem>
+                                    <Download className="h-4 w-4 mr-2" />
+                                    Download Receipt
+                                  </DropdownMenuItem>
+                                )}
+                                {payment.status === "failed" && (
+                                  <DropdownMenuItem>Retry Payment</DropdownMenuItem>
+                                )}
+                                {payment.status === "pending" && (
+                                  <DropdownMenuItem className="text-destructive">
+                                    Cancel Payment
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="completed" className="m-0">
+              {/* Same table structure as 'all' tab */}
+            </TabsContent>
+            
+            <TabsContent value="pending" className="m-0">
+              {/* Same table structure as 'all' tab */}
+            </TabsContent>
+            
+            <TabsContent value="failed" className="m-0">
+              {/* Same table structure as 'all' tab */}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+        <CardFooter className="flex justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {filteredPayments.length} of {payments.length} payments
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" disabled>
+              Next
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
-};
-
-export default PaymentsPage;
+}
