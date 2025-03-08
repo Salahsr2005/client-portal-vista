@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -82,7 +83,10 @@ export const ModernCarousel = ({
     const images = [
       '/images/destination-1.jpg',
       '/images/destination-2.jpg',
-      '/images/destination-3.jpg'
+      '/images/destination-3.jpg',
+      '/images/destination-4.jpg',
+      '/images/destination-5.jpg',
+      '/images/destination-6.jpg'
     ];
     
     const index = Math.floor(Math.random() * images.length);

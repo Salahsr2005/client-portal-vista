@@ -14,16 +14,17 @@ export const useLandingPageData = () => {
         .limit(6);
       
       if (error) {
-        throw new Error(error.message);
+        console.error("Error fetching destinations:", error);
+        return [];
       }
       
-      return data.map(destination => ({
+      return data?.map(destination => ({
         id: destination.destination_id,
         name: destination.country_name,
         description: destination.description || "",
-        image: destination.image_url || "/placeholder.svg",
+        image: destination.image_url || `/images/destination-${Math.floor(Math.random() * 6) + 1}.jpg`,
         requirements: destination.visa_requirements || "",
-      }));
+      })) || [];
     },
   });
 
@@ -31,48 +32,54 @@ export const useLandingPageData = () => {
   const programsQuery = useQuery({
     queryKey: ["landingPrograms"],
     queryFn: async () => {
-      // First fetch programs
-      const { data: programsData, error: programsError } = await supabase
-        .from("programs")
-        .select("*")
-        .eq("is_active", true)
-        .limit(6);
-      
-      if (programsError) {
-        throw new Error(programsError.message);
-      }
-      
-      // Enrich programs with destination data
-      const enrichedPrograms = await Promise.all(
-        programsData.map(async (program) => {
-          let location = "International";
-          
-          if (program.destination_id) {
-            // Fetch destination for this program
-            const { data: destinationData, error: destinationError } = await supabase
-              .from("destinations")
-              .select("country_name")
-              .eq("destination_id", program.destination_id)
-              .maybeSingle();
+      try {
+        // First fetch programs
+        const { data: programsData, error: programsError } = await supabase
+          .from("programs")
+          .select("*")
+          .eq("is_active", true)
+          .limit(6);
+        
+        if (programsError) {
+          console.error("Error fetching programs:", programsError);
+          return [];
+        }
+        
+        // Enrich programs with destination data
+        const enrichedPrograms = await Promise.all(
+          (programsData || []).map(async (program) => {
+            let location = "International";
             
-            if (!destinationError && destinationData) {
-              location = destinationData.country_name;
+            if (program.destination_id) {
+              // Fetch destination for this program
+              const { data: destinationData, error: destinationError } = await supabase
+                .from("destinations")
+                .select("country_name")
+                .eq("destination_id", program.destination_id)
+                .maybeSingle();
+              
+              if (!destinationError && destinationData) {
+                location = destinationData.country_name;
+              }
             }
-          }
-          
-          return {
-            id: program.program_id,
-            name: program.program_name,
-            description: program.description || "",
-            location: location,
-            duration: program.duration || "Varies",
-            fee: program.fee ? `$${program.fee}` : "Contact for details",
-            requirements: program.requirements || "",
-          };
-        })
-      );
-      
-      return enrichedPrograms;
+            
+            return {
+              id: program.program_id,
+              name: program.program_name,
+              description: program.description || "",
+              location: location,
+              duration: program.duration || "Varies",
+              fee: program.fee ? `$${program.fee}` : "Contact for details",
+              requirements: program.requirements || "",
+            };
+          })
+        );
+        
+        return enrichedPrograms;
+      } catch (error) {
+        console.error("Error in programs query:", error);
+        return [];
+      }
     },
   });
 
@@ -87,16 +94,17 @@ export const useLandingPageData = () => {
         .limit(6);
       
       if (error) {
-        throw new Error(error.message);
+        console.error("Error fetching services:", error);
+        return [];
       }
       
-      return data.map(service => ({
+      return data?.map(service => ({
         id: service.service_id,
         name: service.service_name,
         description: service.description || "",
         duration: service.estimated_duration || "Varies",
         fee: service.fee ? `$${service.fee}` : "Contact for details",
-      }));
+      })) || [];
     },
   });
 

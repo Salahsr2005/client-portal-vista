@@ -29,21 +29,21 @@ export const Globe3D = () => {
 
     const initParticles = () => {
       particles = [];
-      const numParticles = Math.floor(width * height / 8000);
+      const numParticles = Math.floor(width * height / 6000); // More particles for denser globe
       
       for (let i = 0; i < numParticles; i++) {
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         
-        // Create a golden/blue color theme for particles
+        // Create a gold/blue color theme for particles with more gold
         const colorChoice = Math.random();
         let color;
-        if (colorChoice < 0.7) {
-          // Gold particles
-          color = `rgba(255, 215, 0, ${Math.random() * 0.5 + 0.5})`;
+        if (colorChoice < 0.8) {
+          // Gold particles (more of these)
+          color = `rgba(255, 215, 0, ${Math.random() * 0.7 + 0.3})`;
         } else {
           // Blue particles
-          color = `rgba(65, 105, 225, ${Math.random() * 0.5 + 0.5})`;
+          color = `rgba(65, 105, 225, ${Math.random() * 0.7 + 0.3})`;
         }
         
         const radius = Math.min(width, height) * 0.35;
@@ -59,7 +59,7 @@ export const Globe3D = () => {
           origX: x,
           origY: y,
           origZ: z,
-          radius: Math.random() * 2 + 1,
+          radius: Math.random() * 2.5 + 1, // Slightly larger particles
           color: color,
         });
       }
@@ -70,9 +70,9 @@ export const Globe3D = () => {
       
       context.clearRect(0, 0, width, height);
       
-      // Draw connections
+      // Draw connections - more connections for aceternity style
       context.beginPath();
-      context.strokeStyle = 'rgba(255,215,0,0.1)';
+      context.strokeStyle = 'rgba(255,215,0,0.15)'; // More visible connections
       context.lineWidth = 0.5;
       
       for (let i = 0; i < particles.length; i++) {
@@ -84,7 +84,7 @@ export const Globe3D = () => {
           const dy = p1.y - p2.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           
-          if (distance < 60) {
+          if (distance < 70) { // Increased connection distance
             context.moveTo(p1.x, p1.y);
             context.lineTo(p2.x, p2.y);
           }
@@ -99,10 +99,23 @@ export const Globe3D = () => {
         context.fillStyle = p.color;
         context.fill();
       }
+
+      // Add glow effect
+      const gradient = context.createRadialGradient(
+        width / 2, height / 2, 0,
+        width / 2, height / 2, Math.min(width, height) * 0.4
+      );
+      gradient.addColorStop(0, 'rgba(255, 215, 0, 0.05)');
+      gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+      
+      context.beginPath();
+      context.arc(width / 2, height / 2, Math.min(width, height) * 0.4, 0, Math.PI * 2);
+      context.fillStyle = gradient;
+      context.fill();
     };
 
     const animateParticles = () => {
-      const time = Date.now() * 0.001;
+      const time = Date.now() * 0.0005; // Slower rotation for more elegance
       
       for (const p of particles) {
         // Rotate around the center of the sphere
@@ -118,6 +131,13 @@ export const Globe3D = () => {
         
         p.x = cosAngle * x - sinAngle * z + width / 2;
         p.z = sinAngle * x + cosAngle * z;
+
+        // Add slight pulsing effect
+        const pulseSpeed = 0.0015;
+        const pulseAmplitude = 0.03;
+        const pulse = Math.sin(time * pulseSpeed * Math.PI * 2) * pulseAmplitude + 1;
+        
+        p.radius = (Math.random() * 2.5 + 1) * pulse;
       }
       
       drawParticles();
