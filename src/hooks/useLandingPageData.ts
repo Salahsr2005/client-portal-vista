@@ -31,25 +31,48 @@ export const useLandingPageData = () => {
   const programsQuery = useQuery({
     queryKey: ["landingPrograms"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch programs
+      const { data: programsData, error: programsError } = await supabase
         .from("programs")
-        .select("*, destinations(country_name)")
+        .select("*")
         .eq("is_active", true)
         .limit(6);
       
-      if (error) {
-        throw new Error(error.message);
+      if (programsError) {
+        throw new Error(programsError.message);
       }
       
-      return data.map(program => ({
-        id: program.program_id,
-        name: program.program_name,
-        description: program.description || "",
-        location: program.destinations?.country_name || "International",
-        duration: program.duration || "Varies",
-        fee: program.fee ? `$${program.fee}` : "Contact for details",
-        requirements: program.requirements || "",
-      }));
+      // Enrich programs with destination data
+      const enrichedPrograms = await Promise.all(
+        programsData.map(async (program) => {
+          let location = "International";
+          
+          if (program.destination_id) {
+            // Fetch destination for this program
+            const { data: destinationData, error: destinationError } = await supabase
+              .from("destinations")
+              .select("country_name")
+              .eq("destination_id", program.destination_id)
+              .maybeSingle();
+            
+            if (!destinationError && destinationData) {
+              location = destinationData.country_name;
+            }
+          }
+          
+          return {
+            id: program.program_id,
+            name: program.program_name,
+            description: program.description || "",
+            location: location,
+            duration: program.duration || "Varies",
+            fee: program.fee ? `$${program.fee}` : "Contact for details",
+            requirements: program.requirements || "",
+          };
+        })
+      );
+      
+      return enrichedPrograms;
     },
   });
 

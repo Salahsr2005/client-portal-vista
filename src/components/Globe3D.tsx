@@ -35,6 +35,17 @@ export const Globe3D = () => {
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
         
+        // Create a golden/blue color theme for particles
+        const colorChoice = Math.random();
+        let color;
+        if (colorChoice < 0.7) {
+          // Gold particles
+          color = `rgba(255, 215, 0, ${Math.random() * 0.5 + 0.5})`;
+        } else {
+          // Blue particles
+          color = `rgba(65, 105, 225, ${Math.random() * 0.5 + 0.5})`;
+        }
+        
         const radius = Math.min(width, height) * 0.35;
         
         const x = width / 2 + radius * Math.sin(phi) * Math.cos(theta);
@@ -49,7 +60,7 @@ export const Globe3D = () => {
           origY: y,
           origZ: z,
           radius: Math.random() * 2 + 1,
-          color: `rgba(255,255,255,${Math.random() * 0.5 + 0.5})`,
+          color: color,
         });
       }
     };
@@ -61,7 +72,7 @@ export const Globe3D = () => {
       
       // Draw connections
       context.beginPath();
-      context.strokeStyle = 'rgba(255,255,255,0.1)';
+      context.strokeStyle = 'rgba(255,215,0,0.1)';
       context.lineWidth = 0.5;
       
       for (let i = 0; i < particles.length; i++) {
@@ -135,6 +146,7 @@ export const Globe3D = () => {
         ref={canvasRef}
         className="absolute inset-0"
       />
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-background/10 rounded-lg"></div>
     </motion.div>
   );
 };

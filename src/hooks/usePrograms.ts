@@ -18,10 +18,10 @@ export const usePrograms = () => {
       // Get the results with destination information
       const enrichedPrograms = await Promise.all(
         programsData.map(async (program) => {
-          let destination = null;
+          let location = "Unknown";
           
           if (program.destination_id) {
-            // Fetch destination for this program
+            // Fetch destination for this program separately
             const { data: destinationData, error: destinationError } = await supabase
               .from("destinations")
               .select("country_name")
@@ -29,7 +29,7 @@ export const usePrograms = () => {
               .maybeSingle();
             
             if (!destinationError && destinationData) {
-              destination = destinationData;
+              location = destinationData.country_name;
             }
           }
           
@@ -37,7 +37,7 @@ export const usePrograms = () => {
             id: program.program_id,
             name: program.program_name,
             university: "University", // This field seems to be missing in your schema
-            location: destination?.country_name || "Unknown",
+            location: location,
             type: "Masters", // This field seems to be missing in your schema
             duration: program.duration || "Unknown",
             tuition: program.fee ? `$${program.fee}` : "Contact for details",

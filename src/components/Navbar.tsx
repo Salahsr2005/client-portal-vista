@@ -3,11 +3,19 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, X, Globe, ChevronDown } from "lucide-react";
+import { Menu, X, LogOut, User, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -32,6 +40,12 @@ export function Navbar() {
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
+  };
+
+  const getInitials = () => {
+    if (!user || !user.email) return "U";
+    const email = user.email;
+    return email.charAt(0).toUpperCase();
   };
 
   return (
@@ -90,16 +104,31 @@ export function Navbar() {
           <LanguageSelector />
           <ThemeToggle />
           {user ? (
-            <div className="flex items-center space-x-1">
-              <Link to="/dashboard">
-                <Button className="rounded-full">
-                  {t('nav.dashboard')}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="rounded-full p-1" aria-label="User menu">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata?.avatar_url || ""} />
+                    <AvatarFallback>{getInitials()}</AvatarFallback>
+                  </Avatar>
                 </Button>
-              </Link>
-              <Button variant="ghost" onClick={handleSignOut} className="rounded-full">
-                {t('nav.logout')}
-              </Button>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <User className="mr-2 h-4 w-4" />
+                  {t('nav.dashboard')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  {t('nav.profile')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t('nav.logout')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link to="/login">
               <Button className="ml-2 rounded-full">
@@ -113,6 +142,33 @@ export function Navbar() {
         <div className="flex items-center md:hidden">
           <LanguageSelector />
           <ThemeToggle />
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="rounded-full p-1 ml-1" aria-label="User menu">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata?.avatar_url || ""} />
+                    <AvatarFallback>{getInitials()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/dashboard")}>
+                  <User className="mr-2 h-4 w-4" />
+                  {t('nav.dashboard')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/profile")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  {t('nav.profile')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t('nav.logout')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <Button
             variant="ghost"
             size="icon"
