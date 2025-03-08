@@ -77,7 +77,7 @@ export function DashboardLayout() {
               to="/dashboard"
               className="text-2xl font-semibold tracking-tight text-gradient"
             >
-              Vista
+              Euro Visa
             </Link>
             <Button
               variant="ghost"

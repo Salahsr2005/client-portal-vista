@@ -44,7 +44,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">{greeting}, John!</h1>
             <p className="text-muted-foreground">
-              Welcome back to your Vista dashboard. Here's an overview of your journey.
+              Welcome back to your Euro Visa dashboard. Here's an overview of your journey.
             </p>
           </div>
           <Link to="/profile">

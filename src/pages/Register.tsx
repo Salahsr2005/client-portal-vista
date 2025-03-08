@@ -125,7 +125,7 @@ export default function Register() {
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold mb-2">Create Account</h1>
               <p className="text-muted-foreground">
-                Join Vista and explore global opportunities
+                Join Euro Visa and explore global opportunities
               </p>
             </div>
 
