@@ -62,7 +62,7 @@ export default function Index() {
   // Prepare carousel items from destinations data
   const carouselItems = destinations.data.map(destination => ({
     id: destination.id,
-    image: destination.image || "/placeholder.svg",
+    image: destination.image || "/images/destination-1.jpg", // Use provided images
     title: destination.name,
     description: destination.description
   }));
@@ -85,7 +85,7 @@ export default function Index() {
                 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6"
                 variants={fadeInUp}
               >
-                {t('hero.title')}{" "}
+                {t('hero.title', 'Your Global Education & Immigration Partner')}{" "}
                 <span className="text-gradient">Euro Visa</span>
               </motion.h1>
               
@@ -93,7 +93,7 @@ export default function Index() {
                 className="text-muted-foreground text-lg md:text-xl max-w-2xl mb-8"
                 variants={fadeInUp}
               >
-                {t('hero.subtitle')}
+                {t('hero.subtitle', 'Explore international education opportunities and immigration pathways with expert guidance and personalized support.')}
               </motion.p>
               
               <motion.div 
@@ -102,7 +102,7 @@ export default function Index() {
               >
                 <Link to="/programs">
                   <Button size="lg" className="rounded-full">
-                    {t('hero.cta')} <ArrowRight className="ml-2 h-4 w-4" />
+                    {t('hero.cta', 'Explore Programs')} <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Button 
@@ -111,7 +111,7 @@ export default function Index() {
                   className="rounded-full"
                   onClick={() => scrollToSection(featuresRef)}
                 >
-                  {t('hero.learnMore')} <ArrowDown className="ml-2 h-4 w-4" />
+                  {t('hero.learnMore', 'Learn More')} <ArrowDown className="ml-2 h-4 w-4" />
                 </Button>
               </motion.div>
             </motion.div>
@@ -145,13 +145,13 @@ export default function Index() {
                 className="text-3xl md:text-4xl font-bold mb-4"
                 variants={fadeInUp}
               >
-                {t('destinations.title')}
+                {t('destinations.title', 'Popular Destinations')}
               </motion.h2>
               <motion.p 
                 className="text-muted-foreground max-w-2xl mx-auto"
                 variants={fadeInUp}
               >
-                {t('destinations.subtitle')}
+                {t('destinations.subtitle', 'Discover exciting study and immigration opportunities in these sought-after destinations.')}
               </motion.p>
             </motion.div>
             
@@ -178,7 +178,7 @@ export default function Index() {
             <div className="text-center">
               <Link to="/destinations">
                 <Button variant="outline" className="rounded-full">
-                  {t('destinations.viewAll')} <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('destinations.viewAll', 'View All Destinations')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
@@ -199,13 +199,13 @@ export default function Index() {
                 className="text-3xl md:text-4xl font-bold mb-4"
                 variants={fadeInUp}
               >
-                {t('programs.title')}
+                {t('programs.title', 'Featured Programs')}
               </motion.h2>
               <motion.p 
                 className="text-muted-foreground max-w-2xl mx-auto"
                 variants={fadeInUp}
               >
-                {t('programs.subtitle')}
+                {t('programs.subtitle', 'Explore our carefully selected educational programs to advance your career.')}
               </motion.p>
             </motion.div>
             
@@ -265,7 +265,7 @@ export default function Index() {
             <div className="text-center mt-12">
               <Link to="/programs">
                 <Button variant="outline" className="rounded-full">
-                  {t('programs.viewAll')} <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('programs.viewAll', 'View All Programs')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
@@ -286,13 +286,13 @@ export default function Index() {
                 className="text-3xl md:text-4xl font-bold mb-4"
                 variants={fadeInUp}
               >
-                {t('features.title')}
+                {t('features.title', 'Why Choose Euro Visa')}
               </motion.h2>
               <motion.p 
                 className="text-muted-foreground max-w-2xl mx-auto"
                 variants={fadeInUp}
               >
-                {t('features.subtitle')}
+                {t('features.subtitle', 'We provide comprehensive support to ensure your success in global education and immigration.')}
               </motion.p>
             </motion.div>
             
@@ -312,8 +312,8 @@ export default function Index() {
                 <div className="bg-primary/10 p-3 rounded-full mb-6">
                   <Users className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{t('features.expert.title')}</h3>
-                <p className="text-muted-foreground">{t('features.expert.description')}</p>
+                <h3 className="text-xl font-semibold mb-3">{t('features.expert.title', 'Expert Consultants')}</h3>
+                <p className="text-muted-foreground">{t('features.expert.description', 'Our team of experienced consultants provides personalized guidance throughout your journey.')}</p>
               </motion.div>
               
               {/* Feature 2 */}
@@ -325,8 +325,8 @@ export default function Index() {
                 <div className="bg-primary/10 p-3 rounded-full mb-6">
                   <Calendar className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{t('features.support.title')}</h3>
-                <p className="text-muted-foreground">{t('features.support.description')}</p>
+                <h3 className="text-xl font-semibold mb-3">{t('features.support.title', 'End-to-End Support')}</h3>
+                <p className="text-muted-foreground">{t('features.support.description', 'From application to arrival, we support you at every step of your international journey.')}</p>
               </motion.div>
               
               {/* Feature 3 */}
@@ -338,8 +338,8 @@ export default function Index() {
                 <div className="bg-primary/10 p-3 rounded-full mb-6">
                   <Shield className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">{t('features.success.title')}</h3>
-                <p className="text-muted-foreground">{t('features.success.description')}</p>
+                <h3 className="text-xl font-semibold mb-3">{t('features.success.title', 'High Success Rate')}</h3>
+                <p className="text-muted-foreground">{t('features.success.description', 'Our proven track record demonstrates our commitment to helping clients achieve their goals.')}</p>
               </motion.div>
             </motion.div>
           </div>
@@ -359,13 +359,13 @@ export default function Index() {
                 className="text-3xl md:text-4xl font-bold mb-4"
                 variants={fadeInUp}
               >
-                {t('services.title')}
+                {t('services.title', 'Our Services')}
               </motion.h2>
               <motion.p 
                 className="text-muted-foreground max-w-2xl mx-auto"
                 variants={fadeInUp}
               >
-                {t('services.subtitle')}
+                {t('services.subtitle', 'Comprehensive solutions to help you navigate your international education and immigration journey.')}
               </motion.p>
             </motion.div>
             
@@ -419,7 +419,7 @@ export default function Index() {
             <div className="text-center mt-12">
               <Link to="/services">
                 <Button variant="outline" className="rounded-full">
-                  {t('services.viewAll')} <ArrowRight className="ml-2 h-4 w-4" />
+                  {t('services.viewAll', 'View All Services')} <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
@@ -447,7 +447,7 @@ export default function Index() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                {t('cta.title')}
+                {t('cta.title', 'Ready to Start Your Global Journey?')}
               </motion.h2>
               
               <motion.p 
@@ -457,7 +457,7 @@ export default function Index() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.3 }}
               >
-                {t('cta.subtitle')}
+                {t('cta.subtitle', 'Contact our expert consultants today for a personalized consultation and take the first step towards your international future.')}
               </motion.p>
               
               <motion.div
@@ -468,7 +468,7 @@ export default function Index() {
               >
                 <Link to="/contact">
                   <Button size="lg" className="rounded-full">
-                    {t('cta.button')}
+                    {t('cta.button', 'Get Started Now')}
                   </Button>
                 </Link>
               </motion.div>
@@ -522,14 +522,14 @@ export default function Index() {
             
             <div className="flex flex-col md:flex-row justify-between items-center">
               <p className="text-muted-foreground text-sm">
-                © 2024 Euro Visa. {t('footer.rights')}
+                © 2024 Euro Visa. {t('footer.rights', 'All rights reserved.')}
               </p>
               <div className="flex space-x-4 mt-4 md:mt-0">
                 <Link to="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {t('footer.privacy')}
+                  {t('footer.privacy', 'Privacy Policy')}
                 </Link>
                 <Link to="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {t('footer.terms')}
+                  {t('footer.terms', 'Terms of Service')}
                 </Link>
               </div>
             </div>

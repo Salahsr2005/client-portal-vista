@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -75,9 +74,23 @@ export const ModernCarousel = ({
 
   const direction = useRef(0);
 
+  const getImageUrl = (imageUrl: string) => {
+    if (imageUrl.startsWith('http') || imageUrl.startsWith('/')) {
+      return imageUrl;
+    }
+    
+    const images = [
+      '/images/destination-1.jpg',
+      '/images/destination-2.jpg',
+      '/images/destination-3.jpg'
+    ];
+    
+    const index = Math.floor(Math.random() * images.length);
+    return images[index];
+  };
+
   return (
     <div className="relative w-full h-full overflow-hidden rounded-xl">
-      {/* Main carousel */}
       <div className="relative w-full h-full">
         <AnimatePresence initial={false} custom={direction.current}>
           <motion.div
@@ -95,7 +108,7 @@ export const ModernCarousel = ({
           >
             <div className="relative w-full h-full">
               <img 
-                src={items[currentIndex].image} 
+                src={getImageUrl(items[currentIndex].image)} 
                 alt={items[currentIndex].title}
                 className="object-cover w-full h-full"
               />
@@ -121,7 +134,6 @@ export const ModernCarousel = ({
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation buttons */}
         <div className="absolute inset-0 flex items-center justify-between p-4">
           <Button 
             variant="ghost" 
@@ -148,7 +160,6 @@ export const ModernCarousel = ({
         </div>
       </div>
 
-      {/* Dots navigation */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2">
         {items.map((_, i) => (
           <button
