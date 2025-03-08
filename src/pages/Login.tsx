@@ -11,7 +11,7 @@ import { ArrowLeft, Lock, Mail, LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
-import { GlobeDemo } from "@/components/ui/globe"
+import { Globe3D } from "@/components/Globe3D";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -89,30 +89,8 @@ export default function Login() {
           transition={{ duration: 0.5 }}
           className="w-full md:w-1/2 bg-primary/5 p-8 flex flex-col justify-center items-center relative overflow-hidden"
         >
-      <div className="container max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Destinations</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Euro Visa vous ouvre les portes des meilleures universités européennes. Découvrez nos destinations
-            principales et les opportunités qui s'offrent à vous.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-            className="flex justify-center"
-          >
-            <GlobeDemo />
+          <div className="absolute inset-0 z-0">
+            <Globe3D />
           </div>
           
           <div className="z-10 text-center p-8 glass-light dark:glass-dark rounded-2xl max-w-md mx-auto">
