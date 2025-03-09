@@ -16,6 +16,7 @@ import { FaqSection } from "@/components/landing/FaqSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { Footer } from "@/components/landing/Footer";
 import { NewsletterForm } from "@/components/landing/NewsletterForm";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function Index() {
   const { destinations, programs, services } = useLandingPageData();
@@ -43,14 +44,14 @@ export default function Index() {
           faqRef={faqRef}
         />
         
-        {/* Parallax background elements */}
+        {/* Parallax background elements - Updated to blue color */}
         <div className="fixed inset-0 -z-10 opacity-30 pointer-events-none">
           <motion.div 
-            className="absolute -top-1/2 -right-1/4 w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-3xl"
+            className="absolute -top-1/2 -right-1/4 w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-blue-500/20 to-transparent blur-3xl"
             style={{ y: backgroundY }}
           />
           <motion.div 
-            className="absolute -bottom-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-secondary/30 to-transparent blur-3xl"
+            className="absolute -bottom-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-blue-400/30 to-transparent blur-3xl"
             style={{ y: useTransform(scrollYProgress, [0, 1], ['0%', '-20%']) }}
           />
         </div>

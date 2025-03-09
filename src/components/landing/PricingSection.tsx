@@ -2,95 +2,119 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Check, X } from "lucide-react";
+import { Info, Flag, ExternalLink } from "lucide-react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { Card } from "@/components/ui/card";
 
 export function PricingSection() {
   const { t } = useTranslation();
-  const [billingAnnually, setBillingAnnually] = useState(false);
+  const [activeCountry, setActiveCountry] = useState("");
+  
+  // Country data with pricing options and admission details
+  const countries = [
+    {
+      id: "france",
+      name: "France",
+      flag: "🇫🇷",
+      color: "from-blue-500 to-blue-600",
+      options: [
+        { name: "Campus France", price: "100€" },
+        { name: "Parcoursup", price: "100€" },
+        { name: "Université non connectée", price: "Varies" },
+        { name: "Université privée", price: "Varies" },
+      ],
+      admissionInfo: {
+        title: "Study in France",
+        requirements: [
+          "Completed secondary education",
+          "B2 level proficiency in French (DELF/DALF certification)",
+          "Campus France procedure for non-EU students",
+          "Parcoursup registration for Bachelor's programs",
+        ],
+        documents: [
+          "Birth certificate",
+          "High school diploma/transcripts",
+          "Motivation letter",
+          "French language certification",
+          "Proof of financial resources",
+        ],
+        timeline: "Applications open from November to January",
+        additionalInfo: "Campus France procedure is mandatory for students from most non-EU countries. The process includes an interview and validation of academic documents."
+      }
+    },
+    {
+      id: "poland",
+      name: "Poland",
+      flag: "🇵🇱",
+      color: "from-red-500 to-red-600",
+      price: "400€",
+      admissionInfo: {
+        title: "Study in Poland",
+        requirements: [
+          "Completed secondary education",
+          "English proficiency (B2 level) for English-taught programs",
+          "Polish proficiency for Polish-taught programs",
+          "Entrance exams for some programs"
+        ],
+        documents: [
+          "Completed application form",
+          "Secondary school certificate",
+          "Transcript of records",
+          "Language proficiency certificate",
+          "Copy of passport",
+          "Health insurance"
+        ],
+        timeline: "Applications typically open from May to July",
+        additionalInfo: "Many Polish universities offer programs in English. The academic year starts in October and ends in June."
+      }
+    },
+    {
+      id: "belgium",
+      name: "Belgium",
+      flag: "🇧🇪",
+      color: "from-yellow-500 to-yellow-600",
+      price: "1000€",
+      admissionInfo: {
+        title: "Study in Belgium",
+        requirements: [
+          "Completed secondary education equivalent to Belgian standards",
+          "Language proficiency in French, Dutch, or English depending on the program",
+          "Specific entrance exams for some programs (e.g., medicine, engineering)"
+        ],
+        documents: [
+          "Application form",
+          "Secondary school certificate (legalized)",
+          "Transcript of records",
+          "Copy of passport/ID",
+          "Language proficiency certificate",
+          "Motivation letter"
+        ],
+        timeline: "Applications usually due by April 30 for most programs",
+        additionalInfo: "Belgium has a high-quality education system with reasonable tuition fees compared to other Western European countries. The country has French, Dutch, and German-speaking institutions."
+      }
+    }
+  ];
 
-  // Animation variants
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
+  // Card animation variants
+  const cardVariants = {
+    hover: {
+      rotateY: 5,
+      rotateX: 5,
+      scale: 1.05,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.3,
+        duration: 0.3,
+        ease: "easeOut"
       }
     }
   };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { 
-      opacity: 1, 
-      y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 } 
-    }
-  };
-
-  // Pricing plans
-  const plans = [
-    {
-      name: "Basic",
-      description: "Essential visa consultation services for individuals",
-      monthly: 99,
-      annually: 990,
-      features: [
-        { name: "Initial consultation", included: true },
-        { name: "Document checklist", included: true },
-        { name: "Basic application guidance", included: true },
-        { name: "Email support", included: true },
-        { name: "Document review", included: false },
-        { name: "Priority processing", included: false },
-        { name: "Dedicated consultant", included: false },
-        { name: "Post-approval support", included: false },
-      ],
-      cta: "Get Started",
-      highlighted: false
-    },
-    {
-      name: "Professional",
-      description: "Comprehensive visa and education support",
-      monthly: 199,
-      annually: 1990,
-      features: [
-        { name: "Initial consultation", included: true },
-        { name: "Document checklist", included: true },
-        { name: "Comprehensive application assistance", included: true },
-        { name: "Email & phone support", included: true },
-        { name: "Document review & preparation", included: true },
-        { name: "Priority processing", included: true },
-        { name: "Dedicated consultant", included: false },
-        { name: "Post-approval support", included: false },
-      ],
-      cta: "Most Popular",
-      highlighted: true
-    },
-    {
-      name: "Enterprise",
-      description: "Full-service immigration and education support",
-      monthly: 349,
-      annually: 3490,
-      features: [
-        { name: "Initial consultation", included: true },
-        { name: "Document checklist", included: true },
-        { name: "Complete application management", included: true },
-        { name: "24/7 priority support", included: true },
-        { name: "Document review & preparation", included: true },
-        { name: "Expedited processing", included: true },
-        { name: "Dedicated senior consultant", included: true },
-        { name: "Comprehensive post-approval support", included: true },
-      ],
-      cta: "Contact Us",
-      highlighted: false
-    }
-  ];
 
   return (
     <section className="py-24 bg-muted/30">
@@ -103,94 +127,124 @@ export function PricingSection() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            {t("pricing.title", "Transparent Pricing Plans")}
+            {t("pricing.title", "International Education Options")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
-            {t("pricing.subtitle", "Choose the perfect plan that fits your needs with our straightforward pricing options.")}
+            {t("pricing.subtitle", "Explore study opportunities across different countries with our assistance services.")}
           </p>
-          
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <span className={`text-sm ${!billingAnnually ? "font-medium" : "text-muted-foreground"}`}>
-              {t("pricing.monthly", "Monthly")}
-            </span>
-            <Switch 
-              checked={billingAnnually}
-              onCheckedChange={setBillingAnnually}
-              aria-label="Toggle annual billing"
-            />
-            <span className={`text-sm ${billingAnnually ? "font-medium" : "text-muted-foreground"}`}>
-              {t("pricing.annually", "Annually")}
-              <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                Save 15%
-              </Badge>
-            </span>
-          </div>
         </motion.div>
 
         <motion.div 
-          variants={container}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.1,
+                delayChildren: 0.3,
+              }
+            }
+          }}
           className="grid grid-cols-1 md:grid-cols-3 gap-8"
         >
-          {plans.map((plan, index) => (
+          {countries.map((country) => (
             <motion.div 
-              key={index} 
-              variants={item}
-              className={`flex flex-col ${plan.highlighted ? "md:-mt-4 md:mb-4" : ""}`}
+              key={country.id}
+              whileHover="hover"
+              variants={cardVariants}
+              style={{ perspective: 1000 }}
+              className="flex flex-col h-full"
             >
-              <Card 
-                className={`h-full border ${
-                  plan.highlighted 
-                    ? "border-primary shadow-lg dark:border-primary" 
-                    : "border-border"
-                } overflow-hidden flex flex-col`}
-              >
-                {plan.highlighted && (
-                  <div className="bg-primary text-primary-foreground text-center py-1 text-sm font-medium">
-                    {t("pricing.recommended", "Recommended")}
-                  </div>
-                )}
-                <CardHeader className={plan.highlighted ? "pt-5" : ""}>
-                  <CardTitle>{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <div className="mb-6">
-                    <span className="text-4xl font-bold">
-                      ${billingAnnually ? plan.annually : plan.monthly}
+              <Card className="h-full flex flex-col border-2 hover:shadow-xl transition-shadow duration-300 overflow-hidden group">
+                <div className={`bg-gradient-to-r ${country.color} px-6 py-8 text-white`}>
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="text-4xl" aria-label={`Flag of ${country.name}`}>
+                      {country.flag}
                     </span>
-                    <span className="text-muted-foreground ml-2">
-                      {billingAnnually ? "/year" : "/month"}
-                    </span>
+                    <h3 className="text-2xl font-bold">{country.name}</h3>
                   </div>
                   
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2">
-                        {feature.included ? (
-                          <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                        ) : (
-                          <X className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                        )}
-                        <span className={feature.included ? "" : "text-muted-foreground"}>
-                          {feature.name}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Link to="/contact" className="w-full">
-                    <Button 
-                      className="w-full"
-                      variant={plan.highlighted ? "default" : "outline"}
-                    >
-                      {plan.cta}
-                    </Button>
-                  </Link>
-                </CardFooter>
+                  {country.options ? (
+                    <ul className="space-y-3 mb-6">
+                      {country.options.map((option, idx) => (
+                        <li key={idx} className="flex justify-between items-center text-sm">
+                          <span>{option.name}</span>
+                          <span className="font-medium">{option.price}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="text-center mb-6">
+                      <span className="text-2xl font-bold">{country.price}</span>
+                      <p className="text-sm opacity-80">{t("pricing.applicationFee", "Application Fee")}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-6 py-4 mt-auto">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
+                      >
+                        <Info className="mr-2 h-4 w-4" />
+                        {t("pricing.learnMore", "Learn More")}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[500px] overflow-y-auto max-h-[80vh]">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-3">
+                          <span className="text-2xl">{country.flag}</span>
+                          {country.admissionInfo.title}
+                        </DialogTitle>
+                        <DialogDescription>
+                          {t("pricing.admissionDetails", "Admission requirements and process details")}
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <h4 className="font-semibold mb-2">{t("pricing.requirements", "Requirements")}</h4>
+                          <ul className="list-disc pl-5 space-y-1">
+                            {country.admissionInfo.requirements.map((req, idx) => (
+                              <li key={idx} className="text-sm">{req}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-semibold mb-2">{t("pricing.documents", "Required Documents")}</h4>
+                          <ul className="list-disc pl-5 space-y-1">
+                            {country.admissionInfo.documents.map((doc, idx) => (
+                              <li key={idx} className="text-sm">{doc}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-semibold mb-2">{t("pricing.timeline", "Application Timeline")}</h4>
+                          <p className="text-sm">{country.admissionInfo.timeline}</p>
+                        </div>
+                        
+                        <div>
+                          <h4 className="font-semibold mb-2">{t("pricing.additionalInfo", "Additional Information")}</h4>
+                          <p className="text-sm">{country.admissionInfo.additionalInfo}</p>
+                        </div>
+                        
+                        <div className="pt-4 border-t">
+                          <Button className="w-full">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            {t("pricing.applyNow", "Apply Now")}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </Card>
             </motion.div>
           ))}
@@ -204,10 +258,10 @@ export function PricingSection() {
           className="mt-12 text-center"
         >
           <p className="text-muted-foreground">
-            {t("pricing.customPlan", "Need a custom plan? ")}
-            <Link to="/contact" className="text-primary hover:underline">
+            {t("pricing.customPlan", "Need assistance with a different country? ")}
+            <Button variant="link" className="p-0 h-auto text-primary">
               {t("pricing.contactUs", "Contact our team")}
-            </Link>
+            </Button>
           </p>
         </motion.div>
       </div>
