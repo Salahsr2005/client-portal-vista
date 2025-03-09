@@ -1,75 +1,64 @@
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from "@/components/ui/input";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-
-const newsletterSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
-
-type NewsletterFormValues = z.infer<typeof newsletterSchema>;
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader } from "lucide-react";
 
 export function NewsletterForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation();
   const { toast } = useToast();
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<NewsletterFormValues>({
-    resolver: zodResolver(newsletterSchema),
-  });
-
-  const onSubmit = async (data: NewsletterFormValues) => {
-    setIsSubmitting(true);
-    try {
-      // This would be an API call in a real application
-      // await api.subscribeToNewsletter(data.email);
-      console.log("Subscribed email:", data.email);
-      
-      // Show success message
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
       toast({
-        title: "Successfully subscribed!",
-        description: "Thank you for subscribing to our newsletter.",
-      });
-      
-      // Reset the form
-      reset();
-    } catch (error) {
-      // Show error message
-      toast({
-        title: "Subscription failed",
-        description: "Please try again later.",
+        title: t("newsletter.error", "Invalid email"),
+        description: t("newsletter.errorMessage", "Please enter a valid email address."),
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
+      return;
     }
+    
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      toast({
+        title: t("newsletter.success", "Successfully subscribed!"),
+        description: t("newsletter.successMessage", "Thank you for subscribing to our newsletter."),
+      });
+      setEmail("");
+      setIsSubmitting(false);
+    }, 1500);
   };
-
+  
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-lg mx-auto">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-grow">
-          <Input
-            {...register("email")}
-            placeholder="Enter your email"
-            className={errors.email ? "border-destructive" : ""}
-          />
-          {errors.email && (
-            <p className="text-destructive text-sm mt-1">{errors.email.message}</p>
-          )}
-        </div>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Subscribing..." : "Subscribe"}
-        </Button>
+    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
+      <div className="flex-grow">
+        <Input
+          type="email"
+          placeholder={t("newsletter.placeholder", "Enter your email")}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="h-12"
+          required
+        />
       </div>
+      <Button type="submit" disabled={isSubmitting} className="h-12">
+        {isSubmitting ? (
+          <>
+            <Loader className="mr-2 h-4 w-4 animate-spin" />
+            {t("newsletter.subscribing", "Subscribing...")}
+          </>
+        ) : (
+          t("newsletter.subscribe", "Subscribe")
+        )}
+      </Button>
     </form>
   );
 }
