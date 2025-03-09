@@ -9,7 +9,8 @@ export const usePrograms = () => {
       // First, get all programs
       const { data: programsData, error: programsError } = await supabase
         .from("programs")
-        .select("*");
+        .select("*")
+        .order("program_name", { ascending: true });
       
       if (programsError) {
         throw new Error(programsError.message);
@@ -36,16 +37,18 @@ export const usePrograms = () => {
           return {
             id: program.program_id,
             name: program.program_name,
-            university: "University", // This field seems to be missing in your schema
+            university: program.program_name.includes("University") ? program.program_name.split(" ")[0] : "University",
             location: location,
-            type: "Masters", // This field seems to be missing in your schema
+            type: program.description?.includes("Masters") ? "Masters" : "Degree",
             duration: program.duration || "Unknown",
             tuition: program.fee ? `$${program.fee}` : "Contact for details",
-            rating: 4.5, // This field seems to be missing in your schema
-            deadline: new Date().toISOString().split('T')[0], // This field seems to be missing in your schema
-            subjects: program.description ? [program.description.split(' ')[0]] : ["General"], // This field seems to be missing in your schema
-            applicationFee: "$125", // This field seems to be missing in your schema
-            featured: program.is_active
+            rating: 4.5,
+            deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            subjects: program.description ? [program.description.split(' ')[0]] : ["General"],
+            applicationFee: "$125",
+            featured: program.is_active,
+            requirements: program.requirements || "",
+            description: program.description || ""
           };
         })
       );
