@@ -75,7 +75,7 @@ export default function Index() {
           <div data-aos="fade-up">
             <HeroSection 
               featuresRef={featuresRef} 
-              programsData={programs.data.slice(0, 3)} 
+              programsData={programs.data} 
               programsLoading={programs.isLoading}
             />
           </div>
@@ -83,7 +83,7 @@ export default function Index() {
           {/* Features Section */}
           <div ref={featuresRef} data-aos="fade-up" data-aos-delay="100">
             <FeaturesSection 
-              featuresData={services.data.slice(0, 6)} 
+              featuresData={services.data} 
               isLoading={services.isLoading} 
             />
           </div>
@@ -101,7 +101,7 @@ export default function Index() {
           {/* Testimonials Section */}
           <div ref={testimonialsRef} data-aos="fade-up" data-aos-delay="400">
             <TestimonialsSection 
-              destinations={destinations.data.slice(0, 6)}
+              destinations={destinations.data}
               isLoading={destinations.isLoading}
             />
           </div>

@@ -10,8 +10,7 @@ export const useLandingPageData = () => {
       const { data, error } = await supabase
         .from("destinations")
         .select("*")
-        .eq("is_active", true)
-        .limit(6);
+        .eq("is_active", true);
       
       if (error) {
         console.error("Error fetching destinations:", error);
@@ -37,8 +36,7 @@ export const useLandingPageData = () => {
         const { data: programsData, error: programsError } = await supabase
           .from("programs")
           .select("*")
-          .eq("is_active", true)
-          .limit(6);
+          .eq("is_active", true);
         
         if (programsError) {
           console.error("Error fetching programs:", programsError);
@@ -90,8 +88,7 @@ export const useLandingPageData = () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
-        .eq("is_active", true)
-        .limit(6);
+        .eq("is_active", true);
       
       if (error) {
         console.error("Error fetching services:", error);
