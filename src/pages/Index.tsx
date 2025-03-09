@@ -1,9 +1,11 @@
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useLandingPageData } from "@/hooks/useLandingPageData";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 // Components
 import { Navbar } from "@/components/landing/Navbar";
@@ -20,6 +22,17 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function Index() {
   const { destinations, programs, services } = useLandingPageData();
+  
+  // Initialize AOS
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      easing: 'ease-out-cubic',
+      once: true,
+      offset: 50,
+      disable: 'mobile'
+    });
+  }, []);
   
   // References for scroll navigation
   const featuresRef = useRef<HTMLDivElement>(null);
@@ -44,7 +57,7 @@ export default function Index() {
           faqRef={faqRef}
         />
         
-        {/* Parallax background elements - Updated to blue color */}
+        {/* Parallax background elements - Blue color */}
         <div className="fixed inset-0 -z-10 opacity-30 pointer-events-none">
           <motion.div 
             className="absolute -top-1/2 -right-1/4 w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-blue-500/20 to-transparent blur-3xl"
@@ -59,14 +72,16 @@ export default function Index() {
         {/* Main content */}
         <main>
           {/* Hero Section */}
-          <HeroSection 
-            featuresRef={featuresRef} 
-            programsData={programs.data.slice(0, 3)} 
-            programsLoading={programs.isLoading}
-          />
+          <div data-aos="fade-up">
+            <HeroSection 
+              featuresRef={featuresRef} 
+              programsData={programs.data.slice(0, 3)} 
+              programsLoading={programs.isLoading}
+            />
+          </div>
           
           {/* Features Section */}
-          <div ref={featuresRef}>
+          <div ref={featuresRef} data-aos="fade-up" data-aos-delay="100">
             <FeaturesSection 
               featuresData={services.data.slice(0, 6)} 
               isLoading={services.isLoading} 
@@ -74,17 +89,17 @@ export default function Index() {
           </div>
           
           {/* How It Works Section */}
-          <div ref={howItWorksRef}>
+          <div ref={howItWorksRef} data-aos="fade-up" data-aos-delay="200">
             <HowItWorksSection />
           </div>
           
           {/* Pricing Section */}
-          <div ref={pricingRef}>
+          <div ref={pricingRef} data-aos="fade-up" data-aos-delay="300">
             <PricingSection />
           </div>
           
           {/* Testimonials Section */}
-          <div ref={testimonialsRef}>
+          <div ref={testimonialsRef} data-aos="fade-up" data-aos-delay="400">
             <TestimonialsSection 
               destinations={destinations.data.slice(0, 6)}
               isLoading={destinations.isLoading}
@@ -92,12 +107,14 @@ export default function Index() {
           </div>
           
           {/* FAQ Section */}
-          <div ref={faqRef}>
+          <div ref={faqRef} data-aos="fade-up" data-aos-delay="500">
             <FaqSection />
           </div>
           
           {/* CTA Section */}
-          <CtaSection />
+          <div data-aos="fade-up" data-aos-delay="600">
+            <CtaSection />
+          </div>
         </main>
         
         {/* Footer */}

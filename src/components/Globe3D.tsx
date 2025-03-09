@@ -61,22 +61,22 @@ export const Globe3D = () => {
         const y = Math.sin(lat);
         const z = Math.cos(lat) * Math.cos(lng);
         
-        // Different shades of green (GitHub style) mixed with golden for Aceternity look
+        // Different shades of blue
         let color: string;
         const colorChoice = Math.random();
         
         if (colorChoice < 0.6) {
-          // Green points (GitHub style - different intensities)
+          // Blue points (different intensities)
           const intensity = Math.random() * 0.7 + 0.3;
-          // Use different shades of green
-          const r = Math.floor(0 * intensity);
-          const g = Math.floor((140 + Math.random() * 70) * intensity);
-          const b = Math.floor(40 * intensity);
+          // Use different shades of blue
+          const r = Math.floor(30 * intensity);
+          const g = Math.floor(100 * intensity);
+          const b = Math.floor((200 + Math.random() * 55) * intensity);
           color = `rgba(${r}, ${g}, ${b}, ${intensity})`;
         } else {
-          // Gold points (Aceternity style)
+          // Accent blue points
           const intensity = Math.random() * 0.7 + 0.3;
-          color = `rgba(255, 215, 0, ${intensity})`;
+          color = `rgba(65, 145, 255, ${intensity})`;
         }
         
         points.push({
@@ -140,7 +140,7 @@ export const Globe3D = () => {
 
       // Draw connections first (behind points)
       context.beginPath();
-      context.strokeStyle = 'rgba(100, 180, 100, 0.1)'; // Subtle green connections
+      context.strokeStyle = 'rgba(65, 145, 255, 0.1)'; // Subtle blue connections
       context.lineWidth = 0.5;
       
       const drawnConnections = new Set(); // Track connections to avoid duplicates
@@ -222,7 +222,7 @@ export const Globe3D = () => {
               
               // Draw the connection line with gradient opacity based on depth
               const lineOpacity = 0.05 + 0.1 * Math.min(scale1, scale2);
-              context.strokeStyle = `rgba(100, 180, 100, ${lineOpacity})`;
+              context.strokeStyle = `rgba(65, 145, 255, ${lineOpacity})`;
               context.beginPath();
               context.moveTo(screenX1, screenY1);
               context.lineTo(screenX2, screenY2);
@@ -266,9 +266,9 @@ export const Globe3D = () => {
         width / 2, height / 2, 0,
         width / 2, height / 2, globeSize
       );
-      glowGradient.addColorStop(0, 'rgba(100, 255, 100, 0.05)');
-      glowGradient.addColorStop(0.5, 'rgba(100, 255, 100, 0.025)');
-      glowGradient.addColorStop(1, 'rgba(100, 255, 100, 0)');
+      glowGradient.addColorStop(0, 'rgba(65, 145, 255, 0.05)');
+      glowGradient.addColorStop(0.5, 'rgba(65, 145, 255, 0.025)');
+      glowGradient.addColorStop(1, 'rgba(65, 145, 255, 0)');
       
       context.beginPath();
       context.fillStyle = glowGradient;
@@ -300,7 +300,7 @@ export const Globe3D = () => {
     >
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
-          <Globe className="h-12 w-12 text-primary animate-pulse" />
+          <Globe className="h-12 w-12 text-blue-500 animate-pulse" />
         </div>
       )}
       

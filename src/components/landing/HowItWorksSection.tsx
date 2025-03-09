@@ -1,32 +1,14 @@
 
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { useRef } from "react";
 import { Calendar, CheckCircle, ClipboardCheck, FileSearch, MessageSquare, Sparkles } from "lucide-react";
 
 export function HowItWorksSection() {
   const { t } = useTranslation();
-
-  // Animation variants
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { 
-      opacity: 1, 
-      y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 } 
-    }
-  };
-
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sectionRef, { once: true, amount: 0.3 });
+  
   // Steps data
   const steps = [
     {
@@ -68,12 +50,11 @@ export function HowItWorksSection() {
   ];
 
   return (
-    <section className="py-24">
+    <section className="py-24" ref={sectionRef}>
       <div className="container max-w-7xl mx-auto px-4">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
@@ -85,41 +66,61 @@ export function HowItWorksSection() {
           </p>
         </motion.div>
 
-        <motion.div 
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative"
-        >
-          {/* Connecting line for desktop */}
-          <div className="absolute top-1/4 left-0 w-full h-0.5 bg-primary/20 hidden lg:block" />
+        <div className="relative">
+          {/* Vertical timeline line */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500/80 to-blue-300/30 transform -translate-x-1/2 rounded-full hidden md:block" />
           
-          {steps.map((step, index) => (
-            <motion.div 
-              key={index} 
-              variants={item}
-              className="relative"
-            >
-              <div className={`
-                flex flex-col items-center text-center p-6 rounded-lg
-                ${index % 2 === 0 ? 'lg:mt-0' : 'lg:mt-16'}
-              `}>
-                <div className="relative mb-4">
-                  <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center relative z-10">
-                    {step.icon}
+          <div className="space-y-12 relative">
+            {steps.map((step, index) => (
+              <motion.div 
+                key={index}
+                initial={{ opacity: 0, y: 30 }}
+                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="relative"
+                data-aos="fade-up"
+                data-aos-delay={index * 100}
+              >
+                <div className={`
+                  md:flex items-center
+                  ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'}
+                `}>
+                  {/* Content */}
+                  <div className={`
+                    md:w-1/2 p-6 rounded-xl glass
+                    ${index % 2 === 0 ? 'md:pr-12 md:text-right' : 'md:pl-12 md:text-left'}
+                    bg-card/50 backdrop-blur-sm border border-blue-200/20 shadow-lg
+                    hover:shadow-blue-200/10 transition-all duration-300
+                    transform hover:-translate-y-1
+                  `}>
+                    <div className="flex items-center mb-4 gap-3">
+                      <div className={`
+                        h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg
+                        ${index % 2 === 0 ? 'md:order-last' : 'md:order-first'}
+                      `}>
+                        {step.number}
+                      </div>
+                      <h3 className={`text-xl font-semibold flex-1 ${index % 2 === 0 ? 'md:text-right' : 'md:text-left'}`}>
+                        {step.title}
+                      </h3>
+                    </div>
+                    <p className="text-muted-foreground">{step.description}</p>
                   </div>
-                  <div className="absolute top-0 left-0 h-16 w-16 rounded-full bg-primary/5 -z-10 animate-pulse" />
-                  <div className="absolute top-6 left-6 h-10 w-10 text-xl font-bold flex items-center justify-center">
-                    {step.number}
+                  
+                  {/* Timeline center point */}
+                  <div className="hidden md:flex w-12 justify-center relative z-10">
+                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30 border-4 border-background">
+                      {step.icon}
+                    </div>
                   </div>
+                  
+                  {/* Empty space on the other side */}
+                  <div className="md:w-1/2"></div>
                 </div>
-                <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-                <p className="text-muted-foreground">{step.description}</p>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
