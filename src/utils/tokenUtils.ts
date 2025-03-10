@@ -20,31 +20,36 @@ export const getAuthHeaders = (session: Session | null) => {
 
 // A utility function to verify if token exists and is valid
 export const verifyToken = async (): Promise<boolean> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    return false;
-  }
-  
-  // Check if token is about to expire (within 5 minutes)
-  const expiresAt = session.expires_at;
-  const now = Math.floor(Date.now() / 1000);
-  
-  if (expiresAt && expiresAt - now < 300) {
-    // Token is about to expire, try to refresh it
-    const { data, error } = await supabase.auth.refreshSession();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
     
-    if (error || !data.session) {
-      // Failed to refresh, token is invalid
+    if (!session) {
       return false;
     }
     
-    // Successfully refreshed
+    // Check if token is about to expire (within 5 minutes)
+    const expiresAt = session.expires_at;
+    const now = Math.floor(Date.now() / 1000);
+    
+    if (expiresAt && expiresAt - now < 300) {
+      // Token is about to expire, try to refresh it
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error || !data.session) {
+        console.error("Failed to refresh token:", error);
+        return false;
+      }
+      
+      console.log("Token refreshed successfully");
+      return true;
+    }
+    
+    // Token is still valid
     return true;
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return false;
   }
-  
-  // Token is still valid
-  return true;
 };
 
 // A utility function to securely store session data
@@ -56,4 +61,10 @@ export const securelyStoreSession = (session: Session | null) => {
   
   // Only store expiry time, not the actual token
   sessionStorage.setItem('sessionExpiry', session.expires_at?.toString() || '');
+};
+
+// Get user ID from current session
+export const getCurrentUserId = async (): Promise<string | null> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.id || null;
 };

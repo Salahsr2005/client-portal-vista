@@ -1,86 +1,88 @@
 
-import { ReactNode, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import React, { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { verifyToken } from '@/utils/tokenUtils';
+import { useToast } from '@/hooks/use-toast';
+import { Loader } from 'lucide-react';
 
-// Protected route wrapper component
-export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  redirectTo?: string;
+}
+
+interface PublicRouteProps {
+  children: React.ReactNode;
+  redirectAuthenticatedTo?: string;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  redirectTo = '/login' 
+}) => {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
   const { toast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!loading && !user) {
-      toast({
-        title: "Authentication required",
-        description: "Please login to access this page",
-        variant: "destructive",
-      });
-      navigate("/login");
-    }
-  }, [user, loading, navigate, toast]);
+    const checkToken = async () => {
+      if (user) {
+        const valid = await verifyToken();
+        setIsTokenValid(valid);
+        
+        if (!valid) {
+          toast({
+            title: "Session expired",
+            description: "Your session has expired. Please sign in again.",
+            variant: "default",
+          });
+        }
+      } else {
+        setIsTokenValid(false);
+      }
+    };
+    
+    checkToken();
+  }, [user]);
 
-  // Show loading state while checking authentication
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Checking authentication...</div>;
+  if (loading || isTokenValid === null) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Verifying your session...</p>
+      </div>
+    );
   }
 
-  // Render children only if user is authenticated
-  return user ? <>{children}</> : null;
-};
-
-// Public route wrapper component (redirects if already authenticated)
-export const PublicRoute = ({ children }: { children: ReactNode }) => {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && user) {
-      navigate("/dashboard");
-    }
-  }, [user, loading, navigate]);
-
-  // Show loading state while checking authentication
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Checking authentication...</div>;
+  if (!user || !isTokenValid) {
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
 
-  // Render children only if user is not authenticated
-  return !user || loading ? <>{children}</> : null;
+  return <>{children}</>;
 };
 
-// Token verification middleware
-export const useTokenVerification = () => {
-  const { session, signOut } = useAuth();
-  const { toast } = useToast();
+export const PublicRoute: React.FC<PublicRouteProps> = ({ 
+  children, 
+  redirectAuthenticatedTo = '/' 
+}) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const state = location.state as { from?: Location };
+  const from = state?.from?.pathname || redirectAuthenticatedTo;
 
-  useEffect(() => {
-    // Check token expiration
-    if (session) {
-      const expiresAt = session.expires_at;
-      const now = Math.floor(Date.now() / 1000);
-      
-      // If token is about to expire in less than 5 minutes
-      if (expiresAt && expiresAt - now < 300) {
-        toast({
-          title: "Session expiring",
-          description: "Your session is about to expire. Please refresh your login.",
-          variant: "warning",
-        });
-      }
-      
-      // If token is expired, sign out
-      if (expiresAt && expiresAt <= now) {
-        toast({
-          title: "Session expired",
-          description: "Your session has expired. Please login again.",
-          variant: "destructive",
-        });
-        signOut();
-      }
-    }
-  }, [session, signOut, toast]);
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
 
-  return { session };
+  if (user) {
+    return <Navigate to={from} replace />;
+  }
+
+  return <>{children}</>;
 };
