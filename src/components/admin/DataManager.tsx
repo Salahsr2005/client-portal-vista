@@ -1,222 +1,438 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Switch } from "@/components/ui/switch";
-import { supabase } from "@/integrations/supabase/client";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Save, Trash2, Upload } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, RefreshCw, Plus, Pencil, Trash } from "lucide-react";
+import { getTableName } from "@/utils/tokenUtils";
 
-export function DataManager() {
-  const [activeTab, setActiveTab] = useState("destinations");
-  const { toast } = useToast();
-  
-  // Form submission handler
-  const handleSubmit = async (formData: any, table: string) => {
-    try {
-      const { data, error } = await supabase
-        .from(table)
-        .insert([formData])
-        .select();
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success!",
-        description: `The ${table.slice(0, -1)} has been added successfully.`,
-      });
-      
-      return data;
-    } catch (error: any) {
-      console.error(`Error adding ${table}:`, error);
-      toast({
-        title: "Error",
-        description: error.message || `Failed to add the ${table.slice(0, -1)}.`,
-        variant: "destructive",
-      });
-      return null;
-    }
-  };
-
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Data Management</CardTitle>
-        <CardDescription>
-          Add, edit, or delete data in the Euro Visa database
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="destinations" onValueChange={setActiveTab} value={activeTab}>
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="destinations">Destinations</TabsTrigger>
-            <TabsTrigger value="programs">Programs</TabsTrigger>
-            <TabsTrigger value="services">Services</TabsTrigger>
-            <TabsTrigger value="clients">Clients</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="destinations">
-            <DestinationsManager onSubmit={(data) => handleSubmit(data, "destinations")} />
-          </TabsContent>
-          
-          <TabsContent value="programs">
-            <ProgramsManager onSubmit={(data) => handleSubmit(data, "programs")} />
-          </TabsContent>
-          
-          <TabsContent value="services">
-            <ServicesManager onSubmit={(data) => handleSubmit(data, "services")} />
-          </TabsContent>
-          
-          <TabsContent value="clients">
-            <ClientsManager onSubmit={(data) => handleSubmit(data, "client_users")} />
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
-  );
+interface Entity {
+  [key: string]: any;
 }
 
-// Destinations Manager Component
-function DestinationsManager({ onSubmit }: { onSubmit: (data: any) => Promise<any> }) {
+const DataManager: React.FC = () => {
+  return (
+    <Tabs defaultValue="destinations" className="w-full">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="destinations">Destinations</TabsTrigger>
+        <TabsTrigger value="programs">Programs</TabsTrigger>
+        <TabsTrigger value="services">Services</TabsTrigger>
+        <TabsTrigger value="clients">Clients</TabsTrigger>
+      </TabsList>
+      <TabsContent value="destinations">
+        <DestinationsManager />
+      </TabsContent>
+      <TabsContent value="programs">
+        <ProgramsManager />
+      </TabsContent>
+      <TabsContent value="services">
+        <ServicesManager />
+      </TabsContent>
+      <TabsContent value="clients">
+        <ClientsManager />
+      </TabsContent>
+    </Tabs>
+  );
+};
+
+// Destinations Manager
+const DestinationsManager: React.FC = () => {
+  const [destinations, setDestinations] = useState<Entity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [currentDestination, setCurrentDestination] = useState<Entity | null>(null);
   const [formData, setFormData] = useState({
     country_name: "",
     description: "",
     visa_requirements: "",
-    popular_programs: "",
     image_url: "",
     is_active: true
   });
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleCheckboxChange = (name: string, checked: boolean) => {
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
+
+  const fetchDestinations = async () => {
     try {
-      await onSubmit(formData);
-      // Reset form after successful submission
-      setFormData({
-        country_name: "",
-        description: "",
-        visa_requirements: "",
-        popular_programs: "",
-        image_url: "",
-        is_active: true
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from(getTableName('destinations'))
+        .select("*")
+        .order("country_name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setDestinations(data || []);
+    } catch (error: any) {
+      console.error("Error fetching destinations:", error.message);
+      toast({
+        title: "Error fetching destinations",
+        description: error.message,
+        variant: "destructive",
       });
-    } catch (error) {
-      console.error("Form submission error:", error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-  
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Add New Destination</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="country_name">Country Name *</Label>
-            <Input
-              id="country_name"
-              name="country_name"
-              value={formData.country_name}
-              onChange={handleChange}
-              required
-              placeholder="e.g., United Kingdom"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="image_url">Image URL</Label>
-            <Input
-              id="image_url"
-              name="image_url"
-              value={formData.image_url}
-              onChange={handleChange}
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Write a detailed description of the destination..."
-            rows={3}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="visa_requirements">Visa Requirements</Label>
-          <Textarea
-            id="visa_requirements"
-            name="visa_requirements"
-            value={formData.visa_requirements}
-            onChange={handleChange}
-            placeholder="List the visa requirements for this destination..."
-            rows={3}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="popular_programs">Popular Programs</Label>
-          <Textarea
-            id="popular_programs"
-            name="popular_programs"
-            value={formData.popular_programs}
-            onChange={handleChange}
-            placeholder="List popular programs at this destination..."
-            rows={2}
-          />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="is_active"
-            checked={formData.is_active}
-            onCheckedChange={(checked) => 
-              handleCheckboxChange("is_active", checked as boolean)
-            }
-          />
-          <Label htmlFor="is_active">Active (will appear on the website)</Label>
-        </div>
-        
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Adding..." : "Add Destination"}
-        </Button>
-      </form>
-      
-      <Separator className="my-6" />
-      
-      <DestinationsList />
-    </div>
-  );
-}
 
-// Programs Manager Component
-function ProgramsManager({ onSubmit }: { onSubmit: (data: any) => Promise<any> }) {
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchDestinations();
+    setIsRefreshing(false);
+    toast({
+      title: "Data refreshed",
+      description: "Destinations data has been refreshed.",
+    });
+  };
+
+  const handleAdd = () => {
+    setFormData({
+      country_name: "",
+      description: "",
+      visa_requirements: "",
+      image_url: "",
+      is_active: true
+    });
+    setShowAddDialog(true);
+  };
+
+  const handleEdit = (destination: Entity) => {
+    setCurrentDestination(destination);
+    setFormData({
+      country_name: destination.country_name || "",
+      description: destination.description || "",
+      visa_requirements: destination.visa_requirements || "",
+      image_url: destination.image_url || "",
+      is_active: destination.is_active !== false
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData({ ...formData, is_active: checked });
+  };
+
+  const handleAddSubmit = async () => {
+    try {
+      if (!formData.country_name) {
+        toast({
+          title: "Validation Error",
+          description: "Country name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from(getTableName('destinations'))
+        .insert([formData])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Destination added",
+        description: `${formData.country_name} has been added successfully`,
+      });
+      
+      setShowAddDialog(false);
+      await fetchDestinations();
+    } catch (error: any) {
+      console.error("Error adding destination:", error.message);
+      toast({
+        title: "Error adding destination",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      if (!currentDestination || !formData.country_name) {
+        toast({
+          title: "Validation Error",
+          description: "Country name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from(getTableName('destinations'))
+        .update(formData)
+        .eq("destination_id", currentDestination.destination_id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Destination updated",
+        description: `${formData.country_name} has been updated successfully`,
+      });
+      
+      setShowEditDialog(false);
+      await fetchDestinations();
+    } catch (error: any) {
+      console.error("Error updating destination:", error.message);
+      toast({
+        title: "Error updating destination",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (destination: Entity) => {
+    if (!window.confirm(`Are you sure you want to delete ${destination.country_name}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from(getTableName('destinations'))
+        .delete()
+        .eq("destination_id", destination.destination_id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Destination deleted",
+        description: `${destination.country_name} has been deleted successfully`,
+      });
+      
+      await fetchDestinations();
+    } catch (error: any) {
+      console.error("Error deleting destination:", error.message);
+      toast({
+        title: "Error deleting destination",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchDestinations();
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Destinations Management</CardTitle>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+          <Button onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Destination
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Country</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {destinations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center">No destinations found. Add your first destination!</TableCell>
+                </TableRow>
+              ) : (
+                destinations.map((destination) => (
+                  <TableRow key={destination.destination_id}>
+                    <TableCell className="font-medium">{destination.country_name}</TableCell>
+                    <TableCell className="max-w-xs truncate">{destination.description}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${destination.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {destination.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(destination)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(destination)}>
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      {/* Add Destination Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Destination</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="country_name">Country Name *</Label>
+              <Input
+                id="country_name"
+                name="country_name"
+                value={formData.country_name}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="visa_requirements">Visa Requirements</Label>
+              <Textarea
+                id="visa_requirements"
+                name="visa_requirements"
+                value={formData.visa_requirements}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="image_url">Image URL</Label>
+              <Input
+                id="image_url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="is_active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddSubmit}>Add Destination</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Destination Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Destination</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit_country_name">Country Name *</Label>
+              <Input
+                id="edit_country_name"
+                name="country_name"
+                value={formData.country_name}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_description">Description</Label>
+              <Textarea
+                id="edit_description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_visa_requirements">Visa Requirements</Label>
+              <Textarea
+                id="edit_visa_requirements"
+                name="visa_requirements"
+                value={formData.visa_requirements}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_image_url">Image URL</Label>
+              <Input
+                id="edit_image_url"
+                name="image_url"
+                value={formData.image_url}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit_is_active"
+                checked={formData.is_active}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="edit_is_active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit}>Update Destination</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+};
+
+// Programs Manager
+const ProgramsManager: React.FC = () => {
+  const [programs, setPrograms] = useState<Entity[]>([]);
+  const [destinations, setDestinations] = useState<Entity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [currentProgram, setCurrentProgram] = useState<Entity | null>(null);
   const [formData, setFormData] = useState({
     program_name: "",
     description: "",
@@ -226,189 +442,481 @@ function ProgramsManager({ onSubmit }: { onSubmit: (data: any) => Promise<any> }
     duration: "",
     is_active: true
   });
-  const [destinations, setDestinations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingDestinations, setLoadingDestinations] = useState(true);
   const { toast } = useToast();
-  
-  // Fetch destinations for the dropdown
-  React.useEffect(() => {
-    async function fetchDestinations() {
-      try {
-        const { data, error } = await supabase
-          .from("destinations")
-          .select("destination_id, country_name")
-          .eq("is_active", true);
-        
-        if (error) throw error;
-        
-        setDestinations(data || []);
-      } catch (error: any) {
-        console.error("Error fetching destinations:", error);
+
+  const fetchPrograms = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from(getTableName('programs'))
+        .select("*, destinations(country_name)")
+        .order("program_name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setPrograms(data || []);
+    } catch (error: any) {
+      console.error("Error fetching programs:", error.message);
+      toast({
+        title: "Error fetching programs",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchDestinations = async () => {
+    try {
+      const { data, error } = await supabase
+        .from(getTableName('destinations'))
+        .select("destination_id, country_name")
+        .eq("is_active", true)
+        .order("country_name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setDestinations(data || []);
+    } catch (error: any) {
+      console.error("Error fetching destinations:", error.message);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchPrograms();
+    setIsRefreshing(false);
+    toast({
+      title: "Data refreshed",
+      description: "Programs data has been refreshed.",
+    });
+  };
+
+  const handleAdd = () => {
+    setFormData({
+      program_name: "",
+      description: "",
+      destination_id: "",
+      requirements: "",
+      fee: "",
+      duration: "",
+      is_active: true
+    });
+    setShowAddDialog(true);
+  };
+
+  const handleEdit = (program: Entity) => {
+    setCurrentProgram(program);
+    setFormData({
+      program_name: program.program_name || "",
+      description: program.description || "",
+      destination_id: program.destination_id || "",
+      requirements: program.requirements || "",
+      fee: program.fee ? program.fee.toString() : "",
+      duration: program.duration || "",
+      is_active: program.is_active !== false
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData({ ...formData, is_active: checked });
+  };
+
+  const handleAddSubmit = async () => {
+    try {
+      if (!formData.program_name) {
         toast({
-          title: "Error",
-          description: "Failed to load destinations. Please try again.",
+          title: "Validation Error",
+          description: "Program name is required",
           variant: "destructive",
         });
-      } finally {
-        setLoadingDestinations(false);
+        return;
       }
+
+      const programData = {
+        ...formData,
+        fee: formData.fee ? parseFloat(formData.fee) : null
+      };
+
+      const { data, error } = await supabase
+        .from(getTableName('programs'))
+        .insert([programData])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Program added",
+        description: `${formData.program_name} has been added successfully`,
+      });
+      
+      setShowAddDialog(false);
+      await fetchPrograms();
+    } catch (error: any) {
+      console.error("Error adding program:", error.message);
+      toast({
+        title: "Error adding program",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-    
-    fetchDestinations();
-  }, []);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
-  const handleCheckboxChange = (name: string, checked: boolean) => {
-    setFormData(prev => ({ ...prev, [name]: checked }));
+
+  const handleEditSubmit = async () => {
+    try {
+      if (!currentProgram || !formData.program_name) {
+        toast({
+          title: "Validation Error",
+          description: "Program name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const programData = {
+        ...formData,
+        fee: formData.fee ? parseFloat(formData.fee) : null
+      };
+
+      const { error } = await supabase
+        .from(getTableName('programs'))
+        .update(programData)
+        .eq("program_id", currentProgram.program_id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Program updated",
+        description: `${formData.program_name} has been updated successfully`,
+      });
+      
+      setShowEditDialog(false);
+      await fetchPrograms();
+    } catch (error: any) {
+      console.error("Error updating program:", error.message);
+      toast({
+        title: "Error updating program",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    // Convert fee to number if present
-    const processedData = {
-      ...formData,
-      fee: formData.fee ? parseFloat(formData.fee) : null
+
+  const handleDelete = async (program: Entity) => {
+    if (!window.confirm(`Are you sure you want to delete ${program.program_name}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from(getTableName('programs'))
+        .delete()
+        .eq("program_id", program.program_id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Program deleted",
+        description: `${program.program_name} has been deleted successfully`,
+      });
+      
+      await fetchPrograms();
+    } catch (error: any) {
+      console.error("Error deleting program:", error.message);
+      toast({
+        title: "Error deleting program",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchDestinations();
+      await fetchPrograms();
     };
     
-    try {
-      await onSubmit(processedData);
-      // Reset form after successful submission
-      setFormData({
-        program_name: "",
-        description: "",
-        destination_id: "",
-        requirements: "",
-        fee: "",
-        duration: "",
-        is_active: true
-      });
-    } catch (error) {
-      console.error("Form submission error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Add New Program</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="program_name">Program Name *</Label>
-            <Input
-              id="program_name"
-              name="program_name"
-              value={formData.program_name}
-              onChange={handleChange}
-              required
-              placeholder="e.g., Masters in Data Science"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="destination_id">Destination</Label>
-            <select
-              id="destination_id"
-              name="destination_id"
-              value={formData.destination_id}
-              onChange={handleChange}
-              className="w-full h-10 px-3 rounded-md border border-input bg-background"
-              disabled={loadingDestinations}
-            >
-              <option value="">Select a destination</option>
-              {destinations.map(dest => (
-                <option key={dest.destination_id} value={dest.destination_id}>
-                  {dest.country_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Write a detailed description of the program..."
-            rows={3}
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="duration">Duration</Label>
-            <Input
-              id="duration"
-              name="duration"
-              value={formData.duration}
-              onChange={handleChange}
-              placeholder="e.g., 2 years"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="fee">Fee ($)</Label>
-            <Input
-              id="fee"
-              name="fee"
-              value={formData.fee}
-              onChange={handleChange}
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="e.g., 10000"
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="requirements">Requirements</Label>
-          <Textarea
-            id="requirements"
-            name="requirements"
-            value={formData.requirements}
-            onChange={handleChange}
-            placeholder="List the requirements for this program..."
-            rows={3}
-          />
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="is_active"
-            checked={formData.is_active}
-            onCheckedChange={(checked) => 
-              handleCheckboxChange("is_active", checked as boolean)
-            }
-          />
-          <Label htmlFor="is_active">Active (will appear on the website)</Label>
-        </div>
-        
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Adding..." : "Add Program"}
-        </Button>
-      </form>
-      
-      <Separator className="my-6" />
-      
-      <ProgramsList />
-    </div>
-  );
-}
+    loadData();
+  }, []);
 
-// Services Manager Component
-function ServicesManager({ onSubmit }: { onSubmit: (data: any) => Promise<any> }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Programs Management</CardTitle>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+          <Button onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Program
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Program Name</TableHead>
+                <TableHead>Destination</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Fee</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {programs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">No programs found. Add your first program!</TableCell>
+                </TableRow>
+              ) : (
+                programs.map((program) => (
+                  <TableRow key={program.program_id}>
+                    <TableCell className="font-medium">{program.program_name}</TableCell>
+                    <TableCell>{program.destinations?.country_name || "N/A"}</TableCell>
+                    <TableCell>{program.duration || "N/A"}</TableCell>
+                    <TableCell>{program.fee ? `$${program.fee}` : "N/A"}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${program.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {program.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(program)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(program)}>
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      {/* Add Program Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Program</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="program_name">Program Name *</Label>
+              <Input
+                id="program_name"
+                name="program_name"
+                value={formData.program_name}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="destination_id">Destination</Label>
+              <select
+                id="destination_id"
+                name="destination_id"
+                value={formData.destination_id}
+                onChange={handleInputChange}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Select a destination</option>
+                {destinations.map((destination) => (
+                  <option key={destination.destination_id} value={destination.destination_id}>
+                    {destination.country_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="requirements">Requirements</Label>
+              <Textarea
+                id="requirements"
+                name="requirements"
+                value={formData.requirements}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="fee">Fee ($)</Label>
+                <Input
+                  id="fee"
+                  name="fee"
+                  type="number"
+                  value={formData.fee}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="duration">Duration</Label>
+                <Input
+                  id="duration"
+                  name="duration"
+                  value={formData.duration}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 2 years"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="is_active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddSubmit}>Add Program</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Program Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Program</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit_program_name">Program Name *</Label>
+              <Input
+                id="edit_program_name"
+                name="program_name"
+                value={formData.program_name}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_destination_id">Destination</Label>
+              <select
+                id="edit_destination_id"
+                name="destination_id"
+                value={formData.destination_id}
+                onChange={handleInputChange}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Select a destination</option>
+                {destinations.map((destination) => (
+                  <option key={destination.destination_id} value={destination.destination_id}>
+                    {destination.country_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_description">Description</Label>
+              <Textarea
+                id="edit_description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_requirements">Requirements</Label>
+              <Textarea
+                id="edit_requirements"
+                name="requirements"
+                value={formData.requirements}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit_fee">Fee ($)</Label>
+                <Input
+                  id="edit_fee"
+                  name="fee"
+                  type="number"
+                  value={formData.fee}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit_duration">Duration</Label>
+                <Input
+                  id="edit_duration"
+                  name="duration"
+                  value={formData.duration}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 2 years"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit_is_active"
+                checked={formData.is_active}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="edit_is_active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit}>Update Program</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+};
+
+// Services Manager
+const ServicesManager: React.FC = () => {
+  const [services, setServices] = useState<Entity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [currentService, setCurrentService] = useState<Entity | null>(null);
   const [formData, setFormData] = useState({
     service_name: "",
     description: "",
@@ -416,925 +924,505 @@ function ServicesManager({ onSubmit }: { onSubmit: (data: any) => Promise<any> }
     estimated_duration: "",
     is_active: true
   });
-  const [loading, setLoading] = useState(false);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleCheckboxChange = (name: string, checked: boolean) => {
-    setFormData(prev => ({ ...prev, [name]: checked }));
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    // Convert fee to number if present
-    const processedData = {
-      ...formData,
-      fee: formData.fee ? parseFloat(formData.fee) : null
-    };
-    
-    try {
-      await onSubmit(processedData);
-      // Reset form after successful submission
-      setFormData({
-        service_name: "",
-        description: "",
-        fee: "",
-        estimated_duration: "",
-        is_active: true
-      });
-    } catch (error) {
-      console.error("Form submission error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Add New Service</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="service_name">Service Name *</Label>
-          <Input
-            id="service_name"
-            name="service_name"
-            value={formData.service_name}
-            onChange={handleChange}
-            required
-            placeholder="e.g., Visa Application Assistance"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Write a detailed description of the service..."
-            rows={3}
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="estimated_duration">Estimated Duration</Label>
-            <Input
-              id="estimated_duration"
-              name="estimated_duration"
-              value={formData.estimated_duration}
-              onChange={handleChange}
-              placeholder="e.g., 2-3 weeks"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="fee">Fee ($)</Label>
-            <Input
-              id="fee"
-              name="fee"
-              value={formData.fee}
-              onChange={handleChange}
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="e.g., 500"
-            />
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="is_active"
-            checked={formData.is_active}
-            onCheckedChange={(checked) => 
-              handleCheckboxChange("is_active", checked as boolean)
-            }
-          />
-          <Label htmlFor="is_active">Active (will appear on the website)</Label>
-        </div>
-        
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Adding..." : "Add Service"}
-        </Button>
-      </form>
-      
-      <Separator className="my-6" />
-      
-      <ServicesList />
-    </div>
-  );
-}
-
-// Clients Manager Component
-function ClientsManager({ onSubmit }: { onSubmit: (data: any) => Promise<any> }) {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password_hash: "",
-    first_name: "",
-    last_name: "",
-    phone: "",
-    date_of_birth: "",
-    registration_type: "Website",
-    profile_status: "Active"
-  });
-  const [loading, setLoading] = useState(false);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      // In a real app, you'd never store passwords directly
-      // Instead, you'd use Supabase Auth or a secure authentication method
-      await onSubmit(formData);
-      
-      // Reset form after successful submission
-      setFormData({
-        username: "",
-        email: "",
-        password_hash: "",
-        first_name: "",
-        last_name: "",
-        phone: "",
-        date_of_birth: "",
-        registration_type: "Website",
-        profile_status: "Active"
-      });
-    } catch (error) {
-      console.error("Form submission error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Add New Client</h3>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username *</Label>
-            <Input
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              placeholder="e.g., johndoe"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="email">Email *</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="e.g., john@example.com"
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="password_hash">Password *</Label>
-          <Input
-            id="password_hash"
-            name="password_hash"
-            type="password"
-            value={formData.password_hash}
-            onChange={handleChange}
-            required
-            placeholder="Enter password"
-          />
-          <p className="text-sm text-muted-foreground">
-            Note: In a production environment, you should use Supabase Auth for secure user management.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="first_name">First Name</Label>
-            <Input
-              id="first_name"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleChange}
-              placeholder="e.g., John"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="last_name">Last Name</Label>
-            <Input
-              id="last_name"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleChange}
-              placeholder="e.g., Doe"
-            />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="e.g., +1234567890"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="date_of_birth">Date of Birth</Label>
-            <Input
-              id="date_of_birth"
-              name="date_of_birth"
-              type="date"
-              value={formData.date_of_birth}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="registration_type">Registration Type</Label>
-            <select
-              id="registration_type"
-              name="registration_type"
-              value={formData.registration_type}
-              onChange={handleChange}
-              className="w-full h-10 px-3 rounded-md border border-input bg-background"
-            >
-              <option value="Website">Website</option>
-              <option value="Mobile">Mobile App</option>
-              <option value="Admin">Added by Admin</option>
-              <option value="Partner">Partner Referral</option>
-            </select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="profile_status">Profile Status</Label>
-            <select
-              id="profile_status"
-              name="profile_status"
-              value={formData.profile_status}
-              onChange={handleChange}
-              className="w-full h-10 px-3 rounded-md border border-input bg-background"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Incomplete">Incomplete</option>
-              <option value="Pending">Pending Verification</option>
-            </select>
-          </div>
-        </div>
-        
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Adding..." : "Add Client"}
-        </Button>
-      </form>
-      
-      <Separator className="my-6" />
-      
-      <ClientsList />
-    </div>
-  );
-}
-
-// List components
-function DestinationsList() {
-  const [destinations, setDestinations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchDestinations();
-  }, []);
-
-  const fetchDestinations = async () => {
+  const fetchServices = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       const { data, error } = await supabase
-        .from("destinations")
+        .from(getTableName('services'))
         .select("*")
-        .order("country_name", { ascending: true });
-      
-      if (error) throw error;
-      
-      setDestinations(data || []);
+        .order("service_name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setServices(data || []);
     } catch (error: any) {
-      console.error("Error fetching destinations:", error);
+      console.error("Error fetching services:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to load destinations. Please try again.",
+        title: "Error fetching services",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("destinations")
-        .update({ is_active: !currentStatus })
-        .eq("destination_id", id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: `Destination ${currentStatus ? "deactivated" : "activated"} successfully.`,
-      });
-      
-      // Refresh the list
-      fetchDestinations();
-    } catch (error: any) {
-      console.error("Error toggling destination status:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update destination status.",
-        variant: "destructive",
-      });
-    }
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchServices();
+    setIsRefreshing(false);
+    toast({
+      title: "Data refreshed",
+      description: "Services data has been refreshed.",
+    });
   };
 
-  const deleteDestination = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this destination? This action cannot be undone.")) {
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from("destinations")
-        .delete()
-        .eq("destination_id", id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Destination deleted successfully.",
-      });
-      
-      // Refresh the list
-      fetchDestinations();
-    } catch (error: any) {
-      console.error("Error deleting destination:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete destination.",
-        variant: "destructive",
-      });
-    }
+  const handleAdd = () => {
+    setFormData({
+      service_name: "",
+      description: "",
+      fee: "",
+      estimated_duration: "",
+      is_active: true
+    });
+    setShowAddDialog(true);
   };
 
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Existing Destinations</h3>
-      
-      {loading ? (
-        <p className="text-center py-4">Loading destinations...</p>
-      ) : destinations.length === 0 ? (
-        <p className="text-center py-4">No destinations found.</p>
-      ) : (
-        <ScrollArea className="h-[300px] rounded-md border p-4">
-          <div className="space-y-4">
-            {destinations.map(destination => (
-              <div key={destination.destination_id} className="p-4 border rounded-md">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">{destination.country_name}</h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {destination.description || "No description available."}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => toggleActive(
-                        destination.destination_id, 
-                        destination.is_active
-                      )}
-                    >
-                      {destination.is_active ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => deleteDestination(destination.destination_id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${
-                    destination.is_active ? "bg-green-500" : "bg-red-500"
-                  }`}></div>
-                  <span className="text-xs">
-                    {destination.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-    </div>
-  );
-}
+  const handleEdit = (service: Entity) => {
+    setCurrentService(service);
+    setFormData({
+      service_name: service.service_name || "",
+      description: service.description || "",
+      fee: service.fee ? service.fee.toString() : "",
+      estimated_duration: service.estimated_duration || "",
+      is_active: service.is_active !== false
+    });
+    setShowEditDialog(true);
+  };
 
-function ProgramsList() {
-  const [programs, setPrograms] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
 
-  useEffect(() => {
-    fetchPrograms();
-  }, []);
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData({ ...formData, is_active: checked });
+  };
 
-  const fetchPrograms = async () => {
+  const handleAddSubmit = async () => {
     try {
-      setLoading(true);
+      if (!formData.service_name) {
+        toast({
+          title: "Validation Error",
+          description: "Service name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const serviceData = {
+        ...formData,
+        fee: formData.fee ? parseFloat(formData.fee) : null
+      };
+
       const { data, error } = await supabase
-        .from("programs")
-        .select(`
-          *,
-          destinations(country_name)
-        `)
-        .order("program_name", { ascending: true });
-      
-      if (error) throw error;
-      
-      setPrograms(data || []);
-    } catch (error: any) {
-      console.error("Error fetching programs:", error);
+        .from(getTableName('services'))
+        .insert([serviceData])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to load programs. Please try again.",
+        title: "Service added",
+        description: `${formData.service_name} has been added successfully`,
+      });
+      
+      setShowAddDialog(false);
+      await fetchServices();
+    } catch (error: any) {
+      console.error("Error adding service:", error.message);
+      toast({
+        title: "Error adding service",
+        description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
+  const handleEditSubmit = async () => {
     try {
+      if (!currentService || !formData.service_name) {
+        toast({
+          title: "Validation Error",
+          description: "Service name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const serviceData = {
+        ...formData,
+        fee: formData.fee ? parseFloat(formData.fee) : null
+      };
+
       const { error } = await supabase
-        .from("programs")
-        .update({ is_active: !currentStatus })
-        .eq("program_id", id);
-      
-      if (error) throw error;
-      
+        .from(getTableName('services'))
+        .update(serviceData)
+        .eq("service_id", currentService.service_id);
+
+      if (error) {
+        throw error;
+      }
+
       toast({
-        title: "Success",
-        description: `Program ${currentStatus ? "deactivated" : "activated"} successfully.`,
+        title: "Service updated",
+        description: `${formData.service_name} has been updated successfully`,
       });
       
-      // Refresh the list
-      fetchPrograms();
+      setShowEditDialog(false);
+      await fetchServices();
     } catch (error: any) {
-      console.error("Error toggling program status:", error);
+      console.error("Error updating service:", error.message);
       toast({
-        title: "Error",
-        description: error.message || "Failed to update program status.",
+        title: "Error updating service",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const deleteProgram = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this program? This action cannot be undone.")) {
+  const handleDelete = async (service: Entity) => {
+    if (!window.confirm(`Are you sure you want to delete ${service.service_name}?`)) {
       return;
     }
-    
+
     try {
       const { error } = await supabase
-        .from("programs")
+        .from(getTableName('services'))
         .delete()
-        .eq("program_id", id);
-      
-      if (error) throw error;
-      
+        .eq("service_id", service.service_id);
+
+      if (error) {
+        throw error;
+      }
+
       toast({
-        title: "Success",
-        description: "Program deleted successfully.",
+        title: "Service deleted",
+        description: `${service.service_name} has been deleted successfully`,
       });
       
-      // Refresh the list
-      fetchPrograms();
+      await fetchServices();
     } catch (error: any) {
-      console.error("Error deleting program:", error);
+      console.error("Error deleting service:", error.message);
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete program.",
+        title: "Error deleting service",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
-
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Existing Programs</h3>
-      
-      {loading ? (
-        <p className="text-center py-4">Loading programs...</p>
-      ) : programs.length === 0 ? (
-        <p className="text-center py-4">No programs found.</p>
-      ) : (
-        <ScrollArea className="h-[300px] rounded-md border p-4">
-          <div className="space-y-4">
-            {programs.map(program => (
-              <div key={program.program_id} className="p-4 border rounded-md">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">{program.program_name}</h4>
-                    <p className="text-sm mt-1">
-                      {program.destinations?.country_name ? (
-                        <span className="text-muted-foreground">
-                          {program.destinations.country_name} • {program.duration || 'Duration not specified'}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          No destination specified • {program.duration || 'Duration not specified'}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {program.description || "No description available."}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => toggleActive(
-                        program.program_id, 
-                        program.is_active
-                      )}
-                    >
-                      {program.is_active ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => deleteProgram(program.program_id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${
-                    program.is_active ? "bg-green-500" : "bg-red-500"
-                  }`}></div>
-                  <span className="text-xs">
-                    {program.is_active ? "Active" : "Inactive"}
-                  </span>
-                  {program.fee && (
-                    <span className="text-xs ml-4">Fee: ${program.fee}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-    </div>
-  );
-}
-
-function ServicesList() {
-  const [services, setServices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchServices();
   }, []);
 
-  const fetchServices = async () => {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Services Management</CardTitle>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+          <Button onClick={handleAdd}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Service
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Service Name</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Fee</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {services.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">No services found. Add your first service!</TableCell>
+                </TableRow>
+              ) : (
+                services.map((service) => (
+                  <TableRow key={service.service_id}>
+                    <TableCell className="font-medium">{service.service_name}</TableCell>
+                    <TableCell className="max-w-xs truncate">{service.description}</TableCell>
+                    <TableCell>{service.fee ? `$${service.fee}` : "N/A"}</TableCell>
+                    <TableCell>{service.estimated_duration || "N/A"}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${service.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {service.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(service)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(service)}>
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      {/* Add Service Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Service</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="service_name">Service Name *</Label>
+              <Input
+                id="service_name"
+                name="service_name"
+                value={formData.service_name}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="fee">Fee ($)</Label>
+                <Input
+                  id="fee"
+                  name="fee"
+                  type="number"
+                  value={formData.fee}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="estimated_duration">Duration</Label>
+                <Input
+                  id="estimated_duration"
+                  name="estimated_duration"
+                  value={formData.estimated_duration}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 2 months"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="is_active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddSubmit}>Add Service</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Service Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Service</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit_service_name">Service Name *</Label>
+              <Input
+                id="edit_service_name"
+                name="service_name"
+                value={formData.service_name}
+                onChange={handleInputChange}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_description">Description</Label>
+              <Textarea
+                id="edit_description"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit_fee">Fee ($)</Label>
+                <Input
+                  id="edit_fee"
+                  name="fee"
+                  type="number"
+                  value={formData.fee}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit_estimated_duration">Duration</Label>
+                <Input
+                  id="edit_estimated_duration"
+                  name="estimated_duration"
+                  value={formData.estimated_duration}
+                  onChange={handleInputChange}
+                  placeholder="e.g. 2 months"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit_is_active"
+                checked={formData.is_active}
+                onCheckedChange={handleCheckboxChange}
+              />
+              <Label htmlFor="edit_is_active">Active</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit}>Update Service</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+};
+
+// Clients Manager
+const ClientsManager: React.FC = () => {
+  const [clients, setClients] = useState<Entity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { toast } = useToast();
+
+  const fetchClients = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       const { data, error } = await supabase
-        .from("services")
+        .from(getTableName('client_users'))
         .select("*")
-        .order("service_name", { ascending: true });
-      
-      if (error) throw error;
-      
-      setServices(data || []);
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setClients(data || []);
     } catch (error: any) {
-      console.error("Error fetching services:", error);
+      console.error("Error fetching clients:", error.message);
       toast({
-        title: "Error",
-        description: "Failed to load services. Please try again.",
+        title: "Error fetching clients",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("services")
-        .update({ is_active: !currentStatus })
-        .eq("service_id", id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: `Service ${currentStatus ? "deactivated" : "activated"} successfully.`,
-      });
-      
-      // Refresh the list
-      fetchServices();
-    } catch (error: any) {
-      console.error("Error toggling service status:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update service status.",
-        variant: "destructive",
-      });
-    }
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchClients();
+    setIsRefreshing(false);
+    toast({
+      title: "Data refreshed",
+      description: "Client data has been refreshed.",
+    });
   };
-
-  const deleteService = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this service? This action cannot be undone.")) {
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from("services")
-        .delete()
-        .eq("service_id", id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Service deleted successfully.",
-      });
-      
-      // Refresh the list
-      fetchServices();
-    } catch (error: any) {
-      console.error("Error deleting service:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete service.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Existing Services</h3>
-      
-      {loading ? (
-        <p className="text-center py-4">Loading services...</p>
-      ) : services.length === 0 ? (
-        <p className="text-center py-4">No services found.</p>
-      ) : (
-        <ScrollArea className="h-[300px] rounded-md border p-4">
-          <div className="space-y-4">
-            {services.map(service => (
-              <div key={service.service_id} className="p-4 border rounded-md">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">{service.service_name}</h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {service.description || "No description available."}
-                    </p>
-                    {service.estimated_duration && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Estimated duration: {service.estimated_duration}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => toggleActive(
-                        service.service_id, 
-                        service.is_active
-                      )}
-                    >
-                      {service.is_active ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => deleteService(service.service_id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${
-                    service.is_active ? "bg-green-500" : "bg-red-500"
-                  }`}></div>
-                  <span className="text-xs">
-                    {service.is_active ? "Active" : "Inactive"}
-                  </span>
-                  {service.fee && (
-                    <span className="text-xs ml-4">Fee: ${service.fee}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      )}
-    </div>
-  );
-}
-
-function ClientsList() {
-  const [clients, setClients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchClients();
   }, []);
 
-  const fetchClients = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("client_users")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (error) throw error;
-      
-      setClients(data || []);
-    } catch (error: any) {
-      console.error("Error fetching clients:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load clients. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateStatus = async (id: string, status: string) => {
-    try {
-      const { error } = await supabase
-        .from("client_users")
-        .update({ profile_status: status })
-        .eq("client_id", id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: `Client status updated to ${status} successfully.`,
-      });
-      
-      // Refresh the list
-      fetchClients();
-    } catch (error: any) {
-      console.error("Error updating client status:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update client status.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const deleteClient = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this client? This action cannot be undone.")) {
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from("client_users")
-        .delete()
-        .eq("client_id", id);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Client deleted successfully.",
-      });
-      
-      // Refresh the list
-      fetchClients();
-    } catch (error: any) {
-      console.error("Error deleting client:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete client.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">Existing Clients</h3>
-      
-      {loading ? (
-        <p className="text-center py-4">Loading clients...</p>
-      ) : clients.length === 0 ? (
-        <p className="text-center py-4">No clients found.</p>
-      ) : (
-        <ScrollArea className="h-[300px] rounded-md border p-4">
-          <div className="space-y-4">
-            {clients.map(client => (
-              <div key={client.client_id} className="p-4 border rounded-md">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">
-                      {client.first_name && client.last_name 
-                        ? `${client.first_name} ${client.last_name}`
-                        : client.username}
-                    </h4>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {client.email}
-                    </p>
-                    {client.phone && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {client.phone}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={client.profile_status}
-                      onChange={(e) => updateStatus(client.client_id, e.target.value)}
-                      className="h-8 px-2 text-xs rounded-md border border-input bg-background"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="Incomplete">Incomplete</option>
-                      <option value="Pending">Pending</option>
-                    </select>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => deleteClient(client.client_id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  <div className={`w-3 h-3 rounded-full mr-2 ${
-                    client.profile_status === 'Active' ? "bg-green-500" : 
-                    client.profile_status === 'Inactive' ? "bg-red-500" :
-                    client.profile_status === 'Pending' ? "bg-yellow-500" : "bg-gray-500"
-                  }`}></div>
-                  <span className="text-xs">{client.profile_status}</span>
-                  <span className="text-xs ml-4">
-                    Joined: {new Date(client.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            ))}
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Clients Management</CardTitle>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        </ScrollArea>
-      )}
-    </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Registration Date</TableHead>
+                <TableHead>Profile Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {clients.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center">No clients found.</TableCell>
+                </TableRow>
+              ) : (
+                clients.map((client) => (
+                  <TableRow key={client.client_id}>
+                    <TableCell className="font-medium">
+                      {client.first_name && client.last_name
+                        ? `${client.first_name} ${client.last_name}`
+                        : client.username || "N/A"}
+                    </TableCell>
+                    <TableCell>{client.email}</TableCell>
+                    <TableCell>{client.phone || "N/A"}</TableCell>
+                    <TableCell>
+                      {client.created_at
+                        ? new Date(client.created_at).toLocaleDateString()
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        client.profile_status === "Complete"
+                          ? "bg-green-100 text-green-800"
+                          : client.profile_status === "Pending"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-blue-100 text-blue-800"
+                      }`}>
+                        {client.profile_status || "Incomplete"}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default DataManager;

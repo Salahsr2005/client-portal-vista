@@ -1,4 +1,3 @@
-
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,4 +66,25 @@ export const securelyStoreSession = (session: Session | null) => {
 export const getCurrentUserId = async (): Promise<string | null> => {
   const { data: { session } } = await supabase.auth.getSession();
   return session?.user?.id || null;
+};
+
+// Utility function to get specific table names
+export const getTableName = (entity: string): string => {
+  const tableMap: Record<string, string> = {
+    'destinations': 'destinations',
+    'programs': 'programs',
+    'services': 'services',
+    'client_users': 'client_users',
+    'appointments': 'appointments',
+    'applications': 'applications',
+    'notifications': 'notifications',
+    'payments': 'payments',
+    'messages': 'messages',
+    'client_profiles': 'client_profiles',
+    'client_documents': 'client_documents',
+    'access_tokens': 'access_tokens',
+    'user_activity_log': 'user_activity_log'
+  };
+  
+  return tableMap[entity] || '';
 };

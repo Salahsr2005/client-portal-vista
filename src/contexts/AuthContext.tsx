@@ -10,10 +10,11 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   error: Error | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, metadata?: any) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signUp: (email: string, password: string, metadata?: any) => Promise<{ error?: any, data?: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,10 +22,11 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   error: null,
-  signIn: async () => {},
-  signUp: async () => {},
+  signIn: async () => ({ error: null }),
+  signUp: async () => ({ error: null, data: null }),
   signOut: async () => {},
   resetPassword: async () => {},
+  signInWithGoogle: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -115,6 +117,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: "Welcome back!",
         });
       }
+
+      return { error: null };
     } catch (err: any) {
       console.error("Sign in error:", err);
       setError(err);
@@ -123,7 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: err.message || "Failed to sign in",
         variant: "destructive",
       });
-      throw err;
+      return { error: err };
     } finally {
       setLoading(false);
     }
@@ -150,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Please check your email for confirmation.",
       });
       
-      return data;
+      return { data, error: null };
     } catch (err: any) {
       console.error("Sign up error:", err);
       setError(err);
@@ -159,7 +163,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: err.message || "Failed to sign up",
         variant: "destructive",
       });
-      throw err;
+      return { error: err };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sign in with Google
+  const signInWithGoogle = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+      
+    } catch (err: any) {
+      console.error("Google sign in error:", err);
+      setError(err);
+      toast({
+        title: "Google sign in failed",
+        description: err.message || "Failed to sign in with Google",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -235,6 +267,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     resetPassword,
+    signInWithGoogle
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
