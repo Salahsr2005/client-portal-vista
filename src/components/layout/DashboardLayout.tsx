@@ -1,8 +1,17 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ChevronRight,
   Home,
@@ -19,6 +28,8 @@ import {
   Settings,
   Package
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const sidebarItems = [
   { label: "Dashboard", icon: Home, path: "/dashboard" },
@@ -37,6 +48,8 @@ export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, userProfile, loading, signOut } = useAuth();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -61,6 +74,38 @@ export function DashboardLayout() {
       setIsSidebarOpen(false);
     }
   }, [location, isMobile]);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
+    }
+  }, [user, loading, navigate]);
+
+  // If still loading or no user, show a loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
+          <Skeleton className="h-4 w-48 mx-auto mb-2" />
+          <Skeleton className="h-3 w-32 mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (userProfile?.firstName && userProfile?.lastName) {
+      return `${userProfile.firstName.charAt(0)}${userProfile.lastName.charAt(0)}`;
+    } else if (userProfile?.firstName) {
+      return userProfile.firstName.charAt(0);
+    } else if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
@@ -89,6 +134,26 @@ export function DashboardLayout() {
             </Button>
           </div>
 
+          {/* User Profile Summary */}
+          <div className="mb-6 px-2 py-3 bg-background/50 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Avatar>
+                <AvatarImage src="/images/avatar-1.jpg" alt="User" />
+                <AvatarFallback>{getUserInitials()}</AvatarFallback>
+              </Avatar>
+              <div className="overflow-hidden">
+                <p className="font-medium truncate">
+                  {userProfile?.firstName && userProfile?.lastName
+                    ? `${userProfile.firstName} ${userProfile.lastName}`
+                    : user?.email || "User"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user?.email || ""}
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Navigation Items */}
           <nav className="space-y-1 flex-1 overflow-y-auto scrollbar-hide">
             {sidebarItems.map((item) => (
@@ -115,12 +180,14 @@ export function DashboardLayout() {
                 Settings
               </Button>
             </Link>
-            <Link to="/">
-              <Button variant="ghost" className="w-full justify-start text-destructive">
-                <LogOut className="h-5 w-5 mr-3" />
-                Logout
-              </Button>
-            </Link>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-destructive"
+              onClick={() => signOut()}
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              Logout
+            </Button>
           </div>
         </div>
       </aside>
@@ -144,11 +211,35 @@ export function DashboardLayout() {
           </div>
           <div className="flex items-center space-x-2">
             <ThemeToggle />
-            <Link to="/profile">
-              <Button variant="ghost" size="icon" className="rounded-full bg-muted">
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="/images/avatar-1.jpg" alt="User" />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  {userProfile?.firstName && userProfile?.lastName
+                    ? `${userProfile.firstName} ${userProfile.lastName}`
+                    : user?.email || "User"}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">My Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 

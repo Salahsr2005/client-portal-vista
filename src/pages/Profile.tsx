@@ -1,592 +1,345 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { 
-  User, Mail, Phone, Calendar, Globe, FileText, Building, 
-  Languages, GraduationCap, Briefcase, ShieldCheck, Save, Upload
-} from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Profile() {
+  const { user, userProfile, refreshUserProfile } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    nationality: "",
+    passportNumber: "",
+    address: "",
+  });
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("personal");
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
-  // Personal Information Form
-  const [personalInfo, setPersonalInfo] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    dateOfBirth: "1990-01-01",
-    nationality: "United States",
-    passportNumber: "A1234567",
-    passportExpiry: "2030-01-01",
-    currentAddress: "123 Main St, Anytown, USA",
-  });
+  // Load user profile data
+  useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        firstName: userProfile.firstName || "",
+        lastName: userProfile.lastName || "",
+        email: userProfile.email || "",
+        phone: userProfile.phone || "",
+        dateOfBirth: userProfile.dateOfBirth || "",
+        nationality: userProfile.nationality || "",
+        passportNumber: userProfile.passportNumber || "",
+        address: userProfile.address || "",
+      });
+    }
+  }, [userProfile]);
 
-  // Emergency Contact Form
-  const [emergencyContact, setEmergencyContact] = useState({
-    name: "Jane Doe",
-    relationship: "Spouse",
-    phone: "+1 (555) 987-6543",
-    email: "jane.doe@example.com",
-  });
-
-  // Background Form
-  const [backgroundInfo, setBackgroundInfo] = useState({
-    education: "Bachelor's in Computer Science, XYZ University",
-    workExperience: "5 years as Software Engineer at Tech Corp",
-    languages: "English (Native), Spanish (Intermediate), French (Basic)",
-  });
-
-  const handlePersonalInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPersonalInfo({ ...personalInfo, [name]: value });
-  };
-
-  const handleEmergencyContactChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setEmergencyContact({ ...emergencyContact, [name]: value });
-  };
-
-  const handleBackgroundInfoChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setBackgroundInfo({ ...backgroundInfo, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    
+    if (!user?.id) return;
+
+    setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Success",
-        description: "Your profile has been updated successfully.",
+      // Update user metadata in auth.users
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          date_of_birth: formData.dateOfBirth,
+        }
       });
-    } catch (error) {
+
+      if (metadataError) throw metadataError;
+
+      // Check if client_users record exists
+      const { data: existingUser } = await supabase
+        .from('client_users')
+        .select('client_id')
+        .eq('client_id', user.id)
+        .maybeSingle();
+
+      if (existingUser) {
+        // Update client_users record
+        const { error: userError } = await supabase
+          .from('client_users')
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+            date_of_birth: formData.dateOfBirth,
+            email: formData.email,
+          })
+          .eq('client_id', user.id);
+
+        if (userError) throw userError;
+      } else {
+        // Create client_users record
+        const { error: userError } = await supabase
+          .from('client_users')
+          .insert({
+            client_id: user.id,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            phone: formData.phone,
+            date_of_birth: formData.dateOfBirth,
+            email: formData.email,
+            username: user.email || formData.email,
+            password_hash: 'auth-managed', // Placeholder since auth is managed by Supabase
+          });
+
+        if (userError) throw userError;
+      }
+
+      // Check if client_profiles record exists
+      const { data: existingProfile } = await supabase
+        .from('client_profiles')
+        .select('profile_id')
+        .eq('client_id', user.id)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // Update client_profiles record
+        const { error: profileError } = await supabase
+          .from('client_profiles')
+          .update({
+            nationality: formData.nationality,
+            passport_number: formData.passportNumber,
+            current_address: formData.address,
+          })
+          .eq('client_id', user.id);
+
+        if (profileError) throw profileError;
+      } else {
+        // Create client_profiles record
+        const { error: profileError } = await supabase
+          .from('client_profiles')
+          .insert({
+            client_id: user.id,
+            nationality: formData.nationality,
+            passport_number: formData.passportNumber,
+            current_address: formData.address,
+          });
+
+        if (profileError) throw profileError;
+      }
+
+      // Refresh user profile data in context
+      await refreshUserProfile();
+
       toast({
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
+        title: "Profile updated",
+        description: "Your profile has been updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Update failed",
+        description: error.message || "Failed to update profile",
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleDocumentUpload = async () => {
-    setUploading(true);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast({
-        title: "Success",
-        description: "Document uploaded successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to upload document. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (formData.firstName && formData.lastName) {
+      return `${formData.firstName.charAt(0)}${formData.lastName.charAt(0)}`;
+    } else if (formData.firstName) {
+      return formData.firstName.charAt(0);
+    } else if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
     }
+    return "U";
   };
+
+  if (!user) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-[250px]" />
+        <Skeleton className="h-[200px] w-full" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Your Profile</h1>
-        <Button onClick={handleSubmit} disabled={saving}>
-          {saving ? "Saving..." : "Save Changes"}
-          <Save className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
+    <div className="max-w-5xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6">My Profile</h2>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="personal" className="flex-1 sm:flex-none">
-            Personal
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="flex-1 sm:flex-none">
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex-1 sm:flex-none">
-            Security
-          </TabsTrigger>
+      <Tabs defaultValue="personal" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsTrigger value="personal">Personal Information</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="personal" className="space-y-6 mt-6">
-          {/* Personal Information */}
+        <TabsContent value="personal">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Profile Picture</CardTitle>
+                <CardDescription>Manage your profile image</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center">
+                <Avatar className="h-32 w-32 mb-4">
+                  <AvatarImage src="/images/avatar-1.jpg" alt={formData.firstName} />
+                  <AvatarFallback className="text-3xl">{getUserInitials()}</AvatarFallback>
+                </Avatar>
+                <Button variant="outline" className="mt-2">Upload Image</Button>
+              </CardContent>
+              <CardFooter className="flex flex-col items-start">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Accepted file types: JPG, PNG. Max size: 2MB.
+                </p>
+              </CardFooter>
+            </Card>
+            
+            <Card className="col-span-1 md:col-span-2">
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>Update your personal details</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input 
+                        id="firstName" 
+                        name="firstName" 
+                        value={formData.firstName} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input 
+                        id="lastName" 
+                        name="lastName" 
+                        value={formData.lastName} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input 
+                      id="email" 
+                      name="email" 
+                      type="email" 
+                      value={formData.email || user.email || ''} 
+                      onChange={handleChange} 
+                      disabled={!!user.email}
+                    />
+                    {user.email && (
+                      <p className="text-xs text-muted-foreground">Email can't be changed as it's used for authentication.</p>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input 
+                        id="phone" 
+                        name="phone" 
+                        value={formData.phone} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      <Input 
+                        id="dateOfBirth" 
+                        name="dateOfBirth" 
+                        type="date" 
+                        value={formData.dateOfBirth} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  <h3 className="text-lg font-medium">Travel Information</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nationality">Nationality</Label>
+                      <Input 
+                        id="nationality" 
+                        name="nationality" 
+                        value={formData.nationality} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="passportNumber">Passport Number</Label>
+                      <Input 
+                        id="passportNumber" 
+                        name="passportNumber" 
+                        value={formData.passportNumber} 
+                        onChange={handleChange} 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Current Address</Label>
+                    <Input 
+                      id="address" 
+                      name="address" 
+                      value={formData.address} 
+                      onChange={handleChange} 
+                    />
+                  </div>
+                  
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Saving..." : "Save Changes"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="documents">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Personal Information</CardTitle>
-              <CardDescription>
-                Your basic personal details used for applications and communication
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="firstName" className="text-sm font-medium">
-                    First Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      value={personalInfo.firstName}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="lastName" className="text-sm font-medium">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      value={personalInfo.lastName}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={personalInfo.email}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="phone" className="text-sm font-medium">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={personalInfo.phone}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="dateOfBirth" className="text-sm font-medium">
-                    Date of Birth
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="dateOfBirth"
-                      name="dateOfBirth"
-                      type="date"
-                      value={personalInfo.dateOfBirth}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="nationality" className="text-sm font-medium">
-                    Nationality
-                  </label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="nationality"
-                      name="nationality"
-                      value={personalInfo.nationality}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="passportNumber" className="text-sm font-medium">
-                    Passport Number
-                  </label>
-                  <div className="relative">
-                    <FileText className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="passportNumber"
-                      name="passportNumber"
-                      value={personalInfo.passportNumber}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="passportExpiry" className="text-sm font-medium">
-                    Passport Expiry Date
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="passportExpiry"
-                      name="passportExpiry"
-                      type="date"
-                      value={personalInfo.passportExpiry}
-                      onChange={handlePersonalInfoChange}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="currentAddress" className="text-sm font-medium">
-                  Current Address
-                </label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                  <Textarea
-                    id="currentAddress"
-                    name="currentAddress"
-                    value={personalInfo.currentAddress}
-                    onChange={handlePersonalInfoChange}
-                    className="pl-10 pt-2 min-h-24"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Emergency Contact */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Emergency Contact</CardTitle>
-              <CardDescription>
-                Person to contact in case of emergency
-              </CardDescription>
+              <CardTitle>My Documents</CardTitle>
+              <CardDescription>Upload and manage your important travel documents</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="emergencyName" className="text-sm font-medium">
-                    Name
-                  </label>
-                  <Input
-                    id="emergencyName"
-                    name="name"
-                    value={emergencyContact.name}
-                    onChange={handleEmergencyContactChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="relationship" className="text-sm font-medium">
-                    Relationship
-                  </label>
-                  <Input
-                    id="relationship"
-                    name="relationship"
-                    value={emergencyContact.relationship}
-                    onChange={handleEmergencyContactChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="emergencyPhone" className="text-sm font-medium">
-                    Phone Number
-                  </label>
-                  <Input
-                    id="emergencyPhone"
-                    name="phone"
-                    value={emergencyContact.phone}
-                    onChange={handleEmergencyContactChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="emergencyEmail" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <Input
-                    id="emergencyEmail"
-                    name="email"
-                    type="email"
-                    value={emergencyContact.email}
-                    onChange={handleEmergencyContactChange}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* Background Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Background Information</CardTitle>
-              <CardDescription>
-                Your educational and professional background
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="education" className="text-sm font-medium flex items-center">
-                  <GraduationCap className="h-5 w-5 mr-2" />
-                  Education
-                </label>
-                <Textarea
-                  id="education"
-                  name="education"
-                  value={backgroundInfo.education}
-                  onChange={handleBackgroundInfoChange}
-                  className="min-h-24"
-                  placeholder="Provide details about your educational background..."
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="workExperience" className="text-sm font-medium flex items-center">
-                  <Briefcase className="h-5 w-5 mr-2" />
-                  Work Experience
-                </label>
-                <Textarea
-                  id="workExperience"
-                  name="workExperience"
-                  value={backgroundInfo.workExperience}
-                  onChange={handleBackgroundInfoChange}
-                  className="min-h-24"
-                  placeholder="Provide details about your work experience..."
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label htmlFor="languages" className="text-sm font-medium flex items-center">
-                  <Languages className="h-5 w-5 mr-2" />
-                  Language Proficiency
-                </label>
-                <Textarea
-                  id="languages"
-                  name="languages"
-                  value={backgroundInfo.languages}
-                  onChange={handleBackgroundInfoChange}
-                  className="min-h-24"
-                  placeholder="List languages you know and your proficiency level..."
-                />
-              </div>
+              <p className="text-center py-10 text-muted-foreground">
+                Document management will be available soon.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
         
-        <TabsContent value="documents" className="space-y-6 mt-6">
+        <TabsContent value="preferences">
           <Card>
             <CardHeader>
-              <CardTitle className="text-xl">Documents</CardTitle>
-              <CardDescription>
-                Upload and manage your important documents
-              </CardDescription>
+              <CardTitle>Preferences</CardTitle>
+              <CardDescription>Manage your account preferences and settings</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Passport */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-medium">Passport</h3>
-                      <p className="text-sm text-muted-foreground">Uploaded on 01/05/2023</p>
-                    </div>
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button size="sm" variant="outline" className="flex-1">
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
-                      Replace
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Resume/CV */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-medium">Resume/CV</h3>
-                      <p className="text-sm text-muted-foreground">Uploaded on 15/06/2023</p>
-                    </div>
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button size="sm" variant="outline" className="flex-1">
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
-                      Replace
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Degree Certificate */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-medium">Degree Certificate</h3>
-                      <p className="text-sm text-muted-foreground">Uploaded on 10/07/2023</p>
-                    </div>
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button size="sm" variant="outline" className="flex-1">
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
-                      Replace
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Upload New Document */}
-                <div className="border border-dashed rounded-lg p-4 flex flex-col items-center justify-center space-y-2">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Upload className="h-5 w-5 text-primary" />
-                  </div>
-                  <p className="font-medium">Upload New Document</p>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Drag & drop or click to upload
-                  </p>
-                  <Button 
-                    size="sm" 
-                    onClick={handleDocumentUpload}
-                    disabled={uploading}
-                  >
-                    {uploading ? "Uploading..." : "Select File"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="security" className="space-y-6 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-xl">Security Settings</CardTitle>
-              <CardDescription>
-                Manage your account security preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Password Change */}
-              <div className="space-y-4">
-                <h3 className="font-medium flex items-center">
-                  <ShieldCheck className="h-5 w-5 mr-2 text-primary" />
-                  Change Password
-                </h3>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Current Password</label>
-                    <Input type="password" placeholder="Enter current password" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">New Password</label>
-                    <Input type="password" placeholder="Enter new password" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Confirm New Password</label>
-                    <Input type="password" placeholder="Confirm new password" />
-                  </div>
-                  
-                  <Button>Update Password</Button>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {/* Two-Factor Authentication */}
-              <div className="space-y-4">
-                <h3 className="font-medium flex items-center">
-                  <ShieldCheck className="h-5 w-5 mr-2 text-primary" />
-                  Two-Factor Authentication
-                </h3>
-                
-                <p className="text-sm text-muted-foreground">
-                  Add an extra layer of security to your account
-                </p>
-                
-                <Button variant="outline">Enable Two-Factor Authentication</Button>
-              </div>
-              
-              <Separator />
-              
-              {/* Session Management */}
-              <div className="space-y-4">
-                <h3 className="font-medium flex items-center">
-                  <ShieldCheck className="h-5 w-5 mr-2 text-primary" />
-                  Active Sessions
-                </h3>
-                
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Current Session</p>
-                      <p className="text-sm text-muted-foreground">
-                        Last active: Just now
-                      </p>
-                    </div>
-                    <span className="bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100 text-xs px-2 py-1 rounded-full">
-                      Active
-                    </span>
-                  </div>
-                </div>
-                
-                <Button variant="outline" className="text-destructive">
-                  Log Out All Other Devices
-                </Button>
-              </div>
+            <CardContent>
+              <p className="text-center py-10 text-muted-foreground">
+                Preferences settings will be available soon.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
