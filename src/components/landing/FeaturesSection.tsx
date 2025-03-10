@@ -22,13 +22,13 @@ export function FeaturesSection({ featuresData, isLoading }: FeaturesSectionProp
   // Map service data to features with icons
   const getIconComponent = (serviceName: string) => {
     const name = serviceName.toLowerCase();
-    if (name.includes("visa")) return <FileText />;
-    if (name.includes("consult")) return <Users />;
-    if (name.includes("application")) return <FileText />;
-    if (name.includes("immigration")) return <Map />;
-    if (name.includes("support")) return <Shield />;
-    if (name.includes("document")) return <FileText />;
-    return <Settings />;
+    if (name.includes("visa")) return <FileText className="h-6 w-6 text-primary" />;
+    if (name.includes("consult")) return <Users className="h-6 w-6 text-primary" />;
+    if (name.includes("application")) return <FileText className="h-6 w-6 text-primary" />;
+    if (name.includes("immigration")) return <Map className="h-6 w-6 text-primary" />;
+    if (name.includes("support")) return <Shield className="h-6 w-6 text-primary" />;
+    if (name.includes("document")) return <FileText className="h-6 w-6 text-primary" />;
+    return <Settings className="h-6 w-6 text-primary" />;
   };
 
   // Animation variants
@@ -92,6 +92,14 @@ export function FeaturesSection({ featuresData, isLoading }: FeaturesSectionProp
     }
   ];
 
+  // If real data is available, process it
+  const processedFeatures = featuresData?.length > 0 
+    ? featuresData.map(feature => ({
+        ...feature,
+        icon: getIconComponent(feature.name)
+      }))
+    : fallbackFeatures;
+
   return (
     <section className="py-24 bg-muted/30">
       <div className="container max-w-7xl mx-auto px-4">
@@ -122,17 +130,19 @@ export function FeaturesSection({ featuresData, isLoading }: FeaturesSectionProp
             viewport={{ once: true }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
-            {(featuresData.length > 0 ? featuresData : fallbackFeatures).map((feature, index) => (
+            {processedFeatures.map((feature, index) => (
               <motion.div 
                 key={feature.id || index} 
                 variants={item}
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
                 className="h-full"
+                data-aos="fade-up" 
+                data-aos-delay={100 + (index * 50)}
               >
                 <Card className="h-full border border-primary/10 bg-card/50 backdrop-blur-sm hover:shadow-md transition-all duration-300">
                   <CardHeader>
                     <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                      {feature.icon || getIconComponent(feature.name)}
+                      {feature.icon}
                     </div>
                     <CardTitle>{feature.name}</CardTitle>
                     <CardDescription className="text-muted-foreground">

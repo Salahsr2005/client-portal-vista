@@ -23,6 +23,7 @@ export const useLandingPageData = () => {
         description: destination.description || "",
         image: destination.image_url || `/images/destination-${Math.floor(Math.random() * 6) + 1}.jpg`,
         requirements: destination.visa_requirements || "",
+        flag: `https://flagcdn.com/w80/${destination.country_name.substring(0, 2).toLowerCase()}.png`,
       })) || [];
     },
   });
@@ -105,6 +106,37 @@ export const useLandingPageData = () => {
     },
   });
 
+  // Fetch client testimonials
+  const testimonialsQuery = useQuery({
+    queryKey: ["testimonials"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_users")
+        .select(`
+          client_id, 
+          first_name, 
+          last_name,
+          client_profiles(nationality)
+        `)
+        .limit(5);
+      
+      if (error) {
+        console.error("Error fetching testimonials:", error);
+        return [];
+      }
+      
+      // Transform to testimonial format - in a real app, you'd have a separate testimonials table
+      return data?.map(user => ({
+        id: user.client_id,
+        name: `${user.first_name || ""} ${user.last_name || ""}`.trim() || "Anonymous Client",
+        role: user.client_profiles?.[0]?.nationality || "Client",
+        content: "I had an amazing experience with their services. The consultants were very helpful and professional. I highly recommend their services to anyone looking to study or immigrate abroad.",
+        avatar: `/images/avatar-${Math.floor(Math.random() * 6) + 1}.jpg`,
+      })) || [];
+    },
+    enabled: false, // Only enable if you have real testimonials data
+  });
+
   return {
     destinations: {
       data: destinationsQuery.data || [],
@@ -120,6 +152,11 @@ export const useLandingPageData = () => {
       data: servicesQuery.data || [],
       isLoading: servicesQuery.isLoading,
       error: servicesQuery.error,
+    },
+    testimonials: {
+      data: testimonialsQuery.data || [],
+      isLoading: testimonialsQuery.isLoading,
+      error: testimonialsQuery.error,
     },
   };
 };
