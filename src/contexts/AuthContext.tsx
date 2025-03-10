@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { securelyStoreSession, verifyToken } from "@/utils/tokenUtils";
 
 interface AuthContextType {
   session: Session | null;
@@ -24,14 +25,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Setup authentication listener
   useEffect(() => {
     const getSession = async () => {
       try {
+        // Verify token and get session
+        const isValid = await verifyToken();
         const { data } = await supabase.auth.getSession();
-        setSession(data.session);
-        setUser(data.session?.user || null);
+        
+        if (data.session && isValid) {
+          setSession(data.session);
+          setUser(data.session?.user || null);
+          securelyStoreSession(data.session);
+        } else {
+          setSession(null);
+          setUser(null);
+        }
       } catch (error) {
         console.error("Error getting session:", error);
+        setSession(null);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -39,19 +52,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     getSession();
 
+    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user || null);
+        securelyStoreSession(session);
         setLoading(false);
+        
+        // Log the authentication event
+        if (session?.user) {
+          console.log("User authenticated:", session.user.email);
+        }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check for session expiry periodically
+  useEffect(() => {
+    const checkSession = async () => {
+      if (session) {
+        const isValid = await verifyToken();
+        if (!isValid) {
+          toast({
+            title: "Session expired",
+            description: "Your session has expired. Please login again.",
+            variant: "destructive",
+          });
+          await signOut();
+        }
+      }
+    };
+    
+    const interval = setInterval(checkSession, 5 * 60 * 1000); // Check every 5 minutes
+    
+    return () => clearInterval(interval);
+  }, [session]);
+
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -63,6 +105,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Welcome back!",
         });
         navigate("/dashboard");
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message || "Invalid credentials",
+          variant: "destructive",
+        });
       }
       
       return { error };
@@ -73,11 +121,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
       return { error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -92,6 +143,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: "Please check your email to verify your account",
         });
         navigate("/login");
+      } else {
+        toast({
+          title: "Registration failed",
+          description: error.message || "Could not create account",
+          variant: "destructive",
+        });
       }
 
       return { error };
@@ -102,11 +159,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
       return { error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
+      setLoading(true);
       await supabase.auth.signOut();
       toast({
         title: "Logged out",
@@ -119,6 +179,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 

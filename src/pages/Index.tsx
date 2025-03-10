@@ -16,6 +16,7 @@ import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { Footer } from "@/components/landing/Footer";
+import { Loader } from "lucide-react";
 
 export default function Index() {
   const { destinations, programs, services, testimonials } = useLandingPageData();
@@ -29,7 +30,13 @@ export default function Index() {
       offset: 50,
       disable: 'mobile'
     });
-  }, []);
+    
+    // Log fetched data for debugging
+    console.log("Destinations:", destinations.data);
+    console.log("Programs:", programs.data);
+    console.log("Services:", services.data);
+    console.log("Testimonials:", testimonials.data);
+  }, [destinations.data, programs.data, services.data, testimonials.data]);
   
   // References for scroll navigation
   const featuresRef = useRef<HTMLDivElement>(null);
@@ -41,6 +48,9 @@ export default function Index() {
   // Parallax scroll effect
   const { scrollYProgress } = useScroll();
   const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
+  
+  // Check if all data is loading
+  const isLoading = destinations.isLoading || programs.isLoading || services.isLoading || testimonials.isLoading;
   
   return (
     <ThemeProvider>
@@ -68,50 +78,59 @@ export default function Index() {
         
         {/* Main content */}
         <main>
-          {/* Hero Section */}
-          <div data-aos="fade-up">
-            <HeroSection 
-              featuresRef={featuresRef} 
-              programsData={programs.data} 
-              programsLoading={programs.isLoading}
-            />
-          </div>
-          
-          {/* Features Section */}
-          <div ref={featuresRef} data-aos="fade-up" data-aos-delay="100">
-            <FeaturesSection 
-              featuresData={services.data} 
-              isLoading={services.isLoading} 
-            />
-          </div>
-          
-          {/* How It Works Section */}
-          <div ref={howItWorksRef} data-aos="fade-up" data-aos-delay="200">
-            <HowItWorksSection />
-          </div>
-          
-          {/* Pricing Section */}
-          <div ref={pricingRef} data-aos="fade-up" data-aos-delay="300">
-            <PricingSection />
-          </div>
-          
-          {/* Testimonials Section */}
-          <div ref={testimonialsRef} data-aos="fade-up" data-aos-delay="400">
-            <TestimonialsSection 
-              destinations={destinations.data}
-              isLoading={destinations.isLoading}
-            />
-          </div>
-          
-          {/* FAQ Section */}
-          <div ref={faqRef} data-aos="fade-up" data-aos-delay="500">
-            <FaqSection />
-          </div>
-          
-          {/* CTA Section */}
-          <div data-aos="fade-up" data-aos-delay="600">
-            <CtaSection />
-          </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-screen">
+              <Loader className="h-12 w-12 animate-spin text-primary" />
+              <span className="ml-4 text-xl">Loading content...</span>
+            </div>
+          ) : (
+            <>
+              {/* Hero Section */}
+              <div data-aos="fade-up">
+                <HeroSection 
+                  featuresRef={featuresRef} 
+                  programsData={programs.data} 
+                  programsLoading={programs.isLoading}
+                />
+              </div>
+              
+              {/* Features Section */}
+              <div ref={featuresRef} data-aos="fade-up" data-aos-delay="100">
+                <FeaturesSection 
+                  featuresData={services.data} 
+                  isLoading={services.isLoading} 
+                />
+              </div>
+              
+              {/* How It Works Section */}
+              <div ref={howItWorksRef} data-aos="fade-up" data-aos-delay="200">
+                <HowItWorksSection />
+              </div>
+              
+              {/* Pricing Section */}
+              <div ref={pricingRef} data-aos="fade-up" data-aos-delay="300">
+                <PricingSection />
+              </div>
+              
+              {/* Testimonials Section */}
+              <div ref={testimonialsRef} data-aos="fade-up" data-aos-delay="400">
+                <TestimonialsSection 
+                  destinations={destinations.data}
+                  isLoading={destinations.isLoading}
+                />
+              </div>
+              
+              {/* FAQ Section */}
+              <div ref={faqRef} data-aos="fade-up" data-aos-delay="500">
+                <FaqSection />
+              </div>
+              
+              {/* CTA Section */}
+              <div data-aos="fade-up" data-aos-delay="600">
+                <CtaSection />
+              </div>
+            </>
+          )}
         </main>
         
         {/* Footer */}
