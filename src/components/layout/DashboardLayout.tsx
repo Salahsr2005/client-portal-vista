@@ -164,8 +164,11 @@ export function DashboardLayout() {
           <div className="mb-6 px-2 py-3 bg-background/50 rounded-lg">
             <div className="flex items-center space-x-3">
               <Avatar>
-                <AvatarImage src="/images/avatar-1.jpg" alt="User" />
-                <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                {userProfile?.avatarUrl ? (
+                  <AvatarImage src={userProfile.avatarUrl} alt="User" />
+                ) : (
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                )}
               </Avatar>
               <div className="overflow-hidden">
                 <p className="font-medium truncate">
@@ -241,8 +244,11 @@ export function DashboardLayout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/images/avatar-1.jpg" alt="User" />
-                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    {userProfile?.avatarUrl ? (
+                      <AvatarImage src={userProfile.avatarUrl} alt="User" />
+                    ) : (
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    )}
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>

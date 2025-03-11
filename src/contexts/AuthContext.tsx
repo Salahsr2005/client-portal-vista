@@ -15,6 +15,7 @@ interface UserProfile {
   nationality?: string | null;
   passportNumber?: string | null;
   address?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface AuthContextType {
@@ -27,6 +28,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
+  uploadAvatar: (file: File) => Promise<{ error: any; url: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,8 +38,62 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Upload avatar function
+  const uploadAvatar = async (file: File) => {
+    try {
+      if (!user) {
+        return { error: "No user logged in", url: null };
+      }
+
+      // Create a unique file name using user ID and timestamp
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `avatars/${user.id}/${fileName}`;
+
+      // Upload the file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error("Error uploading avatar:", uploadError);
+        return { error: uploadError, url: null };
+      }
+
+      // Get the public URL for the uploaded image
+      const { data } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+
+      const avatarUrl = data.publicUrl;
+
+      // Update the client_profiles table with the new avatar URL
+      const { error: updateError } = await supabase
+        .from('client_profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('client_id', user.id);
+
+      if (updateError) {
+        console.error("Error updating profile with avatar URL:", updateError);
+        return { error: updateError, url: avatarUrl };
+      }
+
+      // Update the local user profile state with the new avatar URL
+      setUserProfile(prev => prev ? { ...prev, avatarUrl } : null);
+      
+      return { error: null, url: avatarUrl };
+    } catch (error) {
+      console.error("Unexpected error in uploadAvatar:", error);
+      return { error, url: null };
+    }
+  };
 
   // Fetch user profile data from Supabase
   const fetchUserProfile = async (userId: string) => {
@@ -53,6 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           email: user.email,
           dateOfBirth: metadata.date_of_birth || null,
           phone: null,
+          avatarUrl: null,
         };
 
         // Then try to get additional profile data from client_users table
@@ -92,6 +149,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           profile.nationality = profileData.nationality;
           profile.passportNumber = profileData.passport_number;
           profile.address = profileData.current_address;
+          profile.avatarUrl = profileData.avatar_url;
         } else {
           console.log("No client_profiles data found for this user");
         }
@@ -137,6 +195,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } finally {
         console.log("Finished getting session, setting loading to false");
         setLoading(false);
+        setAuthInitialized(true);
       }
     };
 
@@ -176,6 +235,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         
         setLoading(false);
+        setAuthInitialized(true);
       }
     );
 
@@ -187,6 +247,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       console.log("Signing in with email:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -215,11 +276,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
       return { error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
+      setLoading(true);
       console.log("Signing up with email:", email);
       console.log("User data:", userData);
       
@@ -251,11 +315,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
       return { error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
+      setLoading(true);
       console.log("Signing out...");
       
       // Log the logout activity before signing out
@@ -303,11 +370,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const signInWithGoogle = async () => {
     try {
+      setLoading(true);
       console.log("Signing in with Google...");
       await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -322,6 +392,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -337,6 +409,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signOut,
         signInWithGoogle,
         refreshUserProfile,
+        uploadAvatar
       }}
     >
       {children}

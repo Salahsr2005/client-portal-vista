@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2, Upload } from "lucide-react";
 
 export default function Profile() {
-  const { user, userProfile, refreshUserProfile } = useAuth();
+  const { user, userProfile, refreshUserProfile, uploadAvatar } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -196,6 +200,68 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarUpload = async () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingAvatar(true);
+      
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Image must be less than 2MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file type
+      const fileType = file.type.split('/')[0];
+      if (fileType !== 'image') {
+        toast({
+          title: "Invalid file type",
+          description: "Only image files are allowed",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { error, url } = await uploadAvatar(file);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully",
+      });
+      
+      // Force refresh to show updated avatar
+      await refreshUserProfile();
+      
+    } catch (error: any) {
+      console.error("Avatar upload failed:", error);
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload profile picture",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingAvatar(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   // Get user initials for avatar
   const getUserInitials = () => {
     if (formData.firstName && formData.lastName) {
@@ -238,10 +304,37 @@ export default function Profile() {
               </CardHeader>
               <CardContent className="flex flex-col items-center">
                 <Avatar className="h-32 w-32 mb-4">
-                  <AvatarImage src="/images/avatar-1.jpg" alt={formData.firstName} />
-                  <AvatarFallback className="text-3xl">{getUserInitials()}</AvatarFallback>
+                  {userProfile?.avatarUrl ? (
+                    <AvatarImage src={userProfile.avatarUrl} alt={formData.firstName} />
+                  ) : (
+                    <AvatarFallback className="text-3xl">{getUserInitials()}</AvatarFallback>
+                  )}
                 </Avatar>
-                <Button variant="outline" className="mt-2">Upload Image</Button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+                <Button 
+                  variant="outline" 
+                  className="mt-2 w-full"
+                  onClick={handleAvatarUpload}
+                  disabled={uploadingAvatar}
+                >
+                  {uploadingAvatar ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Image
+                    </>
+                  )}
+                </Button>
               </CardContent>
               <CardFooter className="flex flex-col items-start">
                 <p className="text-sm text-muted-foreground mb-2">
@@ -350,7 +443,14 @@ export default function Profile() {
                   </div>
                   
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? "Saving..." : "Save Changes"}
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      "Save Changes"
+                    )}
                   </Button>
                 </form>
               </CardContent>
