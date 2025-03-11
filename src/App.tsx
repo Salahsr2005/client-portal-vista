@@ -27,11 +27,16 @@ import Destinations from "./pages/Destinations";
 // Layout
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 
-// Simplified Protected Route Component
+// Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   
-  // Just render children and let dashboard handle redirect if needed
+  if (loading) return <div className="flex h-screen w-screen items-center justify-center">Loading...</div>;
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
   return <>{children}</>;
 };
 

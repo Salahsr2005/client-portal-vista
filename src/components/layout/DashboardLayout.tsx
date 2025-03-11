@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 
 const sidebarItems = [
   { label: "Dashboard", icon: Home, path: "/dashboard" },
@@ -51,7 +50,6 @@ export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userProfile, loading, signOut } = useAuth();
-  const { toast } = useToast();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -77,20 +75,21 @@ export function DashboardLayout() {
     }
   }, [location, isMobile]);
 
-  // Simplified auth redirect - check once and navigate if needed
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       navigate("/login");
     }
   }, [user, loading, navigate]);
 
-  // If not authenticated and still loading, show minimal loading
-  if (loading && !user) {
+  // If still loading or no user, show a loading state
+  if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="animate-pulse">
-          <div className="h-10 w-10 bg-primary/50 rounded-full mb-4 mx-auto"></div>
-          <div className="h-2 w-24 bg-muted rounded mx-auto"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
+          <Skeleton className="h-4 w-48 mx-auto mb-2" />
+          <Skeleton className="h-3 w-32 mx-auto" />
         </div>
       </div>
     );
@@ -106,15 +105,6 @@ export function DashboardLayout() {
       return user.email.charAt(0).toUpperCase();
     }
     return "U";
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("Failed to sign out:", error);
-      navigate("/login");
-    }
   };
 
   return (
@@ -148,11 +138,8 @@ export function DashboardLayout() {
           <div className="mb-6 px-2 py-3 bg-background/50 rounded-lg">
             <div className="flex items-center space-x-3">
               <Avatar>
-                {userProfile?.avatarUrl ? (
-                  <AvatarImage src={userProfile.avatarUrl} alt={userProfile.firstName || "User"} />
-                ) : (
-                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                )}
+                <AvatarImage src="/images/avatar-1.jpg" alt="User" />
+                <AvatarFallback>{getUserInitials()}</AvatarFallback>
               </Avatar>
               <div className="overflow-hidden">
                 <p className="font-medium truncate">
@@ -196,7 +183,7 @@ export function DashboardLayout() {
             <Button 
               variant="ghost" 
               className="w-full justify-start text-destructive"
-              onClick={handleSignOut}
+              onClick={() => signOut()}
             >
               <LogOut className="h-5 w-5 mr-3" />
               Logout
@@ -228,11 +215,8 @@ export function DashboardLayout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
                   <Avatar className="h-8 w-8">
-                    {userProfile?.avatarUrl ? (
-                      <AvatarImage src={userProfile.avatarUrl} alt={userProfile.firstName || "User"} />
-                    ) : (
-                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                    )}
+                    <AvatarImage src="/images/avatar-1.jpg" alt="User" />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -250,7 +234,7 @@ export function DashboardLayout() {
                   <Link to="/settings">Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+                <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>

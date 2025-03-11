@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload } from "lucide-react";
 
 export default function Profile() {
-  const { user, userProfile, refreshUserProfile, uploadAvatar } = useAuth();
+  const { user, userProfile, refreshUserProfile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -31,13 +27,9 @@ export default function Profile() {
   });
   const { toast } = useToast();
 
-  console.log("Profile component rendered with user:", user?.id);
-  console.log("User profile data:", userProfile);
-
   // Load user profile data
   useEffect(() => {
     if (userProfile) {
-      console.log("Setting form data from user profile:", userProfile);
       setFormData({
         firstName: userProfile.firstName || "",
         lastName: userProfile.lastName || "",
@@ -58,15 +50,9 @@ export default function Profile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) {
-      console.error("No user ID available for profile update");
-      return;
-    }
+    if (!user?.id) return;
 
     setLoading(true);
-    console.log("Submitting profile update for user:", user.id);
-    console.log("Form data:", formData);
-
     try {
       // Update user metadata in auth.users
       const { error: metadataError } = await supabase.auth.updateUser({
@@ -77,12 +63,7 @@ export default function Profile() {
         }
       });
 
-      if (metadataError) {
-        console.error("Error updating user metadata:", metadataError);
-        throw metadataError;
-      }
-
-      console.log("User metadata updated successfully");
+      if (metadataError) throw metadataError;
 
       // Check if client_users record exists
       const { data: existingUser } = await supabase
@@ -91,9 +72,6 @@ export default function Profile() {
         .eq('client_id', user.id)
         .maybeSingle();
 
-      console.log("Existing user check:", existingUser);
-
-      // Transaction for client_users
       if (existingUser) {
         // Update client_users record
         const { error: userError } = await supabase
@@ -103,16 +81,11 @@ export default function Profile() {
             last_name: formData.lastName,
             phone: formData.phone,
             date_of_birth: formData.dateOfBirth,
-            email: formData.email || user.email,
+            email: formData.email,
           })
           .eq('client_id', user.id);
 
-        if (userError) {
-          console.error("Error updating client_users record:", userError);
-          throw userError;
-        }
-        
-        console.log("client_users record updated successfully");
+        if (userError) throw userError;
       } else {
         // Create client_users record
         const { error: userError } = await supabase
@@ -123,29 +96,21 @@ export default function Profile() {
             last_name: formData.lastName,
             phone: formData.phone,
             date_of_birth: formData.dateOfBirth,
-            email: formData.email || user.email,
+            email: formData.email,
             username: user.email || formData.email,
             password_hash: 'auth-managed', // Placeholder since auth is managed by Supabase
           });
 
-        if (userError) {
-          console.error("Error creating client_users record:", userError);
-          throw userError;
-        }
-        
-        console.log("client_users record created successfully");
+        if (userError) throw userError;
       }
 
       // Check if client_profiles record exists
       const { data: existingProfile } = await supabase
         .from('client_profiles')
-        .select('*')
+        .select('profile_id')
         .eq('client_id', user.id)
         .maybeSingle();
 
-      console.log("Existing profile check:", existingProfile);
-
-      // Transaction for client_profiles
       if (existingProfile) {
         // Update client_profiles record
         const { error: profileError } = await supabase
@@ -157,12 +122,7 @@ export default function Profile() {
           })
           .eq('client_id', user.id);
 
-        if (profileError) {
-          console.error("Error updating client_profiles record:", profileError);
-          throw profileError;
-        }
-        
-        console.log("client_profiles record updated successfully");
+        if (profileError) throw profileError;
       } else {
         // Create client_profiles record
         const { error: profileError } = await supabase
@@ -174,24 +134,17 @@ export default function Profile() {
             current_address: formData.address,
           });
 
-        if (profileError) {
-          console.error("Error creating client_profiles record:", profileError);
-          throw profileError;
-        }
-        
-        console.log("client_profiles record created successfully");
+        if (profileError) throw profileError;
       }
 
       // Refresh user profile data in context
       await refreshUserProfile();
-      console.log("Profile refreshed successfully");
 
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
       });
     } catch (error: any) {
-      console.error("Profile update failed:", error);
       toast({
         title: "Update failed",
         description: error.message || "Failed to update profile",
@@ -199,72 +152,6 @@ export default function Profile() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleAvatarUpload = async () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingAvatar(true);
-      
-      // Validate file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Image must be less than 2MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Validate file type
-      const fileType = file.type.split('/')[0];
-      if (fileType !== 'image') {
-        toast({
-          title: "Invalid file type",
-          description: "Only image files are allowed",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      console.log("Uploading avatar file:", file.name);
-      const { error, url } = await uploadAvatar(file);
-      
-      if (error) {
-        console.error("Avatar upload error:", error);
-        throw error;
-      }
-      
-      console.log("Avatar uploaded successfully:", url);
-      
-      toast({
-        title: "Avatar updated",
-        description: "Your profile picture has been updated successfully",
-      });
-      
-      // Force refresh to show updated avatar
-      await refreshUserProfile();
-      
-    } catch (error: any) {
-      console.error("Avatar upload failed:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload profile picture",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingAvatar(false);
-      // Clear the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -281,7 +168,6 @@ export default function Profile() {
   };
 
   if (!user) {
-    console.log("No user found, showing skeleton");
     return (
       <div className="space-y-4">
         <Skeleton className="h-12 w-[250px]" />
@@ -310,40 +196,10 @@ export default function Profile() {
               </CardHeader>
               <CardContent className="flex flex-col items-center">
                 <Avatar className="h-32 w-32 mb-4">
-                  {userProfile?.avatarUrl ? (
-                    <AvatarImage 
-                      src={userProfile.avatarUrl} 
-                      alt={formData.firstName || "User"} 
-                    />
-                  ) : (
-                    <AvatarFallback className="text-3xl">{getUserInitials()}</AvatarFallback>
-                  )}
+                  <AvatarImage src="/images/avatar-1.jpg" alt={formData.firstName} />
+                  <AvatarFallback className="text-3xl">{getUserInitials()}</AvatarFallback>
                 </Avatar>
-                <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                />
-                <Button 
-                  variant="outline" 
-                  className="mt-2 w-full"
-                  onClick={handleAvatarUpload}
-                  disabled={uploadingAvatar}
-                >
-                  {uploadingAvatar ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload Image
-                    </>
-                  )}
-                </Button>
+                <Button variant="outline" className="mt-2">Upload Image</Button>
               </CardContent>
               <CardFooter className="flex flex-col items-start">
                 <p className="text-sm text-muted-foreground mb-2">
@@ -452,14 +308,7 @@ export default function Profile() {
                   </div>
                   
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Changes"
-                    )}
+                    {loading ? "Saving..." : "Save Changes"}
                   </Button>
                 </form>
               </CardContent>
