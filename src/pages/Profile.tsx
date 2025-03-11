@@ -27,9 +27,13 @@ export default function Profile() {
   });
   const { toast } = useToast();
 
+  console.log("Profile component rendered with user:", user?.id);
+  console.log("User profile data:", userProfile);
+
   // Load user profile data
   useEffect(() => {
     if (userProfile) {
+      console.log("Setting form data from user profile:", userProfile);
       setFormData({
         firstName: userProfile.firstName || "",
         lastName: userProfile.lastName || "",
@@ -50,9 +54,15 @@ export default function Profile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.error("No user ID available for profile update");
+      return;
+    }
 
     setLoading(true);
+    console.log("Submitting profile update for user:", user.id);
+    console.log("Form data:", formData);
+
     try {
       // Update user metadata in auth.users
       const { error: metadataError } = await supabase.auth.updateUser({
@@ -63,7 +73,12 @@ export default function Profile() {
         }
       });
 
-      if (metadataError) throw metadataError;
+      if (metadataError) {
+        console.error("Error updating user metadata:", metadataError);
+        throw metadataError;
+      }
+
+      console.log("User metadata updated successfully");
 
       // Check if client_users record exists
       const { data: existingUser } = await supabase
@@ -71,6 +86,8 @@ export default function Profile() {
         .select('client_id')
         .eq('client_id', user.id)
         .maybeSingle();
+
+      console.log("Existing user check:", existingUser);
 
       if (existingUser) {
         // Update client_users record
@@ -85,7 +102,12 @@ export default function Profile() {
           })
           .eq('client_id', user.id);
 
-        if (userError) throw userError;
+        if (userError) {
+          console.error("Error updating client_users record:", userError);
+          throw userError;
+        }
+        
+        console.log("client_users record updated successfully");
       } else {
         // Create client_users record
         const { error: userError } = await supabase
@@ -96,12 +118,17 @@ export default function Profile() {
             last_name: formData.lastName,
             phone: formData.phone,
             date_of_birth: formData.dateOfBirth,
-            email: formData.email,
+            email: formData.email || user.email,
             username: user.email || formData.email,
             password_hash: 'auth-managed', // Placeholder since auth is managed by Supabase
           });
 
-        if (userError) throw userError;
+        if (userError) {
+          console.error("Error creating client_users record:", userError);
+          throw userError;
+        }
+        
+        console.log("client_users record created successfully");
       }
 
       // Check if client_profiles record exists
@@ -110,6 +137,8 @@ export default function Profile() {
         .select('profile_id')
         .eq('client_id', user.id)
         .maybeSingle();
+
+      console.log("Existing profile check:", existingProfile);
 
       if (existingProfile) {
         // Update client_profiles record
@@ -122,7 +151,12 @@ export default function Profile() {
           })
           .eq('client_id', user.id);
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Error updating client_profiles record:", profileError);
+          throw profileError;
+        }
+        
+        console.log("client_profiles record updated successfully");
       } else {
         // Create client_profiles record
         const { error: profileError } = await supabase
@@ -134,17 +168,24 @@ export default function Profile() {
             current_address: formData.address,
           });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Error creating client_profiles record:", profileError);
+          throw profileError;
+        }
+        
+        console.log("client_profiles record created successfully");
       }
 
       // Refresh user profile data in context
       await refreshUserProfile();
+      console.log("Profile refreshed successfully");
 
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully",
       });
     } catch (error: any) {
+      console.error("Profile update failed:", error);
       toast({
         title: "Update failed",
         description: error.message || "Failed to update profile",
@@ -168,6 +209,7 @@ export default function Profile() {
   };
 
   if (!user) {
+    console.log("No user found, showing skeleton");
     return (
       <div className="space-y-4">
         <Skeleton className="h-12 w-[250px]" />

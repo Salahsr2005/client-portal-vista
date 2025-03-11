@@ -42,6 +42,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch user profile data from Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching profile for user ID:", userId);
+      
       // First, check the auth.users metadata
       if (user?.user_metadata) {
         const metadata = user.user_metadata;
@@ -60,11 +62,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('client_id', userId)
           .maybeSingle();
 
-        if (clientData && !clientError) {
+        if (clientError) {
+          console.error("Error fetching client_users data:", clientError);
+        }
+
+        if (clientData) {
+          console.log("Client user data found:", clientData);
           profile.firstName = clientData.first_name || profile.firstName;
           profile.lastName = clientData.last_name || profile.lastName;
           profile.phone = clientData.phone;
           profile.dateOfBirth = clientData.date_of_birth || profile.dateOfBirth;
+        } else {
+          console.log("No client_users data found for this user");
         }
 
         // Get extended profile data if available
@@ -74,12 +83,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('client_id', userId)
           .maybeSingle();
 
-        if (profileData && !profileError) {
+        if (profileError) {
+          console.error("Error fetching client_profiles data:", profileError);
+        }
+
+        if (profileData) {
+          console.log("Client profile data found:", profileData);
           profile.nationality = profileData.nationality;
           profile.passportNumber = profileData.passport_number;
           profile.address = profileData.current_address;
+        } else {
+          console.log("No client_profiles data found for this user");
         }
 
+        console.log("Final user profile:", profile);
         setUserProfile(profile);
         return profile;
       }
@@ -100,19 +117,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const getSession = async () => {
       try {
+        console.log("Getting session...");
         const { data } = await supabase.auth.getSession();
+        console.log("Session data:", data);
+        
         setSession(data.session);
         
         if (data.session?.user) {
+          console.log("User found in session:", data.session.user);
           setUser(data.session.user);
           await fetchUserProfile(data.session.user.id);
         } else {
+          console.log("No user found in session");
           setUser(null);
           setUserProfile(null);
         }
       } catch (error) {
         console.error("Error getting session:", error);
       } finally {
+        console.log("Finished getting session, setting loading to false");
         setLoading(false);
       }
     };
@@ -121,9 +144,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
+        console.log("Auth state changed:", event);
+        console.log("New session:", newSession);
+        
         setSession(newSession);
         
         if (newSession?.user) {
+          console.log("User from auth state change:", newSession.user);
           setUser(newSession.user);
           await fetchUserProfile(newSession.user.id);
           
@@ -137,11 +164,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 activity_description: 'User logged in',
                 ip_address: 'client-side'
               });
+              console.log("Logged user login activity");
             } catch (error) {
               console.error("Failed to log user activity:", error);
             }
           }
         } else {
+          console.log("No user from auth state change");
           setUser(null);
           setUserProfile(null);
         }
@@ -150,17 +179,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Unsubscribing from auth state change");
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Signing in with email:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (!error && data?.user) {
+        console.log("Sign in successful:", data.user);
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -168,10 +202,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         await fetchUserProfile(data.user.id);
         navigate("/dashboard");
+      } else if (error) {
+        console.error("Sign in error:", error);
       }
       
       return { error };
     } catch (error: any) {
+      console.error("Sign in exception:", error);
       toast({
         title: "Login failed",
         description: error.message || "An unexpected error occurred",
@@ -183,6 +220,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
+      console.log("Signing up with email:", email);
+      console.log("User data:", userData);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -192,15 +232,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (!error) {
+        console.log("Sign up successful:", data);
         toast({
           title: "Registration successful",
           description: "Please check your email to verify your account",
         });
         navigate("/login");
+      } else {
+        console.error("Sign up error:", error);
       }
 
       return { error };
     } catch (error: any) {
+      console.error("Sign up exception:", error);
       toast({
         title: "Registration failed",
         description: error.message || "An unexpected error occurred",
@@ -212,6 +256,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log("Signing out...");
+      
       // Log the logout activity before signing out
       if (user?.id) {
         try {
@@ -222,13 +268,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             activity_description: 'User logged out',
             ip_address: 'client-side'
           });
+          console.log("Logged user logout activity");
         } catch (logError) {
           console.error("Failed to log logout activity:", logError);
         }
       }
       
       // Now sign out
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Sign out error:", error);
+        throw error;
+      }
+      
+      console.log("Signed out successfully");
       
       // Clear local user state
       setUser(null);
@@ -243,6 +297,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Navigate to login page
       navigate("/login");
     } catch (error: any) {
+      console.error("Sign out exception:", error);
       toast({
         title: "Logout failed",
         description: error.message || "An unexpected error occurred",
@@ -253,6 +308,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
+      console.log("Signing in with Google...");
       await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -260,6 +316,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       });
     } catch (error: any) {
+      console.error("Google sign in error:", error);
       toast({
         title: "Google login failed",
         description: error.message || "An unexpected error occurred",

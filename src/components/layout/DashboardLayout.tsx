@@ -51,6 +51,9 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const { user, userProfile, loading, signOut } = useAuth();
 
+  console.log("Dashboard layout rendered with loading:", loading);
+  console.log("User available:", !!user);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -77,13 +80,29 @@ export function DashboardLayout() {
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/login");
+    // Set a timeout to prevent infinite loading state
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log("Loading timeout reached, forcing navigation to login");
+        navigate("/login");
+      }
+    }, 5000); // 5 seconds timeout
+
+    if (!loading) {
+      if (!user) {
+        console.log("No user found after loading completed, redirecting to login");
+        navigate("/login");
+      } else {
+        console.log("User authenticated, staying on dashboard");
+      }
     }
+    
+    return () => clearTimeout(timeout);
   }, [user, loading, navigate]);
 
-  // If still loading or no user, show a loading state
+  // If still loading, show a loading state
   if (loading) {
+    console.log("Showing loading skeleton");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -93,6 +112,13 @@ export function DashboardLayout() {
         </div>
       </div>
     );
+  }
+
+  // Make sure user exists before rendering the dashboard
+  if (!user) {
+    console.log("No user found, redirecting to login");
+    navigate("/login");
+    return null;
   }
 
   // Get user initials for avatar fallback
