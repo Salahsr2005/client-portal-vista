@@ -48,15 +48,10 @@ const sidebarItems = [
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userProfile, loading, signOut } = useAuth();
   const { toast } = useToast();
-
-  console.log("Dashboard layout rendered with loading:", loading);
-  console.log("User available:", !!user);
-  console.log("User profile:", userProfile);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -82,66 +77,23 @@ export function DashboardLayout() {
     }
   }, [location, isMobile]);
 
-  // Redirect to login if not authenticated - with improved logic
+  // Simplified auth redirect - check once and navigate if needed
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    // If we're already redirecting, don't do anything else
-    if (isRedirecting) return;
-    
-    const redirectToLogin = () => {
-      if (!user && !loading) {
-        console.log("No user found after loading completed, redirecting to login");
-        setIsRedirecting(true);
-        navigate("/login");
-      }
-    };
-
-    // Set a timeout to prevent infinite loading state
-    if (loading) {
-      console.log("Auth loading, setting timeout failsafe...");
-      timeoutId = setTimeout(() => {
-        console.log("Loading timeout reached, checking auth state again");
-        if (loading) {
-          // If still loading after timeout, force navigation
-          console.log("Still loading after timeout, forcing navigation to login");
-          toast({
-            title: "Session Error",
-            description: "Unable to verify your session. Please login again.",
-            variant: "destructive",
-          });
-          setIsRedirecting(true);
-          navigate("/login");
-        }
-      }, 2000); // reduced to 2s for better UX
-    } else {
-      // Not loading, check authentication immediately
-      redirectToLogin();
+    if (!loading && !user) {
+      navigate("/login");
     }
-    
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [user, loading, navigate, isRedirecting, toast]);
+  }, [user, loading, navigate]);
 
-  // If still loading and not redirecting, show a loading state
-  if (loading && !isRedirecting) {
-    console.log("Showing loading skeleton");
+  // If not authenticated and still loading, show minimal loading
+  if (loading && !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
-          <Skeleton className="h-4 w-48 mx-auto mb-2" />
-          <Skeleton className="h-3 w-32 mx-auto" />
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="animate-pulse">
+          <div className="h-10 w-10 bg-primary/50 rounded-full mb-4 mx-auto"></div>
+          <div className="h-2 w-24 bg-muted rounded mx-auto"></div>
         </div>
       </div>
     );
-  }
-
-  // Make sure user exists before rendering the dashboard
-  if (!user) {
-    console.log("No user found in DashboardLayout, returning null");
-    return null;
   }
 
   // Get user initials for avatar fallback
@@ -161,7 +113,6 @@ export function DashboardLayout() {
       await signOut();
     } catch (error) {
       console.error("Failed to sign out:", error);
-      // Force a redirect to login on error
       navigate("/login");
     }
   };
