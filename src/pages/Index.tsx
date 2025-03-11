@@ -1,5 +1,6 @@
 
 import { useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useLandingPageData } from "@/hooks/useLandingPageData";
@@ -16,9 +17,11 @@ import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { Footer } from "@/components/landing/Footer";
+import { NewsletterForm } from "@/components/landing/NewsletterForm";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 export default function Index() {
-  const { destinations, programs, services, testimonials } = useLandingPageData();
+  const { destinations, programs, services } = useLandingPageData();
   
   // Initialize AOS
   useEffect(() => {
