@@ -162,6 +162,7 @@ export type Database = {
       }
       client_profiles: {
         Row: {
+          avatar_url: string | null
           client_id: string | null
           current_address: string | null
           education_background: string | null
@@ -175,6 +176,7 @@ export type Database = {
           work_experience: string | null
         }
         Insert: {
+          avatar_url?: string | null
           client_id?: string | null
           current_address?: string | null
           education_background?: string | null
@@ -188,6 +190,7 @@ export type Database = {
           work_experience?: string | null
         }
         Update: {
+          avatar_url?: string | null
           client_id?: string | null
           current_address?: string | null
           education_background?: string | null

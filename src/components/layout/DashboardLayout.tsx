@@ -113,7 +113,7 @@ export function DashboardLayout() {
           setIsRedirecting(true);
           navigate("/login");
         }
-      }, 3000); // reduced from 5s to 3s for better UX
+      }, 2000); // reduced to 2s for better UX
     } else {
       // Not loading, check authentication immediately
       redirectToLogin();
@@ -124,7 +124,7 @@ export function DashboardLayout() {
     };
   }, [user, loading, navigate, isRedirecting, toast]);
 
-  // If still loading, show a loading state
+  // If still loading and not redirecting, show a loading state
   if (loading && !isRedirecting) {
     console.log("Showing loading skeleton");
     return (

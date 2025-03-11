@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -105,26 +104,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       let updateError;
       
       if (profileData) {
-        // Update existing profile
+        // Update existing profile with the new avatar_url
         const { error } = await supabase
           .from('client_profiles')
           .update({ 
-            // Use explicit property because TypeScript doesn't recognize it yet
-            // We'll fix the table structure in Supabase
             avatar_url: avatarUrl
-          } as any)
+          } as any) // Use type assertion for now
           .eq('client_id', user.id);
           
         updateError = error;
       } else {
-        // Create new profile
+        // Create new profile with the avatar_url
         const { error } = await supabase
           .from('client_profiles')
           .insert({ 
             client_id: user.id,
-            // Use explicit property
             avatar_url: avatarUrl
-          } as any);
+          } as any); // Use type assertion for now
           
         updateError = error;
       }
@@ -198,7 +194,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           profile.nationality = profileData.nationality;
           profile.passportNumber = profileData.passport_number;
           profile.address = profileData.current_address;
-          // Access avatar_url property as workaround for TypeScript
+          // Access avatar_url property using type assertion
           profile.avatarUrl = (profileData as any).avatar_url;
         } else {
           console.log("No client_profiles data found for this user");
