@@ -54,6 +54,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const fileName = `${user.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
       const filePath = `avatars/${user.id}/${fileName}`;
 
+      // Check if profiles bucket exists, if not create it
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const profilesBucketExists = buckets?.some(bucket => bucket.name === 'profiles');
+      
+      if (!profilesBucketExists) {
+        const { error: bucketError } = await supabase.storage.createBucket('profiles', {
+          public: true
+        });
+        
+        if (bucketError) {
+          console.error("Error creating profiles bucket:", bucketError);
+          return { error: bucketError, url: null };
+        }
+      }
+
       // Upload the file to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('profiles')
@@ -75,10 +90,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const avatarUrl = data.publicUrl;
 
       // Update the client_profiles table with the new avatar URL
-      const { error: updateError } = await supabase
+      // First check if the client_profile exists
+      const { data: profileData, error: profileCheckError } = await supabase
         .from('client_profiles')
-        .update({ avatar_url: avatarUrl })
-        .eq('client_id', user.id);
+        .select('*')
+        .eq('client_id', user.id)
+        .maybeSingle();
+      
+      if (profileCheckError) {
+        console.error("Error checking for profile:", profileCheckError);
+        return { error: profileCheckError, url: avatarUrl };
+      }
+      
+      let updateError;
+      
+      if (profileData) {
+        // Update existing profile
+        const { error } = await supabase
+          .from('client_profiles')
+          .update({ 
+            // Use explicit property because TypeScript doesn't recognize it yet
+            // We'll fix the table structure in Supabase
+            avatar_url: avatarUrl
+          } as any)
+          .eq('client_id', user.id);
+          
+        updateError = error;
+      } else {
+        // Create new profile
+        const { error } = await supabase
+          .from('client_profiles')
+          .insert({ 
+            client_id: user.id,
+            // Use explicit property
+            avatar_url: avatarUrl
+          } as any);
+          
+        updateError = error;
+      }
 
       if (updateError) {
         console.error("Error updating profile with avatar URL:", updateError);
@@ -149,7 +198,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           profile.nationality = profileData.nationality;
           profile.passportNumber = profileData.passport_number;
           profile.address = profileData.current_address;
-          profile.avatarUrl = profileData.avatar_url;
+          // Access avatar_url property as workaround for TypeScript
+          profile.avatarUrl = (profileData as any).avatar_url;
         } else {
           console.log("No client_profiles data found for this user");
         }
@@ -234,6 +284,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUserProfile(null);
         }
         
+        // Always set loading to false regardless of authentication state
         setLoading(false);
         setAuthInitialized(true);
       }

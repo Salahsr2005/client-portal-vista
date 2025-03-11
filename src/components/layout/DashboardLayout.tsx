@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 const sidebarItems = [
   { label: "Dashboard", icon: Home, path: "/dashboard" },
@@ -47,12 +48,15 @@ const sidebarItems = [
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userProfile, loading, signOut } = useAuth();
+  const { toast } = useToast();
 
   console.log("Dashboard layout rendered with loading:", loading);
   console.log("User available:", !!user);
+  console.log("User profile:", userProfile);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -78,30 +82,50 @@ export function DashboardLayout() {
     }
   }, [location, isMobile]);
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated - with improved logic
   useEffect(() => {
-    // Set a timeout to prevent infinite loading state
-    const timeout = setTimeout(() => {
-      if (loading) {
-        console.log("Loading timeout reached, forcing navigation to login");
-        navigate("/login");
-      }
-    }, 5000); // 5 seconds timeout
-
-    if (!loading) {
-      if (!user) {
+    let timeoutId: NodeJS.Timeout;
+    
+    // If we're already redirecting, don't do anything else
+    if (isRedirecting) return;
+    
+    const redirectToLogin = () => {
+      if (!user && !loading) {
         console.log("No user found after loading completed, redirecting to login");
+        setIsRedirecting(true);
         navigate("/login");
-      } else {
-        console.log("User authenticated, staying on dashboard");
       }
+    };
+
+    // Set a timeout to prevent infinite loading state
+    if (loading) {
+      console.log("Auth loading, setting timeout failsafe...");
+      timeoutId = setTimeout(() => {
+        console.log("Loading timeout reached, checking auth state again");
+        if (loading) {
+          // If still loading after timeout, force navigation
+          console.log("Still loading after timeout, forcing navigation to login");
+          toast({
+            title: "Session Error",
+            description: "Unable to verify your session. Please login again.",
+            variant: "destructive",
+          });
+          setIsRedirecting(true);
+          navigate("/login");
+        }
+      }, 3000); // reduced from 5s to 3s for better UX
+    } else {
+      // Not loading, check authentication immediately
+      redirectToLogin();
     }
     
-    return () => clearTimeout(timeout);
-  }, [user, loading, navigate]);
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [user, loading, navigate, isRedirecting, toast]);
 
   // If still loading, show a loading state
-  if (loading) {
+  if (loading && !isRedirecting) {
     console.log("Showing loading skeleton");
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -116,8 +140,7 @@ export function DashboardLayout() {
 
   // Make sure user exists before rendering the dashboard
   if (!user) {
-    console.log("No user found, redirecting to login");
-    navigate("/login");
+    console.log("No user found in DashboardLayout, returning null");
     return null;
   }
 
@@ -131,6 +154,16 @@ export function DashboardLayout() {
       return user.email.charAt(0).toUpperCase();
     }
     return "U";
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Failed to sign out:", error);
+      // Force a redirect to login on error
+      navigate("/login");
+    }
   };
 
   return (
@@ -165,7 +198,7 @@ export function DashboardLayout() {
             <div className="flex items-center space-x-3">
               <Avatar>
                 {userProfile?.avatarUrl ? (
-                  <AvatarImage src={userProfile.avatarUrl} alt="User" />
+                  <AvatarImage src={userProfile.avatarUrl} alt={userProfile.firstName || "User"} />
                 ) : (
                   <AvatarFallback>{getUserInitials()}</AvatarFallback>
                 )}
@@ -212,7 +245,7 @@ export function DashboardLayout() {
             <Button 
               variant="ghost" 
               className="w-full justify-start text-destructive"
-              onClick={() => signOut()}
+              onClick={handleSignOut}
             >
               <LogOut className="h-5 w-5 mr-3" />
               Logout
@@ -245,7 +278,7 @@ export function DashboardLayout() {
                 <Button variant="ghost" size="icon" className="rounded-full overflow-hidden">
                   <Avatar className="h-8 w-8">
                     {userProfile?.avatarUrl ? (
-                      <AvatarImage src={userProfile.avatarUrl} alt="User" />
+                      <AvatarImage src={userProfile.avatarUrl} alt={userProfile.firstName || "User"} />
                     ) : (
                       <AvatarFallback>{getUserInitials()}</AvatarFallback>
                     )}
@@ -266,7 +299,7 @@ export function DashboardLayout() {
                   <Link to="/settings">Settings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()} className="text-destructive">
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout
                 </DropdownMenuItem>

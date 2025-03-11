@@ -93,6 +93,7 @@ export default function Profile() {
 
       console.log("Existing user check:", existingUser);
 
+      // Transaction for client_users
       if (existingUser) {
         // Update client_users record
         const { error: userError } = await supabase
@@ -102,7 +103,7 @@ export default function Profile() {
             last_name: formData.lastName,
             phone: formData.phone,
             date_of_birth: formData.dateOfBirth,
-            email: formData.email,
+            email: formData.email || user.email,
           })
           .eq('client_id', user.id);
 
@@ -138,12 +139,13 @@ export default function Profile() {
       // Check if client_profiles record exists
       const { data: existingProfile } = await supabase
         .from('client_profiles')
-        .select('profile_id')
+        .select('*')
         .eq('client_id', user.id)
         .maybeSingle();
 
       console.log("Existing profile check:", existingProfile);
 
+      // Transaction for client_profiles
       if (existingProfile) {
         // Update client_profiles record
         const { error: profileError } = await supabase
@@ -232,11 +234,15 @@ export default function Profile() {
         return;
       }
       
+      console.log("Uploading avatar file:", file.name);
       const { error, url } = await uploadAvatar(file);
       
       if (error) {
+        console.error("Avatar upload error:", error);
         throw error;
       }
+      
+      console.log("Avatar uploaded successfully:", url);
       
       toast({
         title: "Avatar updated",
@@ -305,7 +311,10 @@ export default function Profile() {
               <CardContent className="flex flex-col items-center">
                 <Avatar className="h-32 w-32 mb-4">
                   {userProfile?.avatarUrl ? (
-                    <AvatarImage src={userProfile.avatarUrl} alt={formData.firstName} />
+                    <AvatarImage 
+                      src={userProfile.avatarUrl} 
+                      alt={formData.firstName || "User"} 
+                    />
                   ) : (
                     <AvatarFallback className="text-3xl">{getUserInitials()}</AvatarFallback>
                   )}
