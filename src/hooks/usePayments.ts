@@ -18,7 +18,7 @@ export const usePayments = () => {
         .from("payments")
         .select("*")
         .eq("client_id", user.id)
-        .order("payment_date", { ascending: false });
+        .order("date", { ascending: false });
       
       if (paymentsError) {
         console.error("Error fetching payments:", paymentsError);
@@ -27,7 +27,7 @@ export const usePayments = () => {
       
       return paymentsData.map(payment => {
         let referenceType = "Unknown";
-        switch (payment.reference_type) {
+        switch (payment.reference) {
           case "application":
             referenceType = "Application Fee";
             break;
@@ -38,15 +38,15 @@ export const usePayments = () => {
             referenceType = "Program Fee";
             break;
           default:
-            referenceType = payment.reference_type || "Transaction";
+            referenceType = payment.reference || "Transaction";
         }
         
         return {
-          id: payment.pay_id,
+          id: payment.payment_id,
           amount: `$${payment.amount.toFixed(2)}`,
-          status: payment.payment_status || "Pending",
-          date: payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : "Not Processed",
-          method: payment.payment_method || "Credit Card",
+          status: payment.status || "Pending",
+          date: payment.date ? new Date(payment.date).toLocaleDateString() : "Not Processed",
+          method: payment.method || "Credit Card",
           type: referenceType,
           transactionId: payment.transaction_id || "N/A",
         };

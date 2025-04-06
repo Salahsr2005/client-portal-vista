@@ -19,7 +19,7 @@ export const useMessages = () => {
         .from("messages")
         .select("*")
         .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
-        .order("sent_at", { ascending: false });
+        .order("sent_date", { ascending: false });
       
       if (messagesError) {
         console.error("Error fetching messages:", messagesError);
@@ -30,8 +30,8 @@ export const useMessages = () => {
         id: message.message_id,
         subject: message.subject || "No Subject",
         content: message.content || "",
-        sentAt: new Date(message.sent_at).toLocaleString(),
-        isRead: message.is_read,
+        sentAt: new Date(message.sent_date).toLocaleString(),
+        isRead: message.read_status,
         isIncoming: message.recipient_id === user.id,
         senderType: message.sender_type || "Admin",
         senderId: message.sender_id,

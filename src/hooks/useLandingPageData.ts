@@ -10,7 +10,7 @@ export const useLandingPageData = () => {
       const { data, error } = await supabase
         .from("destinations")
         .select("*")
-        .eq("is_active", true);
+        .eq("status", "Active");
       
       if (error) {
         console.error("Error fetching destinations:", error);
@@ -19,7 +19,7 @@ export const useLandingPageData = () => {
       
       return data?.map(destination => ({
         id: destination.destination_id,
-        name: destination.country_name,
+        name: destination.country || destination.name,
         description: destination.description || "",
         image: destination.image_url || `/images/destination-${Math.floor(Math.random() * 6) + 1}.jpg`,
         requirements: destination.visa_requirements || "",
@@ -36,7 +36,7 @@ export const useLandingPageData = () => {
         const { data: programsData, error: programsError } = await supabase
           .from("programs")
           .select("*")
-          .eq("is_active", true);
+          .eq("status", "Active");
         
         if (programsError) {
           console.error("Error fetching programs:", programsError);
@@ -52,22 +52,22 @@ export const useLandingPageData = () => {
               // Fetch destination for this program
               const { data: destinationData, error: destinationError } = await supabase
                 .from("destinations")
-                .select("country_name")
+                .select("country")
                 .eq("destination_id", program.destination_id)
                 .maybeSingle();
               
               if (!destinationError && destinationData) {
-                location = destinationData.country_name;
+                location = destinationData.country;
               }
             }
             
             return {
               id: program.program_id,
-              name: program.program_name,
-              description: program.description || "",
+              name: program.name,
+              description: program.requirements || "",
               location: location,
-              duration: program.duration || "Varies",
-              fee: program.fee ? `$${program.fee}` : "Contact for details",
+              duration: program.start_date || "Varies",
+              fee: program.tuition ? `$${program.tuition}` : "Contact for details",
               requirements: program.requirements || "",
             };
           })
@@ -88,7 +88,7 @@ export const useLandingPageData = () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
-        .eq("is_active", true);
+        .eq("status", "Active");
       
       if (error) {
         console.error("Error fetching services:", error);
@@ -97,10 +97,10 @@ export const useLandingPageData = () => {
       
       return data?.map(service => ({
         id: service.service_id,
-        name: service.service_name,
+        name: service.name,
         description: service.description || "",
-        duration: service.estimated_duration || "Varies",
-        fee: service.fee ? `$${service.fee}` : "Contact for details",
+        duration: service.estimated_completion || "Varies",
+        fee: service.price ? `$${service.price}` : "Contact for details",
       })) || [];
     },
   });

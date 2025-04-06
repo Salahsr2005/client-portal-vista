@@ -9,7 +9,7 @@ export const useServices = () => {
       const { data, error } = await supabase
         .from("services")
         .select("*")
-        .order("service_name", { ascending: true });
+        .order("name", { ascending: true });
       
       if (error) {
         console.error("Error fetching services:", error);
@@ -18,11 +18,11 @@ export const useServices = () => {
       
       return data.map(service => ({
         id: service.service_id,
-        name: service.service_name,
+        name: service.name,
         description: service.description || "",
-        duration: service.estimated_duration || "Varies",
-        fee: service.fee ? `$${service.fee}` : "Contact for details",
-        isActive: service.is_active
+        duration: service.estimated_completion || "Varies",
+        fee: service.price ? `$${service.price}` : "Contact for details",
+        isActive: service.status === "Active"
       }));
     },
   });

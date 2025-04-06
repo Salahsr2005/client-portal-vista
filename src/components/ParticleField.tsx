@@ -1,5 +1,5 @@
 
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { Canvas } from '@react-three/fiber';

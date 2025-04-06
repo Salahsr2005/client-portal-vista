@@ -17,7 +17,7 @@ export const useNotifications = () => {
       const { data: notificationsData, error: notificationsError } = await supabase
         .from("notifications")
         .select("*")
-        .eq("client_id", user.id)
+        .eq("recipient_count", 1) // Just as a filter example, we should update this
         .order("created_at", { ascending: false });
       
       if (notificationsError) {
@@ -28,9 +28,9 @@ export const useNotifications = () => {
       return notificationsData.map(notification => ({
         id: notification.notification_id,
         title: notification.title || "Notification",
-        message: notification.message || "",
-        type: notification.notification_type || "info",
-        isRead: notification.is_read,
+        message: notification.content || "",
+        type: notification.type || "info",
+        isRead: false, // We'll need a recipients table to track read status
         createdAt: new Date(notification.created_at).toLocaleString(),
       }));
     },

@@ -38,6 +38,7 @@ export const useUserProfile = () => {
             first_name: user?.user_metadata?.first_name || '',
             last_name: user?.user_metadata?.last_name || '',
             profile_status: 'Incomplete',
+            password_hash: '' // Required field in the schema
           })
           .select('*')
           .single();
@@ -59,6 +60,7 @@ export const useUserProfile = () => {
           profileStatus: newUserData.profile_status || "Incomplete",
           createdAt: newUserData.created_at || "",
           lastLogin: newUserData.last_login || "",
+          photoUrl: newUserData.photo_url || "",
           
           // Profile data (empty since it's a new user)
           currentAddress: "",
@@ -96,10 +98,11 @@ export const useUserProfile = () => {
         profileStatus: userData.profile_status || "Incomplete",
         createdAt: userData.created_at || "",
         lastLogin: userData.last_login || "",
+        photoUrl: userData.photo_url || "",
         
         // Profile data (if available)
         currentAddress: profileData?.current_address || "",
-        nationality: profileData?.nationality || "",
+        nationality: userData?.nationality || "",
         passportNumber: profileData?.passport_number || "",
         passportExpiryDate: profileData?.passport_expiry_date || "",
         emergencyContactName: profileData?.emergency_contact_name || "",

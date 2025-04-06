@@ -9,7 +9,7 @@ export const useDestinations = () => {
       const { data, error } = await supabase
         .from("destinations")
         .select("*")
-        .order("country_name", { ascending: true });
+        .order("country", { ascending: true });
       
       if (error) {
         console.error("Error fetching destinations:", error);
@@ -18,12 +18,12 @@ export const useDestinations = () => {
       
       return data.map(destination => ({
         id: destination.destination_id,
-        name: destination.country_name,
+        name: destination.country || destination.name,
         description: destination.description || "",
         image: destination.image_url || `/images/destination-${Math.floor(Math.random() * 6) + 1}.jpg`,
         requirements: destination.visa_requirements || "",
-        isActive: destination.is_active,
-        popularPrograms: destination.popular_programs,
+        isActive: destination.status === "Active",
+        popularPrograms: [],
       }));
     },
   });

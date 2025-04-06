@@ -33,23 +33,23 @@ export const useAppointments = () => {
             // Fetch service data
             const { data: serviceData, error: serviceError } = await supabase
               .from("services")
-              .select("service_name")
+              .select("name")
               .eq("service_id", appointment.service_id)
               .maybeSingle();
             
             if (!serviceError && serviceData) {
-              serviceName = serviceData.service_name;
+              serviceName = serviceData.name;
             }
           }
           
           return {
             id: appointment.appointment_id,
             service: serviceName,
-            date: appointment.appointment_date ? new Date(appointment.appointment_date).toLocaleDateString() : "TBD",
+            date: appointment.date_time ? new Date(appointment.date_time).toLocaleDateString() : "TBD",
             status: appointment.status || "Scheduled",
             notes: appointment.notes || "",
-            time: appointment.appointment_date 
-              ? new Date(appointment.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+            time: appointment.date_time 
+              ? new Date(appointment.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
               : "TBD",
           };
         })
