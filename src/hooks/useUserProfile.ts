@@ -37,8 +37,9 @@ export const useUserProfile = () => {
             username: user.email?.split('@')[0] || 'user',
             first_name: user?.user_metadata?.first_name || '',
             last_name: user?.user_metadata?.last_name || '',
+            phone: user?.user_metadata?.phone || '',
             profile_status: 'Incomplete',
-            password_hash: '' // Required field in the schema
+            password_hash: 'placeholder' // Required field in the schema
           })
           .select('*')
           .single();

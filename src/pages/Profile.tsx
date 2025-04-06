@@ -310,7 +310,7 @@ export default function Profile() {
               <div className="p-6 md:p-8 md:w-1/3 flex flex-col items-center md:border-r border-border">
                 <div className="relative group">
                   <Avatar className="w-32 h-32 border-4 border-background shadow-xl mb-4">
-                    <AvatarImage src={userProfile?.photo_url || "/placeholder.svg"} />
+                    <AvatarImage src={userProfile?.photoUrl || "/placeholder.svg"} />
                     <AvatarFallback className="text-3xl">
                       {personalInfo.firstName?.charAt(0)}{personalInfo.lastName?.charAt(0)}
                     </AvatarFallback>

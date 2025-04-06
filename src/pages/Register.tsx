@@ -7,22 +7,51 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Lock, Mail, User, Calendar } from "lucide-react";
+import { ArrowLeft, Lock, Mail, User, Calendar, Phone, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
 import { ParticleField } from "@/components/ParticleField";
+import { z } from "zod";
+
+// Define schema for form validation
+const registerSchema = z.object({
+  firstName: z.string().min(2, "First name must be at least 2 characters"),
+  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  confirmEmail: z.string(),
+  phone: z.string().min(10, "Phone number is too short"),
+  confirmPhone: z.string(),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+  dateOfBirth: z.string().refine(value => !!value, "Date of birth is required"),
+  agreeTerms: z.boolean().refine(value => value === true, "You must agree to the terms and conditions")
+}).refine(data => data.email === data.confirmEmail, {
+  message: "Email addresses don't match",
+  path: ["confirmEmail"]
+}).refine(data => data.phone === data.confirmPhone, {
+  message: "Phone numbers don't match",
+  path: ["confirmPhone"]
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+});
 
 export default function Register() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
+    confirmEmail: "",
+    phone: "",
+    confirmPhone: "",
     password: "",
     confirmPassword: "",
     dateOfBirth: "",
     agreeTerms: false,
   });
+  
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { signUp, signInWithGoogle, user } = useAuth();
@@ -38,24 +67,42 @@ export default function Register() {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+    
+    // Clear error when field is being edited
+    if (formErrors[name]) {
+      setFormErrors({
+        ...formErrors,
+        [name]: ""
+      });
+    }
+  };
+
+  const validateForm = () => {
+    try {
+      registerSchema.parse(formData);
+      setFormErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach(err => {
+          if (err.path) {
+            newErrors[err.path[0]] = err.message;
+          }
+        });
+        setFormErrors(newErrors);
+      }
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.password !== formData.confirmPassword) {
+    if (!validateForm()) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.agreeTerms) {
-      toast({
-        title: "Error",
-        description: "You must agree to the terms and conditions",
+        title: "Form validation failed",
+        description: "Please fix the errors in the form",
         variant: "destructive",
       });
       return;
@@ -69,6 +116,7 @@ export default function Register() {
         first_name: formData.firstName,
         last_name: formData.lastName,
         date_of_birth: formData.dateOfBirth,
+        phone: formData.phone,
       });
 
       if (error) {
@@ -206,9 +254,12 @@ export default function Register() {
                       placeholder="John"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className="pl-10"
+                      className={`pl-10 ${formErrors.firstName ? 'border-red-500' : ''}`}
                       required
                     />
+                    {formErrors.firstName && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>
+                    )}
                   </div>
                 </div>
                 
@@ -222,9 +273,12 @@ export default function Register() {
                       placeholder="Doe"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className="pl-10"
+                      className={`pl-10 ${formErrors.lastName ? 'border-red-500' : ''}`}
                       required
                     />
+                    {formErrors.lastName && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -240,9 +294,72 @@ export default function Register() {
                     placeholder="mail@example.com"
                     value={formData.email}
                     onChange={handleChange}
-                    className="pl-10"
+                    className={`pl-10 ${formErrors.email ? 'border-red-500' : ''}`}
                     required
                   />
+                  {formErrors.email && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
+                  )}
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="space-y-2">
+                <label htmlFor="confirmEmail" className="text-sm font-medium">Confirm Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="confirmEmail"
+                    name="confirmEmail"
+                    type="email"
+                    placeholder="mail@example.com"
+                    value={formData.confirmEmail}
+                    onChange={handleChange}
+                    className={`pl-10 ${formErrors.confirmEmail ? 'border-red-500' : ''}`}
+                    required
+                  />
+                  {formErrors.confirmEmail && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.confirmEmail}</p>
+                  )}
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className={`pl-10 ${formErrors.phone ? 'border-red-500' : ''}`}
+                    required
+                  />
+                  {formErrors.phone && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
+                  )}
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="space-y-2">
+                <label htmlFor="confirmPhone" className="text-sm font-medium">Confirm Phone Number</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="confirmPhone"
+                    name="confirmPhone"
+                    type="tel"
+                    placeholder="+1234567890"
+                    value={formData.confirmPhone}
+                    onChange={handleChange}
+                    className={`pl-10 ${formErrors.confirmPhone ? 'border-red-500' : ''}`}
+                    required
+                  />
+                  {formErrors.confirmPhone && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.confirmPhone}</p>
+                  )}
                 </div>
               </motion.div>
 
@@ -256,9 +373,12 @@ export default function Register() {
                     type="date"
                     value={formData.dateOfBirth}
                     onChange={handleChange}
-                    className="pl-10"
+                    className={`pl-10 ${formErrors.dateOfBirth ? 'border-red-500' : ''}`}
                     required
                   />
+                  {formErrors.dateOfBirth && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.dateOfBirth}</p>
+                  )}
                 </div>
               </motion.div>
 
@@ -273,9 +393,12 @@ export default function Register() {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
-                    className="pl-10"
+                    className={`pl-10 ${formErrors.password ? 'border-red-500' : ''}`}
                     required
                   />
+                  {formErrors.password && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>
+                  )}
                 </div>
               </motion.div>
 
@@ -290,9 +413,12 @@ export default function Register() {
                     placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className="pl-10"
+                    className={`pl-10 ${formErrors.confirmPassword ? 'border-red-500' : ''}`}
                     required
                   />
+                  {formErrors.confirmPassword && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.confirmPassword}</p>
+                  )}
                 </div>
               </motion.div>
 
@@ -305,7 +431,7 @@ export default function Register() {
                     setFormData({...formData, agreeTerms: checked as boolean})
                   }
                 />
-                <label htmlFor="agreeTerms" className="text-sm">
+                <label htmlFor="agreeTerms" className={`text-sm ${formErrors.agreeTerms ? 'text-red-500' : ''}`}>
                   I agree to the{" "}
                   <a href="#" className="text-primary hover:underline">
                     Terms of Service
@@ -316,6 +442,9 @@ export default function Register() {
                   </a>
                 </label>
               </motion.div>
+              {formErrors.agreeTerms && (
+                <p className="text-red-500 text-xs mt-1">{formErrors.agreeTerms}</p>
+              )}
 
               <motion.div 
                 variants={itemVariants}
