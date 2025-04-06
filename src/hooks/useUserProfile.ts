@@ -27,7 +27,50 @@ export const useUserProfile = () => {
       }
       
       if (!userData) {
-        return null;
+        // If user data doesn't exist yet in client_users table, 
+        // create a new entry based on auth user data
+        const { data: newUserData, error: insertError } = await supabase
+          .from("client_users")
+          .insert([{
+            client_id: user.id,
+            email: user.email,
+            username: user.email?.split('@')[0] || 'user',
+            first_name: user?.user_metadata?.first_name || '',
+            last_name: user?.user_metadata?.last_name || '',
+            profile_status: 'Incomplete',
+          }])
+          .select('*')
+          .single();
+          
+        if (insertError) {
+          console.error("Error creating user profile:", insertError);
+          throw new Error(insertError.message);
+        }
+        
+        // Return the newly created user data
+        return {
+          id: newUserData.client_id,
+          username: newUserData.username,
+          email: newUserData.email,
+          firstName: newUserData.first_name || "",
+          lastName: newUserData.last_name || "",
+          phone: newUserData.phone || "",
+          dateOfBirth: newUserData.date_of_birth || "",
+          profileStatus: newUserData.profile_status || "Incomplete",
+          createdAt: newUserData.created_at || "",
+          lastLogin: newUserData.last_login || "",
+          
+          // Profile data (empty since it's a new user)
+          currentAddress: "",
+          nationality: "",
+          passportNumber: "",
+          passportExpiryDate: "",
+          emergencyContactName: "",
+          emergencyContactPhone: "",
+          workExperience: "",
+          educationBackground: "",
+          languageProficiency: "",
+        };
       }
       
       // Then, fetch the client profile data if it exists

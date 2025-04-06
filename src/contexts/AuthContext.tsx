@@ -58,6 +58,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       if (!error) {
+        // Update last login timestamp in client_users table
+        const { error: updateError } = await supabase
+          .from("client_users")
+          .update({ last_login: new Date().toISOString() })
+          .eq("email", email);
+          
+        if (updateError) {
+          console.error("Error updating login timestamp:", updateError);
+        }
+        
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -82,14 +92,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         email,
         password,
         options: {
-          data: userData,
+          data: {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            date_of_birth: userData.date_of_birth,
+          },
         },
       });
 
       if (!error) {
         toast({
           title: "Registration successful",
-          description: "Please check your email to verify your account",
+          description: "Please check your email to verify your account.",
         });
         navigate("/login");
       }
