@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   ChevronRight,
   Home,
@@ -37,6 +38,7 @@ export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -61,6 +63,10 @@ export function DashboardLayout() {
       setIsSidebarOpen(false);
     }
   }, [location, isMobile]);
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
@@ -115,12 +121,14 @@ export function DashboardLayout() {
                 Settings
               </Button>
             </Link>
-            <Link to="/">
-              <Button variant="ghost" className="w-full justify-start text-destructive">
-                <LogOut className="h-5 w-5 mr-3" />
-                Logout
-              </Button>
-            </Link>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              Logout
+            </Button>
           </div>
         </div>
       </aside>

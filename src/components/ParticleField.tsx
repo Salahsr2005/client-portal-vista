@@ -1,32 +1,15 @@
 
 import React, { useRef, useMemo, useEffect } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Canvas, extend } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import { useTheme } from 'next-themes';
+import { motion } from 'framer-motion';
 import * as THREE from 'three';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { useTheme } from 'next-themes';
 
 // Component for each particle
 const Particle = ({ position, color }: { position: [number, number, number]; color: string }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
-  // Random rotation speed for each particle
-  const rotationSpeed = useMemo(() => {
-    return {
-      x: Math.random() * 0.01,
-      y: Math.random() * 0.01,
-      z: Math.random() * 0.01
-    };
-  }, []);
-
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x += rotationSpeed.x;
-      meshRef.current.rotation.y += rotationSpeed.y;
-      meshRef.current.rotation.z += rotationSpeed.z;
-    }
-  });
-
   return (
     <mesh ref={meshRef} position={position}>
       <octahedronGeometry args={[0.2, 0]} />
@@ -35,10 +18,9 @@ const Particle = ({ position, color }: { position: [number, number, number]; col
   );
 };
 
-// Component for the particle field
-export const ParticleField = () => {
+// Component for the particles field
+const ParticleField3D = () => {
   const { theme } = useTheme();
-  const controlsRef = useRef<any>(null);
   
   // Generate particle positions
   const particles = useMemo(() => {
@@ -60,39 +42,62 @@ export const ParticleField = () => {
     return theme === 'dark' ? darkColors : lightColors;
   }, [theme]);
 
-  // Auto-rotation for the entire scene
-  useFrame(() => {
-    if (controlsRef.current) {
-      controlsRef.current.autoRotate = true;
-      controlsRef.current.autoRotateSpeed = 0.5;
-      controlsRef.current.enableZoom = false;
-      controlsRef.current.enablePan = false;
-      controlsRef.current.enableDamping = true;
-    }
-  });
+  return (
+    <>
+      <ambientLight intensity={0.3} />
+      <directionalLight position={[10, 10, 5]} intensity={1} />
+      <OrbitControls enableRotate={false} enableZoom={false} enablePan={false} />
+      
+      {particles.map((pos, i) => (
+        <Particle 
+          key={i} 
+          position={pos as [number, number, number]} 
+          color={colors[i % colors.length]} 
+        />
+      ))}
+      
+      {/* Add a subtle glow in the center */}
+      <mesh position={[0, 0, 0]}>
+        <sphereGeometry args={[5, 32, 32]} />
+        <meshBasicMaterial color={theme === 'dark' ? "#1e293b" : "#dbeafe"} transparent opacity={0.05} />
+      </mesh>
+    </>
+  );
+};
+
+// Main component wrapper
+export const ParticleField = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    // Simulate loading time
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <div className="absolute inset-0 -z-10">
-      <Canvas>
-        <PerspectiveCamera makeDefault position={[0, 0, 15]} />
-        <ambientLight intensity={0.3} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
-        <OrbitControls ref={controlsRef} enableRotate={false} />
-        
-        {particles.map((pos, i) => (
-          <Particle 
-            key={i} 
-            position={pos as [number, number, number]} 
-            color={colors[i % colors.length]} 
-          />
-        ))}
-        
-        {/* Add a subtle glow in the center */}
-        <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[5, 32, 32]} />
-          <meshBasicMaterial color={theme === 'dark' ? "#1e293b" : "#dbeafe"} transparent opacity={0.05} />
-        </mesh>
-      </Canvas>
-    </div>
+    <motion.div 
+      className="absolute inset-0 -z-10"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1 }}
+    >
+      {isLoading ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="h-12 w-12 text-blue-500 animate-spin rounded-full border-4 border-t-transparent border-blue-500" />
+        </div>
+      ) : (
+        <Canvas camera={{ position: [0, 0, 15], fov: 75 }}>
+          <ParticleField3D />
+        </Canvas>
+      )}
+      
+      {/* Subtle gradient overlay to enhance depth */}
+      <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-background/20 rounded-lg pointer-events-none"></div>
+    </motion.div>
   );
 };

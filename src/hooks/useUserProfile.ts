@@ -31,14 +31,14 @@ export const useUserProfile = () => {
         // create a new entry based on auth user data
         const { data: newUserData, error: insertError } = await supabase
           .from("client_users")
-          .insert([{
+          .insert({
             client_id: user.id,
             email: user.email,
             username: user.email?.split('@')[0] || 'user',
             first_name: user?.user_metadata?.first_name || '',
             last_name: user?.user_metadata?.last_name || '',
             profile_status: 'Incomplete',
-          }])
+          })
           .select('*')
           .single();
           

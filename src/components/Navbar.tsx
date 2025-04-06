@@ -39,7 +39,6 @@ export function Navbar() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/login");
   };
 
   const getInitials = () => {
@@ -244,8 +243,8 @@ export function Navbar() {
                   </Link>
                   <Button 
                     variant="ghost" 
-                    onClick={() => {
-                      handleSignOut();
+                    onClick={async () => {
+                      await handleSignOut();
                       setIsMobileMenuOpen(false);
                     }} 
                     className="w-full text-lg"
