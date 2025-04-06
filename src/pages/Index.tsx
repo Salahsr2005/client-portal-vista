@@ -1,11 +1,12 @@
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useLandingPageData } from "@/hooks/useLandingPageData";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { useTheme } from "next-themes";
 
 // Components
 import { Navbar } from "@/components/landing/Navbar";
@@ -20,9 +21,14 @@ import { Footer } from "@/components/landing/Footer";
 import { NewsletterForm } from "@/components/landing/NewsletterForm";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
+// 3D particle effect
+import { ParticleField } from "@/components/ParticleField";
+
 export default function Index() {
   const { destinations, programs, services } = useLandingPageData();
-  
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
   // Initialize AOS
   useEffect(() => {
     AOS.init({
@@ -32,6 +38,7 @@ export default function Index() {
       offset: 50,
       disable: 'mobile'
     });
+    setMounted(true);
   }, []);
   
   // References for scroll navigation
@@ -44,10 +51,31 @@ export default function Index() {
   // Parallax scroll effect
   const { scrollYProgress } = useScroll();
   const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '20%']);
+  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
   
+  // Mouse follow effect for hero section
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({
+        x: (e.clientX - window.innerWidth / 2) / 25,
+        y: (e.clientY - window.innerHeight / 2) / 25,
+      });
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background overflow-x-hidden">
+        {/* 3D Particles Background */}
+        <div className="fixed inset-0 z-0 opacity-50 pointer-events-none">
+          {mounted && <ParticleField />}
+        </div>
+        
         {/* Navbar */}
         <Navbar 
           featuresRef={featuresRef} 
@@ -57,68 +85,145 @@ export default function Index() {
           faqRef={faqRef}
         />
         
-        {/* Parallax background elements - Blue color */}
-        <div className="fixed inset-0 -z-10 opacity-30 pointer-events-none">
+        {/* Parallax background elements */}
+        <motion.div className="fixed inset-0 -z-10 opacity-30 pointer-events-none">
           <motion.div 
-            className="absolute -top-1/2 -right-1/4 w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-blue-500/20 to-transparent blur-3xl"
-            style={{ y: backgroundY }}
+            className="absolute -top-1/2 -right-1/4 w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-3xl"
+            style={{ 
+              y: backgroundY,
+              x: mousePosition.x,
+              rotate: useTransform(scrollYProgress, [0, 1], [0, 10]),
+            }}
           />
           <motion.div 
             className="absolute -bottom-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-blue-400/30 to-transparent blur-3xl"
-            style={{ y: useTransform(scrollYProgress, [0, 1], ['0%', '-20%']) }}
+            style={{ 
+              y: useTransform(scrollYProgress, [0, 1], ['0%', '-20%']),
+              x: mousePosition.x * -1,
+            }}
           />
-        </div>
+          <motion.div 
+            className="absolute top-1/3 right-1/3 w-[40vw] h-[40vw] rounded-full bg-gradient-to-bl from-purple-400/20 to-transparent blur-3xl"
+            style={{ 
+              y: useTransform(scrollYProgress, [0, 0.5, 1], ['0%', '10%', '0%']),
+              x: mousePosition.y,
+            }}
+          />
+        </motion.div>
         
         {/* Main content */}
-        <main>
-          {/* Hero Section */}
-          <div data-aos="fade-up">
+        <motion.main 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          {/* Hero Section with parallax effect */}
+          <motion.div 
+            style={{ 
+              translateY: useTransform(scrollYProgress, [0, 0.2], [0, -50]) 
+            }}
+            data-aos="fade-up"
+          >
             <HeroSection 
               featuresRef={featuresRef} 
               programsData={programs.data} 
               programsLoading={programs.isLoading}
             />
-          </div>
+          </motion.div>
           
           {/* Features Section */}
-          <div ref={featuresRef} data-aos="fade-up" data-aos-delay="100">
+          <motion.div 
+            ref={featuresRef} 
+            data-aos="fade-up" 
+            data-aos-delay="100"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+          >
             <FeaturesSection 
               featuresData={services.data} 
               isLoading={services.isLoading} 
             />
-          </div>
+          </motion.div>
           
           {/* How It Works Section */}
-          <div ref={howItWorksRef} data-aos="fade-up" data-aos-delay="200">
+          <motion.div 
+            ref={howItWorksRef} 
+            data-aos="fade-up" 
+            data-aos-delay="200"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+          >
             <HowItWorksSection />
-          </div>
+          </motion.div>
           
           {/* Pricing Section */}
-          <div ref={pricingRef} data-aos="fade-up" data-aos-delay="300">
+          <motion.div 
+            ref={pricingRef} 
+            data-aos="fade-up" 
+            data-aos-delay="300"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+          >
             <PricingSection />
-          </div>
+          </motion.div>
           
           {/* Testimonials Section */}
-          <div ref={testimonialsRef} data-aos="fade-up" data-aos-delay="400">
+          <motion.div 
+            ref={testimonialsRef} 
+            data-aos="fade-up" 
+            data-aos-delay="400"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
             <TestimonialsSection 
               destinations={destinations.data}
               isLoading={destinations.isLoading}
             />
-          </div>
+          </motion.div>
           
           {/* FAQ Section */}
-          <div ref={faqRef} data-aos="fade-up" data-aos-delay="500">
+          <motion.div 
+            ref={faqRef} 
+            data-aos="fade-up" 
+            data-aos-delay="500"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             <FaqSection />
-          </div>
+          </motion.div>
           
           {/* CTA Section */}
-          <div data-aos="fade-up" data-aos-delay="600">
+          <motion.div 
+            data-aos="fade-up" 
+            data-aos-delay="600"
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             <CtaSection />
-          </div>
-        </main>
+          </motion.div>
+        </motion.main>
         
-        {/* Footer */}
-        <Footer />
+        {/* Footer with animated reveal */}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <Footer />
+        </motion.div>
       </div>
     </ThemeProvider>
   );
