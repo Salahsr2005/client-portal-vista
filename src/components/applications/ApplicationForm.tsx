@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -42,8 +41,10 @@ export function ApplicationForm() {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [priority, setPriority] = useState<"Low" | "Medium" | "High">("Medium");
   const [notes, setNotes] = useState("");
-  const { data: programs = [], isLoading: programsLoading } = usePrograms();
+  const { data: programsData, isLoading: programsLoading } = usePrograms();
   const createApplication = useCreateApplication();
+
+  const programs = Array.isArray(programsData) ? programsData : [];
 
   const handleSubmit = async () => {
     if (!selectedProgram) return;
