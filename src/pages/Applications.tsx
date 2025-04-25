@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
@@ -40,73 +41,41 @@ import {
   ArrowUpDown, 
   FileCheck, 
   FileClock, 
-  FileX 
+  FileX,
+  Plus,
+  Loader2
 } from "lucide-react";
+import { useApplications } from "@/hooks/useApplications";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data for applications
-const applications = [
-  {
-    id: "APP-001",
-    programName: "University of Technology Exchange",
-    date: "2023-06-15",
-    status: "approved",
-    documents: 5,
-    deadline: "2023-05-30"
-  },
-  {
-    id: "APP-002",
-    programName: "Global Business Initiative",
-    date: "2023-07-20",
-    status: "pending",
-    documents: 3,
-    deadline: "2023-08-15"
-  },
-  {
-    id: "APP-003",
-    programName: "International Arts Residency",
-    date: "2023-08-01",
-    status: "rejected",
-    documents: 4,
-    deadline: "2023-07-30"
-  },
-  {
-    id: "APP-004",
-    programName: "Tech Startup Accelerator",
-    date: "2023-08-10",
-    status: "pending",
-    documents: 2,
-    deadline: "2023-09-01"
-  },
-  {
-    id: "APP-005",
-    programName: "Medical Research Program",
-    date: "2023-09-05",
-    status: "approved",
-    documents: 6,
-    deadline: "2023-08-20"
-  }
-];
-
+// Application status badge styling helper function
 const getStatusColor = (status: string) => {
-  switch (status) {
+  switch (status.toLowerCase()) {
     case "approved":
       return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
     case "pending":
+    case "draft":
+    case "in progress":
       return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
     case "rejected":
+    case "cancelled":
       return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
     default:
       return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100";
   }
 };
 
+// Status icon helper function
 const getStatusIcon = (status: string) => {
-  switch (status) {
+  switch (status.toLowerCase()) {
     case "approved":
       return <FileCheck className="h-4 w-4 mr-1" />;
     case "pending":
+    case "draft":
+    case "in progress":
       return <FileClock className="h-4 w-4 mr-1" />;
     case "rejected":
+    case "cancelled":
       return <FileX className="h-4 w-4 mr-1" />;
     default:
       return <FileText className="h-4 w-4 mr-1" />;
@@ -114,24 +83,39 @@ const getStatusIcon = (status: string) => {
 };
 
 export default function Applications() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
+  const { data: applications = [], isLoading, error } = useApplications();
+  const { toast } = useToast();
   
-  // Filter applications based on search term and filter
+  if (error) {
+    toast({
+      title: "Error",
+      description: "Failed to load applications. Please try again.",
+      variant: "destructive",
+    });
+  }
+  
+  // Filter applications based on search term and status filter
   const filteredApplications = applications.filter(app => {
-    const matchesSearch = app.programName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         app.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      app.program.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      app.id.toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filter === "all") return matchesSearch;
-    return matchesSearch && app.status === filter;
+    return matchesSearch && app.status.toLowerCase() === filter.toLowerCase();
   });
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
-        <Button>
-          <FileText className="mr-2 h-4 w-4" />
+        <Button 
+          onClick={() => navigate("/applications/new")}
+          className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700"
+        >
+          <Plus className="mr-2 h-4 w-4" />
           New Application
         </Button>
       </div>
@@ -197,22 +181,37 @@ export default function Applications() {
                         </div>
                       </TableHead>
                       <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[120px]">Deadline</TableHead>
+                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
                       <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredApplications.length === 0 ? (
+                    {isLoading ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-[200px] text-center">
-                          No applications found.
+                          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+                          <div className="mt-2 text-sm text-muted-foreground">Loading applications...</div>
+                        </TableCell>
+                      </TableRow>
+                    ) : filteredApplications.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-[200px] text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <FileText className="h-12 w-12 text-muted-foreground opacity-30 mb-4" />
+                            <h3 className="text-lg font-medium">No applications found</h3>
+                            <p className="text-muted-foreground mt-1 mb-4">You haven't submitted any applications yet</p>
+                            <Button onClick={() => navigate("/applications/new")}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Create New Application
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredApplications.map((app) => (
                         <TableRow key={app.id}>
                           <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.programName}</TableCell>
+                          <TableCell>{app.program}</TableCell>
                           <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
@@ -220,7 +219,7 @@ export default function Applications() {
                               <span className="capitalize">{app.status}</span>
                             </Badge>
                           </TableCell>
-                          <TableCell>{new Date(app.deadline).toLocaleDateString()}</TableCell>
+                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -246,6 +245,7 @@ export default function Applications() {
               </div>
             </TabsContent>
             
+            {/* Similar content for other tabs, but we'll keep it simpler */}
             <TabsContent value="approved" className="m-0">
               <div className="rounded-md border">
                 <Table>
@@ -259,7 +259,7 @@ export default function Applications() {
                         </div>
                       </TableHead>
                       <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[120px]">Deadline</TableHead>
+                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
                       <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -274,7 +274,7 @@ export default function Applications() {
                       filteredApplications.filter((app) => app.status === "approved").map((app) => (
                         <TableRow key={app.id}>
                           <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.programName}</TableCell>
+                          <TableCell>{app.program}</TableCell>
                           <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
@@ -282,7 +282,7 @@ export default function Applications() {
                               <span className="capitalize">{app.status}</span>
                             </Badge>
                           </TableCell>
-                          <TableCell>{new Date(app.deadline).toLocaleDateString()}</TableCell>
+                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -321,7 +321,7 @@ export default function Applications() {
                         </div>
                       </TableHead>
                       <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[120px]">Deadline</TableHead>
+                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
                       <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -336,7 +336,7 @@ export default function Applications() {
                       filteredApplications.filter((app) => app.status === "pending").map((app) => (
                         <TableRow key={app.id}>
                           <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.programName}</TableCell>
+                          <TableCell>{app.program}</TableCell>
                           <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
@@ -344,7 +344,7 @@ export default function Applications() {
                               <span className="capitalize">{app.status}</span>
                             </Badge>
                           </TableCell>
-                          <TableCell>{new Date(app.deadline).toLocaleDateString()}</TableCell>
+                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -383,7 +383,7 @@ export default function Applications() {
                         </div>
                       </TableHead>
                       <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[120px]">Deadline</TableHead>
+                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
                       <TableHead className="w-[80px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -398,7 +398,7 @@ export default function Applications() {
                       filteredApplications.filter((app) => app.status === "rejected").map((app) => (
                         <TableRow key={app.id}>
                           <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.programName}</TableCell>
+                          <TableCell>{app.program}</TableCell>
                           <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
@@ -406,7 +406,7 @@ export default function Applications() {
                               <span className="capitalize">{app.status}</span>
                             </Badge>
                           </TableCell>
-                          <TableCell>{new Date(app.deadline).toLocaleDateString()}</TableCell>
+                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
                           <TableCell>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -435,7 +435,7 @@ export default function Applications() {
         </CardContent>
         <CardFooter className="flex justify-between">
           <div className="text-sm text-muted-foreground">
-            Showing {filteredApplications.length} of {applications.length} applications
+            {isLoading ? "Loading..." : `Showing ${filteredApplications.length} of ${applications.length} applications`}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" disabled>
