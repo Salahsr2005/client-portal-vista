@@ -20,7 +20,7 @@ export const useServices = () => {
         id: service.service_id,
         name: service.name,
         description: service.description || "",
-        duration: service.estimated_completion || "Varies",
+        duration: service.estimated_completion || `${service.duration} min`,
         fee: service.price ? `$${service.price}` : "Contact for details",
         isActive: service.status === "Active"
       }));

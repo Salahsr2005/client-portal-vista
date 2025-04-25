@@ -18,7 +18,9 @@ import {
   Menu,
   X,
   Settings,
-  Package
+  Package,
+  Search,
+  Sparkles
 } from "lucide-react";
 
 const sidebarItems = [
@@ -28,10 +30,11 @@ const sidebarItems = [
   { label: "Programs", icon: Package, path: "/programs" },
   { label: "Services", icon: Settings, path: "/services" },
   { label: "Appointments", icon: Calendar, path: "/appointments" },
-  { label: "Messages", icon: MessageSquare, path: "/messages" },
+  { label: "Messages", icon: MessageSquare, path: "/chat" },
   { label: "Notifications", icon: Bell, path: "/notifications" },
   { label: "Payments", icon: CreditCard, path: "/payments" },
   { label: "Destinations", icon: Globe, path: "/destinations" },
+  { label: "Consultation", icon: Sparkles, path: "/consultation" },
 ];
 
 export function DashboardLayout() {
@@ -151,6 +154,10 @@ export function DashboardLayout() {
             </h1>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Search Button */}
+            <Button variant="ghost" size="icon">
+              <Search className="h-5 w-5" />
+            </Button>
             <ThemeToggle />
             <Link to="/profile">
               <Button variant="ghost" size="icon" className="rounded-full bg-muted">

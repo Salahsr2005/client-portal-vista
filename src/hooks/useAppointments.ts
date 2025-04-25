@@ -14,6 +14,7 @@ export const useAppointments = () => {
         return [];
       }
 
+      // First get appointments
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from("appointments")
         .select("*")
@@ -24,33 +25,54 @@ export const useAppointments = () => {
         throw new Error(appointmentsError.message);
       }
       
-      // Enrich appointments with service data
+      // Enrich appointments with slot and service data
       const enrichedAppointments = await Promise.all(
         (appointmentsData || []).map(async (appointment) => {
           let serviceName = "Consultation";
+          let appointmentTime = "TBD"; 
+          let appointmentDate = "TBD";
+          let notes = "";
           
-          if (appointment.service_id) {
-            // Fetch service data
-            const { data: serviceData, error: serviceError } = await supabase
-              .from("services")
-              .select("name")
-              .eq("service_id", appointment.service_id)
+          // Get slot details
+          if (appointment.slot_id) {
+            const { data: slotData, error: slotError } = await supabase
+              .from("appointment_slots")
+              .select("*")
+              .eq("slot_id", appointment.slot_id)
               .maybeSingle();
-            
-            if (!serviceError && serviceData) {
-              serviceName = serviceData.name;
+              
+            if (!slotError && slotData) {
+              // If there's a service ID, try to get its name
+              if (slotData.service_id) {
+                const { data: serviceData, error: serviceError } = await supabase
+                  .from("services")
+                  .select("name")
+                  .eq("service_id", slotData.service_id)
+                  .maybeSingle();
+                
+                if (!serviceError && serviceData) {
+                  serviceName = serviceData.name;
+                }
+              }
+              
+              // Get time details from slot
+              if (slotData.date_time) {
+                const dateObj = new Date(slotData.date_time);
+                appointmentDate = dateObj.toLocaleDateString();
+                appointmentTime = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              }
+              
+              notes = slotData.notes || "";
             }
           }
           
           return {
             id: appointment.appointment_id,
             service: serviceName,
-            date: appointment.date_time ? new Date(appointment.date_time).toLocaleDateString() : "TBD",
+            date: appointmentDate,
             status: appointment.status || "Scheduled",
-            notes: appointment.notes || "",
-            time: appointment.date_time 
-              ? new Date(appointment.date_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-              : "TBD",
+            notes: notes || appointment.special_requests || "",
+            time: appointmentTime,
           };
         })
       );

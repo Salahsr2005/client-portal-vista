@@ -14,29 +14,32 @@ export const useMessages = () => {
         return [];
       }
 
-      // Get messages where user is either the sender or recipient
+      // Chat messages are stored in chat_messages table
       const { data: messagesData, error: messagesError } = await supabase
-        .from("messages")
+        .from("chat_messages")
         .select("*")
-        .or(`recipient_id.eq.${user.id},sender_id.eq.${user.id}`)
-        .order("sent_date", { ascending: false });
+        .or(`chat_id.in.(
+          select chat_id from chat_participants
+          where participant_id='${user.id}' and participant_type='Client'
+        )`)
+        .order("sent_at", { ascending: false });
       
       if (messagesError) {
         console.error("Error fetching messages:", messagesError);
         throw new Error(messagesError.message);
       }
       
-      return messagesData.map(message => ({
+      return (messagesData || []).map(message => ({
         id: message.message_id,
-        subject: message.subject || "No Subject",
-        content: message.content || "",
-        sentAt: new Date(message.sent_date).toLocaleString(),
-        isRead: message.read_status,
-        isIncoming: message.recipient_id === user.id,
-        senderType: message.sender_type || "Admin",
+        subject: message.message_type || "No Subject",
+        content: message.message_text || "",
+        sentAt: new Date(message.sent_at).toLocaleString(),
+        isRead: message.status === "Read",
+        isIncoming: message.sender_id !== user.id,
+        senderType: message.sender_type || "System",
         senderId: message.sender_id,
-        recipientType: message.recipient_type || "Client",
-        recipientId: message.recipient_id,
+        recipientType: "Client",
+        recipientId: user.id,
       }));
     },
   });

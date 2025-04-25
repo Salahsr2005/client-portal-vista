@@ -23,6 +23,8 @@ import Services from "./pages/Services";
 import Notifications from "./pages/Notifications";
 import Payments from "./pages/Payments";
 import Destinations from "./pages/Destinations";
+import Consultation from "./pages/Consultation";
+import ChatSupport from "./pages/ChatSupport";
 
 // Layout
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -68,6 +70,8 @@ const AppRoutes = () => {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/payments" element={<Payments />} />
         <Route path="/destinations" element={<Destinations />} />
+        <Route path="/consultation" element={<Consultation />} />
+        <Route path="/chat" element={<ChatSupport />} />
       </Route>
       
       {/* Catch-all route */}

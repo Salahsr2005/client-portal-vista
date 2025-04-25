@@ -5,28 +5,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, Bell, Calendar, FileText, Package, CreditCard, AlertCircle } from "lucide-react";
-
-// Placeholder data
-const recentApplications = [
-  { id: 1, program: "Master's in Computer Science", university: "Stanford University", status: "In Review", date: "2023-06-15" },
-  { id: 2, program: "MBA", university: "Harvard Business School", status: "Documents Required", date: "2023-07-01" },
-];
-
-const upcomingAppointments = [
-  { id: 1, title: "Visa Interview Preparation", date: "2023-08-10", time: "10:00 AM" },
-  { id: 2, title: "Program Consultation", date: "2023-08-15", time: "2:30 PM" },
-];
-
-const notifications = [
-  { id: 1, message: "Your application to Stanford University has been received", date: "2023-08-01", read: false },
-  { id: 2, message: "New document request for your Harvard MBA application", date: "2023-07-28", read: true },
-  { id: 3, message: "Upcoming appointment reminder: Visa Interview Preparation", date: "2023-07-25", read: false },
-];
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useApplications } from "@/hooks/useApplications";
+import { useAppointments } from "@/hooks/useAppointments";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Dashboard() {
-  const [profileCompletion, setProfileCompletion] = useState(65);
+  const { user } = useAuth();
+  const { data: userProfile, isLoading: profileLoading } = useUserProfile();
+  const { data: applications = [], isLoading: applicationsLoading } = useApplications();
+  const { data: appointments = [], isLoading: appointmentsLoading } = useAppointments();
+  
+  const [profileCompletion, setProfileCompletion] = useState(0);
   const [greeting, setGreeting] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
+  // Calculate profile completion percentage
+  useEffect(() => {
+    if (userProfile) {
+      let completedFields = 0;
+      const totalFields = 8;
+      
+      if (userProfile.firstName) completedFields++;
+      if (userProfile.lastName) completedFields++;
+      if (userProfile.phone) completedFields++;
+      if (userProfile.dateOfBirth) completedFields++;
+      if (userProfile.currentAddress) completedFields++;
+      if (userProfile.nationality) completedFields++;
+      if (userProfile.passportNumber) completedFields++;
+      if (userProfile.emergencyContactName) completedFields++;
+      
+      setProfileCompletion(Math.floor((completedFields / totalFields) * 100));
+    }
+  }, [userProfile]);
+
+  // Set greeting based on time of day
   useEffect(() => {
     const hours = new Date().getHours();
     if (hours < 12) setGreeting("Good Morning");
@@ -34,7 +48,27 @@ export default function Dashboard() {
     else setGreeting("Good Evening");
   }, []);
 
-  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+  // Fetch notifications (simulated for now)
+  useEffect(() => {
+    // This would be replaced with a real API call
+    const mockNotifications = [
+      { id: 1, message: "Your application to Stanford University has been received", date: "2023-08-01", read: false },
+      { id: 2, message: "New document request for your Harvard MBA application", date: "2023-07-28", read: true },
+      { id: 3, message: "Upcoming appointment reminder: Visa Interview Preparation", date: "2023-07-25", read: false },
+    ];
+    
+    setNotifications(mockNotifications);
+    setUnreadNotificationsCount(mockNotifications.filter(n => !n.read).length);
+  }, []);
+
+  if (profileLoading || applicationsLoading || appointmentsLoading) {
+    return <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading your dashboard...</p>
+      </div>
+    </div>;
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -42,7 +76,9 @@ export default function Dashboard() {
       <div className="glass-light dark:glass-dark rounded-xl p-6 md:p-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{greeting}, John!</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
+              {greeting}, {userProfile?.firstName || "User"}!
+            </h1>
             <p className="text-muted-foreground">
               Welcome back to your Euro Visa dashboard. Here's an overview of your journey.
             </p>
@@ -75,13 +111,13 @@ export default function Dashboard() {
             <CardDescription>Track your application progress</CardDescription>
           </CardHeader>
           <CardContent>
-            {recentApplications.length > 0 ? (
+            {applications.length > 0 ? (
               <div className="space-y-4">
-                {recentApplications.map((app) => (
+                {applications.slice(0, 3).map((app) => (
                   <div key={app.id} className="flex justify-between items-start pb-4 border-b last:border-0 last:pb-0">
                     <div>
                       <p className="font-medium">{app.program}</p>
-                      <p className="text-sm text-muted-foreground">{app.university}</p>
+                      <p className="text-sm text-muted-foreground">{app.destination}</p>
                       <div className="flex items-center mt-1">
                         <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
                           app.status === "In Review" ? "bg-primary" : "bg-amber-400"
@@ -89,7 +125,7 @@ export default function Dashboard() {
                         <span className="text-xs">{app.status}</span>
                       </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{new Date(app.date).toLocaleDateString()}</span>
+                    <span className="text-xs text-muted-foreground">{app.date}</span>
                   </div>
                 ))}
               </div>
@@ -139,14 +175,14 @@ export default function Dashboard() {
             <CardDescription>Upcoming meetings and consultations</CardDescription>
           </CardHeader>
           <CardContent>
-            {upcomingAppointments.length > 0 ? (
+            {appointments.length > 0 ? (
               <div className="space-y-4">
-                {upcomingAppointments.map((apt) => (
+                {appointments.slice(0, 3).map((apt) => (
                   <div key={apt.id} className="flex justify-between items-start pb-4 border-b last:border-0 last:pb-0">
                     <div>
-                      <p className="font-medium">{apt.title}</p>
+                      <p className="font-medium">{apt.service}</p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(apt.date).toLocaleDateString()} at {apt.time}
+                        {apt.date} at {apt.time}
                       </p>
                     </div>
                   </div>
@@ -256,10 +292,10 @@ export default function Dashboard() {
                 Schedule Appointment
               </Button>
             </Link>
-            <Link to="/messages">
+            <Link to="/consultation">
               <Button variant="outline" size="sm" className="w-full justify-start">
-                <Bell className="mr-2 h-4 w-4" />
-                Contact Advisor
+                <Package className="mr-2 h-4 w-4" />
+                Start Program Consultation
               </Button>
             </Link>
           </CardContent>

@@ -32,7 +32,7 @@ export const useLandingPageData = () => {
     queryKey: ["landingPrograms"],
     queryFn: async () => {
       try {
-        // First fetch programs
+        // Fetch programs
         const { data: programsData, error: programsError } = await supabase
           .from("programs")
           .select("*")
@@ -43,37 +43,17 @@ export const useLandingPageData = () => {
           return [];
         }
         
-        // Enrich programs with destination data
-        const enrichedPrograms = await Promise.all(
-          (programsData || []).map(async (program) => {
-            let location = "International";
-            
-            if (program.destination_id) {
-              // Fetch destination for this program
-              const { data: destinationData, error: destinationError } = await supabase
-                .from("destinations")
-                .select("country")
-                .eq("destination_id", program.destination_id)
-                .maybeSingle();
-              
-              if (!destinationError && destinationData) {
-                location = destinationData.country;
-              }
-            }
-            
-            return {
-              id: program.program_id,
-              name: program.name,
-              description: program.requirements || "",
-              location: location,
-              duration: program.start_date || "Varies",
-              fee: program.tuition ? `$${program.tuition}` : "Contact for details",
-              requirements: program.requirements || "",
-            };
-          })
-        );
+        // Map programs to the format we need
+        return (programsData || []).map(program => ({
+          id: program.id,
+          name: program.name,
+          description: program.admission_requirements || "",
+          location: program.country || "International",
+          duration: program.duration_months ? `${program.duration_months} months` : "Varies",
+          fee: program.tuition_min ? `$${program.tuition_min}` : "Contact for details",
+          requirements: program.admission_requirements || "",
+        }));
         
-        return enrichedPrograms;
       } catch (error) {
         console.error("Error in programs query:", error);
         return [];
@@ -99,7 +79,7 @@ export const useLandingPageData = () => {
         id: service.service_id,
         name: service.name,
         description: service.description || "",
-        duration: service.estimated_completion || "Varies",
+        duration: service.estimated_completion || service.duration + " min",
         fee: service.price ? `$${service.price}` : "Contact for details",
       })) || [];
     },

@@ -34,25 +34,13 @@ export const useApplications = () => {
             // Fetch program data
             const { data: programData, error: programError } = await supabase
               .from("programs")
-              .select("name, destination_id")
-              .eq("program_id", application.program_id)
+              .select("name, country")  // Using country directly from programs table
+              .eq("id", application.program_id)
               .maybeSingle();
             
             if (!programError && programData) {
               programName = programData.name;
-              
-              // If there's a destination ID, fetch the destination
-              if (programData.destination_id) {
-                const { data: destinationData, error: destinationError } = await supabase
-                  .from("destinations")
-                  .select("country")
-                  .eq("destination_id", programData.destination_id)
-                  .maybeSingle();
-                
-                if (!destinationError && destinationData) {
-                  destination = destinationData.country;
-                }
-              }
+              destination = programData.country || "Unknown";
             }
           }
           

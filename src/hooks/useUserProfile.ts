@@ -100,10 +100,10 @@ export const useUserProfile = () => {
         createdAt: userData.created_at || "",
         lastLogin: userData.last_login || "",
         photoUrl: userData.photo_url || "",
+        nationality: userData.nationality || "",
         
         // Profile data (if available)
         currentAddress: profileData?.current_address || "",
-        nationality: userData?.nationality || "",
         passportNumber: profileData?.passport_number || "",
         passportExpiryDate: profileData?.passport_expiry_date || "",
         emergencyContactName: profileData?.emergency_contact_name || "",
