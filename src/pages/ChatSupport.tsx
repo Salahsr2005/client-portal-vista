@@ -1,477 +1,457 @@
 
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useState, useRef, useEffect } from "react";
+import { 
+  MessageSquare, Send, ArrowRight, ChevronRight, 
+  UserRound, Clock, PanelRight, PanelLeft, Search,
+  GraduationCap, Globe, FileQuestion, CreditCard, 
+  Calendar, BookOpen, CheckCircle, MessageCircle
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { 
-  Send, User, Bot, Clock, HelpCircle, BarChart, 
-  FileQuestion, GraduationCap, Briefcase, Plane, 
-  LucideIcon, Calendar, MessageSquare
-} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Message, SenderType, ChatOption, ChatTopic } from "@/types/chat";
 import { useAuth } from "@/contexts/AuthContext";
+import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Topic {
-  icon: LucideIcon;
-  name: string;
-  description: string;
-  questions: string[];
-}
-
-// Predefined topics and questions
-const topics: Topic[] = [
+const CHAT_TOPICS: ChatTopic[] = [
   {
-    icon: GraduationCap,
-    name: "Education",
-    description: "Study programs, universities, and academic requirements",
-    questions: [
-      "What educational programs do you offer?",
-      "How can I choose the right university?",
-      "What are the entry requirements for European universities?",
-      "Do I need language certifications?",
-      "What scholarships are available?"
-    ]
+    id: "programs",
+    title: "Study Programs",
+    description: "Questions about available study programs and universities",
+    icon: "GraduationCap"
   },
   {
-    icon: Plane,
-    name: "Visas",
-    description: "Student visa applications, documents, and processing",
-    questions: [
-      "What documents do I need for a student visa?",
-      "How long does the visa process take?",
-      "Can my family visit me on a student visa?",
-      "What are common visa rejection reasons?",
-      "Can I work on a student visa?"
-    ]
+    id: "application",
+    title: "Application Process",
+    description: "Help with application requirements and submission",
+    icon: "FileQuestion"
   },
   {
-    icon: Briefcase,
-    name: "Career",
-    description: "Work opportunities, internships, and post-study options",
-    questions: [
-      "Can I work while studying in Europe?",
-      "What internship opportunities are available?",
-      "How can I stay after graduating?",
-      "What's the job market like for international graduates?",
-      "Do you help with job placement?"
-    ]
+    id: "visa",
+    title: "Visa Information",
+    description: "Questions about student visas and requirements",
+    icon: "Globe"
   },
   {
-    icon: Calendar,
-    name: "Appointments",
-    description: "Schedule consultations and meetings with advisors",
-    questions: [
-      "How can I schedule a personal consultation?",
-      "What should I prepare for my appointment?",
-      "Can I meet with a specific advisor?",
-      "How long do consultations typically last?",
-      "Is there a fee for appointments?"
-    ]
+    id: "payment",
+    title: "Payment & Fees",
+    description: "Information about tuition, scholarships and payment options",
+    icon: "CreditCard"
   },
   {
-    icon: BarChart,
-    name: "Services",
-    description: "Our services, fees, and application assistance",
-    questions: [
-      "What services does Euro Visa offer?",
-      "What are your service fees?",
-      "Do you help with accommodation?",
-      "Can you help me throughout the entire application process?",
-      "What's included in your standard package?"
-    ]
+    id: "schedule",
+    title: "Appointments",
+    description: "Schedule or manage your consultation appointments",
+    icon: "Calendar"
   }
 ];
 
-interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "system" | "agent";
-  timestamp: Date;
-}
+const FREQUENT_QUESTIONS: Record<string, ChatOption[]> = {
+  "programs": [
+    { id: "p1", label: "What programs do you offer?", action: "list_programs" },
+    { id: "p2", label: "How can I find scholarships?", action: "scholarships" },
+    { id: "p3", label: "What are the admission requirements?", action: "admission_requirements" },
+    { id: "p4", label: "Which universities do you work with?", action: "list_universities" }
+  ],
+  "application": [
+    { id: "a1", label: "What documents do I need?", action: "required_documents" },
+    { id: "a2", label: "How long does the process take?", action: "application_timeline" },
+    { id: "a3", label: "Can I apply to multiple programs?", action: "multiple_applications" },
+    { id: "a4", label: "What's the application deadline?", action: "deadlines" }
+  ],
+  "visa": [
+    { id: "v1", label: "Do I need a visa?", action: "visa_requirements" },
+    { id: "v2", label: "What's the visa processing time?", action: "visa_timing" },
+    { id: "v3", label: "What documents are needed for visa?", action: "visa_documents" },
+    { id: "v4", label: "How much is the visa fee?", action: "visa_cost" }
+  ],
+  "payment": [
+    { id: "f1", label: "What are the tuition fees?", action: "tuition_costs" },
+    { id: "f2", label: "How can I pay?", action: "payment_methods" },
+    { id: "f3", label: "Are there any installment options?", action: "installments" },
+    { id: "f4", label: "What's included in the service fee?", action: "service_inclusions" }
+  ],
+  "schedule": [
+    { id: "s1", label: "How do I schedule a consultation?", action: "book_appointment" },
+    { id: "s2", label: "Can I reschedule my appointment?", action: "reschedule" },
+    { id: "s3", label: "How long is a consultation?", action: "appointment_duration" },
+    { id: "s4", label: "Is there an appointment fee?", action: "appointment_cost" }
+  ]
+};
 
 export default function ChatSupport() {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const [activeChat, setActiveChat] = useState<string | null>(null);
-  const [message, setMessage] = useState("");
-  const [chatId, setChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      content: "Welcome to Euro Visa Support! How can I assist you today?",
-      sender: "system",
-      timestamp: new Date()
-    }
-  ]);
-  const [isTyping, setIsTyping] = useState(false);
-
-  const handleTopicSelect = (topic: Topic) => {
-    setActiveChat(topic.name);
-    // Add system message about the selected topic
-    setMessages([
-      ...messages,
-      {
-        id: Date.now().toString(),
-        content: `You've selected ${topic.name}. ${topic.description}. How can I help you with this topic?`,
-        sender: "system",
-        timestamp: new Date()
-      }
-    ]);
-  };
-
-  const handleQuestionSelect = async (question: string) => {
-    // Add user question
-    const updatedMessages = [
-      ...messages,
-      {
-        id: Date.now().toString() + "-q",
-        content: question,
-        sender: "user",
-        timestamp: new Date()
-      }
-    ];
-    
-    setMessages(updatedMessages);
-    setIsTyping(true);
-    
-    // If no chat has been created yet, create one
-    if (!chatId && user) {
-      try {
-        // Find an available admin
-        const { data: adminData } = await supabase
-          .from("admin_users")
-          .select("admin_id")
-          .eq("status", "Active")
-          .limit(1)
-          .single();
-          
-        if (adminData) {
-          // Use stored procedure to create chat
-          const { data: newChatData, error: chatError } = await supabase
-            .rpc('create_client_admin_chat', {
-              p_client_id: user.id,
-              p_admin_id: adminData.admin_id,
-              p_title: 'Support Chat'
-            });
-            
-          if (chatError) throw chatError;
-          setChatId(newChatData);
-          
-          // Save the message
-          if (newChatData) {
-            await supabase.from("chat_messages").insert({
-              chat_id: newChatData,
-              sender_id: user.id,
-              sender_type: "Client",
-              message_text: question
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error creating chat:", error);
-      }
-    } else if (chatId && user) {
-      // If chat exists, just save the new message
-      try {
-        await supabase.from("chat_messages").insert({
-          chat_id: chatId,
-          sender_id: user.id,
-          sender_type: "Client",
-          message_text: question
-        });
-      } catch (error) {
-        console.error("Error saving message:", error);
-      }
-    }
-    
-    // Simulate response after a delay
-    setTimeout(() => {
-      setIsTyping(false);
-      
-      let response = "";
-      
-      // Match questions with canned responses
-      if (question.includes("programs") || question.includes("university")) {
-        response = "We offer assistance with undergraduate, graduate, PhD programs and professional certifications across Europe. Our advisors can help you find programs that match your academic background, budget, and career goals.";
-      } else if (question.includes("documents") || question.includes("visa")) {
-        response = "For student visas, you typically need: a valid passport, proof of acceptance from a university, proof of financial means, health insurance, and accommodation arrangements. Requirements vary by country, and our advisors can provide country-specific guidance.";
-      } else if (question.includes("work")) {
-        response = "Most European countries allow international students to work part-time during their studies. The specific hours vary by country - typically 20 hours per week during term and full-time during holidays. We can provide detailed information about work regulations for your specific destination.";
-      } else if (question.includes("schedule") || question.includes("appointment")) {
-        response = "You can schedule a personal consultation through our appointments page. We offer both online and in-person meetings with our education advisors who can provide personalized guidance for your situation.";
-      } else if (question.includes("fees") || question.includes("services")) {
-        response = "Our services include program selection, application assistance, visa guidance, accommodation support, and pre-departure orientation. Service fees depend on the package you choose. We offer basic, standard, and premium packages to match different needs and budgets.";
-      } else {
-        response = "Thank you for your question. One of our advisors will respond to you shortly. If you'd like immediate assistance, you can schedule a consultation through our appointments page.";
-      }
-      
-      // Add system response
-      setMessages([
-        ...updatedMessages,
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    // Add initial greeting message
+    if (messages.length === 0) {
+      const initialMessages: Message[] = [
         {
-          id: Date.now().toString() + "-a",
-          content: response,
-          sender: "agent",
+          id: "welcome-1",
+          content: "Hello! I'm your EuroVisa education consultant. How can I help you today?",
+          sender: "agent" as SenderType,
+          timestamp: new Date()
+        },
+        {
+          id: "welcome-2",
+          content: "You can select a topic or ask a question to get started.",
+          sender: "system" as SenderType,
           timestamp: new Date()
         }
-      ]);
-      
-      // If we have a chat ID, save the response
-      if (chatId) {
-        try {
-          const adminId = supabase.auth.getSession().then(({ data }) => {
-            return data.session?.user?.id;
-          });
-          
-          if (adminId) {
-            supabase.from("chat_messages").insert({
-              chat_id: chatId,
-              sender_id: "system", // Use a system ID for automated responses
-              sender_type: "System",
-              message_text: response
-            });
-          }
-        } catch (error) {
-          console.error("Error saving response:", error);
-        }
-      }
-    }, 1500);
+      ];
+      setMessages(initialMessages);
+    }
+  }, [messages.length]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSendMessage = async () => {
-    if (!message.trim()) return;
+  const handleSend = () => {
+    if (!input.trim()) return;
     
-    const userMessage = {
-      id: Date.now().toString(),
-      content: message,
-      sender: "user",
+    // Add user message
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      content: input,
+      sender: "user" as SenderType,
       timestamp: new Date()
     };
     
-    setMessages([...messages, userMessage]);
-    setMessage("");
-    setIsTyping(true);
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+    setLoading(true);
     
-    // Handle message saving to database
-    if (!chatId && user) {
-      try {
-        // Create logic similar to question selection
-        // This would create a chat and save the message
-      } catch (error) {
-        console.error("Error handling message:", error);
-      }
+    // Simulate response after a delay
+    setTimeout(() => {
+      generateResponse(input);
+      setLoading(false);
+    }, 1000);
+  };
+
+  const handleSelectTopic = (topicId: string) => {
+    setSelectedTopic(topicId);
+    
+    // Add system message about the selected topic
+    const topicMessage: Message = {
+      id: `topic-${Date.now()}`,
+      content: `You selected: ${CHAT_TOPICS.find(t => t.id === topicId)?.title}. Here are some common questions about this topic:`,
+      sender: "system" as SenderType,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, topicMessage]);
+  };
+
+  const handleSelectQuestion = (question: ChatOption) => {
+    // Add user question
+    const userQuestion: Message = {
+      id: `question-${Date.now()}`,
+      content: question.label,
+      sender: "user" as SenderType,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userQuestion]);
+    setLoading(true);
+    
+    // Simulate response after a delay
+    setTimeout(() => {
+      generatePredefinedResponse(question);
+      setLoading(false);
+    }, 800);
+  };
+
+  const generatePredefinedResponse = (question: ChatOption) => {
+    let response = "";
+    
+    switch(question.action) {
+      case "list_programs":
+        response = "We offer a wide range of undergraduate, graduate, and doctoral programs across various disciplines, including Business, Engineering, Medicine, Arts, and more. All our programs are at accredited European universities.";
+        break;
+      case "scholarships":
+        response = "Many European universities offer scholarships for international students. These can be merit-based, need-based, or country-specific scholarships. We can help you identify and apply for scholarships that match your profile.";
+        break;
+      case "required_documents":
+        response = "Typically, you'll need: 1) Passport, 2) Educational certificates, 3) Transcripts, 4) Language proficiency test results, 5) Motivation letter, 6) Recommendation letters, and 7) CV/Resume. Specific requirements may vary by program.";
+        break;
+      default:
+        response = "I'd be happy to help with that! Let's schedule a consultation with one of our advisors who can provide you with personalized guidance.";
     }
     
-    // Simulate response
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages(prev => [
-        ...prev, 
-        {
-          id: Date.now().toString(),
-          content: "Thank you for your message. An advisor will respond to you shortly. For immediate assistance, please consider scheduling a consultation.",
-          sender: "agent",
-          timestamp: new Date()
-        }
-      ]);
-    }, 2000);
+    const botResponse: Message = {
+      id: `bot-${Date.now()}`,
+      content: response,
+      sender: "agent" as SenderType,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, botResponse]);
+  };
+
+  const generateResponse = (query: string) => {
+    let response = "Thank you for your question. This seems like something I can help with. Let me connect you with one of our education advisors for more personalized assistance.";
+    
+    if (query.toLowerCase().includes("program") || query.toLowerCase().includes("study")) {
+      response = "We have many study programs available across Europe. Would you like to explore our program finder to see which options might be best for you?";
+    } else if (query.toLowerCase().includes("visa") || query.toLowerCase().includes("document")) {
+      response = "Visa requirements depend on your nationality and the country you're applying to. Generally, you'll need acceptance from a university, proof of finances, health insurance, and a valid passport. Would you like specific information for a particular country?";
+    } else if (query.toLowerCase().includes("cost") || query.toLowerCase().includes("fee") || query.toLowerCase().includes("price")) {
+      response = "Tuition fees vary by country, university, and program. Many European public universities charge between €0-15,000 per year for international students. Living costs also vary by city. Would you like me to provide more specific estimates for particular destinations?";
+    }
+    
+    const botResponse: Message = {
+      id: `bot-${Date.now()}`,
+      content: response,
+      sender: "agent" as SenderType,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, botResponse]);
+  };
+
+  const renderIcon = (iconName: string) => {
+    switch(iconName) {
+      case "GraduationCap": return <GraduationCap className="h-5 w-5" />;
+      case "FileQuestion": return <FileQuestion className="h-5 w-5" />;
+      case "Globe": return <Globe className="h-5 w-5" />;
+      case "CreditCard": return <CreditCard className="h-5 w-5" />;
+      case "Calendar": return <Calendar className="h-5 w-5" />;
+      default: return <MessageSquare className="h-5 w-5" />;
+    }
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
   return (
-    <div className="container max-w-6xl py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Support Chat</h1>
-        <p className="text-muted-foreground">
-          Get quick answers or connect with our advisors
-        </p>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Topics Section - Visible on larger screens */}
-        <Card className="p-6 hidden md:block">
-          <h2 className="font-semibold text-xl mb-4">Select a Topic</h2>
-          <div className="space-y-3">
-            {topics.map((topic) => (
-              <Button
-                key={topic.name}
-                variant="outline"
-                className="w-full justify-start h-auto py-3"
-                onClick={() => handleTopicSelect(topic)}
-              >
-                <topic.icon className="mr-3 h-5 w-5 text-primary" />
-                <div className="text-left">
-                  <div className="font-medium">{topic.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {topic.description}
-                  </div>
-                </div>
-              </Button>
-            ))}
+    <div className="flex h-[calc(100vh-120px)] overflow-hidden animate-fade-in">
+      {/* Left sidebar */}
+      <motion.div 
+        className={`border-r bg-card ${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300`}
+        initial={{ width: 320 }}
+        animate={{ width: sidebarOpen ? 320 : 0 }}
+      >
+        <div className="p-4 h-full flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Chat Support</h2>
+            <Button variant="ghost" size="sm" onClick={toggleSidebar} className="h-8 w-8 p-0">
+              <PanelLeft className="h-4 w-4" />
+            </Button>
           </div>
-        </Card>
-        
-        {/* Mobile Topic Selection - Visible on small screens */}
-        <div className="md:hidden">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="w-full mb-4">
-                <HelpCircle className="mr-2 h-4 w-4" />
-                Select a Topic
-              </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Choose a Topic</SheetTitle>
-              </SheetHeader>
-              <div className="py-4 space-y-3">
-                {topics.map((topic) => (
-                  <Button
-                    key={topic.name}
-                    variant="outline"
-                    className="w-full justify-start h-auto py-3"
-                    onClick={() => {
-                      handleTopicSelect(topic);
-                      document.body.click(); // Close sheet by simulating a click outside
-                    }}
+          
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search conversations..." 
+              className="pl-9"
+            />
+          </div>
+          
+          <Tabs defaultValue="topics" className="flex-1 overflow-hidden flex flex-col">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="topics">Topics</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="topics" className="flex-1 overflow-auto py-2 space-y-2">
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium px-1">Select a Topic</h3>
+                {CHAT_TOPICS.map((topic) => (
+                  <Card 
+                    key={topic.id} 
+                    className={`cursor-pointer border transition-all hover:border-primary ${selectedTopic === topic.id ? 'border-primary bg-primary/5' : ''}`}
+                    onClick={() => handleSelectTopic(topic.id)}
                   >
-                    <topic.icon className="mr-3 h-5 w-5 text-primary" />
-                    <div className="text-left">
-                      <div className="font-medium">{topic.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {topic.description}
+                    <CardContent className="p-3 flex items-start">
+                      <div className="bg-primary/10 p-2 rounded-full mr-3">
+                        {renderIcon(topic.icon)}
                       </div>
-                    </div>
+                      <div>
+                        <h4 className="font-medium">{topic.title}</h4>
+                        <p className="text-xs text-muted-foreground">{topic.description}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="history" className="flex-1 overflow-auto">
+              <div className="space-y-2 py-2">
+                <h3 className="text-sm font-medium px-1">Recent Conversations</h3>
+                
+                <div className="text-center py-8 text-muted-foreground">
+                  <MessageCircle className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                  <p>No conversation history yet</p>
+                  <p className="text-sm">Your chat history will appear here</p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="pt-4 mt-auto">
+            <Button 
+              variant="default" 
+              className="w-full"
+              onClick={() => {
+                toast({
+                  title: "Connecting to an advisor",
+                  description: "Please wait while we connect you to a live advisor...",
+                });
+              }}
+            >
+              Connect with Live Advisor
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+      
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col h-full bg-background">
+        {/* Chat header */}
+        <div className="border-b p-4 flex items-center justify-between">
+          <div className="flex items-center">
+            {!sidebarOpen && (
+              <Button variant="ghost" size="sm" onClick={toggleSidebar} className="mr-2 h-8 w-8 p-0">
+                <PanelRight className="h-4 w-4" />
+              </Button>
+            )}
+            <Avatar className="h-8 w-8 mr-2">
+              <AvatarImage src="/placeholder.svg" />
+              <AvatarFallback>EV</AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-sm font-medium">EuroVisa Assistant</h3>
+              <p className="text-xs text-muted-foreground">Online</p>
+            </div>
+          </div>
+          <Badge variant="outline" className="flex items-center">
+            <Clock className="h-3 w-3 mr-1" />
+            <span>24/7 Support</span>
+          </Badge>
+        </div>
+        
+        {/* Messages area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message) => (
+            <div 
+              key={message.id} 
+              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div 
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.sender === 'user' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : message.sender === 'system'
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-muted'
+                }`}
+              >
+                {message.sender !== 'user' && (
+                  <div className="flex items-center mb-1">
+                    <Avatar className="h-6 w-6 mr-2">
+                      {message.sender === 'agent' ? (
+                        <AvatarImage src="/placeholder.svg" />
+                      ) : (
+                        <CheckCircle className="h-6 w-6" />
+                      )}
+                      <AvatarFallback>{message.sender === 'agent' ? 'EV' : 'S'}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-medium">
+                      {message.sender === 'agent' ? 'EuroVisa Assistant' : 'System'}
+                    </span>
+                  </div>
+                )}
+                <p>{message.content}</p>
+                <div className="text-xs opacity-70 mt-1 text-right">
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {/* Show frequent questions if a topic is selected */}
+          {selectedTopic && !loading && messages[messages.length - 1]?.sender !== 'user' && (
+            <div className="flex justify-center my-4">
+              <div className="flex flex-wrap gap-2 justify-center">
+                {FREQUENT_QUESTIONS[selectedTopic].map((question) => (
+                  <Button 
+                    key={question.id} 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => handleSelectQuestion(question)}
+                    className="border-primary/30 hover:border-primary hover:bg-primary/10"
+                  >
+                    {question.label}
                   </Button>
                 ))}
               </div>
-            </SheetContent>
-          </Sheet>
+            </div>
+          )}
+          
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-muted p-3 rounded-lg max-w-[80%]">
+                <div className="flex space-x-2 items-center">
+                  <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" />
+                  <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.2s]" />
+                  <div className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:0.4s]" />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
         
-        {/* Chat Section */}
-        <div className="md:col-span-2">
-          <Card className="flex flex-col h-[600px]">
-            {/* Chat header */}
-            <div className="p-4 border-b flex items-center justify-between">
-              <div className="flex items-center">
-                <MessageSquare className="text-primary mr-2 h-5 w-5" />
-                <h2 className="font-semibold">
-                  {activeChat ? `${activeChat} Support` : "Euro Visa Support"}
-                </h2>
-              </div>
-              <Tabs defaultValue="chat" className="w-32">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="chat">Chat</TabsTrigger>
-                  <TabsTrigger value="faq">FAQ</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            
-            {/* Chat content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <TabsContent value="chat" className="m-0 h-full space-y-4">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                        msg.sender === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : msg.sender === "system"
-                          ? "bg-secondary text-secondary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        {msg.sender === "user" ? (
-                          <User className="h-4 w-4" />
-                        ) : msg.sender === "system" ? (
-                          <Bot className="h-4 w-4" />
-                        ) : (
-                          <User className="h-4 w-4" />
-                        )}
-                        <span className="text-xs font-medium">
-                          {msg.sender === "user" ? "You" : msg.sender === "system" ? "System" : "Advisor"}
-                        </span>
-                        <span className="text-xs opacity-70">
-                          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <p>{msg.content}</p>
-                    </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-4 py-2">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-75"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-150"></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="faq" className="m-0 h-full space-y-6">
-                {activeChat ? (
-                  <>
-                    {topics
-                      .find((t) => t.name === activeChat)
-                      ?.questions.map((question, idx) => (
-                        <Button
-                          key={idx}
-                          variant="outline"
-                          className="w-full justify-start text-left h-auto py-2 px-3"
-                          onClick={() => handleQuestionSelect(question)}
-                        >
-                          <FileQuestion className="mr-2 h-4 w-4 shrink-0 text-primary" />
-                          <span>{question}</span>
-                        </Button>
-                      ))}
-                  </>
-                ) : (
-                  <div className="text-center py-12">
-                    <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Select a Topic</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose a topic from the left to see frequently asked questions.
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-            </div>
-            
-            {/* Chat input */}
-            <div className="p-4 border-t">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type your message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                />
-                <Button onClick={handleSendMessage}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center mt-2 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3 mr-1" />
-                <span>Typical response time: Under 24 hours</span>
-              </div>
-            </div>
-          </Card>
+        {/* Input area */}
+        <div className="p-4 border-t">
+          <div className="flex space-x-2">
+            <Input 
+              value={input} 
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1"
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            />
+            <Button onClick={handleSend} disabled={!input.trim() || loading}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="flex justify-center mt-3">
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="text-xs text-muted-foreground"
+              onClick={() => {
+                toast({
+                  title: "Helpful tip",
+                  description: "You can also schedule a video consultation with an advisor for more personalized assistance.",
+                });
+              }}
+            >
+              Need more help? Schedule a consultation
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Package, 
   Search, 
@@ -15,9 +16,12 @@ import {
   Info,
   DollarSign,
   Calendar,
-  Loader
+  Loader,
+  Share2,
+  ExternalLink,
+  CheckCircle
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePrograms } from "@/hooks/usePrograms";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,10 +53,14 @@ const ProgramRating = ({ rating }: { rating: number }) => {
 };
 
 export default function Programs() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 100]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const { data: programs = [], isLoading, error } = usePrograms();
   const { toast } = useToast();
   
@@ -64,8 +73,56 @@ export default function Programs() {
     );
   };
   
+  // Handle country filter
+  const handleCountryChange = (country: string) => {
+    setSelectedCountries(prev => 
+      prev.includes(country) 
+        ? prev.filter(c => c !== country) 
+        : [...prev, country]
+    );
+  };
+  
+  // Extract unique countries from programs
+  const countries = Array.from(new Set(programs.map(program => program.location)));
+  
+  // Handle sorting change
+  const handleSortChange = (value: string) => {
+    if (value === sortBy) {
+      setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(value);
+      setSortDirection("asc");
+    }
+  };
+  
+  // Share program
+  const shareProgram = (program) => {
+    const url = `${window.location.origin}/programs/${program.id}`;
+    
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        toast({
+          title: "Link copied!",
+          description: "Program link has been copied to clipboard",
+        });
+      }).catch(() => {
+        toast({
+          title: "Copy failed",
+          description: "Failed to copy link to clipboard",
+          variant: "destructive",
+        });
+      });
+    } else {
+      toast({
+        title: "Copy not supported",
+        description: "Your browser doesn't support clipboard copying",
+        variant: "destructive",
+      });
+    }
+  };
+  
   // Filter programs based on search, tab, and filters
-  const filteredPrograms = programs.filter(program => {
+  let filteredPrograms = programs.filter(program => {
     // Search filter
     const matchesSearch = 
       program.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -83,8 +140,64 @@ export default function Programs() {
       selectedTypes.length === 0 || 
       (program.type && selectedTypes.includes(program.type));
     
-    return matchesSearch && matchesTab && matchesType;
+    // Country filter
+    const matchesCountry = 
+      selectedCountries.length === 0 || 
+      (program.location && selectedCountries.includes(program.location));
+    
+    // Price filter - assuming the tuition is a string like "$15000"
+    let tuitionValue = 0;
+    if (program.tuition) {
+      const match = program.tuition.match(/\d+/);
+      if (match) {
+        tuitionValue = parseInt(match[0]);
+      }
+    }
+    
+    const matchesPrice = tuitionValue >= priceRange[0] * 1000 && tuitionValue <= priceRange[1] * 1000;
+    
+    return matchesSearch && matchesTab && matchesType && matchesCountry && matchesPrice;
   });
+  
+  // Apply sorting
+  filteredPrograms = [...filteredPrograms].sort((a, b) => {
+    let valueA, valueB;
+    
+    switch (sortBy) {
+      case "name":
+        valueA = a.name.toLowerCase();
+        valueB = b.name.toLowerCase();
+        break;
+      case "tuition":
+        valueA = extractNumber(a.tuition) || 0;
+        valueB = extractNumber(b.tuition) || 0;
+        break;
+      case "duration":
+        valueA = extractNumber(a.duration) || 0;
+        valueB = extractNumber(b.duration) || 0;
+        break;
+      case "rating":
+        valueA = a.rating || 0;
+        valueB = b.rating || 0;
+        break;
+      default:
+        valueA = a.name.toLowerCase();
+        valueB = b.name.toLowerCase();
+    }
+    
+    if (sortDirection === "asc") {
+      return valueA > valueB ? 1 : -1;
+    } else {
+      return valueA < valueB ? 1 : -1;
+    }
+  });
+  
+  // Helper to extract numbers from strings
+  function extractNumber(str: string): number | null {
+    if (!str) return null;
+    const match = str.match(/\d+/);
+    return match ? parseInt(match[0]) : null;
+  }
 
   if (error) {
     toast({
@@ -145,6 +258,24 @@ export default function Programs() {
             </div>
             
             <div className="space-y-2">
+              <h3 className="text-sm font-medium">Country</h3>
+              <div className="space-y-2 max-h-36 overflow-y-auto pr-2">
+                {countries.map((country) => (
+                  <div key={country} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`country-${country}`} 
+                      checked={selectedCountries.includes(country)}
+                      onCheckedChange={() => handleCountryChange(country)}
+                    />
+                    <label htmlFor={`country-${country}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      {country}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
               <div className="flex justify-between">
                 <h3 className="text-sm font-medium">Tuition Range</h3>
                 <span className="text-sm text-muted-foreground">
@@ -186,6 +317,7 @@ export default function Programs() {
             <div className="pt-2">
               <Button variant="outline" className="w-full" onClick={() => {
                 setSelectedTypes([]);
+                setSelectedCountries([]);
                 setPriceRange([0, 100]);
               }}>
                 Reset Filters
@@ -210,8 +342,23 @@ export default function Programs() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="icon">
-                    <ArrowUpDown className="h-4 w-4" />
+                  <Select value={sortBy} onValueChange={handleSortChange}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue placeholder="Sort By" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="tuition">Tuition</SelectItem>
+                      <SelectItem value="duration">Duration</SelectItem>
+                      <SelectItem value="rating">Rating</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setSortDirection(prev => prev === "asc" ? "desc" : "asc")}
+                  >
+                    <ArrowUpDown className={`h-4 w-4 ${sortDirection === "desc" ? "transform rotate-180" : ""}`} />
                   </Button>
                   <Button variant="outline" size="icon" className="md:hidden">
                     <Filter className="h-4 w-4" />
@@ -242,28 +389,57 @@ export default function Programs() {
           {!isLoading && filteredPrograms.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {filteredPrograms.map((program) => (
-                <Card key={program.id} className={program.featured ? "border-primary" : ""}>
+                <Card 
+                  key={program.id} 
+                  className={`overflow-hidden transition-all duration-300 hover:shadow-lg ${program.featured ? "border-primary" : ""}`}
+                >
                   {program.featured && (
-                    <div className="absolute top-2 right-2">
-                      <Badge variant="default">
+                    <div className="absolute top-2 right-2 z-10">
+                      <Badge variant="default" className="bg-gradient-to-r from-primary to-violet-600">
                         <Star className="h-3 w-3 mr-1 fill-primary-foreground" />
                         Featured
                       </Badge>
                     </div>
                   )}
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-xl">{program.name}</CardTitle>
-                    <CardDescription className="flex items-center">
-                      <School className="h-4 w-4 mr-1" />
-                      {program.university || "University"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.location || "Unknown location"}</span>
+                  
+                  {/* Program image */}
+                  <div className="relative h-48 w-full bg-gradient-to-r from-primary/10 to-violet-600/10 overflow-hidden">
+                    {program.image_url ? (
+                      <img 
+                        src={program.image_url} 
+                        alt={program.name} 
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                        <School className="h-16 w-16" />
                       </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+                    
+                    {/* University logo overlay */}
+                    <div className="absolute bottom-4 left-4 flex items-center bg-background/80 backdrop-blur-sm p-1.5 rounded-full">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                        <School className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="ml-2 font-medium text-sm pr-2">{program.university}</span>
+                    </div>
+                  </div>
+                  
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-xl">{program.name}</CardTitle>
+                        <CardDescription className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          {program.location || "Unknown location"}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4 pb-3">
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center">
                         <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span className="text-sm">{program.type || "Various"}</span>
@@ -276,6 +452,10 @@ export default function Programs() {
                         <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span className="text-sm">{program.tuition || "Varies"}</span>
                       </div>
+                      <div className="flex items-center">
+                        <BookText className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="text-sm truncate">{program.subjects?.[0] || "Various"}</span>
+                      </div>
                     </div>
                     
                     <div>
@@ -284,11 +464,16 @@ export default function Programs() {
                         <ProgramRating rating={program.rating || 4.5} />
                       </div>
                       <div className="flex flex-wrap gap-1 mb-2">
-                        {program.subjects && program.subjects.map((subject, index) => (
+                        {program.subjects && program.subjects.slice(0, 3).map((subject, index) => (
                           <Badge key={index} variant="secondary" className="text-xs">
                             {subject}
                           </Badge>
                         ))}
+                        {program.subjects && program.subjects.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{program.subjects.length - 3} more
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex justify-between items-center text-sm mt-3">
                         <div className="flex items-center text-muted-foreground">
@@ -301,16 +486,37 @@ export default function Programs() {
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                  
+                  <CardFooter className="pt-0 gap-2 flex-wrap">
+                    <Button 
+                      variant="default" 
+                      className="flex-1 bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-700"
+                      onClick={() => navigate(`/applications/new?program=${program.id}`)}
+                    >
+                      Apply Now
+                    </Button>
                     
-                    <div className="pt-2 flex gap-2">
-                      <Button variant="default" className="flex-1">
-                        Apply Now
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => shareProgram(program)}
+                      >
+                        <Share2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" className="flex-1">
-                        More Details
+                      <Button 
+                        variant="outline" 
+                        asChild
+                        className="flex items-center gap-1"
+                      >
+                        <Link to={`/programs/${program.id}`}>
+                          <span className="hidden sm:inline">Details</span>
+                          <ExternalLink className="h-4 w-4" />
+                        </Link>
                       </Button>
                     </div>
-                  </CardContent>
+                  </CardFooter>
                 </Card>
               ))}
             </div>
@@ -327,6 +533,7 @@ export default function Programs() {
                 <Button onClick={() => {
                   setSearchQuery("");
                   setSelectedTypes([]);
+                  setSelectedCountries([]);
                   setPriceRange([0, 100]);
                   setActiveTab("all");
                 }}>

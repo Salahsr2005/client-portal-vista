@@ -82,6 +82,8 @@ export default function Profile() {
         email: "",
       });
       
+      setAvatarUrl(userProfile.photoUrl || null);
+      
       let completedFields = 0;
       let totalFields = 0;
       
@@ -310,7 +312,7 @@ export default function Profile() {
               <div className="p-6 md:p-8 md:w-1/3 flex flex-col items-center md:border-r border-border">
                 <div className="relative group">
                   <Avatar className="w-32 h-32 border-4 border-background shadow-xl mb-4">
-                    <AvatarImage src={userProfile?.photoUrl || "/placeholder.svg"} />
+                    <AvatarImage src={avatarUrl || "/placeholder.svg"} />
                     <AvatarFallback className="text-3xl">
                       {personalInfo.firstName?.charAt(0)}{personalInfo.lastName?.charAt(0)}
                     </AvatarFallback>
@@ -891,7 +893,7 @@ export default function Profile() {
                           Last active: Just now
                         </p>
                       </div>
-                      <Badge variant="success" className="bg-green-500 hover:bg-green-600 text-white">
+                      <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-white">
                         Active
                       </Badge>
                     </div>
