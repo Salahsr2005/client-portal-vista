@@ -15,16 +15,8 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "react-router-dom";
 
-const STUDY_LEVELS = [
-  { id: "Bachelor", label: "Undergraduate" },
-  { id: "Master", label: "Graduate" }, 
-  { id: "PhD", label: "PhD" }, 
-  { id: "Certificate", label: "Language Course" }, 
-  { id: "Diploma", label: "Professional Certificate" }
-];
-
+const STUDY_LEVELS = ["Undergraduate", "Graduate", "PhD", "Language_Course", "Professional_Certificate"];
 const LANGUAGES = ["English", "French", "Spanish", "German", "Italian", "Arabic", "Any"];
 const COUNTRIES = ["France", "Germany", "Spain", "Italy", "Belgium", "Poland", "Portugal", "Any"];
 const DURATIONS = ["semester", "year", "two_years", "full_program"];
@@ -51,7 +43,7 @@ export default function Consultation() {
   // Consultation parameters
   const [budget, setBudget] = useState(15000);
   const [language, setLanguage] = useState("English");
-  const [studyLevel, setStudyLevel] = useState<"Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma">("Bachelor");
+  const [studyLevel, setStudyLevel] = useState("Undergraduate");
   const [country, setCountry] = useState("Any");
   const [duration, setDuration] = useState("year");
   const [field, setField] = useState("Any");
@@ -219,7 +211,7 @@ export default function Consultation() {
             </div>
 
             <div className="flex justify-end mt-8">
-              <Button onClick={goToNextStep} className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-700">
+              <Button onClick={goToNextStep}>
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -238,13 +230,13 @@ export default function Consultation() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {STUDY_LEVELS.map((level) => (
                     <Button
-                      key={level.id}
-                      variant={studyLevel === level.id ? "default" : "outline"}
-                      onClick={() => setStudyLevel(level.id as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma")}
+                      key={level}
+                      variant={studyLevel === level ? "default" : "outline"}
+                      onClick={() => setStudyLevel(level)}
                       className="justify-start"
                     >
                       <GraduationCap className="mr-2 h-4 w-4" />
-                      {level.label}
+                      {level.replace('_', ' ')}
                     </Button>
                   ))}
                 </div>
@@ -290,7 +282,7 @@ export default function Consultation() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Previous
               </Button>
-              <Button onClick={goToNextStep} className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-700">
+              <Button onClick={goToNextStep}>
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -366,11 +358,7 @@ export default function Consultation() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Previous
               </Button>
-              <Button 
-                onClick={handleSubmit} 
-                disabled={loading} 
-                className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-700"
-              >
+              <Button onClick={handleSubmit} disabled={loading}>
                 {loading ? "Processing..." : "Find Programs"}
                 {!loading && <Sparkles className="ml-2 h-4 w-4" />}
               </Button>
@@ -433,7 +421,7 @@ export default function Consultation() {
                     </TabsContent>
                   </Tabs>
 
-                  <Card className="overflow-hidden bg-gradient-to-br from-primary to-violet-600 text-primary-foreground">
+                  <Card className="overflow-hidden bg-primary text-primary-foreground">
                     <CardContent className="p-6">
                       <div className="flex items-center mb-4">
                         <Sparkles className="h-5 w-5 mr-2" />
@@ -468,10 +456,7 @@ export default function Consultation() {
                   <Button variant="outline" onClick={() => setStep(1)}>
                     Start New Search
                   </Button>
-                  <Button 
-                    onClick={() => navigate('/programs')}
-                    className="bg-gradient-to-r from-primary to-violet-600 hover:from-primary/90 hover:to-violet-700"
-                  >
+                  <Button onClick={() => navigate('/programs')}>
                     View All Programs
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -553,7 +538,7 @@ function ProgramCard({ program, matchScore }) {
             </div>
             <div className="flex items-center">
               <Coins className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>${program.tuition_min?.toLocaleString()}/year</span>
+              <span>${program.tuition_min.toLocaleString()}/year</span>
             </div>
             <div className="flex items-center">
               <Languages className="h-4 w-4 mr-2 text-muted-foreground" />
