@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,7 +17,7 @@ import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import Programs from "./pages/Programs";
 import Applications from "./pages/Applications";
-import NewApplication from "./pages/NewApplication"; // Add this import
+import NewApplication from "./pages/NewApplication";
 import Appointments from "./pages/Appointments";
 import Services from "./pages/Services";
 import Notifications from "./pages/Notifications";
@@ -64,8 +63,9 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/applications" element={<Applications />} />
-        <Route path="/applications/new" element={<NewApplication />} /> {/* Add this route */}
+        <Route path="/applications/new" element={<NewApplication />} />
         <Route path="/programs" element={<Programs />} />
+        <Route path="/programs/:programId" element={<ProgramView />} />
         <Route path="/services" element={<Services />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/messages" element={<Messages />} />
