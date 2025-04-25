@@ -1,8 +1,7 @@
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./App.css";
-import DashboardLayout from "./components/layout/DashboardLayout";
-import ThemeProvider from "./components/ThemeProvider";
+import { DashboardLayout } from "./components/layout/DashboardLayout";
+import { ThemeProvider } from "./components/ThemeProvider";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
