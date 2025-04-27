@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Package, 
   Search, 
@@ -15,7 +16,8 @@ import {
   Info,
   DollarSign,
   Calendar,
-  Loader
+  Loader,
+  Eye
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,6 +50,7 @@ const ProgramRating = ({ rating }: { rating: number }) => {
 };
 
 export default function Programs() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 100]);
@@ -242,75 +245,99 @@ export default function Programs() {
           {!isLoading && filteredPrograms.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
               {filteredPrograms.map((program) => (
-                <Card key={program.id} className={program.featured ? "border-primary" : ""}>
-                  {program.featured && (
-                    <div className="absolute top-2 right-2">
-                      <Badge variant="default">
-                        <Star className="h-3 w-3 mr-1 fill-primary-foreground" />
-                        Featured
-                      </Badge>
-                    </div>
-                  )}
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-xl">{program.name}</CardTitle>
-                    <CardDescription className="flex items-center">
-                      <School className="h-4 w-4 mr-1" />
-                      {program.university || "University"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.location || "Unknown location"}</span>
+                <Card 
+                  key={program.id} 
+                  className={`relative overflow-hidden ${program.featured ? "border-primary" : ""}`}
+                >
+                  {/* Background image */}
+                  <div
+                    className="absolute inset-0 bg-cover bg-center opacity-20"
+                    style={{
+                      backgroundImage: `url(${program.image_url || '/placeholder.svg'})`,
+                      zIndex: 0
+                    }}
+                  />
+                  
+                  {/* Content overlay */}
+                  <div className="relative z-10">
+                    {program.featured && (
+                      <div className="absolute top-2 right-2">
+                        <Badge variant="default">
+                          <Star className="h-3 w-3 mr-1 fill-primary-foreground" />
+                          Featured
+                        </Badge>
                       </div>
-                      <div className="flex items-center">
-                        <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.type || "Various"}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.duration || "Varies"}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-sm">{program.tuition || "Varies"}</span>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm">Program Rating</span>
-                        <ProgramRating rating={program.rating || 4.5} />
-                      </div>
-                      <div className="flex flex-wrap gap-1 mb-2">
-                        {program.subjects && program.subjects.map((subject, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {subject}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex justify-between items-center text-sm mt-3">
-                        <div className="flex items-center text-muted-foreground">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          <span>Deadline: {program.deadline ? new Date(program.deadline).toLocaleDateString() : "Contact for details"}</span>
+                    )}
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-xl">{program.name}</CardTitle>
+                      <CardDescription className="flex items-center">
+                        <School className="h-4 w-4 mr-1" />
+                        {program.university || "University"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <span className="text-sm">{program.location || "Unknown location"}</span>
                         </div>
-                        <div className="flex items-center text-muted-foreground">
-                          <Info className="h-4 w-4 mr-2" />
-                          <span>Fee: {program.applicationFee || "Varies"}</span>
+                        <div className="flex items-center">
+                          <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <span className="text-sm">{program.type || "Various"}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <span className="text-sm">{program.duration || "Varies"}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <span className="text-sm">{program.tuition || "Varies"}</span>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="pt-2 flex gap-2">
-                      <Button variant="default" className="flex-1">
-                        Apply Now
-                      </Button>
-                      <Button variant="outline" className="flex-1">
-                        More Details
-                      </Button>
-                    </div>
-                  </CardContent>
+                      
+                      <div>
+                        <div className="flex justify-between mb-2">
+                          <span className="text-sm">Program Rating</span>
+                          <ProgramRating rating={program.rating || 4.5} />
+                        </div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {program.subjects && program.subjects.map((subject, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {subject}
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex justify-between items-center text-sm mt-3">
+                          <div className="flex items-center text-muted-foreground">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            <span>Deadline: {program.deadline ? new Date(program.deadline).toLocaleDateString() : "Contact for details"}</span>
+                          </div>
+                          <div className="flex items-center text-muted-foreground">
+                            <Info className="h-4 w-4 mr-2" />
+                            <span>Fee: {program.applicationFee || "Varies"}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="pt-2 flex gap-2">
+                        <Button 
+                          variant="default" 
+                          className="flex-1"
+                          onClick={() => navigate(`/applications/new?programId=${program.id}`)}
+                        >
+                          Apply Now
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => navigate(`/programs/${program.id}`)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </div>
                 </Card>
               ))}
             </div>

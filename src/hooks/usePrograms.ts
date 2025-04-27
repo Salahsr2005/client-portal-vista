@@ -31,7 +31,9 @@ export const usePrograms = () => {
         applicationFee: program.application_fee ? `$${program.application_fee}` : "$125",
         featured: program.status === "Active",
         requirements: program.admission_requirements || "",
-        description: program.description || program.admission_requirements || ""
+        description: program.description || program.admission_requirements || "",
+        // Include all original fields from the database
+        ...program
       }));
     },
   });

@@ -111,7 +111,7 @@ export default function ChatSupport() {
   const handleTopicSelect = (topic: Topic) => {
     setActiveChat(topic.name);
     // Add system message about the selected topic
-    setMessages([
+    const newMessages = [
       ...messages,
       {
         id: Date.now().toString(),
@@ -119,12 +119,13 @@ export default function ChatSupport() {
         sender: "system",
         timestamp: new Date()
       }
-    ]);
+    ];
+    setMessages(newMessages);
   };
 
   const handleQuestionSelect = async (question: string) => {
     // Add user question
-    const updatedMessages = [
+    const updatedMessages: Message[] = [
       ...messages,
       {
         id: Date.now().toString() + "-q",
@@ -209,31 +210,30 @@ export default function ChatSupport() {
       }
       
       // Add system response
-      setMessages([
-        ...updatedMessages,
-        {
-          id: Date.now().toString() + "-a",
-          content: response,
-          sender: "agent",
-          timestamp: new Date()
-        }
-      ]);
+      const agentMessage: Message = {
+        id: Date.now().toString() + "-a",
+        content: response,
+        sender: "agent",
+        timestamp: new Date()
+      };
+
+      setMessages([...updatedMessages, agentMessage]);
       
       // If we have a chat ID, save the response
       if (chatId) {
         try {
-          const adminId = supabase.auth.getSession().then(({ data }) => {
-            return data.session?.user?.id;
+          supabase.auth.getSession().then(({ data }) => {
+            const adminId = data.session?.user?.id;
+            
+            if (adminId) {
+              supabase.from("chat_messages").insert({
+                chat_id: chatId,
+                sender_id: "system", // Use a system ID for automated responses
+                sender_type: "System",
+                message_text: response
+              });
+            }
           });
-          
-          if (adminId) {
-            supabase.from("chat_messages").insert({
-              chat_id: chatId,
-              sender_id: "system", // Use a system ID for automated responses
-              sender_type: "System",
-              message_text: response
-            });
-          }
         } catch (error) {
           console.error("Error saving response:", error);
         }
@@ -244,7 +244,7 @@ export default function ChatSupport() {
   const handleSendMessage = async () => {
     if (!message.trim()) return;
     
-    const userMessage = {
+    const userMessage: Message = {
       id: Date.now().toString(),
       content: message,
       sender: "user",
@@ -268,15 +268,13 @@ export default function ChatSupport() {
     // Simulate response
     setTimeout(() => {
       setIsTyping(false);
-      setMessages(prev => [
-        ...prev, 
-        {
-          id: Date.now().toString(),
-          content: "Thank you for your message. An advisor will respond to you shortly. For immediate assistance, please consider scheduling a consultation.",
-          sender: "agent",
-          timestamp: new Date()
-        }
-      ]);
+      const agentMessage: Message = {
+        id: Date.now().toString(),
+        content: "Thank you for your message. An advisor will respond to you shortly. For immediate assistance, please consider scheduling a consultation.",
+        sender: "agent",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, agentMessage]);
     }, 2000);
   };
 
