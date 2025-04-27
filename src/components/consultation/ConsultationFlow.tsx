@@ -1,530 +1,741 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from "@/hooks/use-toast";
-import { ArrowRight, ArrowLeft, Check, Sparkles } from "lucide-react";
-import { consultationTypes, ConsultationType } from './ConsultationTypes';
-import consultationQuestions, { ConsultationSection, Question } from './ConsultationQuestions';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Slider,
+  Switch,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui';
+import { Badge } from "@/components/ui/badge";
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useNavigate } from 'react-router-dom';
+import { consultationTypes } from './ConsultationTypes';
+import { 
+  BookOpen, 
+  Building, 
+  Check, 
+  ChevronLeft, 
+  ChevronRight, 
+  CircleDollarSign, 
+  Clock, 
+  GraduationCap, 
+  Languages, 
+  ListChecks, 
+  MapPin, 
+  Sparkles, 
+  Star 
+} from 'lucide-react';
 import { usePrograms } from '@/hooks/usePrograms';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-const ConsultationFlow: React.FC = () => {
+// Step flow for the consultation
+const STEPS = {
+  SELECT_TYPE: 0,
+  BASIC_INFO: 1,
+  PREFERENCES: 2,
+  BUDGET: 3,
+  RESULTS: 4,
+};
+
+// Define study levels
+const STUDY_LEVELS = ['Bachelor', 'Master', 'PhD', 'Certificate', 'Diploma'];
+
+// Define languages
+const LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Arabic', 'Any'];
+
+// Define fields of study
+const FIELDS = [
+  'Business & Management',
+  'Computer Science & IT',
+  'Engineering',
+  'Arts & Humanities',
+  'Social Sciences',
+  'Medicine & Health',
+  'Natural Sciences',
+  'Education',
+  'Law',
+  'Any'
+];
+
+// Define countries
+const COUNTRIES = ['France', 'Spain', 'Germany', 'Italy', 'Belgium', 'Netherlands', 'Portugal', 'Sweden', 'Europe', 'Any'];
+
+// Define durations
+const DURATIONS = [
+  { label: 'One semester', value: 'semester' },
+  { label: 'One year', value: 'year' },
+  { label: 'Two years', value: 'two_years' },
+  { label: 'Full program', value: 'full_program' },
+];
+
+const ConsultationFlow = () => {
   const { toast } = useToast();
-  const [step, setStep] = useState<'type' | 'questions' | 'results'>('type');
-  const [selectedType, setSelectedType] = useState<ConsultationType | null>(null);
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<any[] | null>(null);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { data: programsData, isLoading: programsLoading } = usePrograms();
+  const [currentStep, setCurrentStep] = useState(STEPS.SELECT_TYPE);
+  const [progress, setProgress] = useState(20);
+  const [consultationType, setConsultationType] = useState<string | null>(null);
   
-  const { data: allPrograms, isLoading: programsLoading } = usePrograms();
+  // Form state
+  const [selectedStudyLevel, setSelectedStudyLevel] = useState<string>(STUDY_LEVELS[0]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(LANGUAGES[0]);
+  const [selectedField, setSelectedField] = useState<string>(FIELDS[0]);
+  const [selectedCountry, setSelectedCountry] = useState<string>(COUNTRIES[0]);
+  const [selectedDuration, setSelectedDuration] = useState<string>(DURATIONS[0].value);
+  const [scholarshipRequired, setScholarshipRequired] = useState<boolean>(false);
+  const [religiousFacilities, setReligiousFacilities] = useState<boolean>(false);
+  const [halalFood, setHalalFood] = useState<boolean>(false);
+  const [budget, setBudget] = useState<number>(10000);
   
-  // Get the sections for the selected consultation type
-  const sections = selectedType ? 
-    (consultationQuestions[selectedType.id as keyof typeof consultationQuestions] || []) : [];
-  
-  // Current section being displayed
-  const currentSection = sections[currentSectionIndex];
-  
-  // Calculate progress percentage
-  const calculateProgress = () => {
-    if (step === 'type') return 0;
-    if (step === 'results') return 100;
-    return ((currentSectionIndex + 1) / sections.length) * 100;
-  };
-  
-  // Handle selection of consultation type
-  const handleTypeSelect = (type: ConsultationType) => {
-    setSelectedType(type);
-    setStep('questions');
-    // Reset answers when changing type
-    setAnswers({});
-    setCurrentSectionIndex(0);
-  };
-  
-  // Handle answer changes for different question types
-  const handleAnswerChange = (questionId: string, value: any) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
-  };
-  
-  // Check if can proceed to next section
-  const canProceedToNext = () => {
-    // If no current section, can't proceed
-    if (!currentSection) return false;
-    
-    // Check if all required questions are answered
-    for (const question of currentSection.questions) {
-      if (question.required && 
-         (answers[question.id] === undefined || 
-          answers[question.id] === null || 
-          (Array.isArray(answers[question.id]) && answers[question.id].length === 0))) {
-        return false;
-      }
-    }
-    return true;
-  };
-  
-  // Handle next section navigation
+  // Results
+  const [matchedPrograms, setMatchedPrograms] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isLoadingResults, setIsLoadingResults] = useState<boolean>(false);
+
+  // Update progress when step changes
+  useEffect(() => {
+    const progressPercentages = [20, 40, 60, 80, 100];
+    setProgress(progressPercentages[currentStep]);
+  }, [currentStep]);
+
+  // Handle next step
   const handleNext = () => {
-    if (currentSectionIndex < sections.length - 1) {
-      setCurrentSectionIndex(prev => prev + 1);
-    } else {
-      // Submit answers and show results
-      handleSubmit();
+    if (currentStep < Object.keys(STEPS).length - 1) {
+      setCurrentStep(currentStep + 1);
+      window.scrollTo(0, 0);
     }
   };
-  
-  // Handle previous section navigation
-  const handlePrevious = () => {
-    if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(prev => prev - 1);
-    } else {
-      // Go back to consultation type selection
-      setStep('type');
+
+  // Handle previous step
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+      window.scrollTo(0, 0);
     }
   };
-  
-  // Generate results based on answers
-  const generateResults = () => {
-    // This would normally call an API with the answers to get personalized results
-    // For now, we'll simulate by filtering the available programs
+
+  // Handle consultation type selection
+  const handleTypeSelection = (typeId: string) => {
+    setConsultationType(typeId);
+    handleNext();
+  };
+
+  // Handle budget change
+  const handleBudgetChange = (value: number[]) => {
+    setBudget(value[0]);
+  };
+
+  // Save consultation and get matched programs
+  const handleSubmitConsultation = async () => {
+    setIsSubmitting(true);
+    setIsLoadingResults(true);
     
-    if (!allPrograms || allPrograms.length === 0) {
-      return [];
-    }
-    
-    // Basic filtering logic based on common fields
-    const studyLevel = answers['study-level'];
-    const studyField = answers['study-field'];
-    const budget = answers['budget'];
-    const language = answers['language-preference'];
-    
-    let filtered = [...allPrograms];
-    
-    // Filter by study level if selected
-    if (studyLevel) {
-      const levelMap: Record<string, string> = {
-        'bachelor': 'Bachelor',
-        'master': 'Master',
-        'phd': 'PhD',
-        'certificate': 'Certificate'
-      };
-      
-      if (levelMap[studyLevel]) {
-        filtered = filtered.filter(p => 
-          p.type?.toLowerCase().includes(levelMap[studyLevel]?.toLowerCase() || '')
-        );
-      }
-    }
-    
-    // Filter by field if selected
-    if (studyField && studyField !== 'any') {
-      filtered = filtered.filter(p => {
-        if (!p.field_keywords) return false;
-        const field = studyField.toLowerCase();
-        return p.field_keywords.some((k: string) => k.toLowerCase().includes(field));
-      });
-    }
-    
-    // Sort by match score (would normally be calculated by backend)
-    filtered.forEach(p => {
-      // Simple scoring algorithm
-      let score = 0;
-      
-      // Preferred language match
-      if (language && p.program_language && 
-          p.program_language.toLowerCase() === language.toLowerCase()) {
-        score += 30;
-      } else if (language === 'any' || language === 'english') {
-        score += 15;
-      }
-      
-      // Budget match
-      if (budget) {
-        const budgetRanges: Record<string, [number, number]> = {
-          'under_5000': [0, 5000],
-          '5000_10000': [5000, 10000],
-          '10000_15000': [10000, 15000],
-          '15000_20000': [15000, 20000],
-          '20000_30000': [20000, 30000],
-          'above_30000': [30000, 1000000]
-        };
+    try {
+      // Calculate matched programs based on preferences
+      if (programsData) {
+        // Simulate matching algorithm with scoring system
+        const scored = programsData.map(program => {
+          // Calculate match score based on preferences
+          let score = 0;
+          
+          // Study level match
+          if (program.study_level === selectedStudyLevel) {
+            score += 20;
+          }
+          
+          // Language match
+          if (program.program_language === selectedLanguage || selectedLanguage === 'Any') {
+            score += 15;
+          }
+          
+          // Field match
+          if ((program.field_keywords && program.field_keywords.some(k => 
+                k.toLowerCase().includes(selectedField.toLowerCase()))) || 
+              selectedField === 'Any') {
+            score += 15;
+          }
+          
+          // Country match
+          if (program.country === selectedCountry || 
+              (selectedCountry === 'Europe' && 
+               ['France', 'Spain', 'Germany', 'Italy', 'Belgium', 'Netherlands', 'Portugal', 'Sweden'].includes(program.country)) || 
+              selectedCountry === 'Any') {
+            score += 10;
+          }
+          
+          // Budget match (tuition + living costs for one year)
+          const yearlyRate = (program.tuition_min + (program.living_cost_min * 12));
+          if (budget >= yearlyRate) {
+            score += 20;
+          } else if (budget >= yearlyRate * 0.8) {
+            score += 10;
+          }
+          
+          // Scholarship match
+          if (!scholarshipRequired || (scholarshipRequired && program.scholarship_available)) {
+            score += 10;
+          }
+          
+          // Cultural needs match
+          if ((!religiousFacilities && !halalFood) || 
+              (religiousFacilities && program.religious_facilities) || 
+              (halalFood && program.halal_food_availability)) {
+            score += 10;
+          }
+          
+          return {
+            ...program,
+            matchScore: score
+          };
+        });
         
-        const [min, max] = budgetRanges[budget] || [0, 1000000];
-        const totalCost = (p.tuition_min || 0) + ((p.living_cost_min || 0) * 12);
+        // Sort by match score
+        const matched = scored
+          .sort((a, b) => b.matchScore - a.matchScore)
+          .slice(0, 5);  // Get top 5 matches
+          
+        setMatchedPrograms(matched);
+      }
+      
+      // Save consultation to database if user is logged in
+      if (user) {
+        const fieldKeywords = selectedField.split(' & ').map(f => f.toLowerCase());
         
-        if (totalCost <= max && totalCost >= min) {
-          score += 25;
-        } else if (totalCost <= max * 1.2) {
-          score += 15;
+        const { error } = await supabase
+          .from('consultation_results')
+          .insert({
+            user_id: user.id,
+            study_level: selectedStudyLevel,
+            language_preference: selectedLanguage,
+            field_preference: selectedField,
+            field_keywords: fieldKeywords,
+            destination_preference: selectedCountry,
+            budget: budget,
+            duration_preference: selectedDuration,
+            scholarship_required: scholarshipRequired,
+            religious_facilities_required: religiousFacilities,
+            halal_food_required: halalFood,
+            conversion_status: 'New',
+          });
+          
+        if (error) {
+          console.error('Error saving consultation:', error);
+          toast({
+            title: 'Error saving your consultation',
+            description: 'Please try again later.',
+            variant: 'destructive',
+          });
         }
       }
       
-      // Add match score
-      p.matchScore = score;
-    });
-    
-    return filtered
-      .filter(p => (p.matchScore || 0) > 10) // Filter out low matches
-      .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0)) // Sort by score
-      .slice(0, 5); // Top 5 results
-  };
-  
-  // Handle submission of all answers
-  const handleSubmit = () => {
-    setLoading(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      const results = generateResults();
-      setResults(results);
-      setStep('results');
-      setLoading(false);
-      
+      // Move to results step
+      handleNext();
+    } catch (error) {
+      console.error('Error during consultation:', error);
       toast({
-        title: "Consultation complete!",
-        description: `We've found ${results.length} programs that match your preferences.`,
+        title: 'Something went wrong',
+        description: 'Please try again later.',
+        variant: 'destructive',
       });
-    }, 1500);
+    } finally {
+      setIsSubmitting(false);
+      setIsLoadingResults(false);
+    }
+  };
+
+  // Handle viewing a program
+  const handleViewProgram = (programId: string) => {
+    navigate(`/program/${programId}`);
   };
   
-  // Render appropriate question input based on type
-  const renderQuestionInput = (question: Question) => {
-    switch (question.type) {
-      case 'single':
+  // Get badge variant based on score
+  const getBadgeVariant = (score: number) => {
+    if (score >= 80) return 'default';  // Primary color
+    if (score >= 60) return 'secondary';
+    return 'outline';
+  };
+  
+  // Render step based on current step
+  const renderStep = () => {
+    switch (currentStep) {
+      case STEPS.SELECT_TYPE:
         return (
-          <RadioGroup
-            value={answers[question.id] || ''}
-            onValueChange={value => handleAnswerChange(question.id, value)}
-            className="space-y-2 mt-2"
-          >
-            {question.options?.map(option => (
-              <div key={option.value} className="flex items-center space-x-2">
-                <RadioGroupItem value={option.value} id={`${question.id}-${option.value}`} />
-                <Label htmlFor={`${question.id}-${option.value}`}>{option.label}</Label>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {consultationTypes.map(type => (
+              <Card 
+                key={type.id} 
+                className={`cursor-pointer transition-all hover:shadow-lg ${consultationType === type.id ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => handleTypeSelection(type.id)}
+              >
+                <CardHeader>
+                  <div className={`${type.color} p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4`}>
+                    {type.icon}
+                  </div>
+                  <CardTitle>{type.title}</CardTitle>
+                  <CardDescription>{type.description}</CardDescription>
+                </CardHeader>
+              </Card>
             ))}
-          </RadioGroup>
+          </div>
         );
-        
-      case 'multi':
+      
+      case STEPS.BASIC_INFO:
         return (
-          <div className="space-y-2 mt-2">
-            {question.options?.map(option => (
-              <div key={option.value} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`${question.id}-${option.value}`}
-                  checked={(answers[question.id] || []).includes(option.value)}
-                  onCheckedChange={(checked) => {
-                    const currentValues = answers[question.id] || [];
-                    const newValues = checked
-                      ? [...currentValues, option.value]
-                      : currentValues.filter((v: string) => v !== option.value);
-                    handleAnswerChange(question.id, newValues);
-                  }}
+          <Card>
+            <CardHeader>
+              <CardTitle>Basic Information</CardTitle>
+              <CardDescription>
+                Tell us about your academic goals
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="studyLevel">Study Level</Label>
+                <Select value={selectedStudyLevel} onValueChange={setSelectedStudyLevel}>
+                  <SelectTrigger id="studyLevel" className="w-full">
+                    <SelectValue placeholder="Select study level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STUDY_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="fieldStudy">Field of Study</Label>
+                <Select value={selectedField} onValueChange={setSelectedField}>
+                  <SelectTrigger id="fieldStudy" className="w-full">
+                    <SelectValue placeholder="Select field of study" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIELDS.map((field) => (
+                      <SelectItem key={field} value={field}>
+                        {field}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="language">Preferred Language of Instruction</Label>
+                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                  <SelectTrigger id="language" className="w-full">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGES.map((language) => (
+                      <SelectItem key={language} value={language}>
+                        {language}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleBack}>
+                <ChevronLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={handleNext}>
+                Next <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      
+      case STEPS.PREFERENCES:
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferences</CardTitle>
+              <CardDescription>
+                Tell us about your destination preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="country">Preferred Destination</Label>
+                <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                  <SelectTrigger id="country" className="w-full">
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COUNTRIES.map((country) => (
+                      <SelectItem key={country} value={country}>
+                        {country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="duration">Program Duration</Label>
+                <Select value={selectedDuration} onValueChange={setSelectedDuration}>
+                  <SelectTrigger id="duration" className="w-full">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATIONS.map((duration) => (
+                      <SelectItem key={duration.value} value={duration.value}>
+                        {duration.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Additional Preferences</h3>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="scholarship">Scholarship Required</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Do you need a scholarship for your studies?
+                    </p>
+                  </div>
+                  <Switch
+                    id="scholarship"
+                    checked={scholarshipRequired}
+                    onCheckedChange={setScholarshipRequired}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="religious">Religious Facilities</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Do you need access to religious facilities?
+                    </p>
+                  </div>
+                  <Switch
+                    id="religious"
+                    checked={religiousFacilities}
+                    onCheckedChange={setReligiousFacilities}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="halal">Halal Food Options</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Do you require halal food options?
+                    </p>
+                  </div>
+                  <Switch
+                    id="halal"
+                    checked={halalFood}
+                    onCheckedChange={setHalalFood}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleBack}>
+                <ChevronLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={handleNext}>
+                Next <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      
+      case STEPS.BUDGET:
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Budget Information</CardTitle>
+              <CardDescription>
+                What is your total budget for one year?
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <Label htmlFor="budget">Annual Budget (in EUR)</Label>
+                  <span className="font-semibold text-lg">€{budget.toLocaleString()}</span>
+                </div>
+                <Slider
+                  id="budget"
+                  min={5000}
+                  max={50000}
+                  step={1000}
+                  defaultValue={[budget]}
+                  onValueChange={handleBudgetChange}
+                  className="py-4"
                 />
-                <Label htmlFor={`${question.id}-${option.value}`}>{option.label}</Label>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <div>€5,000</div>
+                  <div>€50,000</div>
+                </div>
+                
+                <div className="mt-6 space-y-4">
+                  <h3 className="text-lg font-medium">What does this include?</h3>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <CircleDollarSign className="h-5 w-5 text-primary" />
+                      <span>Tuition fees</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Building className="h-5 w-5 text-primary" />
+                      <span>Accommodation costs</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      <span>Living expenses</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
-            ))}
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" onClick={handleBack}>
+                <ChevronLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button 
+                onClick={handleSubmitConsultation} 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Processing...' : 'Get Recommendations'} {!isSubmitting && <Sparkles className="ml-2 h-4 w-4" />}
+              </Button>
+            </CardFooter>
+          </Card>
+        );
+      
+      case STEPS.RESULTS:
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Program Recommendations</CardTitle>
+                <CardDescription>
+                  Based on your preferences, here are our top recommendations
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoadingResults ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-lg font-medium">Finding your perfect matches...</p>
+                  </div>
+                ) : matchedPrograms.length > 0 ? (
+                  <div className="space-y-6">
+                    {matchedPrograms.map((program, index) => (
+                      <Card key={program.id} className="overflow-hidden">
+                        <div className="flex flex-col md:flex-row">
+                          <div className="md:w-1/4 bg-muted flex items-center justify-center p-4">
+                            <div className="text-center">
+                              <div className="text-3xl font-bold text-primary mb-1">{program.matchScore}%</div>
+                              <Badge variant={getBadgeVariant(program.matchScore)}>
+                                Match Score
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="md:w-3/4 p-4">
+                            <h3 className="text-xl font-semibold mb-2">{program.name}</h3>
+                            <div className="space-y-2 mb-4">
+                              <div className="flex items-center gap-1">
+                                <Building className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">{program.university}, {program.country}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">{program.study_level}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Languages className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm">Language: {program.program_language}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
+                                  {program.field}
+                                </Badge>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                                  {program.duration_months} months
+                                </Badge>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                                  €{program.tuition_min.toLocaleString()} tuition
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <Button variant="outline" size="sm" onClick={() => handleViewProgram(program.id)}>
+                                View Details
+                              </Button>
+                              {program.scholarship_available && (
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400">
+                                  Scholarship Available
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                    
+                    <div className="text-center mt-8">
+                      <p className="text-muted-foreground mb-4">
+                        Want more personalized guidance?
+                      </p>
+                      <Button onClick={() => navigate('/appointments')}>
+                        Schedule a Consultation <Clock className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No matches found</h3>
+                    <p className="text-muted-foreground mb-6">
+                      We couldn't find programs matching your criteria. Try adjusting your preferences.
+                    </p>
+                    <Button variant="outline" onClick={() => setCurrentStep(STEPS.PREFERENCES)}>
+                      Adjust Preferences
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            
+            {matchedPrograms.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Why These Recommendations?</CardTitle>
+                  <CardDescription>
+                    Understanding how we matched these programs to your preferences
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Our recommendation system uses multiple factors to match you with the best programs:
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <Check className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">Study Level Match</h4>
+                          <p className="text-sm text-muted-foreground">
+                            We matched programs with your selected study level: <span className="font-medium">{selectedStudyLevel}</span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <Check className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">Field of Study</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Programs aligned with your field of interest: <span className="font-medium">{selectedField}</span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <Check className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">Budget Compatibility</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Programs within your budget range of <span className="font-medium">€{budget.toLocaleString()}</span> per year
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <Check className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">Location Preference</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Programs in your preferred destination: <span className="font-medium">{selectedCountry}</span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {scholarshipRequired && (
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5">
+                            <Check className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Scholarship Availability</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Programs with scholarship opportunities
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setCurrentStep(STEPS.SELECT_TYPE)}>
+                    Start New Consultation
+                  </Button>
+                  <Button variant="default" onClick={() => navigate('/appointments')}>
+                    Book Advisor Session
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
           </div>
         );
-        
-      case 'boolean':
-        return (
-          <div className="flex items-center space-x-2 mt-2">
-            <Switch
-              id={question.id}
-              checked={answers[question.id] || false}
-              onCheckedChange={checked => handleAnswerChange(question.id, checked)}
-            />
-            <Label htmlFor={question.id}>Yes</Label>
-          </div>
-        );
-        
-      case 'text':
-        return (
-          <Textarea
-            id={question.id}
-            value={answers[question.id] || ''}
-            onChange={e => handleAnswerChange(question.id, e.target.value)}
-            placeholder={question.placeholder}
-            className="mt-2"
-          />
-        );
-        
-      case 'range':
-        return (
-          <div className="mt-4">
-            <Slider
-              defaultValue={[answers[question.id] || question.min || 0]}
-              min={question.min || 0}
-              max={question.max || 100}
-              step={question.step || 1}
-              onValueChange={value => handleAnswerChange(question.id, value[0])}
-            />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>{question.min || 0}</span>
-              <span>{question.max || 100}</span>
-            </div>
-          </div>
-        );
-        
+      
       default:
         return null;
     }
   };
   
-  // Render consultation type selection
-  const renderTypeSelection = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold">Select Consultation Type</h1>
-        <p className="text-muted-foreground mt-2">
-          Choose the type of consultation that best fits your needs
-        </p>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {consultationTypes.map((type) => (
-          <Card 
-            key={type.id} 
-            className={`cursor-pointer hover:shadow-md transition-shadow ${
-              selectedType?.id === type.id ? 'border-primary' : ''
-            }`}
-            onClick={() => handleTypeSelect(type)}
-          >
-            <CardHeader className="pb-2">
-              <div className={`p-2 rounded-full w-10 h-10 flex items-center justify-center ${type.color}`}>
-                {type.icon}
-              </div>
-              <CardTitle className="mt-2 text-lg">{type.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>{type.description}</CardDescription>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-  
-  // Render questions for current section
-  const renderQuestions = () => {
-    if (!currentSection) return null;
-    
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-semibold">{currentSection.title}</h2>
-          <p className="text-muted-foreground mt-1">{currentSection.description}</p>
-        </div>
-        
-        <div className="space-y-8 mt-6">
-          {currentSection.questions.map((question) => (
-            <div key={question.id} className="space-y-2">
-              <Label 
-                htmlFor={question.id} 
-                className="text-base font-medium flex items-center"
-              >
-                {question.text}
-                {question.required && <span className="text-red-500 ml-1">*</span>}
-              </Label>
-              {renderQuestionInput(question)}
-            </div>
-          ))}
-        </div>
-        
-        <div className="flex justify-between pt-4 mt-8">
-          <Button variant="outline" onClick={handlePrevious}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          
-          <Button 
-            onClick={handleNext} 
-            disabled={!canProceedToNext()}
-          >
-            {currentSectionIndex < sections.length - 1 ? 'Continue' : 'Get Results'}
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-  
-  // Render results
-  const renderResults = () => {
-    if (loading) {
-      return (
-        <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mx-auto"></div>
-          <p className="text-lg font-medium mt-4">Finding your perfect matches...</p>
-          <p className="text-muted-foreground">This will just take a moment</p>
-        </div>
-      );
-    }
-    
-    if (!results || results.length === 0) {
-      return (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-xl font-semibold">No matches found</h2>
-          <p className="text-muted-foreground mt-2">
-            We couldn't find any programs that match your specific preferences.
-          </p>
-          <Button className="mt-6" onClick={() => setStep('questions')}>
-            Adjust Your Preferences
-          </Button>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="space-y-8">
-        <div className="text-center">
-          <div className="inline-block bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 p-2.5 rounded-full mb-4">
-            <Check className="w-6 h-6" />
-          </div>
-          <h2 className="text-2xl font-bold">Your Personalized Recommendations</h2>
-          <p className="text-muted-foreground mt-2">
-            Based on your preferences, here are the top matches for you
-          </p>
-        </div>
-        
-        <div className="space-y-4">
-          {results.map((program, index) => (
-            <Card key={program.id} className="overflow-hidden">
-              <div className="flex flex-col md:flex-row">
-                <div className="w-full md:w-1/4 bg-muted flex items-center justify-center p-4">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-primary">{(program.matchScore || 0)}%</div>
-                    <p className="text-xs text-muted-foreground">Match Score</p>
-                  </div>
-                </div>
-                
-                <CardContent className="w-full md:w-3/4 p-6">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-lg">
-                        {program.name}
-                      </h3>
-                      <p className="text-muted-foreground text-sm">
-                        {program.university}, {program.location}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 text-sm">
-                        <Badge variant="outline">{program.type}</Badge>
-                        <Badge variant="outline">{program.duration}</Badge>
-                        <Badge variant="outline">{program.tuition}</Badge>
-                      </div>
-                    </div>
-                    
-                    <Button size="sm" asChild>
-                      <a href={`/programs/${program.id}`} target="_blank">View Details</a>
-                    </Button>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <div className="text-sm">
-                      <div className="font-medium mb-1">Why this is a good match:</div>
-                      <ul className="list-disc list-inside text-muted-foreground space-y-1">
-                        {program.program_language && answers['language-preference'] && (
-                          <li>
-                            {program.program_language === answers['language-preference'] 
-                              ? `This program is taught in your preferred language (${program.program_language})`
-                              : `The university offers courses in your preferred language`}
-                          </li>
-                        )}
-                        {answers['study-level'] && (
-                          <li>Matches your desired study level</li>
-                        )}
-                        {answers['budget'] && (
-                          <li>{program.tuition} is within your budget range</li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </div>
-            </Card>
-          ))}
-        </div>
-        
-        <div className="mt-8 text-center">
-          <p className="text-muted-foreground mb-4">
-            Want to explore more options or refine your search?
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="outline" onClick={() => setStep('questions')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Adjust Preferences
-            </Button>
-            <Button asChild>
-              <a href="/programs">
-                Browse All Programs
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </a>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
   return (
-    <div className="container max-w-4xl mx-auto">
-      <Card className="w-full">
-        <CardHeader className="pb-3 border-b">
-          <div className="flex items-center space-x-2">
-            <div className={`p-1.5 rounded-full ${
-              selectedType?.color || 'bg-primary/10 text-primary'
-            }`}>
-              {selectedType?.icon || <Sparkles className="h-4 w-4" />}
-            </div>
-            <CardTitle className="text-lg">
-              {selectedType ? `${selectedType.title} Consultation` : 'Program Consultation'}
-            </CardTitle>
-          </div>
-          
-          {step !== 'type' && (
-            <div className="mt-4">
-              <div className="flex justify-between mb-1 text-xs">
-                <span>{step === 'results' ? 'Complete!' : `Section ${currentSectionIndex + 1} of ${sections.length}`}</span>
-                <span>{Math.round(calculateProgress())}%</span>
-              </div>
-              <Progress value={calculateProgress()} className="h-1.5" />
-            </div>
-          )}
-        </CardHeader>
-        
-        <CardContent className="pt-6">
-          {step === 'type' && renderTypeSelection()}
-          {step === 'questions' && renderQuestions()}
-          {step === 'results' && renderResults()}
-        </CardContent>
-      </Card>
-      
-      <div className="mt-8 flex items-center justify-center">
-        <div className="flex items-center space-x-2 text-muted-foreground">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="/placeholder.svg" alt="Euro Visa Advisor" />
-            <AvatarFallback>EV</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-sm">Need help? <span className="text-primary font-medium">Talk to an advisor</span></p>
-          </div>
+    <div className="space-y-8">
+      {/* Progress bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span>Getting started</span>
+          <span>Complete</span>
         </div>
+        <Progress value={progress} className="h-2" />
       </div>
+      
+      {renderStep()}
     </div>
   );
 };

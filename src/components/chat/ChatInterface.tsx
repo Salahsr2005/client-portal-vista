@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -227,7 +228,7 @@ const ChatInterface: React.FC = () => {
         <div className="col-span-1 border rounded-lg overflow-hidden flex flex-col h-full bg-card dark:bg-card">
           <div className="p-3 border-b">
             <div className="relative mb-3">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search messages..." className="pl-8" />
             </div>
             <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
