@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,23 +10,29 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
   Send, User, Bot, Clock, HelpCircle, BarChart, 
-  FileQuestion, GraduationCap, Briefcase, Plane, 
+  FileSearch, GraduationCap, Briefcase, Plane, 
   Calendar, MessageSquare, Check, Info, UserCircle2, 
-  LucideIcon, CircleCheck, Settings
+  Settings
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
+interface Message {
+  id: string;
+  content: string;
+  sender: "user" | "system" | "agent";
+  timestamp: Date;
+}
+
 interface Topic {
-  icon: LucideIcon;
+  icon: React.ElementType;
   name: string;
   description: string;
   questions: string[];
 }
 
-// Predefined topics and questions
 const topics: Topic[] = [
   {
     icon: GraduationCap,
@@ -91,13 +96,6 @@ const topics: Topic[] = [
   }
 ];
 
-interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "system" | "agent";
-  timestamp: Date;
-}
-
 export default function ChatSupport() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -121,14 +119,12 @@ export default function ChatSupport() {
     status: "online"
   });
 
-  // Auto scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
 
-  // Subscribe to real-time messages (simplified implementation)
   useEffect(() => {
     if (!user || !chatId) return;
     
@@ -138,7 +134,6 @@ export default function ChatSupport() {
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `chat_id=eq.${chatId}` },
         payload => {
           if (payload.new && payload.new.sender_id !== user.id) {
-            // Add new incoming message
             const newMsg: Message = {
               id: payload.new.message_id,
               content: payload.new.message_text,
@@ -159,8 +154,8 @@ export default function ChatSupport() {
 
   const handleTopicSelect = (topic: Topic) => {
     setActiveChat(topic.name);
-    // Add system message about the selected topic
-    const newMessages = [
+    
+    const newMessages: Message[] = [
       ...messages,
       {
         id: Date.now().toString(),
@@ -169,11 +164,11 @@ export default function ChatSupport() {
         timestamp: new Date()
       }
     ];
+    
     setMessages(newMessages);
   };
 
   const handleQuestionSelect = async (question: string) => {
-    // Add user question
     const updatedMessages: Message[] = [
       ...messages,
       {
@@ -187,10 +182,8 @@ export default function ChatSupport() {
     setMessages(updatedMessages);
     setIsTyping(true);
     
-    // If no chat has been created yet, create one
     if (!chatId && user) {
       try {
-        // Find an available admin
         const { data: adminData } = await supabase
           .from("admin_users")
           .select("admin_id")
@@ -199,7 +192,6 @@ export default function ChatSupport() {
           .single();
           
         if (adminData) {
-          // Use stored procedure to create chat
           const { data: newChatData, error: chatError } = await supabase
             .rpc('create_client_admin_chat', {
               p_client_id: user.id,
@@ -210,7 +202,6 @@ export default function ChatSupport() {
           if (chatError) throw chatError;
           setChatId(newChatData);
           
-          // Save the message
           if (newChatData) {
             await supabase.from("chat_messages").insert({
               chat_id: newChatData,
@@ -224,7 +215,6 @@ export default function ChatSupport() {
         console.error("Error creating chat:", error);
       }
     } else if (chatId && user) {
-      // If chat exists, just save the new message
       try {
         await supabase.from("chat_messages").insert({
           chat_id: chatId,
@@ -237,13 +227,11 @@ export default function ChatSupport() {
       }
     }
     
-    // Simulate response after a delay
     setTimeout(() => {
       setIsTyping(false);
       
       let response = "";
       
-      // Match questions with canned responses
       if (question.includes("programs") || question.includes("university")) {
         response = "We offer assistance with undergraduate, graduate, PhD programs and professional certifications across Europe. Our advisors can help you find programs that match your academic background, budget, and career goals.";
       } else if (question.includes("documents") || question.includes("visa")) {
@@ -258,7 +246,6 @@ export default function ChatSupport() {
         response = "Thank you for your question. One of our advisors will respond to you shortly. If you'd like immediate assistance, you can schedule a consultation through our appointments page.";
       }
       
-      // Add system response
       const agentMessage: Message = {
         id: Date.now().toString() + "-a",
         content: response,
@@ -268,7 +255,6 @@ export default function ChatSupport() {
 
       setMessages([...updatedMessages, agentMessage]);
       
-      // If we have a chat ID, save the response
       if (chatId) {
         try {
           supabase.auth.getSession().then(({ data }) => {
@@ -277,7 +263,7 @@ export default function ChatSupport() {
             if (adminId) {
               supabase.from("chat_messages").insert({
                 chat_id: chatId,
-                sender_id: "system", // Use a system ID for automated responses
+                sender_id: "system",
                 sender_type: "System",
                 message_text: response
               });
@@ -304,10 +290,8 @@ export default function ChatSupport() {
     setMessage("");
     setIsTyping(true);
     
-    // Handle message saving to database
     if (!chatId && user) {
       try {
-        // Find an available admin
         const { data: adminData } = await supabase
           .from("admin_users")
           .select("admin_id")
@@ -316,7 +300,6 @@ export default function ChatSupport() {
           .single();
           
         if (adminData) {
-          // Create new chat
           const { data: newChatData, error: chatError } = await supabase
             .rpc('create_client_admin_chat', {
               p_client_id: user.id,
@@ -327,7 +310,6 @@ export default function ChatSupport() {
           if (chatError) throw chatError;
           setChatId(newChatData);
           
-          // Save the message
           if (newChatData) {
             await supabase.from("chat_messages").insert({
               chat_id: newChatData,
@@ -346,7 +328,6 @@ export default function ChatSupport() {
         });
       }
     } else if (chatId && user) {
-      // If chat exists, just save the new message
       try {
         await supabase.from("chat_messages").insert({
           chat_id: chatId,
@@ -359,7 +340,6 @@ export default function ChatSupport() {
       }
     }
     
-    // Simulate response
     setTimeout(() => {
       setIsTyping(false);
       const agentMessage: Message = {
@@ -386,7 +366,6 @@ export default function ChatSupport() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Topics Section - Visible on larger screens */}
         <Card className="p-6 hidden md:block">
           <div className="mb-6">
             <h2 className="font-semibold text-xl mb-4 flex items-center">
@@ -441,7 +420,6 @@ export default function ChatSupport() {
           </div>
         </Card>
         
-        {/* Mobile Topic Selection - Visible on small screens */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -462,7 +440,7 @@ export default function ChatSupport() {
                     className="w-full justify-start h-auto py-3"
                     onClick={() => {
                       handleTopicSelect(topic);
-                      document.body.click(); // Close sheet by simulating a click outside
+                      document.body.click();
                     }}
                   >
                     <topic.icon className="mr-3 h-5 w-5 text-primary" />
@@ -485,8 +463,8 @@ export default function ChatSupport() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={activeAdvisor.avatar} alt={activeAdvisor.name} />
-                    <AvatarFallback>{activeAdvisor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    <AvatarImage src={activeAdvisor.avatar} alt="Advisor" />
+                    <AvatarFallback>SJ</AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="font-medium">{activeAdvisor.name}</div>
@@ -498,10 +476,8 @@ export default function ChatSupport() {
           </Sheet>
         </div>
         
-        {/* Chat Section */}
         <div className="md:col-span-2">
           <Card className="flex flex-col h-[600px]">
-            {/* Chat header */}
             <div className="p-4 border-b flex items-center justify-between bg-muted/20">
               <div className="flex items-center">
                 <MessageSquare className="text-primary mr-2 h-5 w-5" />
@@ -517,7 +493,6 @@ export default function ChatSupport() {
               </Tabs>
             </div>
             
-            {/* Chat content */}
             <ScrollArea ref={scrollRef} className="flex-1 p-4">
               <div className="space-y-4">
                 <TabsContent value="chat" className="m-0 h-full space-y-4">
@@ -547,7 +522,7 @@ export default function ChatSupport() {
                           ) : (
                             <Avatar className="h-6 w-6">
                               <AvatarImage src={activeAdvisor.avatar} alt="Advisor" />
-                              <AvatarFallback>SJ</AvatarFallback>
+                              <AvatarFallback>{activeAdvisor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                             </Avatar>
                           )}
                           <span className="text-xs font-medium">
@@ -595,7 +570,7 @@ export default function ChatSupport() {
                             className="w-full justify-start text-left h-auto py-2 px-3"
                             onClick={() => handleQuestionSelect(question)}
                           >
-                            <FileQuestion className="mr-2 h-4 w-4 shrink-0 text-primary" />
+                            <FileSearch className="mr-2 h-4 w-4 shrink-0 text-primary" />
                             <span>{question}</span>
                           </Button>
                         ))}
@@ -613,7 +588,6 @@ export default function ChatSupport() {
               </div>
             </ScrollArea>
             
-            {/* Chat input */}
             <div className="p-4 border-t bg-card">
               <div className="flex gap-2">
                 <Textarea

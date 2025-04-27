@@ -12,11 +12,10 @@ import {
   CircleDashed,
   PlusCircle,
   FileSearch,
-  ExclamationTriangle,
+  AlertTriangle,
   RotateCw
 } from "lucide-react";
 
-// Update the StatusBadge component to handle correct status types
 type ApplicationStatus = "Completed" | "Draft" | "Submitted" | "In Review" | "Pending Documents" | "Approved" | "Rejected" | "Cancelled";
 
 const StatusBadge = ({ status }: { status: ApplicationStatus }) => {
@@ -102,7 +101,6 @@ export default function Applications() {
   
   const handleApplicationClick = (application) => {
     setSelectedApplication(application);
-    // Implement navigation or modal display here
     console.log("Clicked application:", application);
   };
   
@@ -130,7 +128,7 @@ export default function Applications() {
       return (
         <div className="text-center py-10">
           <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-            <ExclamationTriangle className="h-6 w-6 text-red-500" />
+            <AlertTriangle className="h-6 w-6 text-red-500" />
           </div>
           <h3 className="text-lg font-medium mb-1">Error loading applications</h3>
           <p className="text-sm text-muted-foreground mb-4">There was a problem loading your applications.</p>
@@ -160,7 +158,6 @@ export default function Applications() {
       );
     }
     
-    // Group applications by status
     const approved = applications.filter(app => app.status === "Approved");
     const pending = applications.filter(app => ["In Review", "Submitted", "Pending Documents"].includes(app.status));
     const rejected = applications.filter(app => ["Rejected", "Cancelled"].includes(app.status));
