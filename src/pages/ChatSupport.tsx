@@ -1,18 +1,24 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { 
   Send, User, Bot, Clock, HelpCircle, BarChart, 
   FileQuestion, GraduationCap, Briefcase, Plane, 
-  LucideIcon, Calendar, MessageSquare
+  Calendar, MessageSquare, Check, Info, UserCircle2, 
+  LucideIcon, CircleCheck, Settings
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface Topic {
   icon: LucideIcon;
@@ -107,6 +113,49 @@ export default function ChatSupport() {
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeAdvisor, setActiveAdvisor] = useState({
+    name: "Sarah Johnson",
+    role: "Education Advisor",
+    avatar: "/placeholder.svg?height=40&width=40&text=SJ",
+    status: "online"
+  });
+
+  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isTyping]);
+
+  // Subscribe to real-time messages (simplified implementation)
+  useEffect(() => {
+    if (!user || !chatId) return;
+    
+    const channel = supabase
+      .channel(`chat-${chatId}`)
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `chat_id=eq.${chatId}` },
+        payload => {
+          if (payload.new && payload.new.sender_id !== user.id) {
+            // Add new incoming message
+            const newMsg: Message = {
+              id: payload.new.message_id,
+              content: payload.new.message_text,
+              sender: payload.new.sender_type.toLowerCase() === 'admin' ? 'agent' : 
+                     payload.new.sender_type.toLowerCase() === 'system' ? 'system' : 'user',
+              timestamp: new Date(payload.new.sent_at)
+            };
+            setMessages(prev => [...prev, newMsg]);
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chatId, user]);
 
   const handleTopicSelect = (topic: Topic) => {
     setActiveChat(topic.name);
@@ -258,10 +307,55 @@ export default function ChatSupport() {
     // Handle message saving to database
     if (!chatId && user) {
       try {
-        // Create logic similar to question selection
-        // This would create a chat and save the message
+        // Find an available admin
+        const { data: adminData } = await supabase
+          .from("admin_users")
+          .select("admin_id")
+          .eq("status", "Active")
+          .limit(1)
+          .single();
+          
+        if (adminData) {
+          // Create new chat
+          const { data: newChatData, error: chatError } = await supabase
+            .rpc('create_client_admin_chat', {
+              p_client_id: user.id,
+              p_admin_id: adminData.admin_id,
+              p_title: 'Support Chat'
+            });
+            
+          if (chatError) throw chatError;
+          setChatId(newChatData);
+          
+          // Save the message
+          if (newChatData) {
+            await supabase.from("chat_messages").insert({
+              chat_id: newChatData,
+              sender_id: user.id,
+              sender_type: "Client",
+              message_text: message
+            });
+          }
+        }
       } catch (error) {
-        console.error("Error handling message:", error);
+        console.error("Error creating chat:", error);
+        toast({
+          title: "Error starting chat",
+          description: "We couldn't connect you to an advisor. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } else if (chatId && user) {
+      // If chat exists, just save the new message
+      try {
+        await supabase.from("chat_messages").insert({
+          chat_id: chatId,
+          sender_id: user.id,
+          sender_type: "Client",
+          message_text: message
+        });
+      } catch (error) {
+        console.error("Error saving message:", error);
       }
     }
     
@@ -278,6 +372,10 @@ export default function ChatSupport() {
     }, 2000);
   };
 
+  const renderMessageTime = (timestamp: Date) => {
+    return timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   return (
     <div className="container max-w-6xl py-8">
       <div className="mb-8">
@@ -290,7 +388,16 @@ export default function ChatSupport() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Topics Section - Visible on larger screens */}
         <Card className="p-6 hidden md:block">
-          <h2 className="font-semibold text-xl mb-4">Select a Topic</h2>
+          <div className="mb-6">
+            <h2 className="font-semibold text-xl mb-4 flex items-center">
+              <MessageSquare className="mr-2 h-5 w-5 text-primary" />
+              Topics
+            </h2>
+            <div className="text-sm text-muted-foreground">
+              Select a topic to get started with commonly asked questions
+            </div>
+          </div>
+
           <div className="space-y-3">
             {topics.map((topic) => (
               <Button
@@ -308,6 +415,29 @@ export default function ChatSupport() {
                 </div>
               </Button>
             ))}
+          </div>
+
+          <div className="mt-8 pt-6 border-t">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">Your Advisor</h3>
+              <Badge variant="outline" className="text-green-500 bg-green-50 dark:bg-green-900/20">
+                Online
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={activeAdvisor.avatar} alt={activeAdvisor.name} />
+                <AvatarFallback>{activeAdvisor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">{activeAdvisor.name}</div>
+                <div className="text-xs text-muted-foreground">{activeAdvisor.role}</div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" className="w-full mt-4">
+              <Calendar className="mr-2 h-4 w-4" />
+              Schedule Call
+            </Button>
           </div>
         </Card>
         
@@ -345,6 +475,25 @@ export default function ChatSupport() {
                   </Button>
                 ))}
               </div>
+              
+              <div className="mt-8 pt-6 border-t">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-medium">Your Advisor</h3>
+                  <Badge variant="outline" className="text-green-500 bg-green-50 dark:bg-green-900/20">
+                    Online
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={activeAdvisor.avatar} alt={activeAdvisor.name} />
+                    <AvatarFallback>{activeAdvisor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">{activeAdvisor.name}</div>
+                    <div className="text-xs text-muted-foreground">{activeAdvisor.role}</div>
+                  </div>
+                </div>
+              </div>
             </SheetContent>
           </Sheet>
         </div>
@@ -353,7 +502,7 @@ export default function ChatSupport() {
         <div className="md:col-span-2">
           <Card className="flex flex-col h-[600px]">
             {/* Chat header */}
-            <div className="p-4 border-b flex items-center justify-between">
+            <div className="p-4 border-b flex items-center justify-between bg-muted/20">
               <div className="flex items-center">
                 <MessageSquare className="text-primary mr-2 h-5 w-5" />
                 <h2 className="font-semibold">
@@ -369,87 +518,105 @@ export default function ChatSupport() {
             </div>
             
             {/* Chat content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <TabsContent value="chat" className="m-0 h-full space-y-4">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                  >
+            <ScrollArea ref={scrollRef} className="flex-1 p-4">
+              <div className="space-y-4">
+                <TabsContent value="chat" className="m-0 h-full space-y-4">
+                  {messages.map((msg) => (
                     <div
-                      className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                        msg.sender === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : msg.sender === "system"
-                          ? "bg-secondary text-secondary-foreground"
-                          : "bg-muted"
-                      }`}
+                      key={msg.id}
+                      className={cn(
+                        "flex",
+                        msg.sender === "user" ? "justify-end" : "justify-start"
+                      )}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        {msg.sender === "user" ? (
-                          <User className="h-4 w-4" />
-                        ) : msg.sender === "system" ? (
-                          <Bot className="h-4 w-4" />
-                        ) : (
-                          <User className="h-4 w-4" />
+                      <div
+                        className={cn(
+                          "rounded-lg px-4 py-2 max-w-[80%]",
+                          msg.sender === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : msg.sender === "system"
+                            ? "bg-secondary text-secondary-foreground"
+                            : "bg-muted border border-border"
                         )}
-                        <span className="text-xs font-medium">
-                          {msg.sender === "user" ? "You" : msg.sender === "system" ? "System" : "Advisor"}
-                        </span>
-                        <span className="text-xs opacity-70">
-                          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          {msg.sender === "user" ? (
+                            <UserCircle2 className="h-4 w-4" />
+                          ) : msg.sender === "system" ? (
+                            <Bot className="h-4 w-4" />
+                          ) : (
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={activeAdvisor.avatar} alt="Advisor" />
+                              <AvatarFallback>SJ</AvatarFallback>
+                            </Avatar>
+                          )}
+                          <span className="text-xs font-medium">
+                            {msg.sender === "user" ? "You" : msg.sender === "system" ? "System" : activeAdvisor.name}
+                          </span>
+                          <span className="text-xs opacity-70">
+                            {renderMessageTime(msg.timestamp)}
+                          </span>
+                        </div>
+                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        {msg.sender === "agent" && (
+                          <div className="flex justify-end mt-1">
+                            <Check className="h-3.5 w-3.5 text-primary" />
+                          </div>
+                        )}
                       </div>
-                      <p>{msg.content}</p>
                     </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-4 py-2">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-75"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-150"></div>
+                  ))}
+                  {isTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-muted rounded-lg px-4 py-2 flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={activeAdvisor.avatar} alt="Advisor" />
+                          <AvatarFallback>SJ</AvatarFallback>
+                        </Avatar>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-75"></div>
+                          <div className="w-2 h-2 rounded-full bg-primary animate-pulse delay-150"></div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="faq" className="m-0 h-full space-y-6">
-                {activeChat ? (
-                  <>
-                    {topics
-                      .find((t) => t.name === activeChat)
-                      ?.questions.map((question, idx) => (
-                        <Button
-                          key={idx}
-                          variant="outline"
-                          className="w-full justify-start text-left h-auto py-2 px-3"
-                          onClick={() => handleQuestionSelect(question)}
-                        >
-                          <FileQuestion className="mr-2 h-4 w-4 shrink-0 text-primary" />
-                          <span>{question}</span>
-                        </Button>
-                      ))}
-                  </>
-                ) : (
-                  <div className="text-center py-12">
-                    <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Select a Topic</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Choose a topic from the left to see frequently asked questions.
-                    </p>
-                  </div>
-                )}
-              </TabsContent>
-            </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="faq" className="m-0 h-full space-y-6">
+                  {activeChat ? (
+                    <>
+                      {topics
+                        .find((t) => t.name === activeChat)
+                        ?.questions.map((question, idx) => (
+                          <Button
+                            key={idx}
+                            variant="outline"
+                            className="w-full justify-start text-left h-auto py-2 px-3"
+                            onClick={() => handleQuestionSelect(question)}
+                          >
+                            <FileQuestion className="mr-2 h-4 w-4 shrink-0 text-primary" />
+                            <span>{question}</span>
+                          </Button>
+                        ))}
+                    </>
+                  ) : (
+                    <div className="text-center py-12">
+                      <HelpCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Select a Topic</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Choose a topic from the left to see frequently asked questions.
+                      </p>
+                    </div>
+                  )}
+                </TabsContent>
+              </div>
+            </ScrollArea>
             
             {/* Chat input */}
-            <div className="p-4 border-t">
+            <div className="p-4 border-t bg-card">
               <div className="flex gap-2">
-                <Input
+                <Textarea
                   placeholder="Type your message..."
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -459,8 +626,9 @@ export default function ChatSupport() {
                       handleSendMessage();
                     }
                   }}
+                  className="min-h-10 resize-none"
                 />
-                <Button onClick={handleSendMessage}>
+                <Button onClick={handleSendMessage} size="icon" className="shrink-0">
                   <Send className="h-4 w-4" />
                 </Button>
               </div>

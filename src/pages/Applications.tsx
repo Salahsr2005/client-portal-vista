@@ -1,452 +1,258 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { 
-  FileText, 
-  MoreVertical, 
-  Search, 
-  Filter, 
-  ArrowUpDown, 
-  FileCheck, 
-  FileClock, 
-  FileX,
-  Plus,
-  Loader2
+  CheckCircle,
+  Clock,
+  XCircle,
+  CircleDashed,
+  PlusCircle,
+  FileSearch,
+  ExclamationTriangle,
+  RotateCw
 } from "lucide-react";
-import { useApplications } from "@/hooks/useApplications";
-import { useToast } from "@/hooks/use-toast";
 
-// Application status badge styling helper function
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "approved":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
-    case "pending":
-    case "draft":
-    case "in progress":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100";
-    case "rejected":
-    case "cancelled":
-      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
+// Update the StatusBadge component to handle correct status types
+type ApplicationStatus = "Completed" | "Draft" | "Submitted" | "In Review" | "Pending Documents" | "Approved" | "Rejected" | "Cancelled";
+
+const StatusBadge = ({ status }: { status: ApplicationStatus }) => {
+  let variant: "default" | "secondary" | "destructive" | "outline" = "default";
+  let icon = null;
+  
+  switch(status) {
+    case "Approved":
+      variant = "default";
+      icon = <CheckCircle className="h-4 w-4 mr-1" />;
+      break;
+    case "Pending Documents":
+    case "In Review":
+    case "Submitted":
+      variant = "secondary";
+      icon = <Clock className="h-4 w-4 mr-1" />;
+      break;
+    case "Rejected":
+    case "Cancelled":
+      variant = "destructive";
+      icon = <XCircle className="h-4 w-4 mr-1" />;
+      break;
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100";
+      variant = "outline";
+      icon = <CircleDashed className="h-4 w-4 mr-1" />;
+      break;
   }
+  
+  return (
+    <Badge variant={variant} className="flex items-center">
+      {icon}
+      {status}
+    </Badge>
+  );
 };
 
-// Status icon helper function
-const getStatusIcon = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "approved":
-      return <FileCheck className="h-4 w-4 mr-1" />;
-    case "pending":
-    case "draft":
-    case "in progress":
-      return <FileClock className="h-4 w-4 mr-1" />;
-    case "rejected":
-    case "cancelled":
-      return <FileX className="h-4 w-4 mr-1" />;
-    default:
-      return <FileText className="h-4 w-4 mr-1" />;
-  }
+const ApplicationCard = ({ application, onClick }: { application: any, onClick: () => void }) => {
+  const getStatusColor = (status: ApplicationStatus) => {
+    switch(status) {
+      case "Approved":
+        return "bg-green-500";
+      case "Pending Documents":
+      case "In Review":
+      case "Submitted":
+        return "bg-amber-500";
+      case "Rejected":
+      case "Cancelled":
+        return "bg-red-500";
+      default:
+        return "bg-gray-300";
+    }
+  };
+  
+  return (
+    <Card className="border rounded-lg hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">
+          {application.program_name}
+        </CardTitle>
+        <StatusBadge status={application.status} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-sm text-muted-foreground">
+          Submitted on {new Date(application.created_at).toLocaleDateString()}
+        </div>
+      </CardContent>
+    </Card>
+  );
 };
 
 export default function Applications() {
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState("all");
-  const { data: applications = [], isLoading, error } = useApplications();
-  const { toast } = useToast();
-  
-  if (error) {
-    toast({
-      title: "Error",
-      description: "Failed to load applications. Please try again.",
-      variant: "destructive",
-    });
-  }
-  
-  // Filter applications based on search term and status filter
-  const filteredApplications = applications.filter(app => {
-    const matchesSearch = 
-      app.program.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      app.id.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (filter === "all") return matchesSearch;
-    return matchesSearch && app.status.toLowerCase() === filter.toLowerCase();
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const { data: applications, isLoading, error, refetch } = useQuery({
+    queryKey: ["applications"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("applications")
+        .select("*");
+      if (error) throw error;
+      return data;
+    },
   });
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
-        <Button 
-          onClick={() => navigate("/applications/new")}
-          className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          New Application
-        </Button>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>My Applications</CardTitle>
-          <CardDescription>
-            Manage and track your program applications
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
-              <TabsList className="mb-4 sm:mb-0">
-                <TabsTrigger value="all" onClick={() => setFilter("all")}>All</TabsTrigger>
-                <TabsTrigger value="approved" onClick={() => setFilter("approved")}>Approved</TabsTrigger>
-                <TabsTrigger value="pending" onClick={() => setFilter("pending")}>Pending</TabsTrigger>
-                <TabsTrigger value="rejected" onClick={() => setFilter("rejected")}>Rejected</TabsTrigger>
-              </TabsList>
-              
-              <div className="flex gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search applications..."
-                    className="pl-8 w-full sm:w-[250px]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Sort By</DropdownMenuLabel>
-                    <DropdownMenuItem>Date (Newest)</DropdownMenuItem>
-                    <DropdownMenuItem>Date (Oldest)</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Filter By</DropdownMenuLabel>
-                    <DropdownMenuItem>Upcoming Deadline</DropdownMenuItem>
-                    <DropdownMenuItem>Past Deadline</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+  
+  const handleApplicationClick = (application) => {
+    setSelectedApplication(application);
+    // Implement navigation or modal display here
+    console.log("Clicked application:", application);
+  };
+  
+  const renderApplicationGroups = () => {
+    if (isLoading) {
+      return (
+        <div className="flex flex-col space-y-4 mb-8">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="border rounded-lg p-4">
+              <div className="flex justify-between items-center mb-4">
+                <div className="h-6 w-40 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-5 w-60 bg-gray-100 rounded animate-pulse"></div>
+                <div className="h-5 w-40 bg-gray-100 rounded animate-pulse"></div>
               </div>
             </div>
-            
-            <TabsContent value="all" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[150px]">ID</TableHead>
-                      <TableHead>Program Name</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-[200px] text-center">
-                          <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-                          <div className="mt-2 text-sm text-muted-foreground">Loading applications...</div>
-                        </TableCell>
-                      </TableRow>
-                    ) : filteredApplications.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-[200px] text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <FileText className="h-12 w-12 text-muted-foreground opacity-30 mb-4" />
-                            <h3 className="text-lg font-medium">No applications found</h3>
-                            <p className="text-muted-foreground mt-1 mb-4">You haven't submitted any applications yet</p>
-                            <Button onClick={() => navigate("/applications/new")}>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Create New Application
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredApplications.map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.program}</TableCell>
-                          <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
-                              {getStatusIcon(app.status)}
-                              <span className="capitalize">{app.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Application</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
-                                  Withdraw
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            {/* Similar content for other tabs, but we'll keep it simpler */}
-            <TabsContent value="approved" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[150px]">ID</TableHead>
-                      <TableHead>Program Name</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredApplications.filter((app) => app.status === "approved").length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-[200px] text-center">
-                          No applications found.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredApplications.filter((app) => app.status === "approved").map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.program}</TableCell>
-                          <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
-                              {getStatusIcon(app.status)}
-                              <span className="capitalize">{app.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Application</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
-                                  Withdraw
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="pending" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[150px]">ID</TableHead>
-                      <TableHead>Program Name</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredApplications.filter((app) => app.status === "pending").length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-[200px] text-center">
-                          No applications found.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredApplications.filter((app) => app.status === "pending").map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.program}</TableCell>
-                          <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
-                              {getStatusIcon(app.status)}
-                              <span className="capitalize">{app.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Application</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
-                                  Withdraw
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="rejected" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[150px]">ID</TableHead>
-                      <TableHead>Program Name</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="hidden md:table-cell w-[120px]">Location</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredApplications.filter((app) => app.status === "rejected").length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-[200px] text-center">
-                          No applications found.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredApplications.filter((app) => app.status === "rejected").map((app) => (
-                        <TableRow key={app.id}>
-                          <TableCell className="font-medium">{app.id}</TableCell>
-                          <TableCell>{app.program}</TableCell>
-                          <TableCell>{new Date(app.date).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(app.status)}`} variant="outline">
-                              {getStatusIcon(app.status)}
-                              <span className="capitalize">{app.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">{app.destination}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Edit Application</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
-                                  Withdraw
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="text-sm text-muted-foreground">
-            {isLoading ? "Loading..." : `Showing ${filteredApplications.length} of ${applications.length} applications`}
+          ))}
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className="text-center py-10">
+          <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <ExclamationTriangle className="h-6 w-6 text-red-500" />
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              Next
-            </Button>
+          <h3 className="text-lg font-medium mb-1">Error loading applications</h3>
+          <p className="text-sm text-muted-foreground mb-4">There was a problem loading your applications.</p>
+          <Button variant="outline" onClick={() => refetch()}>
+            <RotateCw className="h-4 w-4 mr-2" />
+            Try again
+          </Button>
+        </div>
+      );
+    }
+    
+    if (!applications?.length) {
+      return (
+        <div className="text-center py-10">
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <FileSearch className="h-6 w-6 text-muted-foreground" />
           </div>
-        </CardFooter>
-      </Card>
+          <h3 className="text-lg font-medium mb-1">No applications yet</h3>
+          <p className="text-sm text-muted-foreground mb-4">Start your first application to a program.</p>
+          <Button asChild>
+            <Link to="/applications/new">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Application
+            </Link>
+          </Button>
+        </div>
+      );
+    }
+    
+    // Group applications by status
+    const approved = applications.filter(app => app.status === "Approved");
+    const pending = applications.filter(app => ["In Review", "Submitted", "Pending Documents"].includes(app.status));
+    const rejected = applications.filter(app => ["Rejected", "Cancelled"].includes(app.status));
+    const draft = applications.filter(app => app.status === "Draft");
+    
+    return (
+      <div className="space-y-8">
+        {approved.length > 0 && (
+          <div>
+            <h2 className="text-lg font-medium mb-4 flex items-center">
+              <CheckCircle className="text-green-500 mr-2 h-5 w-5" />
+              Approved Applications
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {approved.map(application => (
+                <ApplicationCard
+                  key={application.application_id}
+                  application={application}
+                  onClick={() => handleApplicationClick(application)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {pending.length > 0 && (
+          <div>
+            <h2 className="text-lg font-medium mb-4 flex items-center">
+              <Clock className="text-amber-500 mr-2 h-5 w-5" />
+              Pending Applications
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {pending.map(application => (
+                <ApplicationCard
+                  key={application.application_id}
+                  application={application}
+                  onClick={() => handleApplicationClick(application)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {rejected.length > 0 && (
+          <div>
+            <h2 className="text-lg font-medium mb-4 flex items-center">
+              <XCircle className="text-red-500 mr-2 h-5 w-5" />
+              Rejected Applications
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {rejected.map(application => (
+                <ApplicationCard
+                  key={application.application_id}
+                  application={application}
+                  onClick={() => handleApplicationClick(application)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {draft.length > 0 && (
+          <div>
+            <h2 className="text-lg font-medium mb-4 flex items-center">
+              <CircleDashed className="text-muted-foreground mr-2 h-5 w-5" />
+              Draft Applications
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {draft.map(application => (
+                <ApplicationCard
+                  key={application.application_id}
+                  application={application}
+                  onClick={() => handleApplicationClick(application)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  return (
+    <div className="container max-w-6xl py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Your Applications</h1>
+        <p className="text-muted-foreground">
+          Track and manage your program applications
+        </p>
+      </div>
+      
+      {renderApplicationGroups()}
     </div>
   );
 }

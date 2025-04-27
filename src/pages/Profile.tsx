@@ -24,6 +24,7 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("personal");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [updatingAccount, setUpdatingAccount] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const { user } = useAuth();
@@ -248,6 +249,45 @@ export default function Profile() {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const updateAccountSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    setUpdatingAccount(true);
+    
+    try {
+      const { error } = await supabase
+        .from('client_users')
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+          phone: phone,
+          email: email,
+          nationality: nationality,
+          city: city,
+          country: country,
+          contact_preference: contactPreference as any
+        })
+        .eq('client_id', user?.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Account updated successfully",
+        description: "Your profile information has been updated.",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Error updating account:", error);
+      toast({
+        title: "Error updating account",
+        description: "There was a problem updating your profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdatingAccount(false);
     }
   };
 
