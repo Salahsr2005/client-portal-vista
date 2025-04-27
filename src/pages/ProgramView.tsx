@@ -18,6 +18,7 @@ import {
   MapPin,
   FileText,
   Users,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,6 +53,22 @@ interface Program {
   tuition_min?: number;
   admission_requirements?: string;
   field_keywords?: string[];
+  // Adding the missing properties that were causing errors
+  image_url?: string;
+  study_level?: string;
+  country?: string;
+  advantages?: string;
+  application_process?: string;
+  employment_rate?: number;
+  academic_requirements?: string;
+  language_test?: string;
+  language_test_score?: string;
+  language_test_exemptions?: string;
+  scholarship_available?: boolean;
+  scholarship_details?: string;
+  city?: string;
+  living_cost_max?: number;
+  application_deadline?: string;
 }
 
 export default function ProgramView() {
@@ -372,7 +389,7 @@ export default function ProgramView() {
                   <div>
                     <h3 className="text-sm font-medium">Application Fee</h3>
                     <p className="text-sm text-muted-foreground">
-                      {program.application_fee ? `€${program.application_fee}` : program.applicationFee}
+                      {program.applicationFee}
                     </p>
                   </div>
                 </div>
@@ -410,7 +427,7 @@ export default function ProgramView() {
                   <div>
                     <h3 className="text-sm font-medium">Tuition Fee</h3>
                     <p className="text-sm text-muted-foreground">
-                      {program.tuition_min ? `€${program.tuition_min.toLocaleString()} - €${program.tuition_max?.toLocaleString() || program.tuition_min.toLocaleString()}` : program.tuition}
+                      {program.tuition_min ? `€${program.tuition_min.toLocaleString()}` : program.tuition}
                     </p>
                   </div>
                 </div>
@@ -422,7 +439,7 @@ export default function ProgramView() {
                   <div>
                     <h3 className="text-sm font-medium">Living Cost (Monthly)</h3>
                     <p className="text-sm text-muted-foreground">
-                      {program.living_cost_min ? `€${program.living_cost_min.toLocaleString()} - €${program.living_cost_max?.toLocaleString() || (program.living_cost_min * 1.5).toLocaleString()}` : "€800 - €1200 (estimated)"}
+                      {program.living_cost_min ? `€${program.living_cost_min.toLocaleString()}` : "€800 - €1200 (estimated)"}
                     </p>
                   </div>
                 </div>
@@ -456,13 +473,7 @@ export default function ProgramView() {
                   {program.scholarship_amount && (
                     <div className="flex items-center gap-1 text-sm">
                       <CircleDollarSign className="h-4 w-4 text-primary" />
-                      <span>Amount: up to €{program.scholarship_amount.toLocaleString()}</span>
-                    </div>
-                  )}
-                  {program.scholarship_deadline && (
-                    <div className="flex items-center gap-1 text-sm">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span>Deadline: {program.scholarship_deadline}</span>
+                      <span>Amount: up to €{program.scholarship_amount}</span>
                     </div>
                   )}
                 </div>
@@ -488,13 +499,6 @@ export default function ProgramView() {
                   <Star className="h-4 w-4 text-amber-400" />
                   <span>Ranking: #{program.ranking} Worldwide</span>
                 </div>
-              )}
-              {program.website_url && (
-                <Button variant="outline" size="sm" className="w-full mt-4" asChild>
-                  <a href={program.website_url} target="_blank" rel="noopener noreferrer">
-                    <Globe className="mr-2 h-4 w-4" /> Visit University Website
-                  </a>
-                </Button>
               )}
             </CardContent>
           </Card>

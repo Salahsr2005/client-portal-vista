@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ import {
   AlertTriangle,
   RotateCw
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type ApplicationStatus = "Completed" | "Draft" | "Submitted" | "In Review" | "Pending Documents" | "Approved" | "Rejected" | "Cancelled";
 
@@ -53,22 +55,6 @@ const StatusBadge = ({ status }: { status: ApplicationStatus }) => {
 };
 
 const ApplicationCard = ({ application, onClick }: { application: any, onClick: () => void }) => {
-  const getStatusColor = (status: ApplicationStatus) => {
-    switch(status) {
-      case "Approved":
-        return "bg-green-500";
-      case "Pending Documents":
-      case "In Review":
-      case "Submitted":
-        return "bg-amber-500";
-      case "Rejected":
-      case "Cancelled":
-        return "bg-red-500";
-      default:
-        return "bg-gray-300";
-    }
-  };
-  
   return (
     <Card className="border rounded-lg hover:shadow-md transition-shadow cursor-pointer" onClick={onClick}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -87,24 +73,65 @@ const ApplicationCard = ({ application, onClick }: { application: any, onClick: 
 };
 
 export default function Applications() {
+  const { user } = useAuth();
   const [selectedApplication, setSelectedApplication] = useState(null);
   const { data: applications, isLoading, error, refetch } = useQuery({
     queryKey: ["applications"],
     queryFn: async () => {
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from("applications")
-        .select("*");
+        .select(`
+          *,
+          programs (
+            name, 
+            university, 
+            study_level, 
+            program_language, 
+            country
+          )
+        `)
+        .eq("client_id", user.id);
+        
       if (error) throw error;
-      return data;
+      
+      // Transform data to include program name and other details
+      return data.map(app => ({
+        ...app,
+        program_name: app.programs?.name || "Unknown Program",
+        university: app.programs?.university || "Unknown University",
+        study_level: app.programs?.study_level || "Unknown Level",
+        language: app.programs?.program_language || "Unknown Language",
+        country: app.programs?.country || "Unknown Location"
+      }));
     },
+    enabled: !!user
   });
   
-  const handleApplicationClick = (application) => {
+  const handleApplicationClick = (application: any) => {
     setSelectedApplication(application);
     console.log("Clicked application:", application);
   };
   
   const renderApplicationGroups = () => {
+    if (!user) {
+      return (
+        <div className="text-center py-10">
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+            <FileSearch className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium mb-1">Login Required</h3>
+          <p className="text-sm text-muted-foreground mb-4">Please log in to view your applications.</p>
+          <Button asChild>
+            <Link to="/login">
+              Login
+            </Link>
+          </Button>
+        </div>
+      );
+    }
+    
     if (isLoading) {
       return (
         <div className="flex flex-col space-y-4 mb-8">
