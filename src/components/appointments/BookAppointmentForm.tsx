@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useServices } from "@/hooks/useServices";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, addDays, parse, isBefore, isAfter, set } from "date-fns";
+import { format, isBefore } from "date-fns";
 import { CalendarIcon, Clock, Loader2, Calendar as CalendarIcon2, MapPin, Users, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useForm } from "react-hook-form";
@@ -343,7 +343,7 @@ export function BookAppointmentForm() {
                     <SelectContent>
                       {services?.map((service) => (
                         <SelectItem key={service.id} value={service.id}>
-                          {service.name} - ${service.price}
+                          {service.name} - ${service.fee}
                         </SelectItem>
                       ))}
                     </SelectContent>

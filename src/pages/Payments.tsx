@@ -4,13 +4,14 @@ import { usePayments } from '@/hooks/usePayments';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, Search, Building, Calendar, Clock, AlertCircle, CheckCircle, DollarSign, Filter, ChevronsUpDown } from 'lucide-react';
+import { CreditCard, Search, Building, Calendar, Clock, AlertCircle, CheckCircle, DollarSign, Filter, ChevronsUpDown, Building2 } from 'lucide-react';
 
 function PaymentStats({ payments }: { payments: any[] }) {
+  // Convert the amount to a number before calculations
   const totalPaid = payments.reduce((sum, payment) => 
     payment.status === 'Completed' ? sum + Number(payment.amount) : sum, 0);
   
@@ -105,14 +106,14 @@ export default function PaymentsPage() {
   }
 
   const pendingApplications = payments?.filter(payment => 
-    payment.status === 'Pending' && payment.application_id
+    payment.status === 'Pending' && payment.applicationId
   ) || [];
 
   const filteredPayments = payments?.filter(payment => {
     // Filter by search term
     const matchesSearch = 
       !searchTerm ||
-      payment.reference.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      payment.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) || 
       payment.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Filter by status
@@ -159,7 +160,7 @@ export default function PaymentsPage() {
           <CardContent className="pt-6">
             <div className="space-y-4">
               {pendingApplications.map((payment) => (
-                <div key={payment.payment_id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
+                <div key={payment.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
                   <div className="mb-3 md:mb-0">
                     <h3 className="font-medium">{payment.description || 'Application Payment'}</h3>
                     <p className="text-sm text-muted-foreground">Due: {new Date(payment.date).toLocaleDateString()}</p>
@@ -229,9 +230,9 @@ export default function PaymentsPage() {
                   </thead>
                   <tbody>
                     {filteredPayments.map((payment) => (
-                      <tr key={payment.payment_id} className="border-b hover:bg-muted/50">
+                      <tr key={payment.id} className="border-b hover:bg-muted/50">
                         <td className="px-6 py-4">
-                          <div className="font-medium">{payment.reference}</div>
+                          <div className="font-medium">{payment.transactionId}</div>
                           <div className="text-xs text-muted-foreground">{payment.description || 'Payment'}</div>
                         </td>
                         <td className="px-6 py-4">

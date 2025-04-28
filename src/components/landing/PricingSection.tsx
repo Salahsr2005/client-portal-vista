@@ -8,8 +8,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import { Card } from "@/components/ui/card";
 export function PricingSection() {
   const { t } = useTranslation();
   const [activeCountry, setActiveCountry] = useState("");
+  const [dialogOpen, setDialogOpen] = useState<string | null>(null);
   
   // Country data with pricing options and admission details
   const countries = [
@@ -116,6 +116,14 @@ export function PricingSection() {
     }
   };
 
+  const openDialog = (countryId: string) => {
+    setDialogOpen(countryId);
+  };
+
+  const closeDialog = () => {
+    setDialogOpen(null);
+  };
+
   return (
     <section className="py-24 bg-muted/30">
       <div className="container max-w-7xl mx-auto px-4">
@@ -185,65 +193,14 @@ export function PricingSection() {
                 </div>
 
                 <div className="px-6 py-4 mt-auto">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
-                      >
-                        <Info className="mr-2 h-4 w-4" />
-                        {t("pricing.learnMore", "Learn More")}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] overflow-y-auto max-h-[80vh]">
-                      <DialogHeader>
-                        <DialogTitle className="flex items-center gap-3">
-                          <span className="text-2xl">{country.flag}</span>
-                          {country.admissionInfo.title}
-                        </DialogTitle>
-                        <DialogDescription>
-                          {t("pricing.admissionDetails", "Admission requirements and process details")}
-                        </DialogDescription>
-                      </DialogHeader>
-                      
-                      <div className="mt-4 space-y-4">
-                        <div>
-                          <h4 className="font-semibold mb-2">{t("pricing.requirements", "Requirements")}</h4>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {country.admissionInfo.requirements.map((req, idx) => (
-                              <li key={idx} className="text-sm">{req}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold mb-2">{t("pricing.documents", "Required Documents")}</h4>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {country.admissionInfo.documents.map((doc, idx) => (
-                              <li key={idx} className="text-sm">{doc}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold mb-2">{t("pricing.timeline", "Application Timeline")}</h4>
-                          <p className="text-sm">{country.admissionInfo.timeline}</p>
-                        </div>
-                        
-                        <div>
-                          <h4 className="font-semibold mb-2">{t("pricing.additionalInfo", "Additional Information")}</h4>
-                          <p className="text-sm">{country.admissionInfo.additionalInfo}</p>
-                        </div>
-                        
-                        <div className="pt-4 border-t">
-                          <Button className="w-full">
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            {t("pricing.applyNow", "Apply Now")}
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <Button 
+                    variant="outline" 
+                    className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
+                    onClick={() => openDialog(country.id)}
+                  >
+                    <Info className="mr-2 h-4 w-4" />
+                    {t("pricing.learnMore", "Learn More")}
+                  </Button>
                 </div>
               </Card>
             </motion.div>
@@ -265,6 +222,60 @@ export function PricingSection() {
           </p>
         </motion.div>
       </div>
+
+      {/* Country Info Dialogs */}
+      {countries.map((country) => (
+        <Dialog key={country.id} open={dialogOpen === country.id} onOpenChange={closeDialog}>
+          <DialogContent className="sm:max-w-[500px] overflow-y-auto max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <span className="text-2xl">{country.flag}</span>
+                {country.admissionInfo.title}
+              </DialogTitle>
+              <DialogDescription>
+                {t("pricing.admissionDetails", "Admission requirements and process details")}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="mt-4 space-y-4">
+              <div>
+                <h4 className="font-semibold mb-2">{t("pricing.requirements", "Requirements")}</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {country.admissionInfo.requirements.map((req, idx) => (
+                    <li key={idx} className="text-sm">{req}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">{t("pricing.documents", "Required Documents")}</h4>
+                <ul className="list-disc pl-5 space-y-1">
+                  {country.admissionInfo.documents.map((doc, idx) => (
+                    <li key={idx} className="text-sm">{doc}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">{t("pricing.timeline", "Application Timeline")}</h4>
+                <p className="text-sm">{country.admissionInfo.timeline}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold mb-2">{t("pricing.additionalInfo", "Additional Information")}</h4>
+                <p className="text-sm">{country.admissionInfo.additionalInfo}</p>
+              </div>
+              
+              <div className="pt-4 border-t">
+                <Button className="w-full">
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {t("pricing.applyNow", "Apply Now")}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ))}
     </section>
   );
 }

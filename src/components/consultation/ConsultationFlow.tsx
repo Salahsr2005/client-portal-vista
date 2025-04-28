@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, AlertTriangle, School, Search, Building, MapPin, Languages, CircleDollarSign, Clock, Star } from "lucide-react";
 
-import { studyAbroadQuestions } from "./ConsultationQuestions";
+import { ConsultationSection } from "./ConsultationTypes";
 
 export function ConsultationFlow() {
   const navigate = useNavigate();
@@ -29,6 +29,121 @@ export function ConsultationFlow() {
   const [results, setResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   
+  const studyAbroadQuestions: Array<{
+    title: string;
+    type: string;
+    field: string;
+    options?: Array<{value: string; label: string}> | Array<{field: string; label: string}>;
+    placeholder?: string;
+    min?: number;
+    max?: number;
+    step?: number;
+  }> = [
+    {
+      title: "What level of study are you interested in?",
+      type: "radio",
+      field: "study_level",
+      options: [
+        { value: "Bachelor", label: "Bachelor's Degree" },
+        { value: "Master", label: "Master's Degree" },
+        { value: "PhD", label: "PhD / Doctorate" },
+        { value: "Certificate", label: "Certificate Program" },
+        { value: "Diploma", label: "Diploma" }
+      ]
+    },
+    {
+      title: "What field of study are you interested in?",
+      type: "select",
+      field: "field_preference",
+      placeholder: "Select a field of study",
+      options: [
+        { value: "BusinessManagement", label: "Business & Management" },
+        { value: "ComputerScience", label: "Computer Science & IT" },
+        { value: "Engineering", label: "Engineering" },
+        { value: "Arts", label: "Arts & Humanities" },
+        { value: "SocialSciences", label: "Social Sciences" },
+        { value: "Medicine", label: "Medicine & Health" },
+        { value: "Education", label: "Education" },
+        { value: "Law", label: "Law" },
+        { value: "Science", label: "Natural Sciences" },
+        { value: "Mathematics", label: "Mathematics & Statistics" }
+      ]
+    },
+    {
+      title: "Which country would you like to study in?",
+      type: "select",
+      field: "destination_preference",
+      placeholder: "Select a country",
+      options: [
+        { value: "USA", label: "United States" },
+        { value: "UK", label: "United Kingdom" },
+        { value: "Canada", label: "Canada" },
+        { value: "Australia", label: "Australia" },
+        { value: "Germany", label: "Germany" },
+        { value: "France", label: "France" },
+        { value: "Poland", label: "Poland" },
+        { value: "Belgium", label: "Belgium" },
+        { value: "Spain", label: "Spain" },
+        { value: "Italy", label: "Italy" },
+        { value: "Netherlands", label: "Netherlands" },
+        { value: "Sweden", label: "Sweden" },
+        { value: "Switzerland", label: "Switzerland" },
+        { value: "Japan", label: "Japan" }
+      ]
+    },
+    {
+      title: "What is your preferred language of instruction?",
+      type: "select",
+      field: "language_preference",
+      placeholder: "Select language",
+      options: [
+        { value: "English", label: "English" },
+        { value: "French", label: "French" },
+        { value: "German", label: "German" },
+        { value: "Spanish", label: "Spanish" },
+        { value: "Italian", label: "Italian" },
+        { value: "Arabic", label: "Arabic" }
+      ]
+    },
+    {
+      title: "What is your preferred program duration?",
+      type: "select",
+      field: "duration_preference",
+      placeholder: "Select duration",
+      options: [
+        { value: "1Year", label: "1 Year" },
+        { value: "2Years", label: "2 Years" },
+        { value: "3Years", label: "3 Years" },
+        { value: "4Years", label: "4 Years" },
+        { value: "5+Years", label: "5+ Years" }
+      ]
+    },
+    {
+      title: "What is your budget for tuition per year?",
+      type: "slider",
+      field: "budget",
+      min: 5000,
+      max: 50000,
+      step: 1000
+    },
+    {
+      title: "Do you have any special requirements?",
+      type: "checkbox",
+      field: "requirements",
+      options: [
+        { field: "scholarship_required", label: "Scholarship or financial aid is necessary" },
+        { field: "religious_facilities_required", label: "Access to religious facilities" },
+        { field: "halal_food_required", label: "Halal food options" }
+      ]
+    },
+    {
+      title: "Any additional notes or requirements?",
+      type: "textarea",
+      field: "notes",
+      placeholder: "Please share any other preferences or requirements you have..."
+    }
+  ];
+
   const [formData, setFormData] = useState({
     study_level: "",
     field_preference: "",
@@ -63,7 +178,7 @@ export function ConsultationFlow() {
           setExistingConsultation(data[0]);
           
           if (data[0].recommended_programs) {
-            setResults(data[0].recommended_programs as any[]);
+            setResults(data[0].recommended_programs);
           }
           
           setFormData({
@@ -325,7 +440,7 @@ export function ConsultationFlow() {
               onValueChange={(value) => handleChange(currentQuestion.field, value)}
               className="space-y-3"
             >
-              {currentQuestion.options.map((option) => (
+              {currentQuestion.options && currentQuestion.options.map((option: any) => (
                 <div key={option.value} className="flex items-center space-x-2">
                   <RadioGroupItem value={option.value} id={option.value} />
                   <Label htmlFor={option.value}>{option.label}</Label>
@@ -343,7 +458,7 @@ export function ConsultationFlow() {
                 <SelectValue placeholder={currentQuestion.placeholder || "Select an option"} />
               </SelectTrigger>
               <SelectContent>
-                {currentQuestion.options.map((option) => (
+                {currentQuestion.options && currentQuestion.options.map((option: any) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -373,7 +488,7 @@ export function ConsultationFlow() {
           
           {currentQuestion.type === "checkbox" && (
             <div className="space-y-4 py-2">
-              {currentQuestion.options.map((option) => (
+              {currentQuestion.options && currentQuestion.options.map((option: any) => (
                 <div key={option.field} className="flex items-center space-x-2">
                   <Checkbox 
                     id={option.field}
@@ -511,7 +626,7 @@ export function ConsultationFlow() {
                           </div>
                           <div className="flex items-center">
                             <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            <span>${program.tuition_min.toLocaleString()} / year</span>
+                            <span>${program.tuition_min?.toLocaleString()} / year</span>
                           </div>
                         </div>
                         

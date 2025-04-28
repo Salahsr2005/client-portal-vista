@@ -1,726 +1,1058 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { usePrograms } from "@/hooks/usePrograms";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  BookOpen, 
-  Search, 
-  Filter, 
-  ArrowRight, 
-  Clock, 
-  Calendar, 
-  MapPin, 
-  GraduationCap, 
-  CircleDollarSign, 
-  Languages,
-  CheckCircle,
-  ChevronDown,
-  Building,
-  Star,
-  Clock3
-} from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-} from "@/components/ui/sheet";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { useNavigate } from "react-router-dom";
-
-interface FilterState {
-  search: string;
-  studyLevel: string;
-  country: string;
-  field: string;
-  language: string;
-  tuitionRange: [number, number];
-  duration: string;
-  scholarshipAvailable: boolean;
-  internshipOpportunities: boolean;
-}
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Search, Filter, GraduationCap, Building, MapPin, Languages, Clock, CircleDollarSign, Heart, BookOpen, ArrowRight, ChevronDown, ChevronUp, Star, StarHalf, Info, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function Programs() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { data: programs, isLoading, error } = usePrograms();
-  const [filteredPrograms, setFilteredPrograms] = useState<any[]>([]);
-  const [filters, setFilters] = useState<FilterState>({
-    search: "",
-    studyLevel: "Any",
-    country: "Any",
-    field: "Any",
-    language: "Any",
-    tuitionRange: [0, 50000],
-    duration: "Any",
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    studyLevel: [],
+    country: [],
+    language: [],
+    duration: '',
+    tuitionMin: '',
+    tuitionMax: '',
     scholarshipAvailable: false,
     internshipOpportunities: false,
   });
-
-  const sortPrograms = (programs, sortOption) => {
-    const programsCopy = [...programs];
-
-    switch (sortOption) {
-      case "name-asc":
-        return programsCopy.sort((a, b) => a.name.localeCompare(b.name));
-      case "name-desc":
-        return programsCopy.sort((a, b) => b.name.localeCompare(a.name));
-      case "tuition-asc":
-        return programsCopy.sort((a, b) => compareValues(a.tuition_min, b.tuition_min));
-      case "tuition-desc":
-        return programsCopy.sort((a, b) => compareValues(b.tuition_min, a.tuition_min));
-      case "duration-asc":
-        return programsCopy.sort((a, b) => compareValues(a.duration_months, b.duration_months));
-      case "duration-desc":
-        return programsCopy.sort((a, b) => compareValues(b.duration_months, a.duration_months));
-      case "ranking-asc":
-        return programsCopy.sort((a, b) => {
-          if (!a.ranking) return 1;
-          if (!b.ranking) return -1;
-          return compareValues(a.ranking, b.ranking);
-        });
-      case "ranking-desc":
-        return programsCopy.sort((a, b) => {
-          if (!a.ranking) return 1;
-          if (!b.ranking) return -1;
-          return compareValues(b.ranking, a.ranking);
-        });
-      default:
-        return programsCopy;
-    }
-  };
-
-  const compareValues = (a: string | number, b: string | number): number => {
-    if (typeof a === 'number' && typeof b === 'number') {
-      return a - b;
-    }
-    
-    const strA = String(a);
-    const strB = String(b);
-    
-    return strA.localeCompare(strB);
-  };
-
-  // Extract unique values for filter dropdowns
-  const countries = programs
-    ? ["Any", ...Array.from(new Set(programs.map((p) => p.country)))]
-    : ["Any"];
+  const [expandedProgram, setExpandedProgram] = useState(null);
+  const [favoritePrograms, setFavoritePrograms] = useState([]);
+  const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
+  const [programToRemove, setProgramToRemove] = useState(null);
   
-  const studyLevels = programs
-    ? ["Any", ...Array.from(new Set(programs.map((p) => String(p.study_level))))]
-    : ["Any"];
-  
-  const fields = programs
-    ? ["Any", ...Array.from(new Set(programs.map((p) => p.field as string)))]
-    : ["Any"];
-  
-  const languages = programs
-    ? ["Any", ...Array.from(new Set(programs.map((p) => p.program_language)))]
-    : ["Any"];
-  
-  const durations = ["Any", "Short (<12 months)", "Medium (12-24 months)", "Long (>24 months)"];
-
-  const applyFilters = () => {
-    if (!programs) return;
-
-    const filtered = programs.filter((program) => {
-      // Search filter
-      const searchMatch =
-        filters.search === "" ||
-        program.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        program.university.toLowerCase().includes(filters.search.toLowerCase()) ||
-        program.country.toLowerCase().includes(filters.search.toLowerCase());
-
-      // Study level filter
-      const studyLevelMatch =
-        filters.studyLevel === "Any" ||
-        String(program.study_level) === filters.studyLevel;
-
-      // Country filter
-      const countryMatch =
-        filters.country === "Any" || program.country === filters.country;
-
-      // Field filter
-      const fieldMatch =
-        filters.field === "Any" || program.field === filters.field;
-
-      // Language filter
-      const languageMatch =
-        filters.language === "Any" || program.program_language === filters.language;
-
-      // Tuition range filter
-      const tuitionMatch =
-        program.tuition_min >= filters.tuitionRange[0] &&
-        program.tuition_min <= filters.tuitionRange[1];
-
-      // Duration filter
-      let durationMatch = true;
-      if (filters.duration === "Short (<12 months)") {
-        durationMatch = program.duration_months < 12;
-      } else if (filters.duration === "Medium (12-24 months)") {
-        durationMatch = program.duration_months >= 12 && program.duration_months <= 24;
-      } else if (filters.duration === "Long (>24 months)") {
-        durationMatch = program.duration_months > 24;
-      }
-
-      // Scholarship filter
-      const scholarshipMatch = !filters.scholarshipAvailable || program.scholarship_available;
-
-      // Internship filter
-      const internshipMatch = !filters.internshipOpportunities || program.internship_opportunities;
-
-      return (
-        searchMatch &&
-        studyLevelMatch &&
-        countryMatch &&
-        fieldMatch &&
-        languageMatch &&
-        tuitionMatch &&
-        durationMatch &&
-        scholarshipMatch &&
-        internshipMatch
-      );
-    });
-
-    setFilteredPrograms(filtered);
-  };
-
+  // Get any pre-selected filters from URL params
   useEffect(() => {
-    applyFilters();
-  }, [programs, filters]);
-
-  const handleFilterChange = (
-    key: keyof FilterState,
-    value: string | boolean | [number, number]
-  ) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    const level = searchParams.get('level');
+    const country = searchParams.get('country');
+    const field = searchParams.get('field');
+    
+    if (level || country || field) {
+      setFilters(prev => ({
+        ...prev,
+        studyLevel: level ? [level] : [],
+        country: country ? [country] : [],
+        field: field || '',
+      }));
+    }
+  }, [searchParams]);
+  
+  // Fetch programs on component mount
+  useEffect(() => {
+    fetchPrograms();
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user]);
+  
+  const fetchPrograms = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('programs')
+        .select('*')
+        .order('name');
+        
+      if (error) throw error;
+      
+      setPrograms(data || []);
+    } catch (err) {
+      console.error('Error fetching programs:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to load programs. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-
+  
+  const fetchFavorites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('favorite_programs')
+        .select('program_id')
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      setFavoritePrograms(data.map(fav => fav.program_id));
+    } catch (err) {
+      console.error('Error fetching favorites:', err);
+    }
+  };
+  
+  const toggleFavorite = async (programId) => {
+    if (!user) {
+      toast({
+        title: 'Login Required',
+        description: 'Please log in to save favorite programs',
+        variant: 'default',
+      });
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      const isFavorite = favoritePrograms.includes(programId);
+      
+      if (isFavorite) {
+        setProgramToRemove(programId);
+        setShowFavoritesDialog(true);
+        return;
+      }
+      
+      // Add to favorites
+      const { error } = await supabase
+        .from('favorite_programs')
+        .insert([{ user_id: user.id, program_id: programId }]);
+        
+      if (error) throw error;
+      
+      setFavoritePrograms(prev => [...prev, programId]);
+      
+      toast({
+        title: 'Program Saved',
+        description: 'Program added to your favorites',
+      });
+    } catch (err) {
+      console.error('Error updating favorites:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to update favorites. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const removeFavorite = async () => {
+    if (!programToRemove) return;
+    
+    try {
+      const { error } = await supabase
+        .from('favorite_programs')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('program_id', programToRemove);
+        
+      if (error) throw error;
+      
+      setFavoritePrograms(prev => prev.filter(id => id !== programToRemove));
+      setProgramToRemove(null);
+      setShowFavoritesDialog(false);
+      
+      toast({
+        title: 'Program Removed',
+        description: 'Program removed from your favorites',
+      });
+    } catch (err) {
+      console.error('Error removing favorite:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove from favorites. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+  
+  const handleCheckboxChange = (key) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+  
+  const handleMultiSelectChange = (key, value) => {
+    setFilters(prev => {
+      const currentValues = prev[key] || [];
+      
+      if (currentValues.includes(value)) {
+        return {
+          ...prev,
+          [key]: currentValues.filter(v => v !== value)
+        };
+      } else {
+        return {
+          ...prev,
+          [key]: [...currentValues, value]
+        };
+      }
+    });
+  };
+  
   const resetFilters = () => {
     setFilters({
-      search: "",
-      studyLevel: "Any",
-      country: "Any",
-      field: "Any",
-      language: "Any",
-      tuitionRange: [0, 50000],
-      duration: "Any",
+      studyLevel: [],
+      country: [],
+      language: [],
+      duration: '',
+      tuitionMin: '',
+      tuitionMax: '',
       scholarshipAvailable: false,
       internshipOpportunities: false,
     });
+    setSearchTerm('');
   };
-
-  const renderFilterCount = () => {
-    let count = 0;
-    if (filters.studyLevel !== "Any") count++;
-    if (filters.country !== "Any") count++;
-    if (filters.field !== "Any") count++;
-    if (filters.language !== "Any") count++;
-    if (filters.duration !== "Any") count++;
-    if (filters.scholarshipAvailable) count++;
-    if (filters.internshipOpportunities) count++;
-    if (filters.tuitionRange[0] > 0 || filters.tuitionRange[1] < 50000) count++;
-    return count > 0 ? count : "";
-  };
-
-  const renderHighlightBadge = (value: string | number) => {
-    // Convert to number if it's not already
-    const numericValue = typeof value === 'string' ? parseInt(value) : value;
-    if (isNaN(numericValue)) return null;
-
-    if (numericValue > 90) {
-      return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
-    } else if (numericValue > 70) {
-      return <Badge className="bg-blue-100 text-blue-700">Good</Badge>;
+  
+  const filteredPrograms = programs.filter(program => {
+    // Search term filter
+    if (searchTerm && !program.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !program.university.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
     }
-    return null;
+    
+    // Study level filter
+    if (filters.studyLevel.length > 0 && !filters.studyLevel.includes(program.study_level)) {
+      return false;
+    }
+    
+    // Country filter
+    if (filters.country.length > 0 && !filters.country.includes(program.country)) {
+      return false;
+    }
+    
+    // Language filter
+    if (filters.language.length > 0 && !filters.language.includes(program.program_language)) {
+      return false;
+    }
+    
+    // Duration filter
+    if (filters.duration) {
+      const durationMonths = parseInt(program.duration_months);
+      
+      switch (filters.duration) {
+        case 'short':
+          if (durationMonths > 12) return false;
+          break;
+        case 'medium':
+          if (durationMonths < 12 || durationMonths > 24) return false;
+          break;
+        case 'long':
+          if (durationMonths < 24) return false;
+          break;
+      }
+    }
+    
+    // Tuition min filter
+    if (filters.tuitionMin && Number(program.tuition_min) < parseInt(filters.tuitionMin)) {
+      return false;
+    }
+    
+    // Tuition max filter
+    if (filters.tuitionMax && Number(program.tuition_min) > parseInt(filters.tuitionMax)) {
+      return false;
+    }
+    
+    // Scholarship filter
+    if (filters.scholarshipAvailable && !program.scholarship_available) {
+      return false;
+    }
+    
+    // Internship filter
+    if (filters.internshipOpportunities && !program.internship_opportunities) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  const uniqueCountries = [...new Set(programs.map(program => program.country))].sort();
+  const uniqueLanguages = [...new Set(programs.map(program => program.program_language))].sort();
+  const uniqueStudyLevels = [...new Set(programs.map(program => program.study_level))].sort();
+  
+  const handleApplyNow = (programId) => {
+    navigate(`/applications/new?program=${programId}`);
   };
-
-  return (
-    <div className="container max-w-6xl py-8">
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Study Programs</h1>
-            <p className="text-muted-foreground">
-              Discover the perfect educational program for your future
-            </p>
-          </div>
-
-          <Button asChild className="mt-4 md:mt-0">
-            <Link to="/consultation">
-              <BookOpen className="mr-2 h-4 w-4" />
-              Program Finder
-            </Link>
-          </Button>
+  
+  const handleViewDetails = (programId) => {
+    navigate(`/programs/${programId}`);
+  };
+  
+  const toggleExpandProgram = (programId) => {
+    if (expandedProgram === programId) {
+      setExpandedProgram(null);
+    } else {
+      setExpandedProgram(programId);
+    }
+  };
+  
+  const renderRatingStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<Star key={`full-${i}`} className="h-4 w-4 fill-yellow-400 text-yellow-400" />);
+    }
+    
+    if (hasHalfStar) {
+      stars.push(<StarHalf key="half" className="h-4 w-4 fill-yellow-400 text-yellow-400" />);
+    }
+    
+    const emptyStars = 5 - stars.length;
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />);
+    }
+    
+    return stars;
+  };
+  
+  if (loading) {
+    return (
+      <div className="container max-w-7xl mx-auto py-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-[3fr,1fr] gap-4 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search programs, universities, or locations..."
-              className="pl-10"
-              value={filters.search}
-              onChange={(e) => handleFilterChange("search", e.target.value)}
-            />
-          </div>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="w-full">
-                <Filter className="mr-2 h-4 w-4" />
-                Filters
-                {renderFilterCount() && (
-                  <Badge className="ml-2 h-5 w-5 p-0 text-[10px] flex items-center justify-center">
-                    {renderFilterCount()}
-                  </Badge>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle>Filter Programs</SheetTitle>
-              </SheetHeader>
-              <div className="py-6 space-y-6">
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Study Level</h3>
-                  <Select
-                    value={filters.studyLevel}
-                    onValueChange={(value) => handleFilterChange("studyLevel", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select study level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {studyLevels.map((level) => (
-                          <SelectItem key={level} value={level}>
-                            {level}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Country</h3>
-                  <Select
-                    value={filters.country}
-                    onValueChange={(value) => handleFilterChange("country", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {countries.map((country) => (
-                          <SelectItem key={country} value={country}>
-                            {country}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Field of Study</h3>
-                  <Select
-                    value={filters.field}
-                    onValueChange={(value) => handleFilterChange("field", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select field" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {fields.map((field) => (
-                          <SelectItem key={field} value={field}>
-                            {field}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Language</h3>
-                  <Select
-                    value={filters.language}
-                    onValueChange={(value) => handleFilterChange("language", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {languages.map((language) => (
-                          <SelectItem key={language} value={language}>
-                            {language}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Duration</h3>
-                  <Select
-                    value={filters.duration}
-                    onValueChange={(value) => handleFilterChange("duration", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {durations.map((duration) => (
-                          <SelectItem key={duration} value={duration}>
-                            {duration}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Tuition Range ($)</h3>
-                  <div className="pt-2">
-                    <Slider
-                      min={0}
-                      max={50000}
-                      step={1000}
-                      value={filters.tuitionRange}
-                      onValueChange={(value) => handleFilterChange("tuitionRange", value as [number, number])}
-                      className="my-6"
-                    />
-                    <div className="flex items-center justify-between text-sm">
-                      <span>${filters.tuitionRange[0].toLocaleString()}</span>
-                      <span>${filters.tuitionRange[1].toLocaleString()}</span>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="container max-w-7xl mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Explore Programs</h1>
+        <p className="text-muted-foreground">
+          Discover educational opportunities around the world
+        </p>
+      </div>
+      
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Filters - Desktop */}
+        <div className="hidden lg:block w-64 flex-shrink-0">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Filters</CardTitle>
+              <CardDescription>Refine your search</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-medium mb-2">Study Level</h3>
+                <div className="space-y-2">
+                  {uniqueStudyLevels.map(level => (
+                    <div key={level} className="flex items-center">
+                      <Checkbox 
+                        id={`level-${level}`} 
+                        checked={filters.studyLevel.includes(level)}
+                        onCheckedChange={() => handleMultiSelectChange('studyLevel', level)}
+                      />
+                      <Label htmlFor={`level-${level}`} className="ml-2 text-sm">
+                        {level}
+                      </Label>
                     </div>
-                  </div>
+                  ))}
                 </div>
-
-                <div className="space-y-5">
-                  <h3 className="text-sm font-medium">Additional Options</h3>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="scholarship"
-                      checked={filters.scholarshipAvailable}
-                      onCheckedChange={(checked) => handleFilterChange("scholarshipAvailable", Boolean(checked))}
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="font-medium mb-2">Country</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                  {uniqueCountries.map(country => (
+                    <div key={country} className="flex items-center">
+                      <Checkbox 
+                        id={`country-${country}`} 
+                        checked={filters.country.includes(country)}
+                        onCheckedChange={() => handleMultiSelectChange('country', country)}
+                      />
+                      <Label htmlFor={`country-${country}`} className="ml-2 text-sm">
+                        {country}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="font-medium mb-2">Language</h3>
+                <div className="space-y-2">
+                  {uniqueLanguages.map(language => (
+                    <div key={language} className="flex items-center">
+                      <Checkbox 
+                        id={`language-${language}`} 
+                        checked={filters.language.includes(language)}
+                        onCheckedChange={() => handleMultiSelectChange('language', language)}
+                      />
+                      <Label htmlFor={`language-${language}`} className="ml-2 text-sm">
+                        {language}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="font-medium mb-2">Duration</h3>
+                <Select 
+                  value={filters.duration} 
+                  onValueChange={(value) => handleFilterChange('duration', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Any duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Any duration</SelectItem>
+                    <SelectItem value="short">Short (≤ 12 months)</SelectItem>
+                    <SelectItem value="medium">Medium (1-2 years)</SelectItem>
+                    <SelectItem value="long">Long (> 2 years)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Separator />
+              
+              <div>
+                <h3 className="font-medium mb-2">Tuition (per year)</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="tuition-min" className="text-xs">Min ($)</Label>
+                    <Input 
+                      id="tuition-min" 
+                      type="number" 
+                      placeholder="0" 
+                      value={filters.tuitionMin}
+                      onChange={(e) => handleFilterChange('tuitionMin', e.target.value)}
                     />
-                    <Label htmlFor="scholarship">Scholarship Available</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="internship"
-                      checked={filters.internshipOpportunities}
-                      onCheckedChange={(checked) => handleFilterChange("internshipOpportunities", Boolean(checked))}
+                  <div>
+                    <Label htmlFor="tuition-max" className="text-xs">Max ($)</Label>
+                    <Input 
+                      id="tuition-max" 
+                      type="number" 
+                      placeholder="50000" 
+                      value={filters.tuitionMax}
+                      onChange={(e) => handleFilterChange('tuitionMax', e.target.value)}
                     />
-                    <Label htmlFor="internship">Internship Opportunities</Label>
                   </div>
                 </div>
               </div>
-              <SheetFooter>
-                <Button variant="outline" onClick={resetFilters}>
-                  Reset Filters
-                </Button>
-              </SheetFooter>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        <div className="flex items-center justify-between text-sm">
-          <div className="text-muted-foreground">
-            {filteredPrograms?.length || 0} programs found
-          </div>
-          <Select defaultValue="relevance">
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="relevance">Relevance</SelectItem>
-              <SelectItem value="tuition-asc">Tuition: Low to High</SelectItem>
-              <SelectItem value="tuition-desc">Tuition: High to Low</SelectItem>
-              <SelectItem value="duration-asc">Duration: Shortest</SelectItem>
-              <SelectItem value="duration-desc">Duration: Longest</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Active filters display */}
-        {renderFilterCount() > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {filters.studyLevel !== "Any" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <GraduationCap className="h-3 w-3" />
-                {filters.studyLevel}
-                <button
-                  className="ml-1"
-                  onClick={() => handleFilterChange("studyLevel", "Any")}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            {filters.country !== "Any" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <MapPin className="h-3 w-3" />
-                {filters.country}
-                <button
-                  className="ml-1"
-                  onClick={() => handleFilterChange("country", "Any")}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            {filters.field !== "Any" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <BookOpen className="h-3 w-3" />
-                {filters.field}
-                <button
-                  className="ml-1"
-                  onClick={() => handleFilterChange("field", "Any")}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            {filters.language !== "Any" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Languages className="h-3 w-3" />
-                {filters.language}
-                <button
-                  className="ml-1"
-                  onClick={() => handleFilterChange("language", "Any")}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            {filters.duration !== "Any" && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {filters.duration}
-                <button
-                  className="ml-1"
-                  onClick={() => handleFilterChange("duration", "Any")}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            {(filters.scholarshipAvailable || filters.internshipOpportunities) && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                {filters.scholarshipAvailable ? "Scholarship" : "Internship"}
-                <button
-                  className="ml-1"
-                  onClick={() => handleFilterChange(
-                    filters.scholarshipAvailable ? "scholarshipAvailable" : "internshipOpportunities", 
-                    false
-                  )}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            {(filters.tuitionRange[0] > 0 || filters.tuitionRange[1] < 50000) && (
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <CircleDollarSign className="h-3 w-3" />
-                ${filters.tuitionRange[0].toLocaleString()} - ${filters.tuitionRange[1].toLocaleString()}
-                <button
-                  className="ml-1"
-                  onClick={() => handleFilterChange("tuitionRange", [0, 50000])}
-                >
-                  &times;
-                </button>
-              </Badge>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs"
-              onClick={resetFilters}
-            >
-              Clear all
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
-            <ProgramCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="text-center py-12">
-          <div className="text-destructive text-lg mb-2">Error loading programs</div>
-          <p className="text-muted-foreground">
-            There was a problem fetching the programs data.
-          </p>
-          <Button className="mt-4" onClick={() => window.location.reload()}>
-            Retry
-          </Button>
-        </div>
-      ) : filteredPrograms.length === 0 ? (
-        <div className="text-center py-12 border rounded-lg bg-muted/20">
-          <div className="text-3xl mb-2">🔍</div>
-          <h3 className="text-xl font-medium mb-1">No matching programs</h3>
-          <p className="text-muted-foreground mb-4">
-            Try adjusting your filters to find more programs.
-          </p>
-          <Button onClick={resetFilters}>Reset Filters</Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPrograms.map((program) => (
-            <ProgramCard key={program.id} program={program} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ProgramCard({ program }: { program: any }) {
-  const navigate = useNavigate();
-  const programImageUrl = program.image_url || "/placeholder.svg?height=200&width=400&text=Program%20Image";
-
-  return (
-    <Card className="overflow-hidden hover:shadow-md transition-all cursor-pointer group" 
-      onClick={() => navigate(`/programs/${program.id}`)}>
-      <div className="aspect-video w-full relative overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center transform group-hover:scale-105 transition-transform duration-300" 
-          style={{ backgroundImage: `url(${programImageUrl})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-full p-4">
-          <Badge className="mb-2">{program.study_level}</Badge>
-          <h3 className="font-semibold text-white text-lg line-clamp-1">{program.name}</h3>
-          <div className="flex items-center text-white/80 text-sm">
-            <Building className="h-3.5 w-3.5 mr-1" />
-            <span className="line-clamp-1">{program.university}</span>
-          </div>
-        </div>
-      </div>
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center">
-            <MapPin className="h-4 w-4 text-muted-foreground mr-1.5" />
-            <span className="text-sm">{program.country}</span>
-          </div>
-          <div className="flex items-center text-amber-500">
-            <Star className="h-4 w-4 fill-amber-500 mr-1" />
-            <span className="text-sm font-medium">4.5</span>
-          </div>
+              
+              <Separator />
+              
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <Checkbox 
+                    id="scholarship" 
+                    checked={filters.scholarshipAvailable}
+                    onCheckedChange={() => handleCheckboxChange('scholarshipAvailable')}
+                  />
+                  <Label htmlFor="scholarship" className="ml-2 text-sm">
+                    Scholarship Available
+                  </Label>
+                </div>
+                
+                <div className="flex items-center">
+                  <Checkbox 
+                    id="internship" 
+                    checked={filters.internshipOpportunities}
+                    onCheckedChange={() => handleCheckboxChange('internshipOpportunities')}
+                  />
+                  <Label htmlFor="internship" className="ml-2 text-sm">
+                    Internship Opportunities
+                  </Label>
+                </div>
+              </div>
+              
+              <Button variant="outline" className="w-full" onClick={resetFilters}>
+                Reset Filters
+              </Button>
+            </CardContent>
+          </Card>
         </div>
         
-        <div className="grid grid-cols-2 gap-y-2 text-sm mb-4">
-          <div className="flex items-center">
-            <Clock3 className="h-4 w-4 text-muted-foreground mr-1.5" />
-            <span>{program.duration} months</span>
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Search and Filter Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search programs or universities..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            {/* Mobile Filter Button */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="lg:hidden">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Refine your program search
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="space-y-6 py-4">
+                  <div>
+                    <h3 className="font-medium mb-2">Study Level</h3>
+                    <div className="space-y-2">
+                      {uniqueStudyLevels.map(level => (
+                        <div key={level} className="flex items-center">
+                          <Checkbox 
+                            id={`mobile-level-${level}`} 
+                            checked={filters.studyLevel.includes(level)}
+                            onCheckedChange={() => handleMultiSelectChange('studyLevel', level)}
+                          />
+                          <Label htmlFor={`mobile-level-${level}`} className="ml-2 text-sm">
+                            {level}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Country</h3>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                      {uniqueCountries.map(country => (
+                        <div key={country} className="flex items-center">
+                          <Checkbox 
+                            id={`mobile-country-${country}`} 
+                            checked={filters.country.includes(country)}
+                            onCheckedChange={() => handleMultiSelectChange('country', country)}
+                          />
+                          <Label htmlFor={`mobile-country-${country}`} className="ml-2 text-sm">
+                            {country}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Language</h3>
+                    <div className="space-y-2">
+                      {uniqueLanguages.map(language => (
+                        <div key={language} className="flex items-center">
+                          <Checkbox 
+                            id={`mobile-language-${language}`} 
+                            checked={filters.language.includes(language)}
+                            onCheckedChange={() => handleMultiSelectChange('language', language)}
+                          />
+                          <Label htmlFor={`mobile-language-${language}`} className="ml-2 text-sm">
+                            {language}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Duration</h3>
+                    <Select 
+                      value={filters.duration} 
+                      onValueChange={(value) => handleFilterChange('duration', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Any duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Any duration</SelectItem>
+                        <SelectItem value="short">Short (≤ 12 months)</SelectItem>
+                        <SelectItem value="medium">Medium (1-2 years)</SelectItem>
+                        <SelectItem value="long">Long (> 2 years)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h3 className="font-medium mb-2">Tuition (per year)</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor="mobile-tuition-min" className="text-xs">Min ($)</Label>
+                        <Input 
+                          id="mobile-tuition-min" 
+                          type="number" 
+                          placeholder="0" 
+                          value={filters.tuitionMin}
+                          onChange={(e) => handleFilterChange('tuitionMin', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="mobile-tuition-max" className="text-xs">Max ($)</Label>
+                        <Input 
+                          id="mobile-tuition-max" 
+                          type="number" 
+                          placeholder="50000" 
+                          value={filters.tuitionMax}
+                          onChange={(e) => handleFilterChange('tuitionMax', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <Checkbox 
+                        id="mobile-scholarship" 
+                        checked={filters.scholarshipAvailable}
+                        onCheckedChange={() => handleCheckboxChange('scholarshipAvailable')}
+                      />
+                      <Label htmlFor="mobile-scholarship" className="ml-2 text-sm">
+                        Scholarship Available
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <Checkbox 
+                        id="mobile-internship" 
+                        checked={filters.internshipOpportunities}
+                        onCheckedChange={() => handleCheckboxChange('internshipOpportunities')}
+                      />
+                      <Label htmlFor="mobile-internship" className="ml-2 text-sm">
+                        Internship Opportunities
+                      </Label>
+                    </div>
+                  </div>
+                  
+                  <Button variant="outline" className="w-full" onClick={resetFilters}>
+                    Reset Filters
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+            
+            <Select defaultValue="relevance">
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="relevance">Relevance</SelectItem>
+                <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                <SelectItem value="tuition-low">Tuition: Low to High</SelectItem>
+                <SelectItem value="tuition-high">Tuition: High to Low</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <div className="flex items-center">
-            <Languages className="h-4 w-4 text-muted-foreground mr-1.5" />
-            <span>{program.program_language}</span>
+          
+          {/* Active Filters */}
+          {(filters.studyLevel.length > 0 || 
+            filters.country.length > 0 || 
+            filters.language.length > 0 || 
+            filters.duration || 
+            filters.tuitionMin || 
+            filters.tuitionMax || 
+            filters.scholarshipAvailable || 
+            filters.internshipOpportunities) && (
+            <div className="flex flex-wrap gap-2 mb-4">
+              {filters.studyLevel.map(level => (
+                <Badge key={level} variant="secondary" className="px-2 py-1">
+                  {level}
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleMultiSelectChange('studyLevel', level)}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+              
+              {filters.country.map(country => (
+                <Badge key={country} variant="secondary" className="px-2 py-1">
+                  {country}
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleMultiSelectChange('country', country)}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+              
+              {filters.language.map(language => (
+                <Badge key={language} variant="secondary" className="px-2 py-1">
+                  {language}
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleMultiSelectChange('language', language)}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+              
+              {filters.duration && (
+                <Badge variant="secondary" className="px-2 py-1">
+                  Duration: {filters.duration === 'short' ? '≤ 12 months' : 
+                             filters.duration === 'medium' ? '1-2 years' : '> 2 years'}
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleFilterChange('duration', '')}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              )}
+              
+              {filters.tuitionMin && (
+                <Badge variant="secondary" className="px-2 py-1">
+                  Min: ${filters.tuitionMin}
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleFilterChange('tuitionMin', '')}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              )}
+              
+              {filters.tuitionMax && (
+                <Badge variant="secondary" className="px-2 py-1">
+                  Max: ${filters.tuitionMax}
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleFilterChange('tuitionMax', '')}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              )}
+              
+              {filters.scholarshipAvailable && (
+                <Badge variant="secondary" className="px-2 py-1">
+                  Scholarship Available
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleCheckboxChange('scholarshipAvailable')}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              )}
+              
+              {filters.internshipOpportunities && (
+                <Badge variant="secondary" className="px-2 py-1">
+                  Internship Opportunities
+                  <button 
+                    className="ml-1 hover:text-destructive" 
+                    onClick={() => handleCheckboxChange('internshipOpportunities')}
+                  >
+                    ×
+                  </button>
+                </Badge>
+              )}
+              
+              <Button variant="ghost" size="sm" onClick={resetFilters}>
+                Clear All
+              </Button>
+            </div>
+          )}
+          
+          {/* Results Count */}
+          <div className="text-sm text-muted-foreground mb-4">
+            Showing {filteredPrograms.length} of {programs.length} programs
           </div>
-          <div className="flex items-center">
-            <Calendar className="h-4 w-4 text-muted-foreground mr-1.5" />
-            <span>Deadline: {program.deadline}</span>
-          </div>
-          <div className="flex items-center">
-            <CircleDollarSign className="h-4 w-4 text-muted-foreground mr-1.5" />
-            <span>${program.tuition}</span>
+          
+          {/* Program Cards */}
+          {filteredPrograms.length === 0 ? (
+            <Card className="p-8 text-center">
+              <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Programs Found</h3>
+              <p className="text-muted-foreground mb-4">
+                We couldn't find any programs matching your criteria. Try adjusting your filters.
+              </p>
+              <Button variant="outline" onClick={resetFilters}>Reset Filters</Button>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {filteredPrograms.map((program) => (
+                <Card key={program.id} className="overflow-hidden">
+                  <div className="p-6">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="h-32 w-full md:w-48 md:h-32 bg-muted rounded-md flex-shrink-0 overflow-hidden">
+                        <div 
+                          className="w-full h-full bg-cover bg-center"
+                          style={{ 
+                            backgroundImage: program.image_url 
+                              ? `url(${program.image_url})` 
+                              : `url(/placeholder.svg?height=150&width=200&text=${encodeURIComponent(program.name)})`
+                          }}
+                        ></div>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                          <div>
+                            <h3 className="font-semibold text-lg">{program.name}</h3>
+                            <div className="flex items-center text-muted-foreground mb-2">
+                              <Building className="h-3.5 w-3.5 mr-1" />
+                              <span>{program.university}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center">
+                            {program.rating && (
+                              <div className="flex items-center mr-3">
+                                {renderRatingStars(program.rating)}
+                                <span className="ml-1 text-sm font-medium">{program.rating.toFixed(1)}</span>
+                              </div>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={favoritePrograms.includes(program.id) ? "text-red-500 hover:text-red-600" : "text-muted-foreground hover:text-red-500"}
+                              onClick={() => toggleFavorite(program.id)}
+                            >
+                              <Heart className={favoritePrograms.includes(program.id) ? "fill-current" : ""} />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-y-1 gap-x-4 text-sm mt-1">
+                          <div className="flex items-center">
+                            <MapPin className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
+                            <span>{program.country}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <GraduationCap className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
+                            <span>{program.study_level}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Languages className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
+                            <span>{program.program_language}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
+                            <span>{program.duration_months} months</span>
+                          </div>
+                          <div className="flex items-center">
+                            <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
+                            <span>${Number(program.tuition_min).toLocaleString()} / year</span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {program.scholarship_available && (
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
+                              Scholarship Available
+                            </Badge>
+                          )}
+                          {program.internship_opportunities && (
+                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
+                              Internship Opportunities
+                            </Badge>
+                          )}
+                          {Number(program.tuition_min) > 10000 && (
+                            <Badge variant="outline" className="text-xs">
+                              High Tuition
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(program.id)}>
+                            View Details
+                          </Button>
+                          <Button size="sm" onClick={() => handleApplyNow(program.id)}>
+                            Apply Now
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="ml-auto"
+                            onClick={() => toggleExpandProgram(program.id)}
+                          >
+                            {expandedProgram === program.id ? (
+                              <>
+                                Less Info <ChevronUp className="ml-1 h-4 w-4" />
+                              </>
+                            ) : (
+                              <>
+                                More Info <ChevronDown className="ml-1 h-4 w-4" />
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {expandedProgram === program.id && (
+                      <div className="mt-4 pt-4 border-t">
+                        <Tabs defaultValue="overview">
+                          <TabsList className="mb-4">
+                            <TabsTrigger value="overview">Overview</TabsTrigger>
+                            <TabsTrigger value="requirements">Requirements</TabsTrigger>
+                            <TabsTrigger value="fees">Fees & Scholarships</TabsTrigger>
+                          </TabsList>
+                          
+                          <TabsContent value="overview" className="space-y-4">
+                            <div>
+                              <h4 className="font-medium mb-2">Program Description</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {program.description || "No description available for this program."}
+                              </p>
+                            </div>
+                            
+                            {program.key_features && (
+                              <div>
+                                <h4 className="font-medium mb-2">Key Features</h4>
+                                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                  {program.key_features.map((feature, idx) => (
+                                    <li key={idx}>{feature}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            
+                            <div className="flex justify-end">
+                              <Button variant="link" size="sm" className="text-primary" onClick={() => handleViewDetails(program.id)}>
+                                View Full Details <ArrowRight className="ml-1 h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="requirements" className="space-y-4">
+                            <div>
+                              <h4 className="font-medium mb-2">Academic Requirements</h4>
+                              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                {program.academic_requirements ? (
+                                  program.academic_requirements.map((req, idx) => (
+                                    <li key={idx}>{req}</li>
+                                  ))
+                                ) : (
+                                  <li>Contact the university for specific requirements</li>
+                                )}
+                              </ul>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-medium mb-2">Language Requirements</h4>
+                              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                {program.language_requirements ? (
+                                  program.language_requirements.map((req, idx) => (
+                                    <li key={idx}>{req}</li>
+                                  ))
+                                ) : (
+                                  <li>Proficiency in {program.program_language} required</li>
+                                )}
+                              </ul>
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="fees" className="space-y-4">
+                            <div>
+                              <h4 className="font-medium mb-2">Tuition Fees</h4>
+                              <p className="text-sm text-muted-foreground">
+                                ${Number(program.tuition_min).toLocaleString()} - ${Number(program.tuition_max || program.tuition_min).toLocaleString()} per year
+                              </p>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-medium mb-2">Additional Costs</h4>
+                              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                                <li>Application Fee: ${program.application_fee || "Varies"}</li>
+                                <li>Living Expenses: ${program.living_expenses_min || "Varies"} - ${program.living_expenses_max || "Varies"} per year</li>
+                                <li>Health Insurance: ${program.health_insurance || "Varies"} per year</li>
+                              </ul>
+                            </div>
+                            
+                            {program.scholarship_available && (
+                              <div>
+                                <h4 className="font-medium mb-2">Scholarships</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Scholarships are available for this program. Contact our advisors for more information.
+                                </p>
+                              </div>
+                            )}
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+          
+          {/* Pagination */}
+          <div className="flex justify-center mt-8">
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm" disabled>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">
+                1
+              </Button>
+              <Button variant="outline" size="sm">
+                2
+              </Button>
+              <Button variant="outline" size="sm">
+                3
+              </Button>
+              <Button variant="outline" size="sm">
+                Next
+              </Button>
+            </div>
           </div>
         </div>
-
-        <div className="mt-2 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {program.scholarship_available && (
-              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                Scholarship
-              </Badge>
-            )}
-            {program.internship_opportunities && (
-              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
-                Internship
-              </Badge>
-            )}
-          </div>
-          <Button variant="ghost" size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
-            Details <ArrowRight className="ml-1 h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ProgramCardSkeleton() {
-  return (
-    <Card className="overflow-hidden">
-      <div className="aspect-video bg-muted animate-pulse" />
-      <CardContent className="p-4">
-        <Skeleton className="h-6 w-3/4 mb-3" />
-        <Skeleton className="h-4 w-2/3 mb-4" />
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-full" />
-        </div>
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-5 w-1/3" />
-          <Skeleton className="h-8 w-20" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CircleDashed(props: any) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <circle cx="12" cy="12" r="10" />
-      <path d="M17.57 17.57 12 12" />
-      <path d="m12 12-5.57-5.57" />
-      <path d="m12 12-5.57 5.57" />
-      <path d="m12 12 5.57-5.57" />
-    </svg>
+      </div>
+      
+      {/* Remove from favorites dialog */}
+      <AlertDialog open={showFavoritesDialog} onOpenChange={setShowFavoritesDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from Favorites</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this program from your favorites?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProgramToRemove(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={removeFavorite}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
