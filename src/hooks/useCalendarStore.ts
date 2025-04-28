@@ -1,5 +1,5 @@
 
-import { defineStore } from 'zustand';
+import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
 
@@ -41,7 +41,7 @@ type Actions = {
 };
 
 // Create the store using Zustand
-export const useCalendarStore = defineStore<State & Actions>((set, get) => ({
+export const useCalendarStore = create<State & Actions>((set, get) => ({
   events: [],
   loading: false,
   error: null,

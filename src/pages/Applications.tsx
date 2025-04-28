@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,14 @@ import {
   RotateCw
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 type ApplicationStatus = "Completed" | "Draft" | "Submitted" | "In Review" | "Pending Documents" | "Approved" | "Rejected" | "Cancelled";
 
@@ -184,85 +192,128 @@ export default function Applications() {
         </div>
       );
     }
-    
-    const approved = applications.filter(app => app.status === "Approved");
-    const pending = applications.filter(app => ["In Review", "Submitted", "Pending Documents"].includes(app.status));
-    const rejected = applications.filter(app => ["Rejected", "Cancelled"].includes(app.status));
-    const draft = applications.filter(app => app.status === "Draft");
-    
+
+    // Table view for applications
     return (
-      <div className="space-y-8">
-        {approved.length > 0 && (
-          <div>
-            <h2 className="text-lg font-medium mb-4 flex items-center">
-              <CheckCircle className="text-green-500 mr-2 h-5 w-5" />
-              Approved Applications
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {approved.map(application => (
-                <ApplicationCard
-                  key={application.application_id}
-                  application={application}
-                  onClick={() => handleApplicationClick(application)}
-                />
+      <div className="space-y-6">
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Program</TableHead>
+                <TableHead>University</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {applications.map((app) => (
+                <TableRow key={app.application_id}>
+                  <TableCell className="font-medium">{app.program_name}</TableCell>
+                  <TableCell>{app.university}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={app.status} />
+                  </TableCell>
+                  <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="outline" onClick={() => handleApplicationClick(app)}>
+                      View
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          </div>
-        )}
-        
-        {pending.length > 0 && (
-          <div>
-            <h2 className="text-lg font-medium mb-4 flex items-center">
-              <Clock className="text-amber-500 mr-2 h-5 w-5" />
-              Pending Applications
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {pending.map(application => (
-                <ApplicationCard
-                  key={application.application_id}
-                  application={application}
-                  onClick={() => handleApplicationClick(application)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {rejected.length > 0 && (
-          <div>
-            <h2 className="text-lg font-medium mb-4 flex items-center">
-              <XCircle className="text-red-500 mr-2 h-5 w-5" />
-              Rejected Applications
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {rejected.map(application => (
-                <ApplicationCard
-                  key={application.application_id}
-                  application={application}
-                  onClick={() => handleApplicationClick(application)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {draft.length > 0 && (
-          <div>
-            <h2 className="text-lg font-medium mb-4 flex items-center">
-              <CircleDashed className="text-muted-foreground mr-2 h-5 w-5" />
-              Draft Applications
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {draft.map(application => (
-                <ApplicationCard
-                  key={application.application_id}
-                  application={application}
-                  onClick={() => handleApplicationClick(application)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="space-y-8">
+          <h2 className="text-lg font-medium mb-4">Application Groups</h2>
+          
+          {/* Grouped Applications */}
+          {(() => {
+            const approved = applications.filter(app => app.status === "Approved");
+            const pending = applications.filter(app => ["In Review", "Submitted", "Pending Documents"].includes(app.status));
+            const rejected = applications.filter(app => ["Rejected", "Cancelled"].includes(app.status));
+            const draft = applications.filter(app => app.status === "Draft");
+            
+            return (
+              <>
+                {approved.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-medium mb-4 flex items-center">
+                      <CheckCircle className="text-green-500 mr-2 h-5 w-5" />
+                      Approved Applications
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {approved.map(application => (
+                        <ApplicationCard
+                          key={application.application_id}
+                          application={application}
+                          onClick={() => handleApplicationClick(application)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {pending.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-medium mb-4 flex items-center">
+                      <Clock className="text-amber-500 mr-2 h-5 w-5" />
+                      Pending Applications
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {pending.map(application => (
+                        <ApplicationCard
+                          key={application.application_id}
+                          application={application}
+                          onClick={() => handleApplicationClick(application)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {rejected.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-medium mb-4 flex items-center">
+                      <XCircle className="text-red-500 mr-2 h-5 w-5" />
+                      Rejected Applications
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {rejected.map(application => (
+                        <ApplicationCard
+                          key={application.application_id}
+                          application={application}
+                          onClick={() => handleApplicationClick(application)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {draft.length > 0 && (
+                  <div>
+                    <h2 className="text-lg font-medium mb-4 flex items-center">
+                      <CircleDashed className="text-muted-foreground mr-2 h-5 w-5" />
+                      Draft Applications
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {draft.map(application => (
+                        <ApplicationCard
+                          key={application.application_id}
+                          application={application}
+                          onClick={() => handleApplicationClick(application)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
       </div>
     );
   };
@@ -274,6 +325,18 @@ export default function Applications() {
         <p className="text-muted-foreground">
           Track and manage your program applications
         </p>
+      </div>
+      
+      <div className="mb-6 flex justify-between">
+        <Button variant="outline">
+          Filter
+        </Button>
+        <Button asChild>
+          <Link to="/applications/new">
+            <PlusCircle className="h-4 w-4 mr-2" />
+            New Application
+          </Link>
+        </Button>
       </div>
       
       {renderApplicationGroups()}

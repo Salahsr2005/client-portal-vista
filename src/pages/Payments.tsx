@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -42,15 +42,15 @@ import {
   ArrowUpDown, 
   CreditCard, 
   Download,
-  CheckCircle2,
+  CheckCircle,
   Clock,
   XCircle,
-  BanknoteIcon,
-  Building2,
   FileText,
   CircleDollarSign,
-  PlusCircle,
-  AlertTriangle
+  AlertTriangle,
+  Bank,
+  Building,
+  BanknoteIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usePayments, usePendingApplications } from "@/hooks/usePayments";
@@ -75,7 +75,7 @@ const getStatusColor = (status: string) => {
 const getStatusIcon = (status: string) => {
   switch (status.toLowerCase()) {
     case "completed":
-      return <CheckCircle2 className="h-4 w-4 mr-1" />;
+      return <CheckCircle className="h-4 w-4 mr-1" />;
     case "pending":
       return <Clock className="h-4 w-4 mr-1" />;
     case "failed":
@@ -472,7 +472,7 @@ export default function Payments() {
                     htmlFor="payment-bank" 
                     className="flex items-center gap-3 rounded-lg border border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
                   >
-                    <Building2 className="h-5 w-5 text-primary" />
+                    <Building className="h-5 w-5 text-primary" />
                     <div className="flex-1">
                       <p className="font-medium">Bank Transfer (BDL-AGB-CPA)</p>
                       <p className="text-sm text-muted-foreground">Pay via bank transfer</p>
