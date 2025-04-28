@@ -1,862 +1,806 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAppointments } from "@/hooks/useAppointments";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { format, parseISO, isAfter, isBefore, startOfDay } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useAppointments } from "@/hooks/useAppointments";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
-import { useForm } from "react-hook-form";
-
-import { 
-  CalendarDays, 
-  Clock, 
-  Search, 
-  Filter, 
-  MoreVertical, 
-  Video, 
-  UserRound, 
-  MessageSquare,
-  ArrowUpDown,
-  CalendarCheck,
-  CalendarPlus,
-  ArrowRight,
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin,
+  Video,
+  User,
+  Plus,
+  ChevronRight,
+  Filter,
+  Search,
   CheckCircle,
-  XCircle
-} from 'lucide-react';
+  XCircle,
+  AlertCircle,
+  Clock8
+} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+
+interface Service {
+  id: string;
+  name: string;
+  duration: number;
+}
 
 interface Appointment {
   id: string;
   service: string;
   date: string;
-  time: string;
   status: string;
+  notes: string;
+  time: string;
   advisor?: string;
-  notes?: string;
+  location?: string;
   mode?: string;
 }
 
-interface AvailableSlot {
-  id: string;
-  date: Date;
-  time: string;
-  service: string;
-  advisor: string;
-  mode: string;
-}
-
 export default function Appointments() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { data: userAppointments, isLoading, error, refetch } = useAppointments();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState("all");
-  const [isScheduling, setIsScheduling] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [availableServices, setAvailableServices] = useState<{id: string, name: string, duration: number}[]>([]);
-  const [isBooking, setIsBooking] = useState(false);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [selectedService, setSelectedService] = useState<string>("");
+  const [specialRequests, setSpecialRequests] = useState("");
+  const [bookingDialog, setBookingDialog] = useState(false);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [cancelDialog, setCancelDialog] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const form = useForm({
-    defaultValues: {
-      specialRequests: "",
-    },
-  });
+  const { data: appointments = [], isLoading: appointmentsLoading } = useAppointments();
+
+  const upcomingAppointments = appointments.filter(
+    (app) => app.status !== "Completed" && app.status !== "Cancelled"
+  );
+  
+  const pastAppointments = appointments.filter(
+    (app) => app.status === "Completed" || app.status === "Cancelled"
+  );
 
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('services')
-          .select('service_id, name, duration')
-          .eq('status', 'Active')
-          .order('name');
-          
-        if (error) throw error;
-        
-        setAvailableServices(data || []);
-        if (data && data.length > 0) {
-          setSelectedService(data[0].service_id);
-        }
-      } catch (error) {
-        console.error('Error fetching services:', error);
-        toast({
-          title: 'Failed to load services',
-          description: 'Please try again later.',
-          variant: 'destructive',
-        });
-      }
-    };
-    
-    fetchServices();
-  }, [toast]);
-  
-  useEffect(() => {
-    const fetchAvailableSlots = async () => {
-      if (!selectedDate || !selectedService) return;
-      
-      try {
-        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-        
-        const startOfDay = new Date(selectedDate);
-        startOfDay.setHours(0, 0, 0, 0);
-        
-        const endOfDay = new Date(selectedDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        
-        const { data: slotsData, error: slotsError } = await supabase
-          .from('appointment_slots')
-          .select(`
-            slot_id, 
-            date_time, 
-            max_bookings, 
-            current_bookings, 
-            mode,
-            admin_users(first_name, last_name),
-            services(name, duration)
-          `)
-          .eq('service_id', selectedService)
-          .gte('date_time', startOfDay.toISOString())
-          .lte('date_time', endOfDay.toISOString())
-          .eq('status', 'Available')
-          .lt('current_bookings', 'max_bookings');
-          
-        if (slotsError) throw slotsError;
-        
-        const slots = (slotsData || []).map(slot => ({
-          id: slot.slot_id,
-          date: new Date(slot.date_time),
-          time: format(new Date(slot.date_time), 'h:mm a'),
-          service: slot.services?.name || 'Consultation',
-          advisor: slot.admin_users 
-            ? `${slot.admin_users.first_name} ${slot.admin_users.last_name}`
-            : 'Available Advisor',
-          mode: slot.mode || 'In-person'
-        }));
-        
-        setAvailableSlots(slots);
-      } catch (error) {
-        console.error('Error fetching slots:', error);
-        toast({
-          title: 'Failed to load available times',
-          description: 'Please try again later.',
-          variant: 'destructive',
-        });
-      }
-    };
-    
     fetchAvailableSlots();
-  }, [selectedDate, selectedService, toast]);
+    fetchServices();
+  }, [date]);
 
-  const handleScheduleNew = () => {
-    setSelectedDate(new Date());
-    setSelectedSlot(null);
-    setIsScheduling(true);
-    setOpenDialog(true);
-  };
-  
-  const handleDateSelect = (date: Date | undefined) => {
-    setSelectedDate(date);
-    setSelectedSlot(null);
-  };
-  
-  const handleSelectSlot = (slotId: string) => {
-    setSelectedSlot(slotId);
-  };
-  
-  const handleBookAppointment = async (formData: { specialRequests: string }) => {
-    if (!selectedSlot || !user) return;
+  const fetchAvailableSlots = async () => {
+    if (!date) return;
     
-    setIsBooking(true);
+    setLoading(true);
+    const formattedDate = format(date, "yyyy-MM-dd");
     
     try {
-      const { data, error } = await supabase
-        .from('appointments')
-        .insert({
-          client_id: user.id,
-          slot_id: selectedSlot,
-          special_requests: formData.specialRequests,
-          status: 'Reserved',
-        })
-        .select();
-        
+      const { data: slots, error } = await supabase
+        .from("appointment_slots")
+        .select(`
+          slot_id,
+          admin_id,
+          date_time,
+          end_time,
+          duration,
+          location,
+          mode,
+          admin_users(first_name, last_name, photo_url),
+          service_id,
+          services(name, duration, price),
+          status,
+          current_bookings,
+          max_bookings
+        `)
+        .eq("status", "Available")
+        .gte("date_time", `${formattedDate}T00:00:00`)
+        .lte("date_time", `${formattedDate}T23:59:59`)
+        .order("date_time", { ascending: true });
+      
       if (error) throw error;
       
-      toast({
-        title: 'Appointment Booked',
-        description: 'Your appointment has been successfully scheduled.',
-        variant: 'default',
-      });
+      // Filter slots that still have capacity
+      const availableSlots = slots?.filter(slot => 
+        slot.current_bookings < slot.max_bookings
+      ) || [];
       
-      setOpenDialog(false);
-      setIsScheduling(false);
-      refetch();
+      setAvailableSlots(availableSlots);
     } catch (error) {
-      console.error('Error booking appointment:', error);
+      console.error("Error fetching available slots:", error);
       toast({
-        title: 'Booking Failed',
-        description: 'There was an error booking your appointment. Please try again.',
-        variant: 'destructive',
+        title: "Error fetching available slots",
+        description: "Please try again later",
+        variant: "destructive"
       });
     } finally {
-      setIsBooking(false);
+      setLoading(false);
     }
   };
-  
-  const handleCancelAppointment = async (appointmentId: string) => {
+
+  const fetchServices = async () => {
     try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: 'Cancelled' })
-        .eq('appointment_id', appointmentId);
-        
+      const { data, error } = await supabase
+        .from("services")
+        .select("service_id, name, duration")
+        .eq("status", "Active");
+      
       if (error) throw error;
       
-      toast({
-        title: 'Appointment Cancelled',
-        description: 'Your appointment has been cancelled successfully.',
-      });
+      // Map to expected Service shape with id property
+      const mappedServices = data.map(service => ({
+        id: service.service_id,
+        name: service.name,
+        duration: service.duration
+      }));
       
-      refetch();
+      setServices(mappedServices);
     } catch (error) {
-      console.error('Error cancelling appointment:', error);
+      console.error("Error fetching services:", error);
+    }
+  };
+
+  const handleBookSlot = (slot: any) => {
+    setSelectedSlot(slot);
+    setSelectedService(slot.service_id || "");
+    setBookingDialog(true);
+  };
+
+  const confirmBooking = async () => {
+    if (!user || !selectedSlot) return;
+    
+    try {
+      // Insert into appointments table
+      const { data, error } = await supabase.from("appointments").insert({
+        client_id: user.id,
+        slot_id: selectedSlot.slot_id,
+        reason: "Consultation", // Adding the required reason field
+        special_requests: specialRequests,
+        status: "Reserved"
+      });
+      
+      if (error) throw error;
+      
+      // Update the slot's current bookings
+      await supabase
+        .from("appointment_slots")
+        .update({ current_bookings: selectedSlot.current_bookings + 1 })
+        .eq("slot_id", selectedSlot.slot_id);
+      
+      setBookingConfirmed(true);
+      
+      // Reset form
+      setSpecialRequests("");
+      
       toast({
-        title: 'Cancellation Failed',
-        description: 'There was an error cancelling your appointment. Please try again.',
-        variant: 'destructive',
+        title: "Appointment booked successfully",
+        description: "You can view your appointment in the Upcoming section",
+      });
+      
+      // Refresh data after short delay
+      setTimeout(() => {
+        setBookingDialog(false);
+        setBookingConfirmed(false);
+        fetchAvailableSlots();
+      }, 2000);
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      toast({
+        title: "Error booking appointment",
+        description: "Please try again",
+        variant: "destructive"
       });
     }
   };
-  
-  const filteredAppointments = React.useMemo(() => {
-    if (!userAppointments) return [];
+
+  const handleCancelAppointment = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setCancelDialog(true);
+  };
+
+  const confirmCancelAppointment = async () => {
+    if (!selectedAppointment) return;
     
-    return userAppointments.filter(apt => {
-      const matchesSearch = apt.service.toLowerCase().includes(searchTerm.toLowerCase());
+    try {
+      // Update appointment status
+      await supabase
+        .from("appointments")
+        .update({ status: "Cancelled" })
+        .eq("appointment_id", selectedAppointment.id);
       
-      if (filter === "all") return matchesSearch;
-      return matchesSearch && apt.status.toLowerCase() === filter;
-    });
-  }, [userAppointments, searchTerm, filter]);
-  
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "scheduled":
-      case "reserved":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
-      case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
-      case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100";
+      toast({
+        title: "Appointment cancelled",
+        description: "Your appointment has been cancelled successfully",
+      });
+      
+      setCancelDialog(false);
+      
+      // Refresh appointments data
+      // The useAppointments hook will handle this automatically with React Query
+    } catch (error) {
+      console.error("Error cancelling appointment:", error);
+      toast({
+        title: "Error cancelling appointment",
+        description: "Please try again",
+        variant: "destructive"
+      });
     }
   };
-  
-  const getModeIcon = (mode = 'in-person') => {
-    switch (mode.toLowerCase()) {
-      case "video":
-        return <Video className="h-4 w-4 mr-1" />;
-      case "in-person":
-        return <UserRound className="h-4 w-4 mr-1" />;
+
+  // Status badge colors and icons
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed":
+        return { variant: "outline" as const, icon: CheckCircle, color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" };
+      case "cancelled":
+        return { variant: "outline" as const, icon: XCircle, color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100" };
+      case "reserved":
+        return { variant: "outline" as const, icon: CheckCircle, color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100" };
       default:
-        return <MessageSquare className="h-4 w-4 mr-1" />;
+        return { variant: "outline" as const, icon: Clock8, color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100" };
     }
   };
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center h-[600px]">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Sign in Required</CardTitle>
-            <CardDescription>
-              You need to be signed in to view and manage your appointments.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button className="w-full" asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="container max-w-6xl py-8">
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-xl font-semibold">Authentication Required</h2>
+          <p className="text-muted-foreground mt-2 mb-6">
+            Please log in to view and book appointments
+          </p>
+          <Button onClick={() => navigate("/login")}>
+            Login to Continue
+          </Button>
+        </div>
       </div>
     );
   }
 
+  // Mock appointmentsData for UI development
+  const mockUpcomingAppointments: Appointment[] = [
+    {
+      id: "1",
+      service: "Program Consultation",
+      date: "2023-11-01",
+      time: "10:00",
+      status: "Reserved",
+      advisor: "Sarah Johnson",
+      location: "Online",
+      mode: "Video Call",
+      notes: "Initial consultation for study abroad programs"
+    },
+    {
+      id: "2",
+      service: "Visa Application Review",
+      date: "2023-11-15",
+      time: "14:30",
+      status: "Reserved",
+      advisor: "Mohammed Ali",
+      location: "Main Office",
+      mode: "In Person",
+      notes: "Bring all required documents"
+    }
+  ];
+
+  const mockPastAppointments: Appointment[] = [
+    {
+      id: "3",
+      service: "Document Verification",
+      date: "2023-10-05",
+      time: "11:00",
+      status: "Completed",
+      advisor: "Fatima Zahra",
+      location: "Branch Office",
+      mode: "In Person",
+      notes: "All documents verified successfully"
+    },
+    {
+      id: "4",
+      service: "Follow-up Consultation",
+      date: "2023-09-20",
+      time: "16:00",
+      status: "Cancelled",
+      advisor: "Youssef Benzahra",
+      location: "Online",
+      mode: "Video Call",
+      notes: "Cancelled due to scheduling conflict"
+    }
+  ];
+
   return (
-    <div className="container max-w-6xl py-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
-        <Button onClick={handleScheduleNew}>
-          <CalendarPlus className="mr-2 h-4 w-4" />
-          Schedule New
-        </Button>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>My Appointments</CardTitle>
-          <CardDescription>
-            Manage your scheduled appointments and consultations
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
-              <TabsList className="mb-4 sm:mb-0">
-                <TabsTrigger value="all" onClick={() => setFilter("all")}>All</TabsTrigger>
-                <TabsTrigger value="scheduled" onClick={() => setFilter("scheduled")}>Upcoming</TabsTrigger>
-                <TabsTrigger value="completed" onClick={() => setFilter("completed")}>Completed</TabsTrigger>
-                <TabsTrigger value="cancelled" onClick={() => setFilter("cancelled")}>Cancelled</TabsTrigger>
-              </TabsList>
-              
-              <div className="flex gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search appointments..."
-                    className="pl-8 w-full sm:w-[250px]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+    <div className="container max-w-6xl py-8">
+      <h1 className="text-3xl font-bold mb-6">Appointments</h1>
+
+      <Tabs defaultValue="upcoming">
+        <TabsList className="mb-6">
+          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+          <TabsTrigger value="past">Past</TabsTrigger>
+          <TabsTrigger value="book">Book New</TabsTrigger>
+        </TabsList>
+        
+        {/* Upcoming Appointments Tab */}
+        <TabsContent value="upcoming">
+          {appointmentsLoading ? (
+            <div className="flex justify-center my-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : upcomingAppointments.length > 0 ? (
+            <div className="space-y-4">
+              {upcomingAppointments.map((appointment) => {
+                const statusProps = getStatusBadge(appointment.status);
+                const StatusIcon = statusProps.icon;
+                
+                return (
+                  <Card key={appointment.id} className="overflow-hidden">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="p-6 md:w-3/4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-semibold">{appointment.service}</h3>
+                          <Badge variant={statusProps.variant} className={statusProps.color}>
+                            <StatusIcon className="h-3.5 w-3.5 mr-1" />
+                            {appointment.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center text-sm">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{format(new Date(appointment.date), "MMMM d, yyyy")}</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{appointment.time}</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{appointment.advisor || "Assigned Advisor"}</span>
+                          </div>
+                          {appointment.mode && (
+                            <div className="flex items-center text-sm">
+                              {appointment.mode === "Video Call" ? (
+                                <Video className="h-4 w-4 mr-2 text-muted-foreground" />
+                              ) : (
+                                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                              )}
+                              <span>{appointment.mode}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {appointment.notes && (
+                          <p className="text-sm text-muted-foreground mt-2">{appointment.notes}</p>
+                        )}
+                      </div>
+                      
+                      <div className="bg-muted p-6 md:w-1/4 flex flex-col justify-center">
+                        <div className="space-y-3">
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={() => {}} // Handle view details
+                          >
+                            View Details
+                          </Button>
+                          
+                          {appointment.status !== "Cancelled" && (
+                            <Button 
+                              variant="outline" 
+                              className="w-full text-red-500 hover:text-red-700 border-red-200 hover:border-red-300"
+                              onClick={() => handleCancelAppointment(appointment)}
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                          
+                          {appointment.mode === "Video Call" && appointment.status === "Reserved" && (
+                            <Button 
+                              className="w-full"
+                              onClick={() => {}} // Handle join call
+                            >
+                              Join Call
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">📅</div>
+              <h2 className="text-xl font-semibold">No Upcoming Appointments</h2>
+              <p className="text-muted-foreground mt-2 mb-6">
+                You have no upcoming appointments scheduled at this time
+              </p>
+              <Button onClick={() => document.getElementById("book-tab")?.click()}>
+                Book an Appointment
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+        
+        {/* Past Appointments Tab */}
+        <TabsContent value="past">
+          {appointmentsLoading ? (
+            <div className="flex justify-center my-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : pastAppointments.length > 0 ? (
+            <div className="space-y-4">
+              {pastAppointments.map((appointment) => {
+                const statusProps = getStatusBadge(appointment.status);
+                const StatusIcon = statusProps.icon;
+                
+                return (
+                  <Card key={appointment.id} className="overflow-hidden">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="p-6 md:w-3/4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-xl font-semibold">{appointment.service}</h3>
+                          <Badge variant={statusProps.variant} className={statusProps.color}>
+                            <StatusIcon className="h-3.5 w-3.5 mr-1" />
+                            {appointment.status}
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div className="flex items-center text-sm">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{format(new Date(appointment.date), "MMMM d, yyyy")}</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{appointment.time}</span>
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                            <span>{appointment.advisor || "Assigned Advisor"}</span>
+                          </div>
+                          {appointment.mode && (
+                            <div className="flex items-center text-sm">
+                              {appointment.mode === "Video Call" ? (
+                                <Video className="h-4 w-4 mr-2 text-muted-foreground" />
+                              ) : (
+                                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                              )}
+                              <span>{appointment.mode}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {appointment.notes && (
+                          <p className="text-sm text-muted-foreground mt-2">{appointment.notes}</p>
+                        )}
+                      </div>
+                      
+                      <div className="bg-muted p-6 md:w-1/4 flex flex-col justify-center">
+                        <div className="space-y-3">
+                          <Button 
+                            variant="outline" 
+                            className="w-full"
+                            onClick={() => {}} // Handle view details
+                          >
+                            View Details
+                          </Button>
+                          
+                          {appointment.status === "Completed" && (
+                            <Button 
+                              className="w-full"
+                              onClick={() => {}} // Handle feedback/rating
+                            >
+                              Leave Feedback
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="text-6xl mb-4">📋</div>
+              <h2 className="text-xl font-semibold">No Past Appointments</h2>
+              <p className="text-muted-foreground mt-2 mb-6">
+                You don't have any past appointments in your history
+              </p>
+            </div>
+          )}
+        </TabsContent>
+        
+        {/* Book New Appointment Tab */}
+        <TabsContent value="book" id="book-tab">
+          <Card>
+            <CardHeader>
+              <CardTitle>Book a New Appointment</CardTitle>
+              <CardDescription>
+                Select a date and choose from available time slots
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Select Date</h3>
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    className="rounded-md border"
+                    disabled={(date) => 
+                      isBefore(date, startOfDay(new Date())) ||
+                      isAfter(date, new Date(new Date().setMonth(new Date().getMonth() + 2)))
+                    }
                   />
                 </div>
                 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Sort By</DropdownMenuLabel>
-                    <DropdownMenuItem>Date (Newest)</DropdownMenuItem>
-                    <DropdownMenuItem>Date (Oldest)</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel>Filter By</DropdownMenuLabel>
-                    <DropdownMenuItem>Video Appointments</DropdownMenuItem>
-                    <DropdownMenuItem>In-Person Appointments</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-            
-            <TabsContent value="all" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[100px]">Time</TableHead>
-                      <TableHead className="w-[150px]">Advisor</TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Mode</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-[200px] text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2"></div>
-                            <p>Loading appointments...</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : error ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-[200px] text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <XCircle className="h-8 w-8 text-destructive mb-2" />
-                            <p>Error loading appointments. Please try again later.</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : filteredAppointments.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-[200px] text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <CalendarDays className="h-10 w-10 text-muted-foreground mb-2" />
-                            <p className="text-lg font-medium">No appointments found</p>
-                            <p className="text-muted-foreground mt-1 mb-4">Schedule your first appointment to get started</p>
-                            <Button onClick={handleScheduleNew}>
-                              <CalendarPlus className="mr-2 h-4 w-4" />
-                              Schedule Appointment
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                <div className="md:col-span-2">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">Available Slots</h3>
+                    <div className="flex items-center gap-2">
+                      <Select value={selectedService} onValueChange={setSelectedService}>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="All Services" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All Services</SelectItem>
+                          {services.map(service => (
+                            <SelectItem key={service.id} value={service.id}>
+                              {service.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Button variant="outline" size="icon">
+                        <Filter className="h-4 w-4" />
+                      </Button>
+                      
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input className="pl-8 w-[180px]" placeholder="Search..." />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                    {loading ? (
+                      <div className="flex justify-center my-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                      </div>
+                    ) : availableSlots.length > 0 ? (
+                      availableSlots
+                        .filter(slot => !selectedService || slot.service_id === selectedService)
+                        .map(slot => {
+                          const startTime = new Date(slot.date_time);
+                          const endTime = new Date(slot.end_time);
+                          const serviceName = slot.services?.name || "Consultation";
+                          const duration = slot.duration || 60;
+                          
+                          return (
+                            <Card key={slot.slot_id} className="overflow-hidden">
+                              <div className="flex flex-col sm:flex-row">
+                                <div className="p-4 sm:w-3/4">
+                                  <h4 className="font-medium mb-2">{serviceName}</h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="flex items-center text-sm">
+                                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                                      <span>
+                                        {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                      <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                                      <span>
+                                        {slot.admin_users?.first_name} {slot.admin_users?.last_name}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                      {slot.mode === "Virtual" ? (
+                                        <Video className="h-4 w-4 mr-2 text-muted-foreground" />
+                                      ) : (
+                                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                                      )}
+                                      <span>{slot.mode || "In-Person"}</span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                      <Clock8 className="h-4 w-4 mr-2 text-muted-foreground" />
+                                      <span>{duration} minutes</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="bg-muted p-4 sm:w-1/4 flex items-center justify-center">
+                                  <Button onClick={() => handleBookSlot(slot)}>
+                                    Book Slot
+                                  </Button>
+                                </div>
+                              </div>
+                            </Card>
+                          );
+                        })
                     ) : (
-                      filteredAppointments.map((apt) => (
-                        <TableRow key={apt.id}>
-                          <TableCell className="font-medium">{apt.service}</TableCell>
-                          <TableCell>{apt.date}</TableCell>
-                          <TableCell>{apt.time}</TableCell>
-                          <TableCell>{apt.advisor || "Available Advisor"}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(apt.status)}`} variant="outline">
-                              <span className="capitalize">{apt.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {getModeIcon(apt.mode)}
-                              <span className="capitalize">{apt.mode || 'In-person'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                {(apt.status === "scheduled" || apt.status === "reserved") && (
-                                  <>
-                                    <DropdownMenuItem>Reschedule</DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem 
-                                      className="text-destructive"
-                                      onClick={() => handleCancelAppointment(apt.id)}
-                                    >
-                                      Cancel Appointment
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                                {apt.status === "completed" && (
-                                  <DropdownMenuItem>Leave Feedback</DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                        <h4 className="text-lg font-medium">No Available Slots</h4>
+                        <p className="text-muted-foreground mt-1">
+                          No appointments available on this date. Please try another day.
+                        </p>
+                      </div>
                     )}
-                  </TableBody>
-                </Table>
+                  </div>
+                </div>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="scheduled" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[100px]">Time</TableHead>
-                      <TableHead className="w-[150px]">Advisor</TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Mode</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAppointments.filter(apt => apt.status === "scheduled").length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-[200px] text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <CalendarDays className="h-10 w-10 text-muted-foreground mb-2" />
-                            <p className="text-lg font-medium">No upcoming appointments found</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredAppointments.filter(apt => apt.status === "scheduled").map((apt) => (
-                        <TableRow key={apt.id}>
-                          <TableCell className="font-medium">{apt.service}</TableCell>
-                          <TableCell>{apt.date}</TableCell>
-                          <TableCell>{apt.time}</TableCell>
-                          <TableCell>{apt.advisor || "Available Advisor"}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(apt.status)}`} variant="outline">
-                              <span className="capitalize">{apt.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {getModeIcon(apt.mode)}
-                              <span className="capitalize">{apt.mode || 'In-person'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Reschedule</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive">
-                                  Cancel
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="completed" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[100px]">Time</TableHead>
-                      <TableHead className="w-[150px]">Advisor</TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Mode</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAppointments.filter(apt => apt.status === "completed").length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-[200px] text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <CalendarDays className="h-10 w-10 text-muted-foreground mb-2" />
-                            <p className="text-lg font-medium">No completed appointments found</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredAppointments.filter(apt => apt.status === "completed").map((apt) => (
-                        <TableRow key={apt.id}>
-                          <TableCell className="font-medium">{apt.service}</TableCell>
-                          <TableCell>{apt.date}</TableCell>
-                          <TableCell>{apt.time}</TableCell>
-                          <TableCell>{apt.advisor || "Available Advisor"}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(apt.status)}`} variant="outline">
-                              <span className="capitalize">{apt.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {getModeIcon(apt.mode)}
-                              <span className="capitalize">{apt.mode || 'In-person'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                <DropdownMenuItem>Leave Feedback</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="cancelled" className="m-0">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Service</TableHead>
-                      <TableHead className="w-[120px]">
-                        <div className="flex items-center">
-                          Date <ArrowUpDown className="ml-1 h-4 w-4" />
-                        </div>
-                      </TableHead>
-                      <TableHead className="w-[100px]">Time</TableHead>
-                      <TableHead className="w-[150px]">Advisor</TableHead>
-                      <TableHead className="w-[120px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Mode</TableHead>
-                      <TableHead className="w-[80px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAppointments.filter(apt => apt.status === "cancelled").length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-[200px] text-center">
-                          <div className="flex flex-col items-center justify-center">
-                            <CalendarDays className="h-10 w-10 text-muted-foreground mb-2" />
-                            <p className="text-lg font-medium">No cancelled appointments found</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredAppointments.filter(apt => apt.status === "cancelled").map((apt) => (
-                        <TableRow key={apt.id}>
-                          <TableCell className="font-medium">{apt.service}</TableCell>
-                          <TableCell>{apt.date}</TableCell>
-                          <TableCell>{apt.time}</TableCell>
-                          <TableCell>{apt.advisor || "Available Advisor"}</TableCell>
-                          <TableCell>
-                            <Badge className={`flex w-fit items-center ${getStatusColor(apt.status)}`} variant="outline">
-                              <span className="capitalize">{apt.status}</span>
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {getModeIcon(apt.mode)}
-                              <span className="capitalize">{apt.mode || 'In-person'}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="text-sm text-muted-foreground">
-            Showing {filteredAppointments.length} appointment(s)
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              Next
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
       
-      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+      {/* Booking Dialog */}
+      <Dialog open={bookingDialog} onOpenChange={setBookingDialog}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Schedule New Appointment</DialogTitle>
+            <DialogTitle>Book Appointment</DialogTitle>
             <DialogDescription>
-              Select a service, date, and time for your appointment.
+              Confirm your appointment details below.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <FormLabel>Select Service</FormLabel>
-              <Select 
-                value={selectedService || ''}
-                onValueChange={(value) => setSelectedService(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableServices.map(service => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name} ({service.duration} min)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <FormLabel>Select Date</FormLabel>
-                <div className="border rounded-md mt-1">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateSelect}
-                    disabled={(date) => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const twoMonthsLater = new Date();
-                      twoMonthsLater.setMonth(today.getMonth() + 2);
-                      return date < today || date > twoMonthsLater;
-                    }}
-                    className="rounded-md border"
-                  />
-                </div>
+          {bookingConfirmed ? (
+            <div className="py-6 text-center">
+              <div className="h-12 w-12 rounded-full bg-green-100 text-green-800 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-6 w-6" />
               </div>
-              
-              <div>
-                <FormLabel>Available Time Slots</FormLabel>
-                <div className="border rounded-md h-[240px] overflow-y-auto p-2 mt-1">
-                  {availableSlots.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                      <Clock className="h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-sm font-medium">No available slots</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Try selecting a different date or service
+              <h3 className="text-lg font-medium mb-2">Appointment Confirmed!</h3>
+              <p className="text-muted-foreground">
+                Your appointment has been successfully booked.
+              </p>
+            </div>
+          ) : (
+            <>
+              {selectedSlot && (
+                <div className="space-y-4 py-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Date</h4>
+                      <p>{format(new Date(selectedSlot.date_time), "MMMM d, yyyy")}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Time</h4>
+                      <p>
+                        {format(new Date(selectedSlot.date_time), "h:mm a")} - 
+                        {format(new Date(selectedSlot.end_time), "h:mm a")}
                       </p>
                     </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableSlots.map((slot) => (
-                        <Button
-                          key={slot.id}
-                          size="sm"
-                          variant={selectedSlot === slot.id ? "default" : "outline"}
-                          className="justify-start"
-                          onClick={() => handleSelectSlot(slot.id)}
-                        >
-                          <Clock className="mr-2 h-4 w-4" />
-                          {slot.time}
-                        </Button>
-                      ))}
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Advisor</h4>
+                      <p>
+                        {selectedSlot.admin_users?.first_name} {selectedSlot.admin_users?.last_name}
+                      </p>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {selectedSlot && (
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleBookAppointment)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="specialRequests"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Special Requests (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Add any special requests or notes for this appointment"
-                            className="resize-none"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="flex justify-end gap-3 pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setOpenDialog(false)}
-                      disabled={isBooking}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit"
-                      disabled={!selectedSlot || isBooking}
-                    >
-                      {isBooking ? (
-                        <>Booking...</>
-                      ) : (
-                        <>
-                          Book Appointment
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                      )}
-                    </Button>
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Service</h4>
+                      <p>{selectedSlot.services?.name || "Consultation"}</p>
+                    </div>
                   </div>
-                </form>
-              </Form>
-            )}
-          </div>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Special Requests (Optional)</h4>
+                    <Textarea
+                      placeholder="Add any specific requests or notes for your appointment..."
+                      value={specialRequests}
+                      onChange={(e) => setSpecialRequests(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <DialogFooter className="mt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setBookingDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={confirmBooking}>
+                  Book Appointment
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Cancel Appointment Dialog */}
+      <Dialog open={cancelDialog} onOpenChange={setCancelDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel Appointment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this appointment?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAppointment && (
+            <div className="py-2">
+              <Card className="bg-muted/50">
+                <CardContent className="pt-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Service:</span>
+                      <span className="font-medium">{selectedAppointment.service}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Date:</span>
+                      <span>{format(new Date(selectedAppointment.date), "MMMM d, yyyy")}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Time:</span>
+                      <span>{selectedAppointment.time}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <p className="text-sm text-muted-foreground mt-4">
+                Cancelling an appointment less than 24 hours before the scheduled time may be subject to our cancellation policy.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialog(false)}
+            >
+              Keep Appointment
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCancelAppointment}
+            >
+              Cancel Appointment
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

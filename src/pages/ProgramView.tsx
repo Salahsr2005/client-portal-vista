@@ -1,530 +1,885 @@
 
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import {
-  CheckCircle,
-  Globe,
-  Calendar,
-  Clock,
-  GraduationCap,
-  Building,
-  CircleDollarSign,
-  Share2,
-  Heart,
-  Award,
-  MapPin,
-  FileText,
-  Users,
-  Star,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+} from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Building,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  FileText,
+  GraduationCap,
+  Home,
+  Info,
+  MapPin,
+  Star,
+  Trophy,
+  Users,
+  Calendar,
+  Clock3,
+  Globe,
+  BarChart4,
+  Bookmark,
+} from "lucide-react";
+import { Separator } from '@/components/ui/separator';
 
+// Fixed and comprehensive Program interface
 interface Program {
   id: string;
   name: string;
   university: string;
-  location: string;
-  type: string;
-  duration: string;
-  tuition: string;
-  rating: number;
-  deadline: string;
-  subjects: string[];
-  applicationFee: string;
-  featured: boolean;
-  requirements: string;
   description: string;
-  program_language?: string;
-  living_cost_min?: number;
-  tuition_min?: number;
-  admission_requirements?: string;
-  field_keywords?: string[];
-  // Adding the missing properties that were causing errors
-  image_url?: string;
-  study_level?: string;
-  country?: string;
-  advantages?: string;
-  application_process?: string;
-  employment_rate?: number;
+  study_level: string;
+  field: string;
+  city: string;
+  country: string;
+  duration_months: number;
+  program_language: string;
+  secondary_language?: string;
+  application_deadline?: string;
+  admission_requirements: string;
   academic_requirements?: string;
+  language_requirement: string;
   language_test?: string;
   language_test_score?: string;
   language_test_exemptions?: string;
+  gpa_requirement?: number;
+  tuition_min: number;
+  tuition_max: number;
+  application_fee?: number;
+  living_cost_min: number;
+  living_cost_max: number;
+  housing_cost_min?: number;
+  housing_cost_max?: number;
+  visa_fee?: number;
+  available_places?: number;
+  total_places?: number;
+  success_rate?: number;
+  employment_rate?: number;
   scholarship_available?: boolean;
+  scholarship_amount?: number;
   scholarship_details?: string;
-  city?: string;
-  living_cost_max?: number;
-  application_deadline?: string;
+  scholarship_deadline?: string;
+  scholarship_requirements?: string;
+  application_process?: string;
+  advantages?: string;
+  housing_availability?: string;
+  halal_food_availability?: boolean;
+  religious_facilities?: boolean;
+  north_african_community_size?: string;
+  exchange_opportunities?: boolean;
+  internship_opportunities?: boolean;
+  image_url?: string;
+  website_url?: string;
+  video_url?: string;
+  virtual_tour_url?: string;
+  ranking?: number;
+  field_keywords?: string[];
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export default function ProgramView() {
-  const { id } = useParams<{ id: string }>();
+const ProgramView = () => {
+  const { programId } = useParams<{ programId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [isFavorite, setIsFavorite] = useState(false);
-
-  const { data: program, isLoading, error } = useQuery({
-    queryKey: ['program', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('programs')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      return data as unknown as Program;
-    },
-  });
+  const [program, setProgram] = useState<Program | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
   useEffect(() => {
-    // Simulate fetching favorite status from local storage or database
-    const storedFavorites = localStorage.getItem('favorites');
-    if (storedFavorites) {
-      const favorites = JSON.parse(storedFavorites);
-      setIsFavorite(favorites.includes(id));
-    }
-  }, [id]);
+    const fetchProgramDetails = async () => {
+      try {
+        if (!programId) return;
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // Simulate saving favorite status to local storage or database
-    const storedFavorites = localStorage.getItem('favorites');
-    let favorites = storedFavorites ? JSON.parse(storedFavorites) : [];
+        const { data, error } = await supabase
+          .from("programs")
+          .select("*")
+          .eq("id", programId)
+          .single();
 
-    if (!isFavorite) {
-      favorites.push(id);
+        if (error) throw error;
+        setProgram(data);
+      } catch (error) {
+        console.error("Error fetching program details:", error);
+        toast({
+          title: "Error loading program",
+          description: "There was a problem loading the program details.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProgramDetails();
+  }, [programId, toast]);
+
+  const handleApply = async () => {
+    if (!user) {
       toast({
-        title: 'Added to favorites',
-        description: 'You can view your favorite programs in your profile.',
+        title: "Authentication Required",
+        description: "Please sign in to apply for this program.",
+        variant: "destructive",
       });
-    } else {
-      favorites = favorites.filter((favId: string) => favId !== id);
-      toast({
-        title: 'Removed from favorites',
-        description: 'This program has been removed from your favorites.',
-      });
+      navigate("/login");
+      return;
     }
 
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-  };
-
-  const shareProgram = () => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: program?.name,
-          text: `Check out this program: ${program?.name} at ${program?.university}`,
-          url: window.location.href,
+    setApplyModalOpen(false);
+    
+    try {
+      const { data, error } = await supabase
+        .from("applications")
+        .insert({
+          client_id: user.id,
+          program_id: programId,
+          status: "Draft",
+          payment_status: "Pending",
         })
-        .then(() => console.log('Successful share'))
-        .catch((error) => console.error('Error sharing', error));
-    } else {
-      navigator.clipboard.writeText(window.location.href);
+        .select()
+        .single();
+
+      if (error) throw error;
+
       toast({
-        title: 'Link copied to clipboard',
-        description: 'Share this link with your friends!',
+        title: "Application Started",
+        description: "Your application has been created successfully.",
+      });
+
+      navigate(`/applications`);
+    } catch (error) {
+      console.error("Error creating application:", error);
+      toast({
+        title: "Error applying",
+        description: "There was a problem starting your application.",
+        variant: "destructive",
       });
     }
   };
 
-  if (isLoading) {
+  const toggleBookmark = async () => {
+    setIsBookmarked(!isBookmarked);
+    
+    toast({
+      title: isBookmarked ? "Removed from bookmarks" : "Added to bookmarks",
+      description: isBookmarked 
+        ? "Program removed from your saved programs" 
+        : "Program saved to your bookmarks",
+    });
+  };
+
+  if (loading) {
     return (
-      <div className="container max-w-4xl py-8">
-        <div className="text-center py-16">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary mx-auto"></div>
-          <p className="text-lg font-medium mt-4">Loading program details...</p>
-        </div>
+      <div className="container max-w-6xl py-16 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (error || !program) {
+  if (!program) {
     return (
-      <div className="container max-w-4xl py-8">
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-xl font-semibold">Program not found</h2>
-          <p className="text-muted-foreground mt-2">
-            We couldn't find the program you were looking for.
+      <div className="container max-w-6xl py-16">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔍</div>
+          <h2 className="text-2xl font-bold mb-2">Program Not Found</h2>
+          <p className="text-muted-foreground mb-6">
+            We couldn't find the program you're looking for.
           </p>
-          <Button asChild className="mt-6">
-            <Link to="/programs">Browse All Programs</Link>
+          <Button onClick={() => navigate("/programs")}>
+            Browse All Programs
           </Button>
         </div>
       </div>
     );
   }
 
+  const programImageUrl = program.image_url || '/placeholder.svg';
+  const formattedTuition = `$${program.tuition_min.toLocaleString()} - $${program.tuition_max.toLocaleString()}`;
+  const formattedLivingCost = `$${program.living_cost_min.toLocaleString()} - $${program.living_cost_max.toLocaleString()}`;
+  const formattedScholarship = program.scholarship_amount 
+    ? `Up to $${program.scholarship_amount.toLocaleString()}`
+    : 'Not available';
+    
   return (
-    <div className="container max-w-5xl py-8">
-      {/* Hero section with program image */}
-      <div className="relative rounded-xl overflow-hidden mb-8">
-        <div 
-          className="h-64 bg-cover bg-center" 
-          style={{ 
-            backgroundImage: program.image_url 
-              ? `url(${program.image_url})` 
-              : `url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1000&auto=format&fit=crop')` 
+    <div className="container max-w-6xl py-8">
+      {/* Back button */}
+      <Button 
+        variant="ghost" 
+        className="mb-4"
+        onClick={() => navigate('/programs')}
+      >
+        ← Back to Programs
+      </Button>
+      
+      {/* Program Header */}
+      <div className="relative rounded-lg overflow-hidden mb-8">
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/20 z-10"></div>
+        <img 
+          src={programImageUrl} 
+          alt={program.name} 
+          className="w-full h-64 object-cover"
+          onError={(e) => {
+            e.currentTarget.src = '/placeholder.svg';
           }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end">
-            <div className="p-6 text-white">
-              <div className="flex gap-2 mb-2">
-                {program.featured && (
-                  <Badge variant="default" className="bg-primary">
-                    <Award className="h-3 w-3 mr-1" />
-                    Featured
-                  </Badge>
-                )}
-                <Badge variant="secondary">
-                  <GraduationCap className="h-3 w-3 mr-1" />
-                  {program.type || program.study_level}
-                </Badge>
+        />
+        <div className="absolute bottom-0 left-0 p-6 z-20 w-full">
+          <div className="flex justify-between items-end">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Badge className="bg-primary hover:bg-primary">{program.study_level}</Badge>
+                <Badge variant="outline" className="text-white border-white">{program.field}</Badge>
               </div>
-              <h1 className="text-3xl font-bold">{program.name}</h1>
-              <p className="text-white/90 mt-1">
-                {program.university}, {program.location || program.country}
-              </p>
+              <h1 className="text-3xl font-bold text-white">{program.name}</h1>
+              <div className="flex items-center text-white/90 space-x-4">
+                <div className="flex items-center">
+                  <Building className="h-4 w-4 mr-1" />
+                  <span>{program.university}</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  <span>{program.city}, {program.country}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white/30"
+                onClick={toggleBookmark}
+              >
+                <Bookmark className={`h-5 w-5 mr-1 ${isBookmarked ? 'fill-current' : ''}`} />
+                {isBookmarked ? 'Saved' : 'Save'}
+              </Button>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setApplyModalOpen(true)}>
+                Apply Now
+              </Button>
             </div>
           </div>
         </div>
       </div>
       
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Badge variant="outline" className="border border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-              <Clock className="h-3 w-3 mr-1" />
-              {program.duration}
-            </Badge>
-            <Badge variant="outline" className="border border-green-200 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300">
-              <CircleDollarSign className="h-3 w-3 mr-1" />
-              {program.tuition_min ? `€${program.tuition_min.toLocaleString()}` : program.tuition}
-            </Badge>
-            <Badge variant="outline" className="border border-purple-200 bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
-              <Globe className="h-3 w-3 mr-1" />
-              {program.program_language || "English"}
-            </Badge>
-          </div>
-        </div>
-        <div className="space-x-2 flex items-center">
-          <Button variant="outline" size="sm" onClick={shareProgram}>
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
-          </Button>
-          <Button
-            variant={isFavorite ? "default" : "outline"}
-            size="sm"
-            onClick={toggleFavorite}
-            className={isFavorite ? "bg-red-500 hover:bg-red-600" : ""}
-          >
-            <Heart className="h-4 w-4 mr-2" fill={isFavorite ? "currentColor" : "none"} />
-            {isFavorite ? "Saved" : "Save"}
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
-          <Card className="mb-8">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Program Overview</h2>
-              <p className="text-muted-foreground mb-6">{program.description}</p>
+      {/* Main Program Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Program Details */}
+        <div className="col-span-1 lg:col-span-2 space-y-6">
+          {/* Program Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Program Overview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground whitespace-pre-line">{program.description}</p>
               
-              <Tabs defaultValue="details" className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  <TabsTrigger value="requirements">Requirements</TabsTrigger>
-                  <TabsTrigger value="subjects">Subjects</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="details" className="space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-2">Program Advantages</h3>
-                    <p className="text-sm text-muted-foreground">{program.advantages || "Contact university for more information about program advantages."}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Application Process</h3>
-                    <p className="text-sm text-muted-foreground">{program.application_process || "The application process typically involves submitting an online application form, academic transcripts, and other supporting documents."}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Career Opportunities</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.employment_rate ? 
-                        `This program has a ${program.employment_rate}% employment rate after graduation.` : 
-                        "Graduates from this program typically find employment in various sectors related to their field of study."}
-                    </p>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="requirements" className="space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-2">Admission Requirements</h3>
-                    <p className="text-sm text-muted-foreground">{program.admission_requirements}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Academic Requirements</h3>
-                    <p className="text-sm text-muted-foreground">{program.academic_requirements || "Contact the university for specific academic requirements."}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium mb-2">Language Requirements</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Language of instruction: <strong>{program.program_language}</strong><br />
-                      {program.language_test && `Required test: ${program.language_test} (${program.language_test_score || "Contact university for minimum score"})`}
-                      {program.language_test_exemptions && <><br />Exemptions: {program.language_test_exemptions}</>}
-                    </p>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="subjects" className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {program.field_keywords?.map((subject, index) => (
-                      <Badge key={index} variant="outline" className="py-1">
-                        {subject}
-                      </Badge>
-                    ))}
-                  </div>
-                  
-                  {!program.field_keywords?.length && (
-                    <p className="text-sm text-muted-foreground">
-                      Contact the university for detailed information about specific subjects covered in this program.
-                    </p>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Frequently Asked Questions</h2>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>What is the application process?</AccordionTrigger>
-                  <AccordionContent>
-                    The application process typically involves filling out an online
-                    application form, submitting transcripts, providing letters of
-                    recommendation, and paying an application fee. Specific
-                    requirements may vary depending on the program.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>
-                    What are the language requirements?
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    Most programs require proof of proficiency in {program.program_language}, such as a
-                    {program.language_test || " TOEFL or IELTS"} score. Some programs may also have requirements
-                    for other languages.
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>
-                    Is financial aid available for international students?
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {program.scholarship_available ? 
-                      <>Yes, scholarships are available for this program. {program.scholarship_details || "Contact the university for more information about eligibility and application process."}</> : 
-                      "Many universities offer scholarships and financial aid options for international students. It is recommended to check the university's website or contact the admissions office for more information."}
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-4">
-                  <AccordionTrigger>
-                    What is the cost of living in {program.city || program.country}?
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    The estimated monthly living cost in {program.city || program.country} is between 
-                    €{program.living_cost_min?.toLocaleString() || "800"} and 
-                    €{program.living_cost_max?.toLocaleString() || "1200"}, 
-                    which includes accommodation, food, transportation, and other personal expenses.
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Key Information</h2>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <Calendar className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium">Application Deadline</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.application_deadline || new Date(program.deadline).toLocaleDateString()}
-                    </p>
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+                <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                  <Clock3 className="h-6 w-6 text-primary mb-2" />
+                  <span className="text-sm text-muted-foreground">Duration</span>
+                  <span className="font-medium">
+                    {program.duration_months} {program.duration_months === 1 ? 'Month' : 'Months'}
+                  </span>
                 </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <CircleDollarSign className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium">Application Fee</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.applicationFee}
-                    </p>
-                  </div>
+                <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                  <Globe className="h-6 w-6 text-primary mb-2" />
+                  <span className="text-sm text-muted-foreground">Language</span>
+                  <span className="font-medium">{program.program_language}</span>
                 </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <Clock className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium">Duration</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.duration_months ? `${program.duration_months} months` : program.duration}
-                    </p>
-                  </div>
+                <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                  <DollarSign className="h-6 w-6 text-primary mb-2" />
+                  <span className="text-sm text-muted-foreground">Tuition Fee</span>
+                  <span className="font-medium">{formattedTuition}</span>
                 </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <MapPin className="h-5 w-5 text-primary" />
+                {program.available_places !== null && (
+                  <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                    <Users className="h-6 w-6 text-primary mb-2" />
+                    <span className="text-sm text-muted-foreground">Available Places</span>
+                    <span className="font-medium">{program.available_places}</span>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium">Location</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.city || program.location}, {program.country}
-                    </p>
+                )}
+                {program.scholarship_amount !== null && program.scholarship_amount > 0 && (
+                  <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                    <Trophy className="h-6 w-6 text-primary mb-2" />
+                    <span className="text-sm text-muted-foreground">Scholarship</span>
+                    <span className="font-medium">{formattedScholarship}</span>
                   </div>
-                </div>
-                
-                <Separator className="my-2" />
-                
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <CircleDollarSign className="h-5 w-5 text-primary" />
+                )}
+                {program.ranking !== null && (
+                  <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                    <BarChart4 className="h-6 w-6 text-primary mb-2" />
+                    <span className="text-sm text-muted-foreground">University Ranking</span>
+                    <span className="font-medium">#{program.ranking}</span>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium">Tuition Fee</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.tuition_min ? `€${program.tuition_min.toLocaleString()}` : program.tuition}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <Building className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium">Living Cost (Monthly)</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.living_cost_min ? `€${program.living_cost_min.toLocaleString()}` : "€800 - €1200 (estimated)"}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium">Available Places</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {program.available_places || "Contact university"}
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
           
-          {program.scholarship_available && (
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-lg font-semibold mb-4 flex items-center">
-                  <Award className="h-5 w-5 text-primary mr-2" />
-                  Scholarship Information
-                </h2>
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">
-                    {program.scholarship_details || "This program offers scholarship opportunities. Please contact the university for more information about eligibility criteria and application process."}
-                  </p>
-                  {program.scholarship_amount && (
-                    <div className="flex items-center gap-1 text-sm">
-                      <CircleDollarSign className="h-4 w-4 text-primary" />
-                      <span>Amount: up to €{program.scholarship_amount}</span>
+          {/* Detailed Information Tabs */}
+          <Tabs defaultValue="admission">
+            <TabsList className="w-full">
+              <TabsTrigger value="admission">Admission</TabsTrigger>
+              <TabsTrigger value="academic">Academic</TabsTrigger>
+              <TabsTrigger value="financial">Financial</TabsTrigger>
+              <TabsTrigger value="facilities">Facilities</TabsTrigger>
+            </TabsList>
+            
+            {/* Admission Requirements Tab */}
+            <TabsContent value="admission" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Admission Requirements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="whitespace-pre-line">{program.admission_requirements}</p>
+                    
+                    {program.language_requirement && (
+                      <>
+                        <h3 className="font-medium text-lg mt-6">Language Requirements</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Card className="bg-muted/50">
+                            <CardHeader className="p-4 pb-2">
+                              <CardTitle className="text-base">Required Level</CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                              <p>{program.language_requirement}</p>
+                            </CardContent>
+                          </Card>
+                          
+                          {program.language_test && (
+                            <Card className="bg-muted/50">
+                              <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-base">Accepted Tests</CardTitle>
+                              </CardHeader>
+                              <CardContent className="p-4 pt-0">
+                                <p>{program.language_test} ({program.language_test_score})</p>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                        
+                        {program.language_test_exemptions && (
+                          <div className="mt-2">
+                            <h4 className="font-medium mb-1">Exemptions</h4>
+                            <p className="text-sm">{program.language_test_exemptions}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {program.application_process && (
+                      <>
+                        <h3 className="font-medium text-lg mt-6">Application Process</h3>
+                        <p className="whitespace-pre-line">{program.application_process}</p>
+                      </>
+                    )}
+                    
+                    {program.application_deadline && (
+                      <div className="flex items-center p-4 bg-primary/10 rounded-lg border border-primary/20 mt-6">
+                        <Calendar className="h-6 w-6 text-primary mr-3" />
+                        <div>
+                          <h3 className="font-medium">Application Deadline</h3>
+                          <p className="text-muted-foreground">{program.application_deadline}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Academic Information Tab */}
+            <TabsContent value="academic" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Academic Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {program.academic_requirements && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Academic Requirements</h3>
+                        <p className="whitespace-pre-line">{program.academic_requirements}</p>
+                        
+                        {program.gpa_requirement && (
+                          <div className="mt-4 p-4 bg-muted rounded-lg inline-block">
+                            <div className="flex items-center">
+                              <GraduationCap className="h-5 w-5 mr-2 text-primary" />
+                              <span className="font-medium">Minimum GPA: {program.gpa_requirement}/4.0</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {program.advantages && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Program Advantages</h3>
+                        <p className="whitespace-pre-line">{program.advantages}</p>
+                      </div>
+                    )}
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                      {program.exchange_opportunities && (
+                        <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                          <Globe className="h-6 w-6 text-primary mb-2" />
+                          <span className="text-center">Exchange Opportunities Available</span>
+                        </div>
+                      )}
+                      {program.internship_opportunities && (
+                        <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                          <Building className="h-6 w-6 text-primary mb-2" />
+                          <span className="text-center">Internship Opportunities</span>
+                        </div>
+                      )}
+                      {program.employment_rate && (
+                        <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+                          <CheckCircle2 className="h-6 w-6 text-primary mb-2" />
+                          <span className="text-center">
+                            {program.employment_rate}% Employment Rate
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold mb-4">University Information</h2>
-              <div className="flex items-center gap-3 mb-4">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src="/placeholder.svg" alt={program.university} />
-                  <AvatarFallback>{program.university.substring(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium">{program.university}</h3>
-                  <p className="text-sm text-muted-foreground">{program.city || program.location}, {program.country}</p>
-                </div>
-              </div>
-              {program.ranking && (
-                <div className="flex items-center gap-1 mt-2 text-sm">
-                  <Star className="h-4 w-4 text-amber-400" />
-                  <span>Ranking: #{program.ranking} Worldwide</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Financial Information Tab */}
+            <TabsContent value="financial" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Financial Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card className="bg-muted/50">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">Tuition Fee</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{formattedTuition}</div>
+                          <p className="text-sm text-muted-foreground mt-1">Per year</p>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card className="bg-muted/50">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base">Living Costs</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-2xl font-bold">{formattedLivingCost}</div>
+                          <p className="text-sm text-muted-foreground mt-1">Per year</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {program.application_fee && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground">Application Fee</p>
+                          <p className="font-medium">${program.application_fee}</p>
+                        </div>
+                      )}
+                      
+                      {program.visa_fee && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground">Visa Fee</p>
+                          <p className="font-medium">${program.visa_fee}</p>
+                        </div>
+                      )}
+                      
+                      {program.housing_cost_min && program.housing_cost_max && (
+                        <div className="p-4 bg-muted rounded-lg">
+                          <p className="text-sm text-muted-foreground">Housing Costs</p>
+                          <p className="font-medium">
+                            ${program.housing_cost_min.toLocaleString()} - ${program.housing_cost_max.toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {program.scholarship_available && (
+                      <div className="mt-8">
+                        <h3 className="font-medium text-lg mb-4">Scholarship Information</h3>
+                        
+                        <Card className="border-primary/30 bg-primary/5">
+                          <CardHeader>
+                            <div className="flex items-center">
+                              <Trophy className="h-5 w-5 text-primary mr-2" />
+                              <CardTitle className="text-base">
+                                Scholarship Available
+                              </CardTitle>
+                            </div>
+                            {program.scholarship_amount && (
+                              <CardDescription>
+                                Up to ${program.scholarship_amount.toLocaleString()}
+                              </CardDescription>
+                            )}
+                          </CardHeader>
+                          
+                          <CardContent>
+                            <div className="space-y-4">
+                              {program.scholarship_details && (
+                                <div>
+                                  <h4 className="font-medium mb-1">Details</h4>
+                                  <p className="text-sm">{program.scholarship_details}</p>
+                                </div>
+                              )}
+                              
+                              {program.scholarship_requirements && (
+                                <div>
+                                  <h4 className="font-medium mb-1">Requirements</h4>
+                                  <p className="text-sm">{program.scholarship_requirements}</p>
+                                </div>
+                              )}
+                              
+                              {program.scholarship_deadline && (
+                                <div>
+                                  <h4 className="font-medium mb-1">Application Deadline</h4>
+                                  <div className="flex items-center">
+                                    <Calendar className="h-4 w-4 text-muted-foreground mr-2" />
+                                    <p className="text-sm">{program.scholarship_deadline}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Facilities Tab */}
+            <TabsContent value="facilities" className="space-y-4 mt-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Facilities & Accommodation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {program.housing_availability && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Housing Information</h3>
+                        <p className="whitespace-pre-line">{program.housing_availability}</p>
+                        
+                        {program.housing_cost_min && program.housing_cost_max && (
+                          <div className="flex items-center mt-4 p-4 bg-muted rounded-lg inline-block">
+                            <Home className="h-5 w-5 mr-2 text-primary" />
+                            <span>
+                              Housing costs range from ${program.housing_cost_min.toLocaleString()} to 
+                              ${program.housing_cost_max.toLocaleString()} per year
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                      {program.halal_food_availability && (
+                        <div className="p-4 bg-muted rounded-lg flex flex-col items-center text-center">
+                          <CheckCircle2 className="h-6 w-6 text-green-500 mb-2" />
+                          <span>Halal Food Available</span>
+                        </div>
+                      )}
+                      
+                      {program.religious_facilities && (
+                        <div className="p-4 bg-muted rounded-lg flex flex-col items-center text-center">
+                          <CheckCircle2 className="h-6 w-6 text-green-500 mb-2" />
+                          <span>Religious Facilities Available</span>
+                        </div>
+                      )}
+                      
+                      {program.north_african_community_size && (
+                        <div className="p-4 bg-muted rounded-lg flex flex-col items-center text-center">
+                          <Users className="h-6 w-6 text-primary mb-2" />
+                          <span>North African Community: {program.north_african_community_size}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {(program.website_url || program.virtual_tour_url || program.video_url) && (
+                      <div className="mt-6">
+                        <h3 className="font-medium text-lg mb-3">External Resources</h3>
+                        <div className="flex flex-wrap gap-3">
+                          {program.website_url && (
+                            <a 
+                              href={program.website_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-3 py-2 text-sm bg-muted rounded-lg hover:bg-muted/80"
+                            >
+                              <Globe className="h-4 w-4 mr-2" />
+                              Official Website
+                            </a>
+                          )}
+                          
+                          {program.virtual_tour_url && (
+                            <a 
+                              href={program.virtual_tour_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-3 py-2 text-sm bg-muted rounded-lg hover:bg-muted/80"
+                            >
+                              <Globe className="h-4 w-4 mr-2" />
+                              Virtual Tour
+                            </a>
+                          )}
+                          
+                          {program.video_url && (
+                            <a 
+                              href={program.video_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-3 py-2 text-sm bg-muted rounded-lg hover:bg-muted/80"
+                            >
+                              <Globe className="h-4 w-4 mr-2" />
+                              Video Preview
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+        
+        {/* Right Column - Action Panel */}
+        <div className="space-y-6">
+          {/* Apply Card */}
+          <Card className="sticky top-6">
+            <CardHeader>
+              <CardTitle>Apply for this Program</CardTitle>
+              <CardDescription>
+                Complete your application for the {program.name} program
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              {program.application_fee && (
+                <div className="p-4 bg-muted rounded-lg">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Application Fee:</span>
+                    <span className="font-bold">${program.application_fee}</span>
+                  </div>
                 </div>
               )}
+              
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 text-muted-foreground mr-2" />
+                  <span className="text-sm">{program.application_deadline || 'Applications accepted year-round'}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock3 className="h-4 w-4 text-muted-foreground mr-2" />
+                  <span className="text-sm">
+                    {program.duration_months} {program.duration_months === 1 ? 'month' : 'months'} duration
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <GraduationCap className="h-4 w-4 text-muted-foreground mr-2" />
+                  <span className="text-sm">{program.study_level} level</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 text-muted-foreground mr-2" />
+                  <span className="text-sm">{program.city}, {program.country}</span>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="font-medium">Required Documents:</div>
+              
+              <div className="space-y-2 text-sm pl-1">
+                <div className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  <span>Valid passport</span>
+                </div>
+                <div className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  <span>Academic transcripts</span>
+                </div>
+                <div className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  <span>Proof of language proficiency</span>
+                </div>
+                <div className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  <span>CV/Resume</span>
+                </div>
+                <div className="flex items-start">
+                  <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                  <span>Motivation letter</span>
+                </div>
+              </div>
+            </CardContent>
+            
+            <CardFooter className="flex-col space-y-4">
+              <Button className="w-full" onClick={() => setApplyModalOpen(true)}>
+                Apply Now
+              </Button>
+              
+              <Button variant="outline" className="w-full" onClick={toggleBookmark}>
+                <Bookmark className={`h-4 w-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
+                {isBookmarked ? 'Saved' : 'Save Program'}
+              </Button>
+              
+              <Button variant="ghost" className="w-full" onClick={() => window.print()}>
+                <FileText className="h-4 w-4 mr-2" />
+                Print Information
+              </Button>
+            </CardFooter>
+          </Card>
+          
+          {/* University Info Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">About {program.university}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Location:</span>
+                  <span className="font-medium">{program.city}, {program.country}</span>
+                </div>
+                
+                {program.ranking && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Ranking:</span>
+                    <span className="font-medium">#{program.ranking} Worldwide</span>
+                  </div>
+                )}
+                
+                {program.website_url && (
+                  <div className="mt-3">
+                    <a 
+                      href={program.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline flex items-center"
+                    >
+                      <Globe className="h-3.5 w-3.5 mr-1" />
+                      Visit University Website
+                    </a>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-primary text-primary-foreground">
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold mb-2">Ready to Apply?</h2>
-              <p className="text-sm mb-4 text-primary-foreground/80">
-                Take the next step towards your education journey.
+          {/* Need Help Card */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Need Help?</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <p className="text-sm text-muted-foreground mb-4">
+                Our education consultants are ready to assist you with your application.
               </p>
-              <div className="space-y-3">
-                <Button className="w-full bg-white text-primary hover:bg-white/90" asChild>
-                  <Link to={`/applications/new?program=${program.id}`}>
-                    <FileText className="mr-2 h-4 w-4" /> Start Application
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full border-white/20 hover:bg-white/10" asChild>
-                  <Link to="/appointments">
-                    <Calendar className="mr-2 h-4 w-4" /> Book a Consultation
-                  </Link>
-                </Button>
-              </div>
+              
+              <Button variant="outline" className="w-full mb-2" onClick={() => navigate('/appointments')}>
+                Schedule Consultation
+              </Button>
+              
+              <Button variant="ghost" className="w-full" onClick={() => navigate('/messages')}>
+                Contact Support
+              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+      
+      {/* Apply Modal */}
+      <Dialog open={applyModalOpen} onOpenChange={setApplyModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Apply for {program.name}</DialogTitle>
+            <DialogDescription>
+              Start your application for this program at {program.university}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <h3 className="font-medium">What happens next?</h3>
+              <p className="text-sm text-muted-foreground">
+                After starting your application, you will be able to:
+              </p>
+              <ul className="space-y-2 text-sm pl-5 list-disc">
+                <li>Upload required documents</li>
+                <li>Track your application status</li>
+                <li>Receive support from our advisors</li>
+                <li>Pay any required fees</li>
+              </ul>
+            </div>
+            
+            <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Program:</span>
+                <span>{program.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">University:</span>
+                <span>{program.university}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Location:</span>
+                <span>{program.city}, {program.country}</span>
+              </div>
+              {program.application_fee && (
+                <div className="flex justify-between font-medium border-t pt-2 mt-2">
+                  <span>Application Fee:</span>
+                  <span>${program.application_fee}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApplyModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleApply}>
+              Start Application
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
+};
+
+export default ProgramView;

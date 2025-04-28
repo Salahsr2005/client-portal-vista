@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { usePrograms } from "@/hooks/usePrograms";
@@ -73,6 +72,39 @@ export default function Programs() {
     scholarshipAvailable: false,
     internshipOpportunities: false,
   });
+
+  const sortPrograms = (programs, sortOption) => {
+    const programsCopy = [...programs];
+
+    switch (sortOption) {
+      case "name-asc":
+        return programsCopy.sort((a, b) => a.name.localeCompare(b.name));
+      case "name-desc":
+        return programsCopy.sort((a, b) => b.name.localeCompare(a.name));
+      case "tuition-asc":
+        return programsCopy.sort((a, b) => Number(a.tuition_min) - Number(b.tuition_min));
+      case "tuition-desc":
+        return programsCopy.sort((a, b) => Number(b.tuition_min) - Number(a.tuition_min));
+      case "duration-asc":
+        return programsCopy.sort((a, b) => Number(a.duration_months) - Number(b.duration_months));
+      case "duration-desc":
+        return programsCopy.sort((a, b) => Number(b.duration_months) - Number(a.duration_months));
+      case "ranking-asc":
+        return programsCopy.sort((a, b) => {
+          if (!a.ranking) return 1;
+          if (!b.ranking) return -1;
+          return Number(a.ranking) - Number(b.ranking);
+        });
+      case "ranking-desc":
+        return programsCopy.sort((a, b) => {
+          if (!a.ranking) return 1;
+          if (!b.ranking) return -1;
+          return Number(b.ranking) - Number(a.ranking);
+        });
+      default:
+        return programsCopy;
+    }
+  };
 
   // Extract unique values for filter dropdowns
   const countries = programs

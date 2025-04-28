@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useRef } from "react";
 
 const MessagesPage = () => {
   const { user } = useAuth();
@@ -26,38 +25,84 @@ const MessagesPage = () => {
       if (!user) return null;
 
       // First try to find existing chat
-      const { data: existingChat } = await supabase
+      const { data: existingChats, error: chatError } = await supabase
         .from("chats")
         .select("*")
         .eq("is_group_chat", false)
-        .eq("is_active", true)
-        .single();
+        .eq("is_active", true);
 
-      if (existingChat) {
-        setChatId(existingChat.chat_id);
-        return existingChat;
+      if (chatError) throw chatError;
+      
+      // Find chat where the user is a participant
+      let userChat = null;
+      
+      if (existingChats && existingChats.length > 0) {
+        for (const chat of existingChats) {
+          const { data: participants } = await supabase
+            .from("chat_participants")
+            .select("*")
+            .eq("chat_id", chat.chat_id)
+            .eq("participant_id", user.id)
+            .eq("participant_type", "Client");
+            
+          if (participants && participants.length > 0) {
+            userChat = chat;
+            setChatId(chat.chat_id);
+            break;
+          }
+        }
+      }
+
+      if (userChat) {
+        return userChat;
       }
 
       // If no chat exists, create one with first available admin
-      const { data: adminData } = await supabase
+      const { data: adminData, error: adminError } = await supabase
         .from("admin_users")
         .select("admin_id")
         .eq("status", "Active")
         .limit(1)
         .single();
 
+      if (adminError && adminError.code !== 'PGRST116') {
+        throw adminError;
+      }
+
       if (adminData) {
-        const { data: newChat, error } = await supabase.rpc(
-          "create_client_admin_chat",
-          {
-            p_client_id: user.id,
-            p_admin_id: adminData.admin_id,
-            p_title: "Support Chat"
-          }
-        );
+        const { data: newChat, error } = await supabase
+          .from("chats")
+          .insert({
+            is_group_chat: false,
+            is_active: true,
+            title: "Support Chat"
+          })
+          .select()
+          .single();
 
         if (error) throw error;
-        setChatId(newChat);
+        
+        // Add client as participant
+        await supabase
+          .from("chat_participants")
+          .insert({
+            chat_id: newChat.chat_id,
+            participant_id: user.id,
+            participant_type: "Client",
+            display_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email
+          });
+          
+        // Add admin as participant
+        await supabase
+          .from("chat_participants")
+          .insert({
+            chat_id: newChat.chat_id,
+            participant_id: adminData.admin_id,
+            participant_type: "Admin",
+            is_admin: true
+          });
+        
+        setChatId(newChat.chat_id);
         return newChat;
       }
 
@@ -74,7 +119,16 @@ const MessagesPage = () => {
 
       const { data, error } = await supabase
         .from("chat_messages")
-        .select("*")
+        .select(`
+          message_id,
+          chat_id,
+          sender_id,
+          sender_type,
+          message_text,
+          sent_at,
+          status,
+          is_edited
+        `)
         .eq("chat_id", chatId)
         .order("sent_at", { ascending: true });
 
@@ -99,7 +153,21 @@ const MessagesPage = () => {
           filter: `chat_id=eq.${chatId}`
         },
         (payload) => {
-          console.log("New message:", payload);
+          // This will refresh the messages query when a new message is received
+          supabase.from("chat_messages")
+            .select()
+            .eq("message_id", payload.new.message_id)
+            .single()
+            .then(({ data }) => {
+              if (data) {
+                // Mark message as read if it's from admin
+                if (data.sender_type === "Admin") {
+                  supabase.from("chat_messages")
+                    .update({ status: "Read" })
+                    .eq("message_id", data.message_id);
+                }
+              }
+            });
         }
       )
       .subscribe();
@@ -163,53 +231,72 @@ const MessagesPage = () => {
           </Avatar>
           <div>
             <h3 className="font-medium">Your Advisor</h3>
-            <p className="text-sm text-muted-foreground">Online</p>
+            <p className="text-sm text-muted-foreground">
+              {chatLoading ? "Loading..." : "Online"}
+            </p>
           </div>
         </div>
 
         <ScrollArea ref={scrollRef} className="flex-1 p-4">
           <div className="space-y-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.message_id}
-                className={`flex ${
-                  msg.sender_type === "Client" ? "justify-end" : "justify-start"
-                }`}
-              >
+            {messagesLoading ? (
+              <div className="flex justify-center my-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-8">
+                <MessageSquare className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium">No messages yet</h3>
+                <p className="text-muted-foreground text-sm mt-1 mb-6">
+                  Send a message to start the conversation with your advisor
+                </p>
+              </div>
+            ) : (
+              messages.map((msg) => (
                 <div
-                  className={`flex items-end gap-2 max-w-[80%] ${
-                    msg.sender_type === "Client" ? "flex-row-reverse" : ""
+                  key={msg.message_id}
+                  className={`flex ${
+                    msg.sender_type === "Client" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src="/placeholder.svg"
-                      alt={msg.sender_type === "Client" ? "You" : "Advisor"}
-                    />
-                    <AvatarFallback>
-                      {msg.sender_type === "Client" ? "YO" : "AD"}
-                    </AvatarFallback>
-                  </Avatar>
                   <div
-                    className={`rounded-lg p-3 ${
-                      msg.sender_type === "Client"
-                        ? "bg-primary text-primary-foreground rounded-br-none"
-                        : "bg-muted rounded-bl-none"
+                    className={`flex items-end gap-2 max-w-[80%] ${
+                      msg.sender_type === "Client" ? "flex-row-reverse" : ""
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">
-                      {msg.message_text}
-                    </p>
-                    <p className="text-xs opacity-70 mt-1">
-                      {new Date(msg.sent_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })}
-                    </p>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src="/placeholder.svg"
+                        alt={msg.sender_type === "Client" ? "You" : "Advisor"}
+                      />
+                      <AvatarFallback>
+                        {msg.sender_type === "Client" ? "YO" : "AD"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={`rounded-lg p-3 ${
+                        msg.sender_type === "Client"
+                          ? "bg-primary text-primary-foreground rounded-br-none"
+                          : "bg-muted rounded-bl-none"
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">
+                        {msg.message_text}
+                      </p>
+                      <p className="text-xs opacity-70 mt-1">
+                        {new Date(msg.sent_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
+                        {msg.is_edited && (
+                          <span className="ml-1">(edited)</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </ScrollArea>
 

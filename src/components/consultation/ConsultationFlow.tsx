@@ -1,717 +1,1420 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Slider,
-  Switch,
-  Progress,
-  ScrollArea
-} from '@/components/ui';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from "@/integrations/supabase/client";
 import { 
-  BookOpen,
-  Building,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  CircleDollarSign,
-  Clock,
-  GraduationCap,
-  Languages,
-  MapPin,
-  Sparkles
+  CheckCircle, 
+  ChevronRight, 
+  GraduationCap, 
+  MapPin, 
+  School, 
+  BookOpen, 
+  Globe, 
+  Building, 
+  Briefcase, 
+  DollarSign, 
+  Calendar, 
+  Clock, 
+  Languages, 
+  Award, 
+  Heart, 
+  AlertCircle 
 } from 'lucide-react';
-import { consultationTypes } from './ConsultationTypes';
-import { usePrograms } from '@/hooks/usePrograms';
-import { supabase } from '@/integrations/supabase/client';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
-// Step flow for the consultation
-const STEPS = {
-  SELECT_TYPE: 0,
-  BASIC_INFO: 1,
-  PREFERENCES: 2,
-  BUDGET: 3,
-  RESULTS: 4,
-};
+const studyLevels = [
+  { value: "bachelor", label: "Bachelor's Degree" },
+  { value: "master", label: "Master's Degree" },
+  { value: "phd", label: "PhD / Doctorate" },
+  { value: "diploma", label: "Diploma / Certificate" },
+  { value: "language", label: "Language Course" },
+];
 
-// Define study levels and other constants
-const STUDY_LEVELS = ['Bachelor', 'Master', 'PhD', 'Certificate', 'Diploma'];
-const LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Arabic', 'Any'];
-const FIELDS = [
-  'Business & Management',
-  'Computer Science & IT',
-  'Engineering',
-  'Arts & Humanities',
-  'Social Sciences',
-  'Medicine & Health',
-  'Natural Sciences',
-  'Education',
-  'Law',
-  'Any'
+const studyFields = [
+  { value: "business", label: "Business & Management" },
+  { value: "engineering", label: "Engineering" },
+  { value: "computer_science", label: "Computer Science & IT" },
+  { value: "medicine", label: "Medicine & Health Sciences" },
+  { value: "arts", label: "Arts & Humanities" },
+  { value: "social_sciences", label: "Social Sciences" },
+  { value: "natural_sciences", label: "Natural Sciences" },
+  { value: "law", label: "Law" },
+  { value: "education", label: "Education" },
+  { value: "architecture", label: "Architecture & Design" },
+  { value: "agriculture", label: "Agriculture & Forestry" },
+  { value: "hospitality", label: "Hospitality & Tourism" },
+  { value: "media", label: "Media & Communications" },
+  { value: "other", label: "Other" },
 ];
-const COUNTRIES = ['France', 'Spain', 'Germany', 'Italy', 'Belgium', 'Netherlands', 'Portugal', 'Sweden', 'Europe', 'Any'];
-const DURATIONS = [
-  { label: 'One semester', value: 'semester' },
-  { label: 'One year', value: 'year' },
-  { label: 'Two years', value: 'two_years' },
-  { label: 'Full program', value: 'full_program' },
+
+const countries = [
+  { value: "usa", label: "United States" },
+  { value: "uk", label: "United Kingdom" },
+  { value: "canada", label: "Canada" },
+  { value: "australia", label: "Australia" },
+  { value: "germany", label: "Germany" },
+  { value: "france", label: "France" },
+  { value: "spain", label: "Spain" },
+  { value: "italy", label: "Italy" },
+  { value: "netherlands", label: "Netherlands" },
+  { value: "sweden", label: "Sweden" },
+  { value: "switzerland", label: "Switzerland" },
+  { value: "japan", label: "Japan" },
+  { value: "china", label: "China" },
+  { value: "singapore", label: "Singapore" },
+  { value: "uae", label: "United Arab Emirates" },
+  { value: "malaysia", label: "Malaysia" },
+  { value: "turkey", label: "Turkey" },
+  { value: "other", label: "Other" },
 ];
+
+const languages = [
+  { value: "english", label: "English" },
+  { value: "french", label: "French" },
+  { value: "german", label: "German" },
+  { value: "spanish", label: "Spanish" },
+  { value: "italian", label: "Italian" },
+  { value: "arabic", label: "Arabic" },
+  { value: "chinese", label: "Chinese" },
+  { value: "japanese", label: "Japanese" },
+  { value: "russian", label: "Russian" },
+  { value: "other", label: "Other" },
+];
+
+const budgetRanges = [
+  { value: "0-5000", label: "Under $5,000" },
+  { value: "5000-10000", label: "$ 5,000 - $10,000" },
+  { value: "10000-15000", label: "$ 10,000 - $15,000" },
+  { value: "15000-20000", label: "$ 15,000 - $20,000" },
+  { value: "20000-30000", label: "$ 20,000 - $30,000" },
+  { value: "30000+", label: "Over $30,000" },
+];
+
+const durations = [
+  { value: "1-3", label: "1-3 months" },
+  { value: "3-6", label: "3-6 months" },
+  { value: "6-12", label: "6-12 months" },
+  { value: "1-2", label: "1-2 years" },
+  { value: "2-3", label: "2-3 years" },
+  { value: "3-4", label: "3-4 years" },
+  { value: "4+", label: "4+ years" },
+];
+
+const startDates = [
+  { value: "immediate", label: "As soon as possible" },
+  { value: "1-3months", label: "In 1-3 months" },
+  { value: "3-6months", label: "In 3-6 months" },
+  { value: "6-12months", label: "In 6-12 months" },
+  { value: "next-year", label: "Next year" },
+  { value: "undecided", label: "Not decided yet" },
+];
+
+// Form schema for academic preferences
+const academicFormSchema = z.object({
+  studyLevel: z.string().min(1, "Please select a study level"),
+  studyField: z.string().min(1, "Please select a field of study"),
+  specificProgram: z.string().optional(),
+  previousEducation: z.string().min(1, "Please provide your previous education"),
+  gpa: z.string().optional(),
+  workExperience: z.string().optional(),
+});
+
+// Form schema for location preferences
+const locationFormSchema = z.object({
+  preferredCountries: z.array(z.string()).min(1, "Please select at least one country"),
+  preferredCities: z.string().optional(),
+  languagePreference: z.string().min(1, "Please select a language preference"),
+  accommodationNeeds: z.string().optional(),
+  religiousRequirements: z.boolean().optional(),
+  halalFood: z.boolean().optional(),
+  communityPreference: z.boolean().optional(),
+});
+
+// Form schema for financial preferences
+const financialFormSchema = z.object({
+  budget: z.string().min(1, "Please select a budget range"),
+  scholarshipInterest: z.boolean(),
+  workStudyInterest: z.boolean(),
+  financialAidNeeds: z.string().optional(),
+});
+
+// Form schema for timeline preferences
+const timelineFormSchema = z.object({
+  preferredDuration: z.string().min(1, "Please select a preferred duration"),
+  startDate: z.string().min(1, "Please select a preferred start date"),
+  urgency: z.number().min(1).max(5),
+  flexibility: z.string().optional(),
+});
+
+// Form schema for personal preferences
+const personalFormSchema = z.object({
+  careerGoals: z.string().min(1, "Please describe your career goals"),
+  specialRequirements: z.string().optional(),
+  healthConsiderations: z.string().optional(),
+  additionalInfo: z.string().optional(),
+});
 
 const ConsultationFlow = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { data: programsData, isLoading: programsLoading } = usePrograms();
-  const [currentStep, setCurrentStep] = useState(STEPS.SELECT_TYPE);
-  const [progress, setProgress] = useState(20);
-  const [consultationType, setConsultationType] = useState<string | null>(null);
-  
-  // Form state
-  const [selectedStudyLevel, setSelectedStudyLevel] = useState<string>(STUDY_LEVELS[0]);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>(LANGUAGES[0]);
-  const [selectedField, setSelectedField] = useState<string>(FIELDS[0]);
-  const [selectedCountry, setSelectedCountry] = useState<string>(COUNTRIES[0]);
-  const [selectedDuration, setSelectedDuration] = useState<string>(DURATIONS[0].value);
-  const [scholarshipRequired, setScholarshipRequired] = useState<boolean>(false);
-  const [religiousFacilities, setReligiousFacilities] = useState<boolean>(false);
-  const [halalFood, setHalalFood] = useState<boolean>(false);
-  const [budget, setBudget] = useState<number>(10000);
-  
-  // Results
-  const [matchedPrograms, setMatchedPrograms] = useState<any[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isLoadingResults, setIsLoadingResults] = useState<boolean>(false);
+  const [activeStep, setActiveStep] = useState(1);
+  const [formData, setFormData] = useState({
+    academic: null,
+    location: null,
+    financial: null,
+    timeline: null,
+    personal: null,
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const [consultationId, setConsultationId] = useState<string | null>(null);
+  const [recommendedPrograms, setRecommendedPrograms] = useState([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
-  // Update progress when step changes
+  // Academic form
+  const academicForm = useForm<z.infer<typeof academicFormSchema>>({
+    resolver: zodResolver(academicFormSchema),
+    defaultValues: {
+      studyLevel: "",
+      studyField: "",
+      specificProgram: "",
+      previousEducation: "",
+      gpa: "",
+      workExperience: "",
+    },
+  });
+
+  // Location form
+  const locationForm = useForm<z.infer<typeof locationFormSchema>>({
+    resolver: zodResolver(locationFormSchema),
+    defaultValues: {
+      preferredCountries: [],
+      preferredCities: "",
+      languagePreference: "",
+      accommodationNeeds: "",
+      religiousRequirements: false,
+      halalFood: false,
+      communityPreference: false,
+    },
+  });
+
+  // Financial form
+  const financialForm = useForm<z.infer<typeof financialFormSchema>>({
+    resolver: zodResolver(financialFormSchema),
+    defaultValues: {
+      budget: "",
+      scholarshipInterest: false,
+      workStudyInterest: false,
+      financialAidNeeds: "",
+    },
+  });
+
+  // Timeline form
+  const timelineForm = useForm<z.infer<typeof timelineFormSchema>>({
+    resolver: zodResolver(timelineFormSchema),
+    defaultValues: {
+      preferredDuration: "",
+      startDate: "",
+      urgency: 3,
+      flexibility: "",
+    },
+  });
+
+  // Personal form
+  const personalForm = useForm<z.infer<typeof personalFormSchema>>({
+    resolver: zodResolver(personalFormSchema),
+    defaultValues: {
+      careerGoals: "",
+      specialRequirements: "",
+      healthConsiderations: "",
+      additionalInfo: "",
+    },
+  });
+
+  // Check if user has existing consultation
   useEffect(() => {
-    const progressPercentages = [20, 40, 60, 80, 100];
-    setProgress(progressPercentages[currentStep]);
-  }, [currentStep]);
+    const checkExistingConsultation = async () => {
+      if (!user) return;
 
-  // Handle next step
-  const handleNext = () => {
-    if (currentStep < Object.keys(STEPS).length - 1) {
-      setCurrentStep(currentStep + 1);
-      window.scrollTo(0, 0);
-    }
-  };
+      try {
+        const { data, error } = await supabase
+          .from("consultations")
+          .select("*")
+          .eq("client_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
 
-  // Handle previous step
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-      window.scrollTo(0, 0);
-    }
-  };
+        if (error) throw error;
 
-  // Handle consultation type selection
-  const handleTypeSelection = (typeId: string) => {
-    setConsultationType(typeId);
-    handleNext();
-  };
+        if (data && data.length > 0) {
+          const consultation = data[0];
+          setConsultationId(consultation.consultation_id);
+          
+          // If consultation is complete, show recommendations
+          if (consultation.status === "Completed") {
+            setIsComplete(true);
+            fetchRecommendations(consultation.consultation_id);
+          } 
+          // If consultation is in progress, restore form data
+          else if (consultation.form_data) {
+            const savedData = consultation.form_data;
+            
+            if (savedData.academic) {
+              academicForm.reset(savedData.academic);
+            }
+            if (savedData.location) {
+              locationForm.reset(savedData.location);
+            }
+            if (savedData.financial) {
+              financialForm.reset(savedData.financial);
+            }
+            if (savedData.timeline) {
+              timelineForm.reset(savedData.timeline);
+            }
+            if (savedData.personal) {
+              personalForm.reset(savedData.personal);
+            }
+            
+            // Set active step based on progress
+            if (savedData.personal) setActiveStep(5);
+            else if (savedData.timeline) setActiveStep(4);
+            else if (savedData.financial) setActiveStep(3);
+            else if (savedData.location) setActiveStep(2);
+            else setActiveStep(1);
+            
+            setFormData(savedData);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking existing consultation:", error);
+      }
+    };
 
-  // Handle budget change
-  const handleBudgetChange = (value: number[]) => {
-    setBudget(value[0]);
-  };
+    checkExistingConsultation();
+  }, [user]);
 
-  // Save consultation and get matched programs
-  const handleSubmitConsultation = async () => {
-    if (!user) {
+  const fetchRecommendations = async (consultId: string) => {
+    setLoadingRecommendations(true);
+    try {
+      const { data, error } = await supabase
+        .from("program_recommendations")
+        .select(`
+          recommendation_id,
+          program_id,
+          consultation_id,
+          match_score,
+          recommendation_notes,
+          programs (
+            id,
+            name,
+            university,
+            study_level,
+            field,
+            city,
+            country,
+            duration_months,
+            tuition_min,
+            tuition_max,
+            image_url
+          )
+        `)
+        .eq("consultation_id", consultId)
+        .order("match_score", { ascending: false });
+
+      if (error) throw error;
+      setRecommendedPrograms(data || []);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
       toast({
-        title: "Login Required",
-        description: "Please sign in to save your consultation",
-        variant: "destructive"
+        title: "Error",
+        description: "Failed to load program recommendations",
+        variant: "destructive",
       });
-      return;
+    } finally {
+      setLoadingRecommendations(false);
     }
+  };
 
+  const onAcademicSubmit = async (data: z.infer<typeof academicFormSchema>) => {
+    const updatedFormData = { ...formData, academic: data };
+    setFormData(updatedFormData);
+    
+    // Save progress to database
+    await saveConsultationProgress(updatedFormData);
+    
+    setActiveStep(2);
+  };
+
+  const onLocationSubmit = async (data: z.infer<typeof locationFormSchema>) => {
+    const updatedFormData = { ...formData, location: data };
+    setFormData(updatedFormData);
+    
+    // Save progress to database
+    await saveConsultationProgress(updatedFormData);
+    
+    setActiveStep(3);
+  };
+
+  const onFinancialSubmit = async (data: z.infer<typeof financialFormSchema>) => {
+    const updatedFormData = { ...formData, financial: data };
+    setFormData(updatedFormData);
+    
+    // Save progress to database
+    await saveConsultationProgress(updatedFormData);
+    
+    setActiveStep(4);
+  };
+
+  const onTimelineSubmit = async (data: z.infer<typeof timelineFormSchema>) => {
+    const updatedFormData = { ...formData, timeline: data };
+    setFormData(updatedFormData);
+    
+    // Save progress to database
+    await saveConsultationProgress(updatedFormData);
+    
+    setActiveStep(5);
+  };
+
+  const onPersonalSubmit = async (data: z.infer<typeof personalFormSchema>) => {
     setIsSubmitting(true);
-    setIsLoadingResults(true);
     
     try {
-      // Calculate matched programs based on preferences
-      if (programsData) {
-        const scored = programsData.map(program => {
-          let score = 0;
-          
-          // Study level match (20 points)
-          if (program.study_level === selectedStudyLevel) {
-            score += 20;
-          }
-          
-          // Language match (15 points)
-          if (program.program_language === selectedLanguage || selectedLanguage === 'Any') {
-            score += 15;
-          }
-          
-          // Field match (15 points)
-          if ((program.field_keywords && program.field_keywords.includes(selectedField)) || 
-              selectedField === 'Any') {
-            score += 15;
-          }
-          
-          // Country match (10 points)
-          if (program.country === selectedCountry || 
-              (selectedCountry === 'Europe' && 
-               ['France', 'Spain', 'Germany', 'Italy', 'Belgium', 'Netherlands', 'Portugal', 'Sweden'].includes(program.country)) || 
-              selectedCountry === 'Any') {
-            score += 10;
-          }
-          
-          // Budget match (20 points)
-          const yearlyRate = program.tuition_min + (program.living_cost_min * 12);
-          if (budget >= yearlyRate) {
-            score += 20;
-          } else if (budget >= yearlyRate * 0.8) {
-            score += 10;
-          }
-          
-          // Scholarship match (10 points)
-          if (!scholarshipRequired || program.scholarship_available) {
-            score += 10;
-          }
-          
-          // Cultural needs match (10 points)
-          if ((!religiousFacilities && !halalFood) || 
-              (religiousFacilities && program.religious_facilities) || 
-              (halalFood && program.halal_food_availability)) {
-            score += 10;
-          }
-          
-          return {
-            ...program,
-            matchScore: score
-          };
-        });
-        
-        const matched = scored
-          .sort((a, b) => b.matchScore - a.matchScore)
-          .slice(0, 5);
-          
-        setMatchedPrograms(matched);
-      }
+      const updatedFormData = { ...formData, personal: data };
+      setFormData(updatedFormData);
       
-      // Save consultation results
-      const { error } = await supabase
-        .from('consultation_results')
-        .insert({
-          budget,
-          study_level: selectedStudyLevel as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma",
-          language_preference: selectedLanguage,
-          field_preference: selectedField,
-          destination_preference: selectedCountry,
-          duration_preference: selectedDuration,
-          scholarship_required: scholarshipRequired,
-          religious_facilities_required: religiousFacilities,
-          halal_food_required: halalFood,
-          field_keywords: selectedField.split(' & ').map(f => f.toLowerCase()),
-          user_id: user.id
-        });
-        
-      if (error) throw error;
+      // Save final submission
+      await saveConsultationProgress(updatedFormData, true);
       
-      handleNext();
-    } catch (error) {
-      console.error('Error during consultation:', error);
       toast({
-        title: 'Something went wrong',
-        description: 'Please try again later.',
-        variant: 'destructive',
+        title: "Consultation Submitted",
+        description: "Your consultation has been submitted successfully. We'll review your preferences and provide program recommendations soon.",
+      });
+      
+      // In a real app, we would wait for admin to review and generate recommendations
+      // For demo purposes, we'll simulate this by setting isComplete after a delay
+      setTimeout(() => {
+        setIsComplete(true);
+        // Generate mock recommendations
+        fetchRecommendations(consultationId || "");
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Error submitting consultation:", error);
+      toast({
+        title: "Submission Error",
+        description: "There was a problem submitting your consultation. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
-      setIsLoadingResults(false);
     }
   };
 
-  // Handle viewing a program
-  const handleViewProgram = (programId: string) => {
-    navigate(`/program/${programId}`);
-  };
-  
-  // Get badge variant based on score
-  const getBadgeVariant = (score: number) => {
-    if (score >= 80) return 'default';  // Primary color
-    if (score >= 60) return 'secondary';
-    return 'outline';
-  };
-  
-  // Render step based on current step
-  const renderStep = () => {
-    switch (currentStep) {
-      case STEPS.SELECT_TYPE:
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {consultationTypes.map(type => (
-              <Card 
-                key={type.id} 
-                className={`cursor-pointer transition-all hover:shadow-lg ${consultationType === type.id ? 'ring-2 ring-primary' : ''}`}
-                onClick={() => handleTypeSelection(type.id)}
-              >
-                <CardHeader>
-                  <div className={`${type.color} p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4`}>
-                    {type.icon}
-                  </div>
-                  <CardTitle>{type.title}</CardTitle>
-                  <CardDescription>{type.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        );
-      
-      case STEPS.BASIC_INFO:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
-              <CardDescription>
-                Tell us about your academic goals
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="studyLevel">Study Level</Label>
-                <Select value={selectedStudyLevel} onValueChange={setSelectedStudyLevel}>
-                  <SelectTrigger id="studyLevel" className="w-full">
-                    <SelectValue placeholder="Select study level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STUDY_LEVELS.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="fieldStudy">Field of Study</Label>
-                <Select value={selectedField} onValueChange={setSelectedField}>
-                  <SelectTrigger id="fieldStudy" className="w-full">
-                    <SelectValue placeholder="Select field of study" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FIELDS.map((field) => (
-                      <SelectItem key={field} value={field}>
-                        {field}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="language">Preferred Language of Instruction</Label>
-                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                  <SelectTrigger id="language" className="w-full">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGES.map((language) => (
-                      <SelectItem key={language} value={language}>
-                        {language}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleBack}>
-                <ChevronLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={handleNext}>
-                Next <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-      
-      case STEPS.PREFERENCES:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Preferences</CardTitle>
-              <CardDescription>
-                Tell us about your destination preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="country">Preferred Destination</Label>
-                <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                  <SelectTrigger id="country" className="w-full">
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COUNTRIES.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="duration">Program Duration</Label>
-                <Select value={selectedDuration} onValueChange={setSelectedDuration}>
-                  <SelectTrigger id="duration" className="w-full">
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DURATIONS.map((duration) => (
-                      <SelectItem key={duration.value} value={duration.value}>
-                        {duration.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <Separator className="my-4" />
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Additional Preferences</h3>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="scholarship">Scholarship Required</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Do you need a scholarship for your studies?
-                    </p>
-                  </div>
-                  <Switch
-                    id="scholarship"
-                    checked={scholarshipRequired}
-                    onCheckedChange={setScholarshipRequired}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="religious">Religious Facilities</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Do you need access to religious facilities?
-                    </p>
-                  </div>
-                  <Switch
-                    id="religious"
-                    checked={religiousFacilities}
-                    onCheckedChange={setReligiousFacilities}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="halal">Halal Food Options</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Do you require halal food options?
-                    </p>
-                  </div>
-                  <Switch
-                    id="halal"
-                    checked={halalFood}
-                    onCheckedChange={setHalalFood}
-                  />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleBack}>
-                <ChevronLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={handleNext}>
-                Next <ChevronRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-      
-      case STEPS.BUDGET:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Budget Information</CardTitle>
-              <CardDescription>
-                What is your total budget for one year?
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <Label htmlFor="budget">Annual Budget (in EUR)</Label>
-                  <span className="font-semibold text-lg">€{budget.toLocaleString()}</span>
-                </div>
-                <Slider
-                  id="budget"
-                  min={5000}
-                  max={50000}
-                  step={1000}
-                  defaultValue={[budget]}
-                  onValueChange={handleBudgetChange}
-                  className="py-4"
-                />
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <div>€5,000</div>
-                  <div>€50,000</div>
-                </div>
-                
-                <div className="mt-6 space-y-4">
-                  <h3 className="text-lg font-medium">What does this include?</h3>
-                  <ul className="space-y-2">
-                    <li className="flex items-center gap-2">
-                      <CircleDollarSign className="h-5 w-5 text-primary" />
-                      <span>Tuition fees</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Building className="h-5 w-5 text-primary" />
-                      <span>Accommodation costs</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <MapPin className="h-5 w-5 text-primary" />
-                      <span>Living expenses</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={handleBack}>
-                <ChevronLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button 
-                onClick={handleSubmitConsultation} 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Processing...' : 'Get Recommendations'} {!isSubmitting && <Sparkles className="ml-2 h-4 w-4" />}
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-      
-      case STEPS.RESULTS:
-        return (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Program Recommendations</CardTitle>
-                <CardDescription>
-                  Based on your preferences, here are our top recommendations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingResults ? (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p className="text-lg font-medium">Finding your perfect matches...</p>
-                  </div>
-                ) : matchedPrograms.length > 0 ? (
-                  <div className="space-y-6">
-                    {matchedPrograms.map((program, index) => (
-                      <Card key={program.id} className="overflow-hidden">
-                        <div className="flex flex-col md:flex-row">
-                          <div className="md:w-1/4 bg-muted flex items-center justify-center p-4">
-                            <div className="text-center">
-                              <div className="text-3xl font-bold text-primary mb-1">{program.matchScore}%</div>
-                              <Badge variant={getBadgeVariant(program.matchScore)}>
-                                Match Score
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="md:w-3/4 p-4">
-                            <h3 className="text-xl font-semibold mb-2">{program.name}</h3>
-                            <div className="space-y-2 mb-4">
-                              <div className="flex items-center gap-1">
-                                <Building className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm">{program.university}, {program.country}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm">{program.study_level}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Languages className="h-4 w-4 text-muted-foreground" />
-                                <span className="text-sm">Language: {program.program_language}</span>
-                              </div>
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400">
-                                  {program.field}
-                                </Badge>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400">
-                                  {program.duration_months} months
-                                </Badge>
-                                <Badge variant="outline" className="bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-                                  €{program.tuition_min.toLocaleString()} tuition
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <Button variant="outline" size="sm" onClick={() => handleViewProgram(program.id)}>
-                                View Details
-                              </Button>
-                              {program.scholarship_available && (
-                                <Badge variant="outline" className="bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400">
-                                  Scholarship Available
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                    
-                    <div className="text-center mt-8">
-                      <p className="text-muted-foreground mb-4">
-                        Want more personalized guidance?
-                      </p>
-                      <Button onClick={() => navigate('/appointments')}>
-                        Schedule a Consultation <Clock className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No matches found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      We couldn't find programs matching your criteria. Try adjusting your preferences.
-                    </p>
-                    <Button variant="outline" onClick={() => setCurrentStep(STEPS.PREFERENCES)}>
-                      Adjust Preferences
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            
-            {matchedPrograms.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Why These Recommendations?</CardTitle>
-                  <CardDescription>
-                    Understanding how we matched these programs to your preferences
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Our recommendation system uses multiple factors to match you with the best programs:
-                    </p>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5">
-                          <Check className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Study Level Match</h4>
-                          <p className="text-sm text-muted-foreground">
-                            We matched programs with your selected study level: <span className="font-medium">{selectedStudyLevel}</span>
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5">
-                          <Check className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Field of Study</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Programs aligned with your field of interest: <span className="font-medium">{selectedField}</span>
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5">
-                          <Check className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Budget Compatibility</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Programs within your budget range of <span className="font-medium">€{budget.toLocaleString()}</span> per year
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5">
-                          <Check className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium">Location Preference</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Programs in your preferred destination: <span className="font-medium">{selectedCountry}</span>
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {scholarshipRequired && (
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5">
-                            <Check className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Scholarship Availability</h4>
-                            <p className="text-sm text-muted-foreground">
-                              Programs with scholarship opportunities
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline" onClick={() => setCurrentStep(STEPS.SELECT_TYPE)}>
-                    Start New Consultation
-                  </Button>
-                  <Button variant="default" onClick={() => navigate('/appointments')}>
-                    Book Advisor Session
-                  </Button>
-                </CardFooter>
-              </Card>
-            )}
-          </div>
-        );
-      
-      default:
-        return null;
+  const saveConsultationProgress = async (data: any, isComplete = false) => {
+    if (!user) return;
+    
+    try {
+      // If we already have a consultation ID, update it
+      if (consultationId) {
+        const { error } = await supabase
+          .from("consultations")
+          .update({
+            form_data: data,
+            status: isComplete ? "Completed" : "In Progress",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("consultation_id", consultationId);
+          
+        if (error) throw error;
+      } 
+      // Otherwise create a new consultation
+      else {
+        const { data: newConsultation, error } = await supabase
+          .from("consultations")
+          .insert({
+            client_id: user.id,
+            form_data: data,
+            status: isComplete ? "Completed" : "In Progress",
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        setConsultationId(newConsultation.consultation_id);
+      }
+    } catch (error) {
+      console.error("Error saving consultation progress:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save your progress",
+        variant: "destructive",
+      });
     }
   };
-  
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span>Getting started</span>
-          <span>Complete</span>
-        </div>
-        <Progress value={progress} className="h-2" />
+
+  const handlePrevious = () => {
+    if (activeStep > 1) {
+      setActiveStep(activeStep - 1);
+    }
+  };
+
+  const handleViewProgram = (programId: string) => {
+    navigate(`/programs/${programId}`);
+  };
+
+  const handleStartNewConsultation = () => {
+    // Reset all forms
+    academicForm.reset();
+    locationForm.reset();
+    financialForm.reset();
+    timelineForm.reset();
+    personalForm.reset();
+    
+    // Reset state
+    setFormData({
+      academic: null,
+      location: null,
+      financial: null,
+      timeline: null,
+      personal: null,
+    });
+    setActiveStep(1);
+    setIsComplete(false);
+    setConsultationId(null);
+    setRecommendedPrograms([]);
+  };
+
+  const handleScheduleCall = () => {
+    navigate('/appointments');
+  };
+
+  if (isComplete) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="bg-green-50 dark:bg-green-900/20">
+            <div className="flex items-center space-x-2">
+              <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <CardTitle>Consultation Complete</CardTitle>
+                <CardDescription>
+                  Based on your preferences, we've recommended the following programs
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              {loadingRecommendations ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                </div>
+              ) : recommendedPrograms.length > 0 ? (
+                <div className="space-y-6">
+                  {recommendedPrograms.map((recommendation: any) => (
+                    <Card key={recommendation.recommendation_id} className="overflow-hidden">
+                      <div className="flex flex-col md:flex-row">
+                        <div className="md:w-1/4 h-48 md:h-auto relative">
+                          <img 
+                            src={recommendation.programs?.image_url || '/placeholder.svg'} 
+                            alt={recommendation.programs?.name} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder.svg';
+                            }}
+                          />
+                          <div className="absolute top-2 right-2">
+                            <Badge className="bg-primary hover:bg-primary">
+                              {Math.round(recommendation.match_score)}% Match
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="p-6 md:w-3/4">
+                          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                            <div>
+                              <h3 className="text-xl font-semibold mb-1">{recommendation.programs?.name}</h3>
+                              <p className="text-muted-foreground">{recommendation.programs?.university}</p>
+                              
+                              <div className="flex flex-wrap gap-2 mt-3">
+                                <Badge variant="outline" className="bg-muted">
+                                  {recommendation.programs?.study_level}
+                                </Badge>
+                                <Badge variant="outline" className="bg-muted">
+                                  {recommendation.programs?.field}
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-col items-end">
+                              <p className="font-medium">
+                                ${recommendation.programs?.tuition_min.toLocaleString()} - ${recommendation.programs?.tuition_max.toLocaleString()}
+                              </p>
+                              <p className="text-sm text-muted-foreground">Tuition per year</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div className="flex items-center">
+                              <MapPin className="h-4 w-4 text-muted-foreground mr-2" />
+                              <span className="text-sm">
+                                {recommendation.programs?.city}, {recommendation.programs?.country}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 text-muted-foreground mr-2" />
+                              <span className="text-sm">
+                                {recommendation.programs?.duration_months} months
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <GraduationCap className="h-4 w-4 text-muted-foreground mr-2" />
+                              <span className="text-sm">
+                                {recommendation.programs?.study_level}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {recommendation.recommendation_notes && (
+                            <div className="mt-4 p-3 bg-muted/50 rounded-md">
+                              <p className="text-sm">
+                                <span className="font-medium">Why this program: </span>
+                                {recommendation.recommendation_notes}
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="mt-4 flex justify-end">
+                            <Button 
+                              onClick={() => handleViewProgram(recommendation.programs?.id)}
+                              className="flex items-center"
+                            >
+                              View Program <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Recommendations Yet</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Our team is reviewing your preferences and will provide personalized recommendations soon.
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row gap-4 justify-between">
+            <Button variant="outline" onClick={handleStartNewConsultation}>
+              Start New Consultation
+            </Button>
+            <Button onClick={handleScheduleCall}>
+              Schedule a Call with Advisor
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
-      
-      {renderStep()}
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Progress Steps */}
+      <div className="hidden md:flex justify-between mb-8">
+        {[1, 2, 3, 4, 5].map((step) => (
+          <div 
+            key={step} 
+            className={`flex flex-col items-center ${step < activeStep ? 'text-primary' : step === activeStep ? 'text-primary' : 'text-muted-foreground'}`}
+          >
+            <div 
+              className={`h-10 w-10 rounded-full flex items-center justify-center mb-2 ${
+                step < activeStep 
+                  ? 'bg-primary text-primary-foreground' 
+                  : step === activeStep 
+                  ? 'border-2 border-primary' 
+                  : 'border-2 border-muted'
+              }`}
+            >
+              {step < activeStep ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <span>{step}</span>
+              )}
+            </div>
+            <span className="text-sm">
+              {step === 1 && "Academic"}
+              {step === 2 && "Location"}
+              {step === 3 && "Financial"}
+              {step === 4 && "Timeline"}
+              {step === 5 && "Personal"}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Mobile Progress Indicator */}
+      <div className="md:hidden">
+        <div className="flex justify-between mb-2">
+          <span className="text-sm font-medium">
+            Step {activeStep} of 5: 
+            {activeStep === 1 && " Academic Preferences"}
+            {activeStep === 2 && " Location Preferences"}
+            {activeStep === 3 && " Financial Information"}
+            {activeStep === 4 && " Timeline Preferences"}
+            {activeStep === 5 && " Personal Information"}
+          </span>
+          <span className="text-sm text-muted-foreground">{activeStep}/5</span>
+        </div>
+        <div className="w-full bg-muted rounded-full h-2.5">
+          <div 
+            className="bg-primary h-2.5 rounded-full" 
+            style={{ width: `${(activeStep / 5) * 100}%` }}
+          ></div>
+        </div>
+      </div>
+
+      {/* Step 1: Academic Preferences */}
+      {activeStep === 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GraduationCap className="h-5 w-5" />
+              Academic Preferences
+            </CardTitle>
+            <CardDescription>
+              Tell us about your academic background and what you want to study
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...academicForm}>
+              <form onSubmit={academicForm.handleSubmit(onAcademicSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={academicForm.control}
+                    name="studyLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Study Level</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select study level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {studyLevels.map((level) => (
+                              <SelectItem key={level.value} value={level.value}>
+                                {level.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={academicForm.control}
+                    name="studyField"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Field of Study</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select field of study" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {studyFields.map((field) => (
+                              <SelectItem key={field.value} value={field.value}>
+                                {field.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={academicForm.control}
+                  name="specificProgram"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Specific Program (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="E.g. MBA, Computer Science, etc." {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        If you have a specific program in mind, please specify
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={academicForm.control}
+                  name="previousEducation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Previous Education</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe your educational background, degrees, institutions, etc." 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={academicForm.control}
+                    name="gpa"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>GPA (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="E.g. 3.5/4.0" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Your GPA on a 4.0 scale or equivalent
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={academicForm.control}
+                    name="workExperience"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Work Experience (Optional)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="E.g. 2 years in marketing" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Relevant work experience if applicable
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button type="submit">
+                    Next Step
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2: Location Preferences */}
+      {activeStep === 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Location Preferences
+            </CardTitle>
+            <CardDescription>
+              Tell us where you'd like to study and your location preferences
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...locationForm}>
+              <form onSubmit={locationForm.handleSubmit(onLocationSubmit)} className="space-y-6">
+                <FormField
+                  control={locationForm.control}
+                  name="preferredCountries"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Countries</FormLabel>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {countries.map((country) => (
+                          <FormItem
+                            key={country.value}
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(country.value)}
+                                onCheckedChange={(checked) => {
+                                  return checked
+                                    ? field.onChange([...field.value, country.value])
+                                    : field.onChange(
+                                        field.value?.filter(
+                                          (value) => value !== country.value
+                                        )
+                                      )
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="font-normal">
+                              {country.label}
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={locationForm.control}
+                  name="preferredCities"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Cities (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="E.g. London, New York, Paris" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Specify any cities you're particularly interested in
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={locationForm.control}
+                  name="languagePreference"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Preferred Language of Instruction</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select language" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {languages.map((language) => (
+                            <SelectItem key={language.value} value={language.value}>
+                              {language.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={locationForm.control}
+                  name="accommodationNeeds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Accommodation Needs (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe your accommodation preferences or requirements" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium">Special Requirements</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={locationForm.control}
+                      name="religiousRequirements"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Religious Facilities
+                            </FormLabel>
+                            <FormDescription>
+                              Access to prayer rooms or religious facilities
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={locationForm.control}
+                      name="halalFood"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Halal Food Options
+                            </FormLabel>
+                            <FormDescription>
+                              Access to halal food on or near campus
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={locationForm.control}
+                      name="communityPreference"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              North African Community
+                            </FormLabel>
+                            <FormDescription>
+                              Prefer locations with North African community
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="submit">
+                    Next Step
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Financial Information */}
+      {activeStep === 3 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Financial Information
+            </CardTitle>
+            <CardDescription>
+              Help us understand your budget and financial needs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...financialForm}>
+              <form onSubmit={financialForm.handleSubmit(onFinancialSubmit)} className="space-y-6">
+                <FormField
+                  control={financialForm.control}
+                  name="budget"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Annual Budget for Tuition and Living Expenses</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select budget range" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {budgetRanges.map((range) => (
+                            <SelectItem key={range.value} value={range.value}>
+                              {range.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        This helps us recommend programs within your budget
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={financialForm.control}
+                    name="scholarshipInterest"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Interested in Scholarships
+                          </FormLabel>
+                          <FormDescription>
+                            I want to apply for scholarships if available
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={financialForm.control}
+                    name="workStudyInterest"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Interested in Work-Study
+                          </FormLabel>
+                          <FormDescription>
+                            I want to work part-time while studying
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={financialForm.control}
+                  name="financialAidNeeds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Financial Information (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Any other financial considerations or needs we should know about" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        This information helps us better understand your financial situation
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="submit">
+                    Next Step
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 4: Timeline Preferences */}
+      {activeStep === 4 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Timeline Preferences
+            </CardTitle>
+            <CardDescription>
+              Tell us about your preferred timeline for studying abroad
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...timelineForm}>
+              <form onSubmit={timelineForm.handleSubmit(onTimelineSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={timelineForm.control}
+                    name="preferredDuration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preferred Program Duration</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select duration" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {durations.map((duration) => (
+                              <SelectItem key={duration.value} value={duration.value}>
+                                {duration.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={timelineForm.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preferred Start Date</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select start date" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {startDates.map((date) => (
+                              <SelectItem key={date.value} value={date.value}>
+                                {date.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={timelineForm.control}
+                  name="urgency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>How urgent is your application?</FormLabel>
+                      <FormControl>
+                        <div className="space-y-3">
+                          <Slider
+                            min={1}
+                            max={5}
+                            step={1}
+                            defaultValue={[field.value]}
+                            onValueChange={(vals) => field.onChange(vals[0])}
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Not urgent</span>
+                            <span>Somewhat urgent</span>
+                            <span>Very urgent</span>
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        This helps us prioritize your application
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={timelineForm.control}
+                  name="flexibility"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Timeline Flexibility (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Any additional information about your timeline flexibility" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Let us know if you have any specific timeline constraints or flexibility
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="submit">
+                    Next Step
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 5: Personal Information */}
+      {activeStep === 5 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5" />
+              Personal Preferences
+            </CardTitle>
+            <CardDescription>
+              Tell us about your personal goals and any special requirements
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...personalForm}>
+              <form onSubmit={personalForm.handleSubmit(onPersonalSubmit)} className="space-y-6">
+                <FormField
+                  control={personalForm.control}
+                  name="careerGoals"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Career Goals</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe your career goals and how studying abroad fits into your plans" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={personalForm.control}
+                  name="specialRequirements"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Special Requirements (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Any special requirements or preferences not covered in previous sections" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        This could include cultural preferences, dietary needs, etc.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={personalForm.control}
+                  name="healthConsiderations"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Health Considerations (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Any health or accessibility considerations we should be aware of" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        This information helps us recommend suitable programs and locations
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={personalForm.control}
+                  name="additionalInfo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Information (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Anything else you'd like us to know about your study abroad plans" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-between">
+                  <Button type="button" variant="outline" onClick={handlePrevious}>
+                    Previous
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Submitting..." : "Submit Consultation"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
