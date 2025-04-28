@@ -42,7 +42,6 @@ export default function Programs() {
   const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
   const [programToRemove, setProgramToRemove] = useState(null);
   
-  // Get any pre-selected filters from URL params
   useEffect(() => {
     const level = searchParams.get('level');
     const country = searchParams.get('country');
@@ -58,7 +57,6 @@ export default function Programs() {
     }
   }, [searchParams]);
   
-  // Fetch programs on component mount
   useEffect(() => {
     fetchPrograms();
     if (user) {
@@ -124,7 +122,6 @@ export default function Programs() {
         return;
       }
       
-      // Add to favorites
       const { error } = await supabase
         .from('favorite_programs')
         .insert([{ user_id: user.id, program_id: programId }]);
@@ -224,28 +221,23 @@ export default function Programs() {
   };
   
   const filteredPrograms = programs.filter(program => {
-    // Search term filter
     if (searchTerm && !program.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
         !program.university.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
     
-    // Study level filter
     if (filters.studyLevel.length > 0 && !filters.studyLevel.includes(program.study_level)) {
       return false;
     }
     
-    // Country filter
     if (filters.country.length > 0 && !filters.country.includes(program.country)) {
       return false;
     }
     
-    // Language filter
     if (filters.language.length > 0 && !filters.language.includes(program.program_language)) {
       return false;
     }
     
-    // Duration filter
     if (filters.duration) {
       const durationMonths = parseInt(program.duration_months);
       
@@ -262,22 +254,18 @@ export default function Programs() {
       }
     }
     
-    // Tuition min filter
     if (filters.tuitionMin && Number(program.tuition_min) < parseInt(filters.tuitionMin)) {
       return false;
     }
     
-    // Tuition max filter
     if (filters.tuitionMax && Number(program.tuition_min) > parseInt(filters.tuitionMax)) {
       return false;
     }
     
-    // Scholarship filter
     if (filters.scholarshipAvailable && !program.scholarship_available) {
       return false;
     }
     
-    // Internship filter
     if (filters.internshipOpportunities && !program.internship_opportunities) {
       return false;
     }
@@ -346,7 +334,6 @@ export default function Programs() {
       </div>
       
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* Filters - Desktop */}
         <div className="hidden lg:block w-64 flex-shrink-0">
           <Card>
             <CardHeader>
@@ -427,7 +414,7 @@ export default function Programs() {
                     <SelectItem value="">Any duration</SelectItem>
                     <SelectItem value="short">Short (≤ 12 months)</SelectItem>
                     <SelectItem value="medium">Medium (1-2 years)</SelectItem>
-                    <SelectItem value="long">Long (> 2 years)</SelectItem>
+                    <SelectItem value="long">Long ({'>'}2 years)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -493,9 +480,7 @@ export default function Programs() {
           </Card>
         </div>
         
-        {/* Main Content */}
         <div className="flex-1">
-          {/* Search and Filter Bar */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -507,7 +492,6 @@ export default function Programs() {
               />
             </div>
             
-            {/* Mobile Filter Button */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" className="lg:hidden">
@@ -596,7 +580,7 @@ export default function Programs() {
                         <SelectItem value="">Any duration</SelectItem>
                         <SelectItem value="short">Short (≤ 12 months)</SelectItem>
                         <SelectItem value="medium">Medium (1-2 years)</SelectItem>
-                        <SelectItem value="long">Long (> 2 years)</SelectItem>
+                        <SelectItem value="long">Long ({'>'}2 years)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -676,125 +660,113 @@ export default function Programs() {
             </Select>
           </div>
           
-          {/* Active Filters */}
-          {(filters.studyLevel.length > 0 || 
-            filters.country.length > 0 || 
-            filters.language.length > 0 || 
-            filters.duration || 
-            filters.tuitionMin || 
-            filters.tuitionMax || 
-            filters.scholarshipAvailable || 
-            filters.internshipOpportunities) && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {filters.studyLevel.map(level => (
-                <Badge key={level} variant="secondary" className="px-2 py-1">
-                  {level}
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleMultiSelectChange('studyLevel', level)}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
-              
-              {filters.country.map(country => (
-                <Badge key={country} variant="secondary" className="px-2 py-1">
-                  {country}
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleMultiSelectChange('country', country)}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
-              
-              {filters.language.map(language => (
-                <Badge key={language} variant="secondary" className="px-2 py-1">
-                  {language}
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleMultiSelectChange('language', language)}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              ))}
-              
-              {filters.duration && (
-                <Badge variant="secondary" className="px-2 py-1">
-                  Duration: {filters.duration === 'short' ? '≤ 12 months' : 
-                             filters.duration === 'medium' ? '1-2 years' : '> 2 years'}
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleFilterChange('duration', '')}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              
-              {filters.tuitionMin && (
-                <Badge variant="secondary" className="px-2 py-1">
-                  Min: ${filters.tuitionMin}
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleFilterChange('tuitionMin', '')}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              
-              {filters.tuitionMax && (
-                <Badge variant="secondary" className="px-2 py-1">
-                  Max: ${filters.tuitionMax}
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleFilterChange('tuitionMax', '')}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              
-              {filters.scholarshipAvailable && (
-                <Badge variant="secondary" className="px-2 py-1">
-                  Scholarship Available
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleCheckboxChange('scholarshipAvailable')}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              
-              {filters.internshipOpportunities && (
-                <Badge variant="secondary" className="px-2 py-1">
-                  Internship Opportunities
-                  <button 
-                    className="ml-1 hover:text-destructive" 
-                    onClick={() => handleCheckboxChange('internshipOpportunities')}
-                  >
-                    ×
-                  </button>
-                </Badge>
-              )}
-              
-              <Button variant="ghost" size="sm" onClick={resetFilters}>
-                Clear All
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {filters.studyLevel.map(level => (
+              <Badge key={level} variant="secondary" className="px-2 py-1">
+                {level}
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleMultiSelectChange('studyLevel', level)}
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+            
+            {filters.country.map(country => (
+              <Badge key={country} variant="secondary" className="px-2 py-1">
+                {country}
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleMultiSelectChange('country', country)}
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+            
+            {filters.language.map(language => (
+              <Badge key={language} variant="secondary" className="px-2 py-1">
+                {language}
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleMultiSelectChange('language', language)}
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+            
+            {filters.duration && (
+              <Badge variant="secondary" className="px-2 py-1">
+                Duration: {filters.duration === 'short' ? '≤ 12 months' : 
+                           filters.duration === 'medium' ? '1-2 years' : '> 2 years'}
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleFilterChange('duration', '')}
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            
+            {filters.tuitionMin && (
+              <Badge variant="secondary" className="px-2 py-1">
+                Min: ${filters.tuitionMin}
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleFilterChange('tuitionMin', '')}
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            
+            {filters.tuitionMax && (
+              <Badge variant="secondary" className="px-2 py-1">
+                Max: ${filters.tuitionMax}
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleFilterChange('tuitionMax', '')}
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            
+            {filters.scholarshipAvailable && (
+              <Badge variant="secondary" className="px-2 py-1">
+                Scholarship Available
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleCheckboxChange('scholarshipAvailable')}
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            
+            {filters.internshipOpportunities && (
+              <Badge variant="secondary" className="px-2 py-1">
+                Internship Opportunities
+                <button 
+                  className="ml-1 hover:text-destructive" 
+                  onClick={() => handleCheckboxChange('internshipOpportunities')}
+                >
+                  ×
+                </button>
+              </Badge>
+            )}
+            
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
+              Clear All
+            </Button>
+          </div>
           
-          {/* Results Count */}
           <div className="text-sm text-muted-foreground mb-4">
             Showing {filteredPrograms.length} of {programs.length} programs
           </div>
           
-          {/* Program Cards */}
           {filteredPrograms.length === 0 ? (
             <Card className="p-8 text-center">
               <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -1015,7 +987,6 @@ export default function Programs() {
             </div>
           )}
           
-          {/* Pagination */}
           <div className="flex justify-center mt-8">
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" disabled>
@@ -1038,7 +1009,6 @@ export default function Programs() {
         </div>
       </div>
       
-      {/* Remove from favorites dialog */}
       <AlertDialog open={showFavoritesDialog} onOpenChange={setShowFavoritesDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
