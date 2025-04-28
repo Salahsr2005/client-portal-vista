@@ -149,7 +149,7 @@ export const useCalendarStore = create<State & Actions>((set, get) => ({
 
   addEvent: async (event) => {
     try {
-      // Create a new appointment slot
+      // Create a new appointment slot with the required duration field
       const { data: slotData, error: slotError } = await supabase
         .from('appointment_slots')
         .insert({
@@ -161,10 +161,9 @@ export const useCalendarStore = create<State & Actions>((set, get) => ({
           service_id: event.serviceId,
           status: 'Available',
           max_bookings: event.maxBookings || 1,
-          duration: event.duration || 60 // Add required duration field
+          duration: event.duration || 60 // Required duration field
         })
-        .select()
-        .single();
+        .select();
         
       if (slotError) throw slotError;
       
@@ -225,7 +224,7 @@ export const useCalendarStore = create<State & Actions>((set, get) => ({
       
       if (error) throw error;
       
-      // For now, just return the data (we'll need to add an is_favorite field to the appointments table if needed)
+      // For now, just return the data
       return { 
         appointment_id: data.appointment_id,
         favorite_toggled: true
@@ -240,7 +239,8 @@ export const useCalendarStore = create<State & Actions>((set, get) => ({
     try {
       // Make sure status matches one of the allowed appointment status types
       const validStatus = ['Completed', 'Cancelled', 'Available', 'Reserved', 'No-Show'] as const;
-      const normalizedStatus = validStatus.find(s => s.toLowerCase() === status.toLowerCase()) || 'Reserved';
+      const normalizedStatus: typeof validStatus[number] = 
+        validStatus.find(s => s.toLowerCase() === status.toLowerCase()) as typeof validStatus[number] || 'Reserved';
       
       const { data, error } = await supabase
         .from('appointments')

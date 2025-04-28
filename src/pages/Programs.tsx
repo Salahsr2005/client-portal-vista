@@ -228,6 +228,19 @@ export default function Programs() {
     return count > 0 ? count : "";
   };
 
+  const renderHighlightBadge = (value: string | number) => {
+    // Convert to number if it's not already
+    const numericValue = typeof value === 'string' ? parseInt(value) : value;
+    if (isNaN(numericValue)) return null;
+
+    if (numericValue > 90) {
+      return <Badge className="bg-green-100 text-green-800">Excellent</Badge>;
+    } else if (numericValue > 70) {
+      return <Badge className="bg-blue-100 text-blue-700">Good</Badge>;
+    }
+    return null;
+  };
+
   return (
     <div className="container max-w-6xl py-8">
       <div className="mb-8">

@@ -81,9 +81,9 @@ export const useAppointments = () => {
             status: appointment.status || "Scheduled",
             notes: notes || appointment.special_requests || "",
             time: appointmentTime,
-            advisor,
-            mode,
-            location
+            advisor, // Include advisor field
+            mode,    // Include mode field
+            location // Include location field
           };
         })
       );

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +29,7 @@ import {
   Camera,
   CheckCircle,
 } from "lucide-react";
+import { DocumentUpload } from "@/components/profile/DocumentUpload";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -423,21 +423,7 @@ const Profile = () => {
         
         {/* Documents Tab */}
         <TabsContent value="documents">
-          <Card>
-            <CardHeader>
-              <CardTitle>Documents</CardTitle>
-              <CardDescription>Manage your uploaded documents</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-3" />
-                <p className="mb-2">No documents uploaded yet</p>
-                <Button variant="outline" size="sm">
-                  Upload Documents
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <DocumentUpload />
         </TabsContent>
       </Tabs>
     </div>

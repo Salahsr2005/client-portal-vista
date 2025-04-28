@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO, isAfter, isBefore, startOfDay } from "date-fns";
@@ -51,6 +50,7 @@ import {
   Clock8
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { BookAppointmentForm } from "@/components/appointments/BookAppointmentForm";
 
 interface Service {
   id: string;
@@ -186,7 +186,7 @@ export default function Appointments() {
       const { data, error } = await supabase.from("appointments").insert({
         client_id: user.id,
         slot_id: selectedSlot.slot_id,
-        reason: "Consultation", // Adding the required reason field
+        reason: "Consultation",
         special_requests: specialRequests,
         status: "Reserved"
       });
@@ -259,7 +259,6 @@ export default function Appointments() {
     }
   };
 
-  // Status badge colors and icons
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case "completed":
@@ -290,69 +289,17 @@ export default function Appointments() {
     );
   }
 
-  // Mock appointmentsData for UI development
-  const mockUpcomingAppointments: Appointment[] = [
-    {
-      id: "1",
-      service: "Program Consultation",
-      date: "2023-11-01",
-      time: "10:00",
-      status: "Reserved",
-      advisor: "Sarah Johnson",
-      location: "Online",
-      mode: "Video Call",
-      notes: "Initial consultation for study abroad programs"
-    },
-    {
-      id: "2",
-      service: "Visa Application Review",
-      date: "2023-11-15",
-      time: "14:30",
-      status: "Reserved",
-      advisor: "Mohammed Ali",
-      location: "Main Office",
-      mode: "In Person",
-      notes: "Bring all required documents"
-    }
-  ];
-
-  const mockPastAppointments: Appointment[] = [
-    {
-      id: "3",
-      service: "Document Verification",
-      date: "2023-10-05",
-      time: "11:00",
-      status: "Completed",
-      advisor: "Fatima Zahra",
-      location: "Branch Office",
-      mode: "In Person",
-      notes: "All documents verified successfully"
-    },
-    {
-      id: "4",
-      service: "Follow-up Consultation",
-      date: "2023-09-20",
-      time: "16:00",
-      status: "Cancelled",
-      advisor: "Youssef Benzahra",
-      location: "Online",
-      mode: "Video Call",
-      notes: "Cancelled due to scheduling conflict"
-    }
-  ];
-
   return (
     <div className="container max-w-6xl py-8">
       <h1 className="text-3xl font-bold mb-6">Appointments</h1>
-
+      
       <Tabs defaultValue="upcoming">
         <TabsList className="mb-6">
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="past">Past</TabsTrigger>
-          <TabsTrigger value="book">Book New</TabsTrigger>
+          <TabsTrigger value="upcoming">Upcoming Appointments</TabsTrigger>
+          <TabsTrigger value="book">Book Appointment</TabsTrigger>
+          <TabsTrigger value="history">Appointment History</TabsTrigger>
         </TabsList>
         
-        {/* Upcoming Appointments Tab */}
         <TabsContent value="upcoming">
           {appointmentsLoading ? (
             <div className="flex justify-center my-12">
@@ -455,8 +402,11 @@ export default function Appointments() {
           )}
         </TabsContent>
         
-        {/* Past Appointments Tab */}
-        <TabsContent value="past">
+        <TabsContent value="book">
+          <BookAppointmentForm />
+        </TabsContent>
+        
+        <TabsContent value="history">
           {appointmentsLoading ? (
             <div className="flex justify-center my-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -543,133 +493,6 @@ export default function Appointments() {
               </p>
             </div>
           )}
-        </TabsContent>
-        
-        {/* Book New Appointment Tab */}
-        <TabsContent value="book" id="book-tab">
-          <Card>
-            <CardHeader>
-              <CardTitle>Book a New Appointment</CardTitle>
-              <CardDescription>
-                Select a date and choose from available time slots
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Select Date</h3>
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    className="rounded-md border"
-                    disabled={(date) => 
-                      isBefore(date, startOfDay(new Date())) ||
-                      isAfter(date, new Date(new Date().setMonth(new Date().getMonth() + 2)))
-                    }
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium">Available Slots</h3>
-                    <div className="flex items-center gap-2">
-                      <Select value={selectedService} onValueChange={setSelectedService}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="All Services" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="">All Services</SelectItem>
-                          {services.map(service => (
-                            <SelectItem key={service.id} value={service.id}>
-                              {service.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      
-                      <Button variant="outline" size="icon">
-                        <Filter className="h-4 w-4" />
-                      </Button>
-                      
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-8 w-[180px]" placeholder="Search..." />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                    {loading ? (
-                      <div className="flex justify-center my-12">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-                      </div>
-                    ) : availableSlots.length > 0 ? (
-                      availableSlots
-                        .filter(slot => !selectedService || slot.service_id === selectedService)
-                        .map(slot => {
-                          const startTime = new Date(slot.date_time);
-                          const endTime = new Date(slot.end_time);
-                          const serviceName = slot.services?.name || "Consultation";
-                          const duration = slot.duration || 60;
-                          
-                          return (
-                            <Card key={slot.slot_id} className="overflow-hidden">
-                              <div className="flex flex-col sm:flex-row">
-                                <div className="p-4 sm:w-3/4">
-                                  <h4 className="font-medium mb-2">{serviceName}</h4>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <div className="flex items-center text-sm">
-                                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      <span>
-                                        {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center text-sm">
-                                      <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      <span>
-                                        {slot.admin_users?.first_name} {slot.admin_users?.last_name}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center text-sm">
-                                      {slot.mode === "Virtual" ? (
-                                        <Video className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      ) : (
-                                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      )}
-                                      <span>{slot.mode || "In-Person"}</span>
-                                    </div>
-                                    <div className="flex items-center text-sm">
-                                      <Clock8 className="h-4 w-4 mr-2 text-muted-foreground" />
-                                      <span>{duration} minutes</span>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="bg-muted p-4 sm:w-1/4 flex items-center justify-center">
-                                  <Button onClick={() => handleBookSlot(slot)}>
-                                    Book Slot
-                                  </Button>
-                                </div>
-                              </div>
-                            </Card>
-                          );
-                        })
-                    ) : (
-                      <div className="text-center py-8">
-                        <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                        <h4 className="text-lg font-medium">No Available Slots</h4>
-                        <p className="text-muted-foreground mt-1">
-                          No appointments available on this date. Please try another day.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
       

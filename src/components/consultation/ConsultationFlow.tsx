@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,11 +26,9 @@ export function ConsultationFlow() {
   const { toast } = useToast();
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [existingConsultation, setExistingConsultation] = useState(null);
+  const [existingConsultation, setExistingConsultation] = useState<any>(null);
   const [results, setResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
-  
-  const ConsultationQuestions = studyAbroadQuestions;
   
   const [formData, setFormData] = useState({
     study_level: "",
@@ -98,7 +97,7 @@ export function ConsultationFlow() {
   };
 
   const nextStep = () => {
-    if (activeStep < ConsultationQuestions.length) {
+    if (activeStep < studyAbroadQuestions.length) {
       setActiveStep(prev => prev + 1);
     }
   };
@@ -123,8 +122,11 @@ export function ConsultationFlow() {
     setIsLoading(true);
     
     try {
+      // Cast the study_level to the proper type required by the database
+      const typedStudyLevel = formData.study_level as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
+      
       const { data: matchResults, error: matchError } = await supabase.rpc('match_programs', {
-        p_study_level: formData.study_level as any,
+        p_study_level: typedStudyLevel,
         p_field: formData.field_preference,
         p_country: formData.destination_preference,
         p_language: formData.language_preference,
@@ -173,7 +175,7 @@ export function ConsultationFlow() {
       
       const consultationData = {
         user_id: user.id,
-        study_level: formData.study_level as any,
+        study_level: typedStudyLevel,
         field_preference: formData.field_preference,
         destination_preference: formData.destination_preference,
         language_preference: formData.language_preference,
@@ -225,7 +227,7 @@ export function ConsultationFlow() {
   };
   
   const renderCurrentQuestion = () => {
-    if (activeStep >= ConsultationQuestions.length) {
+    if (activeStep >= studyAbroadQuestions.length) {
       return (
         <Card>
           <CardHeader>
@@ -310,7 +312,7 @@ export function ConsultationFlow() {
       );
     }
     
-    const currentQuestion = ConsultationQuestions[activeStep];
+    const currentQuestion = studyAbroadQuestions[activeStep];
     
     return (
       <Card>
@@ -320,7 +322,7 @@ export function ConsultationFlow() {
         <CardContent>
           {currentQuestion.type === "radio" && (
             <RadioGroup 
-              value={formData[currentQuestion.field] || ""} 
+              value={formData[currentQuestion.field as keyof typeof formData]?.toString() || ""} 
               onValueChange={(value) => handleChange(currentQuestion.field, value)}
               className="space-y-3"
             >
@@ -335,7 +337,7 @@ export function ConsultationFlow() {
           
           {currentQuestion.type === "select" && (
             <Select 
-              value={formData[currentQuestion.field] || ""} 
+              value={formData[currentQuestion.field as keyof typeof formData]?.toString() || ""} 
               onValueChange={(value) => handleChange(currentQuestion.field, value)}
             >
               <SelectTrigger>
@@ -354,13 +356,13 @@ export function ConsultationFlow() {
           {currentQuestion.type === "slider" && (
             <div className="space-y-6 py-4">
               <div className="text-center mb-2">
-                <span className="text-2xl font-bold">${formData[currentQuestion.field].toLocaleString()}</span>
+                <span className="text-2xl font-bold">${formData[currentQuestion.field as keyof typeof formData].toLocaleString()}</span>
               </div>
               <Slider
                 min={currentQuestion.min || 0}
                 max={currentQuestion.max || 100000}
                 step={currentQuestion.step || 1000}
-                value={[formData[currentQuestion.field]]}
+                value={[formData[currentQuestion.field as keyof typeof formData] as number]}
                 onValueChange={(value) => handleChange(currentQuestion.field, value[0])}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
@@ -376,7 +378,7 @@ export function ConsultationFlow() {
                 <div key={option.field} className="flex items-center space-x-2">
                   <Checkbox 
                     id={option.field}
-                    checked={formData[option.field] || false}
+                    checked={formData[option.field as keyof typeof formData] as boolean || false}
                     onCheckedChange={() => handleCheckboxChange(option.field)}
                   />
                   <Label htmlFor={option.field}>{option.label}</Label>
@@ -388,7 +390,7 @@ export function ConsultationFlow() {
           {currentQuestion.type === "textarea" && (
             <Textarea 
               placeholder={currentQuestion.placeholder || "Enter additional information..."}
-              value={formData[currentQuestion.field] || ""}
+              value={formData[currentQuestion.field as keyof typeof formData] as string || ""}
               onChange={(e) => handleChange(currentQuestion.field, e.target.value)}
               className="min-h-[100px]"
             />
@@ -399,7 +401,7 @@ export function ConsultationFlow() {
             Back
           </Button>
           <Button onClick={nextStep}>
-            {activeStep === ConsultationQuestions.length - 1 ? "Review" : "Next"}
+            {activeStep === studyAbroadQuestions.length - 1 ? "Review" : "Next"}
           </Button>
         </CardFooter>
       </Card>
@@ -580,7 +582,7 @@ export function ConsultationFlow() {
           <div className="w-full bg-muted h-2 rounded-full mb-8">
             <div 
               className="h-2 bg-primary rounded-full transition-all"
-              style={{ width: `${(activeStep / ConsultationQuestions.length) * 100}%` }}
+              style={{ width: `${(activeStep / studyAbroadQuestions.length) * 100}%` }}
             ></div>
           </div>
           
