@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,8 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, AlertTriangle, School, Search, Building, MapPin, Languages, CircleDollarSign, Clock, Star } from "lucide-react";
 
-// Import the ConsultationQuestions
-import { ConsultationQuestions } from "./ConsultationQuestions";
+import { studyAbroadQuestions } from "./ConsultationQuestions";
 
 export function ConsultationFlow() {
   const navigate = useNavigate();
@@ -28,10 +26,11 @@ export function ConsultationFlow() {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [existingConsultation, setExistingConsultation] = useState(null);
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
   
-  // Form data state
+  const ConsultationQuestions = studyAbroadQuestions;
+  
   const [formData, setFormData] = useState({
     study_level: "",
     field_preference: "",
@@ -45,7 +44,6 @@ export function ConsultationFlow() {
     notes: ""
   });
   
-  // Check for existing consultation on component mount
   useEffect(() => {
     const checkExistingConsultation = async () => {
       if (!user) return;
@@ -66,12 +64,10 @@ export function ConsultationFlow() {
         if (data && data.length > 0) {
           setExistingConsultation(data[0]);
           
-          // If we have recommendations, load them
           if (data[0].recommended_programs) {
-            setResults(data[0].recommended_programs);
+            setResults(data[0].recommended_programs as any[]);
           }
           
-          // Pre-populate form with existing data
           setFormData({
             study_level: data[0].study_level || "",
             field_preference: data[0].field_preference || "",
@@ -93,11 +89,11 @@ export function ConsultationFlow() {
     checkExistingConsultation();
   }, [user]);
   
-  const handleChange = (field, value) => {
+  const handleChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
   
-  const handleCheckboxChange = (field) => {
+  const handleCheckboxChange = (field: string) => {
     setFormData(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
@@ -127,9 +123,8 @@ export function ConsultationFlow() {
     setIsLoading(true);
     
     try {
-      // Call the match_programs function
       const { data: matchResults, error: matchError } = await supabase.rpc('match_programs', {
-        p_study_level: formData.study_level,
+        p_study_level: formData.study_level as any,
         p_field: formData.field_preference,
         p_country: formData.destination_preference,
         p_language: formData.language_preference,
@@ -142,8 +137,7 @@ export function ConsultationFlow() {
       
       if (matchError) throw matchError;
       
-      // Fetch the matching programs
-      const programIds = matchResults.map(result => result.program_id);
+      const programIds = matchResults.map((result: any) => result.program_id);
       
       if (programIds.length === 0) {
         setResults([]);
@@ -159,9 +153,8 @@ export function ConsultationFlow() {
       
       if (programsError) throw programsError;
       
-      // Combine the match scores with program details
-      const combinedResults = programs.map(program => {
-        const matchInfo = matchResults.find(r => r.program_id === program.id);
+      const combinedResults = programs.map((program: any) => {
+        const matchInfo = matchResults.find((r: any) => r.program_id === program.id);
         return {
           ...program,
           match_score: matchInfo?.match_score || 0,
@@ -176,14 +169,21 @@ export function ConsultationFlow() {
         };
       });
       
-      // Sort by match score
-      combinedResults.sort((a, b) => b.match_score - a.match_score);
+      combinedResults.sort((a: any, b: any) => b.match_score - a.match_score);
       
-      // Store results in database
       const consultationData = {
         user_id: user.id,
-        ...formData,
-        recommended_programs: combinedResults
+        study_level: formData.study_level as any,
+        field_preference: formData.field_preference,
+        destination_preference: formData.destination_preference,
+        language_preference: formData.language_preference,
+        duration_preference: formData.duration_preference,
+        budget: formData.budget,
+        scholarship_required: formData.scholarship_required,
+        religious_facilities_required: formData.religious_facilities_required,
+        halal_food_required: formData.halal_food_required,
+        recommended_programs: combinedResults,
+        notes: formData.notes
       };
       
       if (existingConsultation) {
@@ -216,11 +216,11 @@ export function ConsultationFlow() {
     setActiveStep(0);
   };
   
-  const handleViewProgram = (programId) => {
+  const handleViewProgram = (programId: string) => {
     navigate(`/programs/${programId}`);
   };
   
-  const handleApplyNow = (programId) => {
+  const handleApplyNow = (programId: string) => {
     navigate(`/applications/new?program=${programId}`);
   };
   
@@ -315,7 +315,7 @@ export function ConsultationFlow() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{currentQuestion.question}</CardTitle>
+          <CardTitle>{currentQuestion.title}</CardTitle>
         </CardHeader>
         <CardContent>
           {currentQuestion.type === "radio" && (
@@ -465,7 +465,6 @@ export function ConsultationFlow() {
                 <Card key={program.id} className="border-2 hover:border-primary transition-colors cursor-pointer">
                   <CardContent className="p-4">
                     <div className="flex flex-col md:flex-row gap-4">
-                      {/* Program thumbnail/image */}
                       <div className="h-32 w-32 md:w-48 md:h-32 bg-muted rounded-md flex-shrink-0 overflow-hidden">
                         <div 
                           className="w-full h-full bg-cover bg-center"
@@ -477,7 +476,6 @@ export function ConsultationFlow() {
                         ></div>
                       </div>
                       
-                      {/* Program details */}
                       <div className="flex-1">
                         <div className="flex items-start justify-between">
                           <div>

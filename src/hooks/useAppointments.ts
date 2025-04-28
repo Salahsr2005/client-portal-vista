@@ -32,27 +32,26 @@ export const useAppointments = () => {
           let appointmentTime = "TBD"; 
           let appointmentDate = "TBD";
           let notes = "";
+          let advisor = "Assigned Advisor";
+          let mode = "In Person";
+          let location = "Office";
           
           // Get slot details
           if (appointment.slot_id) {
             const { data: slotData, error: slotError } = await supabase
               .from("appointment_slots")
-              .select("*")
+              .select(`
+                *,
+                admin_users (first_name, last_name, photo_url),
+                services (name, duration)
+              `)
               .eq("slot_id", appointment.slot_id)
               .maybeSingle();
               
             if (!slotError && slotData) {
               // If there's a service ID, try to get its name
-              if (slotData.service_id) {
-                const { data: serviceData, error: serviceError } = await supabase
-                  .from("services")
-                  .select("name")
-                  .eq("service_id", slotData.service_id)
-                  .maybeSingle();
-                
-                if (!serviceError && serviceData) {
-                  serviceName = serviceData.name;
-                }
+              if (slotData.service_id && slotData.services) {
+                serviceName = slotData.services.name;
               }
               
               // Get time details from slot
@@ -63,6 +62,15 @@ export const useAppointments = () => {
               }
               
               notes = slotData.notes || "";
+              
+              // Add advisor info
+              if (slotData.admin_users) {
+                advisor = `${slotData.admin_users.first_name} ${slotData.admin_users.last_name}`;
+              }
+              
+              // Add mode and location
+              mode = slotData.mode || "In Person";
+              location = slotData.location || "Office";
             }
           }
           
@@ -73,6 +81,9 @@ export const useAppointments = () => {
             status: appointment.status || "Scheduled",
             notes: notes || appointment.special_requests || "",
             time: appointmentTime,
+            advisor,
+            mode,
+            location
           };
         })
       );

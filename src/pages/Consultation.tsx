@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import ConsultationFlow from '@/components/consultation/ConsultationFlow';
+import { ConsultationFlow } from '@/components/consultation/ConsultationFlow';
 
 export default function Consultation() {
   useEffect(() => {

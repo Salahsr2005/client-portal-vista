@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -48,7 +47,6 @@ import {
   FileText,
   CircleDollarSign,
   AlertTriangle,
-  Bank,
   Building,
   BanknoteIcon
 } from "lucide-react";
@@ -98,7 +96,6 @@ export default function Payments() {
   const { data: payments = [], isLoading: isLoadingPayments } = usePayments();
   const { data: pendingApplications = [], isLoading: isLoadingApplications } = usePendingApplications();
   
-  // Calculate total amounts
   const totalPaid = payments
     .filter(p => p.status.toLowerCase() === "completed")
     .reduce((sum, payment) => sum + parseFloat(payment.amount.replace('$', '')), 0);
@@ -107,7 +104,6 @@ export default function Payments() {
     .filter(p => p.status.toLowerCase() === "pending")
     .reduce((sum, payment) => sum + parseFloat(payment.amount.replace('$', '')), 0);
   
-  // Filter payments based on search term and filter
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          payment.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,7 +125,6 @@ export default function Payments() {
       description: "Your payment is being processed...",
     });
     
-    // Simulate payment processing
     setTimeout(() => {
       toast({
         title: "Payment Successful",
@@ -207,7 +202,6 @@ export default function Payments() {
         </Card>
       </div>
 
-      {/* Pending Applications Section */}
       {pendingApplications.length > 0 && (
         <Card className="mb-8">
           <CardHeader>
@@ -255,7 +249,6 @@ export default function Payments() {
         </Card>
       )}
       
-      {/* Payment History */}
       <Card>
         <CardHeader>
           <CardTitle>Payment History</CardTitle>
@@ -419,7 +412,6 @@ export default function Payments() {
         </CardFooter>
       </Card>
       
-      {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
