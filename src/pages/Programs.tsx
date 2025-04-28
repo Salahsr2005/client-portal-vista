@@ -82,28 +82,39 @@ export default function Programs() {
       case "name-desc":
         return programsCopy.sort((a, b) => b.name.localeCompare(a.name));
       case "tuition-asc":
-        return programsCopy.sort((a, b) => Number(a.tuition_min) - Number(b.tuition_min));
+        return programsCopy.sort((a, b) => compareValues(a.tuition_min, b.tuition_min));
       case "tuition-desc":
-        return programsCopy.sort((a, b) => Number(b.tuition_min) - Number(a.tuition_min));
+        return programsCopy.sort((a, b) => compareValues(b.tuition_min, a.tuition_min));
       case "duration-asc":
-        return programsCopy.sort((a, b) => Number(a.duration_months) - Number(b.duration_months));
+        return programsCopy.sort((a, b) => compareValues(a.duration_months, b.duration_months));
       case "duration-desc":
-        return programsCopy.sort((a, b) => Number(b.duration_months) - Number(a.duration_months));
+        return programsCopy.sort((a, b) => compareValues(b.duration_months, a.duration_months));
       case "ranking-asc":
         return programsCopy.sort((a, b) => {
           if (!a.ranking) return 1;
           if (!b.ranking) return -1;
-          return Number(a.ranking) - Number(b.ranking);
+          return compareValues(a.ranking, b.ranking);
         });
       case "ranking-desc":
         return programsCopy.sort((a, b) => {
           if (!a.ranking) return 1;
           if (!b.ranking) return -1;
-          return Number(b.ranking) - Number(a.ranking);
+          return compareValues(b.ranking, a.ranking);
         });
       default:
         return programsCopy;
     }
+  };
+
+  const compareValues = (a: string | number, b: string | number): number => {
+    if (typeof a === 'number' && typeof b === 'number') {
+      return a - b;
+    }
+    
+    const strA = String(a);
+    const strB = String(b);
+    
+    return strA.localeCompare(strB);
   };
 
   // Extract unique values for filter dropdowns

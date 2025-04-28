@@ -161,7 +161,7 @@ export const useCalendarStore = create<State & Actions>((set, get) => ({
           service_id: event.serviceId,
           status: 'Available',
           max_bookings: event.maxBookings || 1,
-          duration: event.duration || 60 // Required duration field
+          duration: event.duration || 60 // Adding default duration if not provided
         })
         .select();
         
@@ -215,18 +215,13 @@ export const useCalendarStore = create<State & Actions>((set, get) => ({
 
   toggleFavorite: async (taskId) => {
     try {
-      // Since there's no is_favorite field in appointments, let's handle this differently
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('appointment_id')
-        .eq('appointment_id', taskId)
-        .single();
+      // Since there's no is_favorite field in appointments table,
+      // we'll just return the task ID to acknowledge the action
+      // without actually changing database state
+      console.log(`Toggle favorite for task ${taskId} (not implemented in database)`);
       
-      if (error) throw error;
-      
-      // For now, just return the data
-      return { 
-        appointment_id: data.appointment_id,
+      return {
+        appointment_id: taskId,
         favorite_toggled: true
       };
     } catch (error) {
@@ -237,10 +232,17 @@ export const useCalendarStore = create<State & Actions>((set, get) => ({
   
   updateTaskStatus: async (taskId, status) => {
     try {
-      // Make sure status matches one of the allowed appointment status types
-      const validStatus = ['Completed', 'Cancelled', 'Available', 'Reserved', 'No-Show'] as const;
-      const normalizedStatus: typeof validStatus[number] = 
-        validStatus.find(s => s.toLowerCase() === status.toLowerCase()) as typeof validStatus[number] || 'Reserved';
+      // Create a properly typed status variable
+      const validStatuses = ['Completed', 'Cancelled', 'Available', 'Reserved', 'No-Show'] as const;
+      type AppointmentStatus = typeof validStatuses[number];
+      
+      // Find the matching status that matches case-insensitively
+      const matchedStatus = validStatuses.find(
+        s => s.toLowerCase() === status.toLowerCase()
+      );
+      
+      // Use the matched status or default to 'Reserved'
+      const normalizedStatus: AppointmentStatus = matchedStatus || 'Reserved';
       
       const { data, error } = await supabase
         .from('appointments')

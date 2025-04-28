@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { FileUpload, Loader2, Trash2, CheckCircle2, XCircle } from 'lucide-react';
+import { Upload, Loader2, Trash2, CheckCircle2, XCircle, File } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 const documentTypes = [
@@ -65,7 +65,17 @@ export function DocumentUpload() {
         throw error;
       }
       
-      setDocuments(data || []);
+      // Transform data to match our Document interface
+      const transformedData = (data || []).map(doc => ({
+        id: doc.document_id,
+        name: doc.document_name,
+        type: doc.document_type,
+        status: doc.status,
+        uploaded_at: doc.upload_date,
+        file_path: doc.file_path
+      }));
+      
+      setDocuments(transformedData);
       setFetched(true);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -108,7 +118,7 @@ export function DocumentUpload() {
       // 1. Upload file to Storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `documents/${user.id}/${fileName}`;
+      const filePath = `${user.id}/${fileName}`;
       
       // Simulate upload progress
       const progressInterval = setInterval(() => {
@@ -150,9 +160,18 @@ export function DocumentUpload() {
         throw error;
       }
       
-      // 3. Update local state
+      // 3. Update local state with transformed data that matches our Document interface
       if (data && data.length > 0) {
-        setDocuments(prev => [data[0], ...prev]);
+        const newDoc: Document = {
+          id: data[0].document_id,
+          name: data[0].document_name,
+          type: data[0].document_type,
+          status: data[0].status,
+          uploaded_at: data[0].upload_date,
+          file_path: data[0].file_path
+        };
+        
+        setDocuments(prev => [newDoc, ...prev]);
       }
       
       // Reset form
@@ -340,7 +359,7 @@ export function DocumentUpload() {
                 </>
               ) : (
                 <>
-                  <FileUpload className="mr-2 h-4 w-4" />
+                  <Upload className="mr-2 h-4 w-4" />
                   Upload Document
                 </>
               )}
@@ -357,7 +376,7 @@ export function DocumentUpload() {
               </div>
             ) : documents.length === 0 ? (
               <div className="text-center py-8 border rounded-lg">
-                <FileUpload className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+                <File className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">No documents uploaded yet</p>
               </div>
             ) : (
@@ -368,7 +387,7 @@ export function DocumentUpload() {
                       <div className="flex items-center gap-3">
                         <div className="flex-none">
                           <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                            <FileUpload className="h-5 w-5 text-muted-foreground" />
+                            <File className="h-5 w-5 text-muted-foreground" />
                           </div>
                         </div>
                         

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -122,8 +121,8 @@ export function ConsultationFlow() {
     setIsLoading(true);
     
     try {
-      // Cast the study_level to the proper type required by the database
-      const typedStudyLevel = formData.study_level as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
+      type StudyLevel = "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
+      const typedStudyLevel = formData.study_level as StudyLevel;
       
       const { data: matchResults, error: matchError } = await supabase.rpc('match_programs', {
         p_study_level: typedStudyLevel,
