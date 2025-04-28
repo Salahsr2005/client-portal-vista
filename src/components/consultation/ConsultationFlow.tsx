@@ -1,6 +1,7 @@
-
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import { 
   Button,
   Card,
@@ -18,35 +19,27 @@ import {
   SelectValue,
   Slider,
   Switch,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
+  Progress,
+  ScrollArea
 } from '@/components/ui';
 import { Badge } from "@/components/ui/badge";
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useNavigate } from 'react-router-dom';
-import { consultationTypes } from './ConsultationTypes';
 import { 
-  BookOpen, 
-  Building, 
-  Check, 
-  ChevronLeft, 
-  ChevronRight, 
-  CircleDollarSign, 
-  Clock, 
-  GraduationCap, 
-  Languages, 
-  ListChecks, 
-  MapPin, 
-  Sparkles, 
-  Star 
+  BookOpen,
+  Building,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  CircleDollarSign,
+  Clock,
+  GraduationCap,
+  Languages,
+  MapPin,
+  Sparkles
 } from 'lucide-react';
+import { consultationTypes } from './ConsultationTypes';
 import { usePrograms } from '@/hooks/usePrograms';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 // Step flow for the consultation
 const STEPS = {
@@ -57,13 +50,9 @@ const STEPS = {
   RESULTS: 4,
 };
 
-// Define study levels
+// Define study levels and other constants
 const STUDY_LEVELS = ['Bachelor', 'Master', 'PhD', 'Certificate', 'Diploma'];
-
-// Define languages
 const LANGUAGES = ['English', 'French', 'Spanish', 'German', 'Arabic', 'Any'];
-
-// Define fields of study
 const FIELDS = [
   'Business & Management',
   'Computer Science & IT',
@@ -76,11 +65,7 @@ const FIELDS = [
   'Law',
   'Any'
 ];
-
-// Define countries
 const COUNTRIES = ['France', 'Spain', 'Germany', 'Italy', 'Belgium', 'Netherlands', 'Portugal', 'Sweden', 'Europe', 'Any'];
-
-// Define durations
 const DURATIONS = [
   { label: 'One semester', value: 'semester' },
   { label: 'One year', value: 'year' },
@@ -148,35 +133,41 @@ const ConsultationFlow = () => {
 
   // Save consultation and get matched programs
   const handleSubmitConsultation = async () => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please sign in to save your consultation",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setIsLoadingResults(true);
     
     try {
       // Calculate matched programs based on preferences
       if (programsData) {
-        // Simulate matching algorithm with scoring system
         const scored = programsData.map(program => {
-          // Calculate match score based on preferences
           let score = 0;
           
-          // Study level match
+          // Study level match (20 points)
           if (program.study_level === selectedStudyLevel) {
             score += 20;
           }
           
-          // Language match
+          // Language match (15 points)
           if (program.program_language === selectedLanguage || selectedLanguage === 'Any') {
             score += 15;
           }
           
-          // Field match
-          if ((program.field_keywords && program.field_keywords.some(k => 
-                k.toLowerCase().includes(selectedField.toLowerCase()))) || 
+          // Field match (15 points)
+          if ((program.field_keywords && program.field_keywords.includes(selectedField)) || 
               selectedField === 'Any') {
             score += 15;
           }
           
-          // Country match
+          // Country match (10 points)
           if (program.country === selectedCountry || 
               (selectedCountry === 'Europe' && 
                ['France', 'Spain', 'Germany', 'Italy', 'Belgium', 'Netherlands', 'Portugal', 'Sweden'].includes(program.country)) || 
@@ -184,20 +175,20 @@ const ConsultationFlow = () => {
             score += 10;
           }
           
-          // Budget match (tuition + living costs for one year)
-          const yearlyRate = (program.tuition_min + (program.living_cost_min * 12));
+          // Budget match (20 points)
+          const yearlyRate = program.tuition_min + (program.living_cost_min * 12);
           if (budget >= yearlyRate) {
             score += 20;
           } else if (budget >= yearlyRate * 0.8) {
             score += 10;
           }
           
-          // Scholarship match
-          if (!scholarshipRequired || (scholarshipRequired && program.scholarship_available)) {
+          // Scholarship match (10 points)
+          if (!scholarshipRequired || program.scholarship_available) {
             score += 10;
           }
           
-          // Cultural needs match
+          // Cultural needs match (10 points)
           if ((!religiousFacilities && !halalFood) || 
               (religiousFacilities && program.religious_facilities) || 
               (halalFood && program.halal_food_availability)) {
@@ -210,46 +201,32 @@ const ConsultationFlow = () => {
           };
         });
         
-        // Sort by match score
         const matched = scored
           .sort((a, b) => b.matchScore - a.matchScore)
-          .slice(0, 5);  // Get top 5 matches
+          .slice(0, 5);
           
         setMatchedPrograms(matched);
       }
       
-      // Save consultation to database if user is logged in
-      if (user) {
-        const fieldKeywords = selectedField.split(' & ').map(f => f.toLowerCase());
+      // Save consultation results
+      const { error } = await supabase
+        .from('consultation_results')
+        .insert({
+          budget,
+          study_level: selectedStudyLevel as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma",
+          language_preference: selectedLanguage,
+          field_preference: selectedField,
+          destination_preference: selectedCountry,
+          duration_preference: selectedDuration,
+          scholarship_required: scholarshipRequired,
+          religious_facilities_required: religiousFacilities,
+          halal_food_required: halalFood,
+          field_keywords: selectedField.split(' & ').map(f => f.toLowerCase()),
+          user_id: user.id
+        });
         
-        const { error } = await supabase
-          .from('consultation_results')
-          .insert({
-            user_id: user.id,
-            study_level: selectedStudyLevel,
-            language_preference: selectedLanguage,
-            field_preference: selectedField,
-            field_keywords: fieldKeywords,
-            destination_preference: selectedCountry,
-            budget: budget,
-            duration_preference: selectedDuration,
-            scholarship_required: scholarshipRequired,
-            religious_facilities_required: religiousFacilities,
-            halal_food_required: halalFood,
-            conversion_status: 'New',
-          });
-          
-        if (error) {
-          console.error('Error saving consultation:', error);
-          toast({
-            title: 'Error saving your consultation',
-            description: 'Please try again later.',
-            variant: 'destructive',
-          });
-        }
-      }
+      if (error) throw error;
       
-      // Move to results step
       handleNext();
     } catch (error) {
       console.error('Error during consultation:', error);
@@ -726,7 +703,6 @@ const ConsultationFlow = () => {
   
   return (
     <div className="space-y-8">
-      {/* Progress bar */}
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span>Getting started</span>
