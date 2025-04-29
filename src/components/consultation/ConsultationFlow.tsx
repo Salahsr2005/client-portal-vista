@@ -17,8 +17,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle, AlertTriangle, School, Search, Building, MapPin, Languages, CircleDollarSign, Clock, Star } from "lucide-react";
 
-import { ConsultationSection } from "./ConsultationTypes";
-
 export function ConsultationFlow() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -313,7 +311,8 @@ export function ConsultationFlow() {
           .insert([consultationData]);
       }
       
-      setResults(combinedResults);
+      // Explicitly set as an array
+      setResults(combinedResults || []);
       setShowResults(true);
     } catch (err) {
       console.error('Error in consultation process:', err);

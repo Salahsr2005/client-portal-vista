@@ -42,12 +42,17 @@ export const useAppointments = () => {
 
       return data.map((appointment) => {
         const slotData = appointment.slot || {};
-        const adminData = slotData.admin || {};
-        const serviceData = slotData.service || {};
+        // Use optional chaining to safely access nested properties
+        const adminData = slotData.admin ? slotData.admin : {};
+        const serviceData = slotData.service ? slotData.service : {};
         
         const dateTimeString = slotData.date_time || new Date().toISOString();
         const formattedDate = format(new Date(dateTimeString), "yyyy-MM-dd");
-        const formattedTime = `${format(new Date(dateTimeString), "h:mm a")} - ${format(new Date(slotData.end_time || dateTimeString), "h:mm a")}`;
+        const formattedTime = `${format(new Date(dateTimeString), "h:mm a")} - ${
+          slotData.end_time 
+            ? format(new Date(slotData.end_time), "h:mm a")
+            : format(new Date(new Date(dateTimeString).getTime() + 60*60*1000), "h:mm a") // Default to 1 hour later
+        }`;
         
         return {
           id: appointment.appointment_id,

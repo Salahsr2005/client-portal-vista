@@ -38,10 +38,37 @@ export default function Programs() {
     internshipOpportunities: false,
   });
   const [expandedProgram, setExpandedProgram] = useState(null);
-  const [favoritePrograms, setFavoritePrograms] = useState([]);
+  const [favoritePrograms, setFavorites] = useState([]);
   const [showFavoritesDialog, setShowFavoritesDialog] = useState(false);
   const [programToRemove, setProgramToRemove] = useState(null);
   
+  // First, let's create a table for favorite programs if it doesn't exist:
+  const createFavoritesTable = async () => {
+    try {
+      // Check if the favorite_programs table exists
+      const { error } = await supabase
+        .from('favorite_programs')
+        .select('*')
+        .limit(1);
+      
+      if (error && error.message.includes('relation "favorite_programs" does not exist')) {
+        // Create the table since it doesn't exist
+        const { error: createError } = await supabase
+          .rpc('create_favorite_programs_table');
+        
+        if (createError) {
+          console.error('Error creating favorites table:', createError);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking favorite programs table:', err);
+    }
+  };
+
+  useEffect(() => {
+    createFavoritesTable();
+  }, []);
+
   useEffect(() => {
     const level = searchParams.get('level');
     const country = searchParams.get('country');
@@ -60,7 +87,7 @@ export default function Programs() {
   useEffect(() => {
     fetchPrograms();
     if (user) {
-      fetchFavorites();
+      loadFavorites();
     }
   }, [user]);
   
@@ -87,59 +114,100 @@ export default function Programs() {
     }
   };
   
-  const fetchFavorites = async () => {
+  const loadFavorites = async () => {
+    if (!user) return;
+    
     try {
+      // First check if the table exists
+      const { error: checkError } = await supabase
+        .from('favorite_programs')
+        .select('*')
+        .limit(1);
+      
+      if (checkError && checkError.message.includes('relation "favorite_programs" does not exist')) {
+        // Create the table
+        await createFavoritesTable();
+        return; // Return as there are no favorites yet
+      }
+      
+      // Now get the favorites
       const { data, error } = await supabase
         .from('favorite_programs')
         .select('program_id')
         .eq('user_id', user.id);
-        
-      if (error) throw error;
       
-      setFavoritePrograms(data.map(fav => fav.program_id));
+      if (error) throw error;
+      if (!data) return;
+      
+      const favoriteIds = data.map(item => item.program_id);
+      setFavorites(favoriteIds);
     } catch (err) {
-      console.error('Error fetching favorites:', err);
+      console.error('Error loading favorites:', err);
     }
   };
   
-  const toggleFavorite = async (programId) => {
+  const toggleFavorite = async (program: any) => {
     if (!user) {
       toast({
-        title: 'Login Required',
-        description: 'Please log in to save favorite programs',
-        variant: 'default',
+        title: "Authentication Required",
+        description: "Please log in to favorite programs",
+        variant: "default",
       });
-      navigate('/login');
+      navigate("/login");
       return;
     }
-    
+
     try {
-      const isFavorite = favoritePrograms.includes(programId);
-      
-      if (isFavorite) {
-        setProgramToRemove(programId);
-        setShowFavoritesDialog(true);
-        return;
-      }
-      
-      const { error } = await supabase
+      // Get current favorite status
+      const { data: existingFavorite, error: fetchError } = await supabase
         .from('favorite_programs')
-        .insert([{ user_id: user.id, program_id: programId }]);
-        
-      if (error) throw error;
-      
-      setFavoritePrograms(prev => [...prev, programId]);
-      
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('program_id', program.id)
+        .maybeSingle();
+
+      if (fetchError && !fetchError.message.includes('relation "favorite_programs" does not exist')) {
+        throw fetchError;
+      }
+
+      if (existingFavorite) {
+        // Remove from favorites
+        const { error: deleteError } = await supabase
+          .from('favorite_programs')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('program_id', program.id);
+
+        if (deleteError) throw deleteError;
+
+        setFavorites(favorites.filter(id => id !== program.id));
+        toast({
+          title: "Removed from favorites",
+          description: `${program.name} has been removed from your favorites`,
+        });
+      } else {
+        // Add to favorites
+        const { error: insertError } = await supabase
+          .from('favorite_programs')
+          .insert({
+            user_id: user.id,
+            program_id: program.id
+          });
+
+        if (insertError) throw insertError;
+
+        setFavorites([...favorites, program.id]);
+        toast({
+          title: "Added to favorites",
+          description: `${program.name} has been added to your favorites`,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating favorites:', error);
       toast({
-        title: 'Program Saved',
-        description: 'Program added to your favorites',
-      });
-    } catch (err) {
-      console.error('Error updating favorites:', err);
-      toast({
-        title: 'Error',
-        description: 'Failed to update favorites. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -156,20 +224,20 @@ export default function Programs() {
         
       if (error) throw error;
       
-      setFavoritePrograms(prev => prev.filter(id => id !== programToRemove));
+      setFavorites(prev => prev.filter(id => id !== programToRemove));
       setProgramToRemove(null);
       setShowFavoritesDialog(false);
       
       toast({
-        title: 'Program Removed',
-        description: 'Program removed from your favorites',
+        title: "Program Removed",
+        description: "Program removed from your favorites",
       });
     } catch (err) {
       console.error('Error removing favorite:', err);
       toast({
-        title: 'Error',
-        description: 'Failed to remove from favorites. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to remove from favorites. Please try again.",
+        variant: "destructive",
       });
     }
   };

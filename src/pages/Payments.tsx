@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { usePayments } from '@/hooks/usePayments';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -133,6 +132,16 @@ export default function PaymentsPage() {
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
+  };
+
+  // Fix the calculation in the getTotalAmount function
+  const getTotalAmount = (payments: any[]) => {
+    if (!payments || payments.length === 0) return 0;
+    return payments.reduce((acc, payment) => {
+      // Convert to number if it's a string
+      const amount = typeof payment.amount === 'number' ? payment.amount : Number(payment.amount) || 0;
+      return acc + amount;
+    }, 0);
   };
 
   return (
