@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -414,7 +415,7 @@ export default function Programs() {
                     <SelectItem value="any">Any duration</SelectItem>
                     <SelectItem value="short">Short (≤ 12 months)</SelectItem>
                     <SelectItem value="medium">Medium (1-2 years)</SelectItem>
-                    <SelectItem value="long">Long {'>'}2 years</SelectItem>
+                    <SelectItem value="long">Long {'>'} 2 years</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -580,7 +581,7 @@ export default function Programs() {
                         <SelectItem value="any">Any duration</SelectItem>
                         <SelectItem value="short">Short (≤ 12 months)</SelectItem>
                         <SelectItem value="medium">Medium (1-2 years)</SelectItem>
-                        <SelectItem value="long">Long {'>'}2 years</SelectItem>
+                        <SelectItem value="long">Long {'>'} 2 years</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -918,4 +919,71 @@ export default function Programs() {
                             )}
                             
                             <div className="flex justify-end">
-                              <Button variant="link" size="sm" className="text-primary"
+                              <Button variant="link" size="sm" className="text-primary">
+                                View Complete Details
+                              </Button>
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="requirements" className="space-y-4">
+                            <div>
+                              <h4 className="font-medium mb-2">Admission Requirements</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {program.admission_requirements || "No specific requirements listed."}
+                              </p>
+                            </div>
+                            
+                            <div>
+                              <h4 className="font-medium mb-2">Application Process</h4>
+                              <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1">
+                                <li>Create an account on our platform</li>
+                                <li>Complete your profile with personal details</li>
+                                <li>Upload required documents</li>
+                                <li>Submit your application</li>
+                                <li>Schedule an interview (if required)</li>
+                              </ol>
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="fees" className="space-y-4">
+                            <div>
+                              <h4 className="font-medium mb-2">Tuition & Fees</h4>
+                              <div className="text-sm space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Tuition (per year)</span>
+                                  <span className="font-medium">${Number(program.tuition_min).toLocaleString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Application Fee</span>
+                                  <span className="font-medium">${program.application_fee || 100}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Living Expenses (est.)</span>
+                                  <span className="font-medium">$12,000/year</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {program.scholarship_available && (
+                              <div>
+                                <h4 className="font-medium mb-2">Scholarships</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Scholarships are available for this program. Consult with our advisors
+                                  for eligibility criteria and application process.
+                                </p>
+                              </div>
+                            )}
+                          </TabsContent>
+                        </Tabs>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
