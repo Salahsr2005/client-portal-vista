@@ -4,6 +4,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 
+interface SlotAdmin {
+  first_name?: string;
+  last_name?: string;
+  photo_url?: string;
+}
+
+interface SlotService {
+  name?: string;
+  description?: string;
+  price?: number;
+}
+
+interface AppointmentSlot {
+  date_time?: string;
+  end_time?: string;
+  duration?: number;
+  location?: string;
+  mode?: string;
+  admin?: SlotAdmin;
+  service?: SlotService;
+}
+
+interface AppointmentData {
+  appointment_id: string;
+  status: string;
+  special_requests?: string;
+  created_at: string;
+  slot_id: string;
+  slot?: AppointmentSlot;
+}
+
 export const useAppointments = () => {
   const { user } = useAuth();
 
@@ -40,14 +71,13 @@ export const useAppointments = () => {
 
       if (!data || data.length === 0) return [];
 
-      return data.map((appointment) => {
-        const slotData = appointment.slot || {};
+      return data.map((appointment: AppointmentData) => {
+        // Initialize with empty objects for safe access
+        const slotData: AppointmentSlot = appointment.slot || {};
+        const adminData: SlotAdmin = slotData.admin || {};
+        const serviceData: SlotService = slotData.service || {};
         
-        // Safe access to nested properties with nullish coalescing
-        const adminData = slotData.admin ? slotData.admin : {};
-        const serviceData = slotData.service ? slotData.service : {};
-        
-        const dateTimeString = slotData.date_time ? slotData.date_time : new Date().toISOString();
+        const dateTimeString = slotData.date_time || new Date().toISOString();
         const formattedDate = format(new Date(dateTimeString), "yyyy-MM-dd");
         
         let formattedTime = "";

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState("personal");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -168,6 +170,223 @@ const Profile = () => {
     );
   }
 
+  const renderPersonalInfoTab = () => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Personal Information</CardTitle>
+          <CardDescription>Your personal details and contact information</CardDescription>
+        </div>
+        {!editMode && (
+          <Button variant="outline" onClick={() => setEditMode(true)}>
+            <Edit className="h-4 w-4 mr-1" /> Edit
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {editMode ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  disabled
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                <Input
+                  id="dateOfBirth"
+                  name="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">First Name</p>
+                <p className="font-medium">{profile.first_name || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Last Name</p>
+                <p className="font-medium">{profile.last_name || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-medium">{profile.email}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Phone Number</p>
+                <p className="font-medium">{profile.phone || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">City</p>
+                <p className="font-medium">{profile.city || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Country</p>
+                <p className="font-medium">{profile.country || "Not provided"}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Date of Birth</p>
+                <p className="font-medium">
+                  {profile.date_of_birth 
+                    ? new Date(profile.date_of_birth).toLocaleDateString() 
+                    : "Not provided"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Nationality</p>
+                <p className="font-medium">{profile.nationality || "Not provided"}</p>
+              </div>
+            </div>
+            
+            <Separator />
+            
+            <div>
+              <h3 className="text-lg font-medium mb-3">Additional Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Membership Status</p>
+                  <div className="flex items-center">
+                    <Badge variant={profile.client_tier === "Paid" ? "default" : "secondary"}>
+                      {profile.client_tier || "Basic"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Member Since</p>
+                  <p className="font-medium">
+                    {new Date(profile.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Profile Completion</p>
+                  <div className="flex items-center">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
+                      {profile.profile_status || "Incomplete"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">Contact Preference</p>
+                  <p className="font-medium">{profile.contact_preference || "Email"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+      {editMode && (
+        <CardFooter className="flex justify-end gap-2 pt-0">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditMode(false);
+              // Reset form data to original values
+              setFormData({
+                firstName: profile.first_name || "",
+                lastName: profile.last_name || "",
+                email: profile.email || "",
+                phone: profile.phone || "",
+                city: profile.city || "",
+                country: profile.country || "",
+                dateOfBirth: profile.date_of_birth ? new Date(profile.date_of_birth).toISOString().split("T")[0] : "",
+              });
+            }}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSaveProfile} disabled={updating}>
+            {updating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
+        </CardFooter>
+      )}
+    </Card>
+  );
+
+  const renderEducationTab = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Education & Qualifications</CardTitle>
+        <CardDescription>Your academic background and qualifications</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {profile.client_profiles?.[0]?.education_background ? (
+          <div dangerouslySetInnerHTML={{ __html: profile.client_profiles[0].education_background }} />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto mb-3" />
+            <p className="mb-2">No education information provided yet</p>
+            <Button variant="outline" size="sm">
+              Add Education Information
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="container max-w-4xl py-8">
       {/* Profile Header */}
@@ -195,7 +414,7 @@ const Profile = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="personal" className="w-full">
+      <Tabs defaultValue="personal" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-3 mb-8">
           <TabsTrigger value="personal">Personal Info</TabsTrigger>
           <TabsTrigger value="education">Education</TabsTrigger>
@@ -204,221 +423,12 @@ const Profile = () => {
         
         {/* Personal Info Tab */}
         <TabsContent value="personal">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Your personal details and contact information</CardDescription>
-              </div>
-              {!editMode && (
-                <Button variant="outline" onClick={() => setEditMode(true)}>
-                  <Edit className="h-4 w-4 mr-1" /> Edit
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent>
-              {editMode ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        value={formData.email}
-                        disabled
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="country">Country</Label>
-                      <Input
-                        id="country"
-                        name="country"
-                        value={formData.country}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                      <Input
-                        id="dateOfBirth"
-                        name="dateOfBirth"
-                        type="date"
-                        value={formData.dateOfBirth}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">First Name</p>
-                      <p className="font-medium">{profile.first_name || "Not provided"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Last Name</p>
-                      <p className="font-medium">{profile.last_name || "Not provided"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Email</p>
-                      <p className="font-medium">{profile.email}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Phone Number</p>
-                      <p className="font-medium">{profile.phone || "Not provided"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">City</p>
-                      <p className="font-medium">{profile.city || "Not provided"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Country</p>
-                      <p className="font-medium">{profile.country || "Not provided"}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Date of Birth</p>
-                      <p className="font-medium">
-                        {profile.date_of_birth 
-                          ? new Date(profile.date_of_birth).toLocaleDateString() 
-                          : "Not provided"}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Nationality</p>
-                      <p className="font-medium">{profile.nationality || "Not provided"}</p>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Additional Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Membership Status</p>
-                        <div className="flex items-center">
-                          <Badge variant={profile.client_tier === "Paid" ? "default" : "secondary"}>
-                            {profile.client_tier || "Basic"}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Member Since</p>
-                        <p className="font-medium">
-                          {new Date(profile.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Profile Completion</p>
-                        <div className="flex items-center">
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
-                            {profile.profile_status || "Incomplete"}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-sm text-muted-foreground">Contact Preference</p>
-                        <p className="font-medium">{profile.contact_preference || "Email"}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-            {editMode && (
-              <CardFooter className="flex justify-end gap-2 pt-0">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditMode(false);
-                    // Reset form data to original values
-                    setFormData({
-                      firstName: profile.first_name || "",
-                      lastName: profile.last_name || "",
-                      email: profile.email || "",
-                      phone: profile.phone || "",
-                      city: profile.city || "",
-                      country: profile.country || "",
-                      dateOfBirth: profile.date_of_birth ? new Date(profile.date_of_birth).toISOString().split("T")[0] : "",
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveProfile} disabled={updating}>
-                  {updating ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-              </CardFooter>
-            )}
-          </Card>
+          {renderPersonalInfoTab()}
         </TabsContent>
         
         {/* Education Tab */}
         <TabsContent value="education">
-          <Card>
-            <CardHeader>
-              <CardTitle>Education & Qualifications</CardTitle>
-              <CardDescription>Your academic background and qualifications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {profile.client_profiles?.[0]?.education_background ? (
-                <div dangerouslySetInnerHTML={{ __html: profile.client_profiles[0].education_background }} />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3" />
-                  <p className="mb-2">No education information provided yet</p>
-                  <Button variant="outline" size="sm">
-                    Add Education Information
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {renderEducationTab()}
         </TabsContent>
         
         {/* Documents Tab */}

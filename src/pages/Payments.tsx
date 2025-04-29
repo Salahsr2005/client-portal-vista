@@ -1,378 +1,332 @@
 import React, { useState } from 'react';
-import { usePayments } from '@/hooks/usePayments';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { CreditCard, Search, Building, Calendar, Clock, AlertCircle, CheckCircle, DollarSign, Filter, ChevronsUpDown, Building2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  CreditCard, 
+  Receipt, 
+  Download, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle, 
+  FileText,
+  Calendar,
+  ChevronRight,
+  DollarSign
+} from "lucide-react";
 
-function PaymentStats({ payments }: { payments: any[] }) {
-  // Convert the amount to a number before calculations
-  const totalPaid = payments.reduce((sum, payment) => 
-    payment.status === 'Completed' ? sum + Number(payment.amount) : sum, 0);
-  
-  const pendingPayments = payments.filter(payment => payment.status === 'Pending').length;
-  
-  const paymentMethods = payments.reduce((acc: Record<string, number>, payment) => {
-    if (payment.status === 'Completed') {
-      acc[payment.method] = (acc[payment.method] || 0) + 1;
-    }
-    return acc;
-  }, {});
+// Mock data for payments
+const paymentHistory = [
+  {
+    id: "INV-001",
+    date: "2023-08-15",
+    amount: 250,
+    status: "Paid",
+    description: "Application Fee - Harvard University",
+    paymentMethod: "Visa •••• 4242",
+  },
+  {
+    id: "INV-002",
+    date: "2023-07-28",
+    amount: 150,
+    status: "Paid",
+    description: "Document Verification Service",
+    paymentMethod: "MasterCard •••• 5555",
+  },
+  {
+    id: "INV-003",
+    date: "2023-06-10",
+    amount: 500,
+    status: "Paid",
+    description: "Premium Consultation Package",
+    paymentMethod: "Bank Transfer",
+  },
+  {
+    id: "INV-004",
+    date: "2023-05-22",
+    amount: 75,
+    status: "Pending",
+    description: "Express Processing Fee",
+    paymentMethod: "Pending Payment",
+  }
+];
 
-  const topMethod = Object.entries(paymentMethods).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None';
+// Mock data for invoices
+const invoices = [
+  {
+    id: "INV-005",
+    date: "2023-09-01",
+    dueDate: "2023-09-15",
+    amount: 350,
+    status: "Unpaid",
+    description: "University Application Support - Stanford",
+  },
+  {
+    id: "INV-006",
+    date: "2023-08-25",
+    dueDate: "2023-09-10",
+    amount: 200,
+    status: "Unpaid",
+    description: "Visa Consultation Services",
+  }
+];
+
+// Mock data for subscription
+const subscription = {
+  plan: "Premium Support",
+  status: "Active",
+  nextBilling: "2023-09-15",
+  amount: 49.99,
+  features: [
+    "Unlimited application support",
+    "Priority document processing",
+    "24/7 advisor access",
+    "Monthly strategy sessions"
+  ]
+};
+
+const Payments = () => {
+  const [activeTab, setActiveTab] = useState("history");
+
+  // Fix the math operation
+  const calculateTotal = (price: number | string, quantity: number) => {
+    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return numericPrice * quantity;
+  };
+
+  // Calculate total paid
+  const totalPaid = paymentHistory
+    .filter(payment => payment.status === "Paid")
+    .reduce((sum, payment) => sum + payment.amount, 0);
+
+  // Calculate total due
+  const totalDue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Payments</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">${totalPaid.toFixed(2)}</div>
-          <p className="text-xs text-muted-foreground">
-            +12% from last month
-          </p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{pendingPayments}</div>
-          <p className="text-xs text-muted-foreground">
-            {pendingPayments > 0 ? 'Awaiting processing' : 'No pending payments'}
-          </p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Preferred Payment Method</CardTitle>
-          <CreditCard className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{topMethod}</div>
-          <p className="text-xs text-muted-foreground">
-            {Object.entries(paymentMethods).length} method(s) used
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-export default function PaymentsPage() {
-  const { data: payments, isLoading, error } = usePayments();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-
-  if (isLoading) {
-    return (
-      <div className="container max-w-7xl mx-auto py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-        </div>
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Payments & Billing</h1>
+        <Button>
+          <DollarSign className="mr-2 h-4 w-4" />
+          Make a Payment
+        </Button>
       </div>
-    );
-  }
 
-  if (error) {
-    return (
-      <div className="container max-w-7xl mx-auto py-8">
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-destructive mr-2" /> Error Loading Payments
-            </CardTitle>
+      {/* Payment Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p>There was a problem loading your payment information. Please try again later.</p>
-            <Button variant="outline" className="mt-4">Refresh</Button>
+            <div className="text-2xl font-bold">${totalPaid.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Across {paymentHistory.filter(p => p.status === "Paid").length} transactions
+            </p>
           </CardContent>
         </Card>
-      </div>
-    );
-  }
-
-  const pendingApplications = payments?.filter(payment => 
-    payment.status === 'Pending' && payment.applicationId
-  ) || [];
-
-  const filteredPayments = payments?.filter(payment => {
-    // Filter by search term
-    const matchesSearch = 
-      !searchTerm ||
-      payment.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      payment.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filter by status
-    const matchesStatus = statusFilter === 'all' || payment.status.toLowerCase() === statusFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus;
-  }) || [];
-
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-300">Completed</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-300">Pending</Badge>;
-      case 'failed':
-        return <Badge className="bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-300">Failed</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  // Fix the calculation in the getTotalAmount function
-  const getTotalAmount = (payments: any[]) => {
-    if (!payments || payments.length === 0) return 0;
-    return payments.reduce((acc, payment) => {
-      // Convert to number if it's a string
-      const amount = typeof payment.amount === 'number' ? payment.amount : Number(payment.amount) || 0;
-      return acc + amount;
-    }, 0);
-  };
-
-  return (
-    <div className="container max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Payments</h1>
-        <p className="text-muted-foreground">Manage your payments and payment methods</p>
-      </div>
-
-      {/* Payment Statistics */}
-      <PaymentStats payments={payments || []} />
-
-      {/* Pending Applications */}
-      {pendingApplications.length > 0 && (
-        <Card className="mt-8 border-2">
-          <CardHeader className="bg-amber-50 dark:bg-amber-950/30">
-            <CardTitle className="flex items-center">
-              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 mr-2" />
-              Pending Applications Requiring Payment
-            </CardTitle>
-            <CardDescription>
-              Applications that require payment to proceed to the next step
-            </CardDescription>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
+            <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              {pendingApplications.map((payment) => (
-                <div key={payment.id} className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border rounded-lg">
-                  <div className="mb-3 md:mb-0">
-                    <h3 className="font-medium">{payment.description || 'Application Payment'}</h3>
-                    <p className="text-sm text-muted-foreground">Due: {new Date(payment.date).toLocaleDateString()}</p>
-                  </div>
-                  <div className="flex flex-col md:flex-row gap-2 md:items-center w-full md:w-auto">
-                    <div className="text-lg font-semibold md:mr-4">${payment.amount}</div>
-                    <Button onClick={() => setDialogOpen(true)}>Pay Now</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <CardContent>
+            <div className="text-2xl font-bold">${totalDue.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              {invoices.length} unpaid {invoices.length === 1 ? "invoice" : "invoices"}
+            </p>
           </CardContent>
         </Card>
-      )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Next Payment</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${subscription.amount.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              Due on {subscription.nextBilling}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Payment History */}
-      <Card className="mt-8">
+      {/* Main Content */}
+      <Card>
         <CardHeader>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>View your payment history and transaction details</CardDescription>
+          <CardTitle>Payment Management</CardTitle>
+          <CardDescription>
+            View and manage your payment history, invoices, and subscription
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-            <div className="relative w-full md:w-96">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search payments..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="border rounded-md">
-            {filteredPayments.length === 0 ? (
-              <div className="py-12 px-4 text-center text-muted-foreground">
-                <p>No payments found</p>
-              </div>
-            ) : (
-              <div className="relative overflow-x-auto">
-                <table className="w-full text-sm text-left">
-                  <thead className="text-xs border-b bg-muted">
-                    <tr>
-                      <th className="px-6 py-3">Reference</th>
-                      <th className="px-6 py-3">Date</th>
-                      <th className="px-6 py-3">Amount</th>
-                      <th className="px-6 py-3">Method</th>
-                      <th className="px-6 py-3">Status</th>
-                      <th className="px-6 py-3">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPayments.map((payment) => (
-                      <tr key={payment.id} className="border-b hover:bg-muted/50">
-                        <td className="px-6 py-4">
-                          <div className="font-medium">{payment.transactionId}</div>
-                          <div className="text-xs text-muted-foreground">{payment.description || 'Payment'}</div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {new Date(payment.date).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 font-medium">
-                          ${parseFloat(payment.amount).toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4">
-                          {payment.method || 'Unknown'}
-                        </td>
-                        <td className="px-6 py-4">
-                          {getStatusBadge(payment.status)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Button variant="ghost" size="sm">
-                            View
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payment Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Make a Payment</DialogTitle>
-            <DialogDescription>
-              Choose your preferred payment method and complete your payment.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Tabs defaultValue="card" className="pt-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="card">Card</TabsTrigger>
-              <TabsTrigger value="bank">Bank Transfer</TabsTrigger>
-              <TabsTrigger value="ccp">Algeria CCP</TabsTrigger>
+              <TabsTrigger value="history">Payment History</TabsTrigger>
+              <TabsTrigger value="invoices">Invoices</TabsTrigger>
+              <TabsTrigger value="subscription">Subscription</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="card" className="space-y-4 pt-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Card Number</label>
-                  <Input placeholder="**** **** **** ****" />
+            <TabsContent value="history" className="space-y-4">
+              <div className="rounded-md border">
+                <div className="py-3 px-4 text-sm font-medium grid grid-cols-5 bg-muted/50">
+                  <div>Invoice</div>
+                  <div>Date</div>
+                  <div>Description</div>
+                  <div>Amount</div>
+                  <div>Status</div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Expiry Date</label>
-                    <Input placeholder="MM/YY" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">CVC</label>
-                    <Input placeholder="***" />
-                  </div>
+                <div className="divide-y">
+                  {paymentHistory.map((payment) => (
+                    <div key={payment.id} className="py-3 px-4 text-sm grid grid-cols-5 items-center">
+                      <div className="font-medium">{payment.id}</div>
+                      <div>{payment.date}</div>
+                      <div>{payment.description}</div>
+                      <div>${payment.amount.toFixed(2)}</div>
+                      <div>
+                        <Badge variant={payment.status === "Paid" ? "success" : "outline"}>
+                          {payment.status === "Paid" ? (
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                          ) : (
+                            <Clock className="mr-1 h-3 w-3" />
+                          )}
+                          {payment.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <Button className="w-full">Pay Securely</Button>
               </div>
-              <div className="text-xs text-center text-muted-foreground">
-                Your payment information is encrypted and secure.
+              
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  Download All Receipts
+                </Button>
               </div>
             </TabsContent>
             
-            <TabsContent value="bank" className="space-y-4 pt-4">
-              <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
-                <div>
-                  <div className="text-sm font-medium">Bank Transfer Instructions</div>
-                  <div className="text-sm">Transfer the amount to the following account:</div>
+            <TabsContent value="invoices" className="space-y-4">
+              {invoices.length > 0 ? (
+                <div className="space-y-4">
+                  {invoices.map((invoice) => (
+                    <Card key={invoice.id}>
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between">
+                          <CardTitle className="text-base">{invoice.id}</CardTitle>
+                          <Badge variant="destructive">
+                            {invoice.status}
+                          </Badge>
+                        </div>
+                        <CardDescription>{invoice.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="pb-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Issue Date</p>
+                            <p className="font-medium">{invoice.date}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Due Date</p>
+                            <p className="font-medium">{invoice.dueDate}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Amount</p>
+                            <p className="font-medium">${invoice.amount.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="flex justify-between">
+                        <Button variant="outline" size="sm">
+                          <FileText className="mr-2 h-4 w-4" />
+                          View Invoice
+                        </Button>
+                        <Button size="sm">
+                          Pay Now
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">Bank:</div>
-                    <div className="font-medium">BDL-AGB-CPA</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Account Number:</div>
-                    <div className="font-medium">00721 7474 3847 6274 91</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Beneficiary:</div>
-                    <div className="font-medium">Education Agency Ltd</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Reference:</div>
-                    <div className="font-medium">PMT-{Math.floor(Math.random() * 10000)}</div>
-                  </div>
+              ) : (
+                <div className="text-center py-12">
+                  <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
+                  <h3 className="text-lg font-medium mb-1">No Outstanding Invoices</h3>
+                  <p className="text-muted-foreground">You don't have any unpaid invoices at the moment.</p>
                 </div>
-              </div>
-              <Button className="w-full">I've Completed The Transfer</Button>
+              )}
             </TabsContent>
             
-            <TabsContent value="ccp" className="space-y-4 pt-4">
-              <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
-                <div>
-                  <div className="text-sm font-medium">Algeria CCP Payment</div>
-                  <div className="text-sm">Make a payment to our CCP account:</div>
-                </div>
-                <div className="grid grid-cols-1 gap-2 text-sm">
-                  <div>
-                    <div className="text-muted-foreground">CCP Account Number:</div>
-                    <div className="font-medium">00721 999 0003 4321 76</div>
+            <TabsContent value="subscription" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>{subscription.plan}</CardTitle>
+                    <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-100">
+                      {subscription.status}
+                    </Badge>
                   </div>
-                  <div>
-                    <div className="text-muted-foreground">Key:</div>
-                    <div className="font-medium">45</div>
+                  <CardDescription>
+                    Your subscription renews on {subscription.nextBilling}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Monthly Fee</p>
+                      <p className="text-2xl font-bold">${subscription.amount.toFixed(2)}</p>
+                    </div>
+                    <Button variant="outline">Change Plan</Button>
                   </div>
+                  
+                  <Separator />
+                  
                   <div>
-                    <div className="text-muted-foreground">Beneficiary Name:</div>
-                    <div className="font-medium">Education Agency Algeria</div>
+                    <h4 className="font-medium mb-2">Plan Features</h4>
+                    <ul className="space-y-2">
+                      {subscription.features.map((feature, index) => (
+                        <li key={index} className="flex items-center">
+                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                          <span className="text-sm">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Upload Payment Receipt (Optional)</label>
-                <Input type="file" />
-              </div>
-              <Button className="w-full">Confirm Payment</Button>
+                  
+                  <Separator />
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Payment Method</h4>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <CreditCard className="h-5 w-5 mr-2" />
+                        <span>Visa ending in 4242</span>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        Change
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" className="text-destructive hover:bg-destructive/10">
+                    Cancel Subscription
+                  </Button>
+                  <Button>
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Billing History
+                  </Button>
+                </CardFooter>
+              </Card>
             </TabsContent>
           </Tabs>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+};
+
+export default Payments;

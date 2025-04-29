@@ -17,17 +17,33 @@ export const createFavoriteProgramsTable = async () => {
       console.error('Error checking database connection:', checkError);
     }
 
-    // Use SQL query directly through RPC if available, otherwise we'd handle it differently
-    try {
-      // Try to create the favorites table
-      // This will only work if the SQL function is defined in the database
-      const { error } = await supabase.rpc('create_favorite_programs_table');
+    // Check if favorite_programs table already exists
+    const { error: queryError } = await supabase
+      .from('favorite_programs')
+      .select('id')
+      .limit(1);
       
-      if (error && !error.message.includes('does not exist')) {
-        console.error('Error creating favorite_programs table:', error);
+    if (queryError && queryError.message.includes('does not exist')) {
+      console.log('favorite_programs table does not exist, attempting to create it');
+      // If the table doesn't exist, create it using SQL
+      const { error: createError } = await supabase
+        .rpc('execute_sql', {
+          sql_query: `
+            CREATE TABLE IF NOT EXISTS favorite_programs (
+              id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+              user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+              program_id UUID NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+              UNIQUE(user_id, program_id)
+            );
+          `
+        });
+        
+      if (createError) {
+        console.error('Error creating favorite_programs table:', createError);
+      } else {
+        console.log('favorite_programs table created successfully');
       }
-    } catch (rpcError) {
-      console.log('RPC function not available, table might already exist or needs to be created manually');
     }
   } catch (err) {
     console.error('Error in createFavoriteProgramsTable:', err);

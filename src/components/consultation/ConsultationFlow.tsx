@@ -1,709 +1,830 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, AlertTriangle, School, Search, Building, MapPin, Languages, CircleDollarSign, Clock, Star } from "lucide-react";
+import { usePrograms } from "@/hooks/usePrograms";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
+import { ArrowRight, ArrowLeft, Check, X, Heart, Filter, Search, GraduationCap, MapPin, Calendar, Clock, DollarSign } from 'lucide-react';
 
-export function ConsultationFlow() {
-  const navigate = useNavigate();
+// Define types
+interface Program {
+  id: string;
+  name: string;
+  university: string;
+  location: string;
+  type: string;
+  duration: string;
+  tuition: string;
+  deadline: string;
+  subjects: string[];
+  description: string;
+  requirements: string;
+  [key: string]: any;
+}
+
+interface FormData {
+  studyLevel: string;
+  subjects: string[];
+  location: string;
+  duration: string;
+  budget: string;
+  startDate: string;
+  specialRequirements: string;
+}
+
+export const ConsultationFlow = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeStep, setActiveStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [existingConsultation, setExistingConsultation] = useState<any>(null);
-  const [results, setResults] = useState<any[]>([]);
-  const [showResults, setShowResults] = useState(false);
+  const { data: allPrograms = [], isLoading } = usePrograms();
   
-  const studyAbroadQuestions: Array<{
-    title: string;
-    type: string;
-    field: string;
-    options?: Array<{value: string; label: string}> | Array<{field: string; label: string}>;
-    placeholder?: string;
-    min?: number;
-    max?: number;
-    step?: number;
-  }> = [
-    {
-      title: "What level of study are you interested in?",
-      type: "radio",
-      field: "study_level",
-      options: [
-        { value: "Bachelor", label: "Bachelor's Degree" },
-        { value: "Master", label: "Master's Degree" },
-        { value: "PhD", label: "PhD / Doctorate" },
-        { value: "Certificate", label: "Certificate Program" },
-        { value: "Diploma", label: "Diploma" }
-      ]
-    },
-    {
-      title: "What field of study are you interested in?",
-      type: "select",
-      field: "field_preference",
-      placeholder: "Select a field of study",
-      options: [
-        { value: "BusinessManagement", label: "Business & Management" },
-        { value: "ComputerScience", label: "Computer Science & IT" },
-        { value: "Engineering", label: "Engineering" },
-        { value: "Arts", label: "Arts & Humanities" },
-        { value: "SocialSciences", label: "Social Sciences" },
-        { value: "Medicine", label: "Medicine & Health" },
-        { value: "Education", label: "Education" },
-        { value: "Law", label: "Law" },
-        { value: "Science", label: "Natural Sciences" },
-        { value: "Mathematics", label: "Mathematics & Statistics" }
-      ]
-    },
-    {
-      title: "Which country would you like to study in?",
-      type: "select",
-      field: "destination_preference",
-      placeholder: "Select a country",
-      options: [
-        { value: "USA", label: "United States" },
-        { value: "UK", label: "United Kingdom" },
-        { value: "Canada", label: "Canada" },
-        { value: "Australia", label: "Australia" },
-        { value: "Germany", label: "Germany" },
-        { value: "France", label: "France" },
-        { value: "Poland", label: "Poland" },
-        { value: "Belgium", label: "Belgium" },
-        { value: "Spain", label: "Spain" },
-        { value: "Italy", label: "Italy" },
-        { value: "Netherlands", label: "Netherlands" },
-        { value: "Sweden", label: "Sweden" },
-        { value: "Switzerland", label: "Switzerland" },
-        { value: "Japan", label: "Japan" }
-      ]
-    },
-    {
-      title: "What is your preferred language of instruction?",
-      type: "select",
-      field: "language_preference",
-      placeholder: "Select language",
-      options: [
-        { value: "English", label: "English" },
-        { value: "French", label: "French" },
-        { value: "German", label: "German" },
-        { value: "Spanish", label: "Spanish" },
-        { value: "Italian", label: "Italian" },
-        { value: "Arabic", label: "Arabic" }
-      ]
-    },
-    {
-      title: "What is your preferred program duration?",
-      type: "select",
-      field: "duration_preference",
-      placeholder: "Select duration",
-      options: [
-        { value: "1Year", label: "1 Year" },
-        { value: "2Years", label: "2 Years" },
-        { value: "3Years", label: "3 Years" },
-        { value: "4Years", label: "4 Years" },
-        { value: "5+Years", label: "5+ Years" }
-      ]
-    },
-    {
-      title: "What is your budget for tuition per year?",
-      type: "slider",
-      field: "budget",
-      min: 5000,
-      max: 50000,
-      step: 1000
-    },
-    {
-      title: "Do you have any special requirements?",
-      type: "checkbox",
-      field: "requirements",
-      options: [
-        { field: "scholarship_required", label: "Scholarship or financial aid is necessary" },
-        { field: "religious_facilities_required", label: "Access to religious facilities" },
-        { field: "halal_food_required", label: "Halal food options" }
-      ]
-    },
-    {
-      title: "Any additional notes or requirements?",
-      type: "textarea",
-      field: "notes",
-      placeholder: "Please share any other preferences or requirements you have..."
-    }
-  ];
-
-  const [formData, setFormData] = useState({
-    study_level: "",
-    field_preference: "",
-    destination_preference: "",
-    language_preference: "",
-    duration_preference: "",
-    budget: 10000,
-    scholarship_required: false,
-    religious_facilities_required: false,
-    halal_food_required: false,
-    notes: ""
+  const [step, setStep] = useState(1);
+  const [progress, setProgress] = useState(25);
+  const [formData, setFormData] = useState<FormData>({
+    studyLevel: "",
+    subjects: [],
+    location: "",
+    duration: "",
+    budget: "",
+    startDate: "",
+    specialRequirements: "",
   });
   
+  const [filteredPrograms, setFilteredPrograms] = useState<Program[]>([]);
+  const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
+  const [favoritePrograms, setFavoritePrograms] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<{[key: string]: boolean}>({
+    level: false,
+    location: false,
+    duration: false,
+    budget: false,
+  });
+  
+  // Initialize favorites
   useEffect(() => {
-    const checkExistingConsultation = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('consultation_results')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-          
-        if (error) {
-          console.error('Error fetching existing consultation:', error);
-          return;
-        }
-        
-        if (data && data.length > 0) {
-          setExistingConsultation(data[0]);
-          
-          if (data[0].recommended_programs) {
-            setResults(data[0].recommended_programs);
-          }
-          
-          setFormData({
-            study_level: data[0].study_level || "",
-            field_preference: data[0].field_preference || "",
-            destination_preference: data[0].destination_preference || "",
-            language_preference: data[0].language_preference || "",
-            duration_preference: data[0].duration_preference || "",
-            budget: data[0].budget || 10000,
-            scholarship_required: data[0].scholarship_required || false,
-            religious_facilities_required: data[0].religious_facilities_required || false,
-            halal_food_required: data[0].halal_food_required || false,
-            notes: data[0].notes || ""
-          });
-        }
-      } catch (err) {
-        console.error('Error in consultation check:', err);
-      }
-    };
-    
-    checkExistingConsultation();
+    if (user) {
+      fetchFavoritePrograms();
+    }
   }, [user]);
   
-  const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-  
-  const handleCheckboxChange = (field: string) => {
-    setFormData(prev => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  const nextStep = () => {
-    if (activeStep < studyAbroadQuestions.length) {
-      setActiveStep(prev => prev + 1);
-    }
-  };
-
-  const prevStep = () => {
-    if (activeStep > 0) {
-      setActiveStep(prev => prev - 1);
-    }
-  };
-  
-  const handleSubmit = async () => {
-    if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to complete your consultation.",
-        variant: "destructive",
-      });
-      navigate("/login");
-      return;
-    }
-    
-    setIsLoading(true);
+  const fetchFavoritePrograms = async () => {
+    if (!user) return;
     
     try {
-      type StudyLevel = "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
-      const typedStudyLevel = formData.study_level as StudyLevel;
+      // Ensure the table exists
+      await createFavoriteProgramsTable();
       
-      const { data: matchResults, error: matchError } = await supabase.rpc('match_programs', {
-        p_study_level: typedStudyLevel,
-        p_field: formData.field_preference,
-        p_country: formData.destination_preference,
-        p_language: formData.language_preference,
-        p_duration: formData.duration_preference,
-        p_budget: formData.budget,
-        p_scholarship: formData.scholarship_required,
-        p_religious_facilities: formData.religious_facilities_required,
-        p_halal_food: formData.halal_food_required
-      });
-      
-      if (matchError) throw matchError;
-      
-      const programIds = matchResults.map((result: any) => result.program_id);
-      
-      if (programIds.length === 0) {
-        setResults([]);
-        setShowResults(true);
-        setIsLoading(false);
+      // Fetch user's favorite programs
+      const { data, error } = await supabase
+        .from('favorite_programs')
+        .select('program_id')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching favorite programs:', error);
         return;
       }
       
-      const { data: programs, error: programsError } = await supabase
-        .from('programs')
-        .select('*')
-        .in('id', programIds);
-      
-      if (programsError) throw programsError;
-      
-      const combinedResults = programs.map((program: any) => {
-        const matchInfo = matchResults.find((r: any) => r.program_id === program.id);
-        return {
-          ...program,
-          match_score: matchInfo?.match_score || 0,
-          budget_score: matchInfo?.budget_score || 0,
-          language_score: matchInfo?.language_score || 0,
-          level_score: matchInfo?.level_score || 0,
-          location_score: matchInfo?.location_score || 0,
-          duration_score: matchInfo?.duration_score || 0,
-          field_score: matchInfo?.field_score || 0,
-          scholarship_score: matchInfo?.scholarship_score || 0,
-          cultural_score: matchInfo?.cultural_score || 0
-        };
-      });
-      
-      combinedResults.sort((a: any, b: any) => b.match_score - a.match_score);
-      
-      const consultationData = {
-        user_id: user.id,
-        study_level: typedStudyLevel,
-        field_preference: formData.field_preference,
-        destination_preference: formData.destination_preference,
-        language_preference: formData.language_preference,
-        duration_preference: formData.duration_preference,
-        budget: formData.budget,
-        scholarship_required: formData.scholarship_required,
-        religious_facilities_required: formData.religious_facilities_required,
-        halal_food_required: formData.halal_food_required,
-        recommended_programs: combinedResults,
-        notes: formData.notes
-      };
-      
-      if (existingConsultation) {
-        await supabase
-          .from('consultation_results')
-          .update(consultationData)
-          .eq('id', existingConsultation.id);
-      } else {
-        await supabase
-          .from('consultation_results')
-          .insert([consultationData]);
+      if (data) {
+        const favoriteIds = data.map(item => item.program_id);
+        setFavoritePrograms(favoriteIds);
       }
-      
-      // Explicitly set as an array
-      setResults(combinedResults || []);
-      setShowResults(true);
     } catch (err) {
-      console.error('Error in consultation process:', err);
+      console.error('Error in fetchFavoritePrograms:', err);
+    }
+  };
+  
+  const toggleFavorite = async (programId: string) => {
+    if (!user) {
       toast({
-        title: "Consultation Error",
-        description: "There was a problem processing your consultation. Please try again.",
+        title: "Authentication required",
+        description: "Please sign in to save favorite programs",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      if (favoritePrograms.includes(programId)) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('favorite_programs')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('program_id', programId);
+          
+        if (error) throw error;
+        
+        setFavoritePrograms(prev => prev.filter(id => id !== programId));
+        toast({
+          title: "Removed from favorites",
+          description: "Program removed from your favorites",
+        });
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('favorite_programs')
+          .insert({
+            user_id: user.id,
+            program_id: programId
+          });
+          
+        if (error) throw error;
+        
+        setFavoritePrograms(prev => [...prev, programId]);
+        toast({
+          title: "Added to favorites",
+          description: "Program added to your favorites",
+        });
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive",
+      });
     }
   };
   
-  const handleStartOver = () => {
-    setShowResults(false);
-    setActiveStep(0);
+  const handleNext = () => {
+    if (step === 1) {
+      if (!formData.studyLevel) {
+        toast({
+          title: "Required field",
+          description: "Please select a study level to continue",
+          variant: "destructive",
+        });
+        return;
+      }
+      setStep(2);
+      setProgress(50);
+    } else if (step === 2) {
+      if (formData.subjects.length === 0) {
+        toast({
+          title: "Required field",
+          description: "Please select at least one subject area",
+          variant: "destructive",
+        });
+        return;
+      }
+      setStep(3);
+      setProgress(75);
+    } else if (step === 3) {
+      filterPrograms();
+      setStep(4);
+      setProgress(100);
+    }
   };
   
-  const handleViewProgram = (programId: string) => {
-    navigate(`/programs/${programId}`);
+  const handlePrevious = () => {
+    if (step === 2) {
+      setStep(1);
+      setProgress(25);
+    } else if (step === 3) {
+      setStep(2);
+      setProgress(50);
+    } else if (step === 4) {
+      setStep(3);
+      setProgress(75);
+    }
   };
   
-  const handleApplyNow = (programId: string) => {
-    navigate(`/applications/new?program=${programId}`);
+  const handleSubjectToggle = (subject: string) => {
+    setFormData(prev => {
+      if (prev.subjects.includes(subject)) {
+        return {
+          ...prev,
+          subjects: prev.subjects.filter(s => s !== subject)
+        };
+      } else {
+        return {
+          ...prev,
+          subjects: [...prev.subjects, subject]
+        };
+      }
+    });
   };
   
-  const renderCurrentQuestion = () => {
-    if (activeStep >= studyAbroadQuestions.length) {
-      return (
-        <Card>
-          <CardHeader>
-            <CardTitle>Review Your Preferences</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Study Level</Label>
-                  <div className="font-medium">{formData.study_level || "Not specified"}</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Field of Study</Label>
-                  <div className="font-medium">{formData.field_preference || "Not specified"}</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Country Preference</Label>
-                  <div className="font-medium">{formData.destination_preference || "Not specified"}</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Language Preference</Label>
-                  <div className="font-medium">{formData.language_preference || "Not specified"}</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Program Duration</Label>
-                  <div className="font-medium">{formData.duration_preference || "Not specified"}</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Budget</Label>
-                  <div className="font-medium">${formData.budget.toLocaleString()}</div>
-                </div>
-              </div>
-              
-              <div className="space-y-2 pt-2">
-                <Label>Additional Requirements</Label>
-                <div className="flex flex-wrap gap-2">
-                  {formData.scholarship_required && (
-                    <Badge variant="outline">Scholarship Required</Badge>
-                  )}
-                  {formData.religious_facilities_required && (
-                    <Badge variant="outline">Religious Facilities</Badge>
-                  )}
-                  {formData.halal_food_required && (
-                    <Badge variant="outline">Halal Food Options</Badge>
-                  )}
-                  {!formData.scholarship_required && !formData.religious_facilities_required && !formData.halal_food_required && (
-                    <div className="text-muted-foreground">No additional requirements specified</div>
-                  )}
-                </div>
-              </div>
-              
-              {formData.notes && (
-                <div className="space-y-2 pt-2">
-                  <Label>Additional Notes</Label>
-                  <div className="bg-muted p-3 rounded-md">{formData.notes}</div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={prevStep}>
-              Back
-            </Button>
-            <Button onClick={handleSubmit} disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                "Find Programs"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
+  const filterPrograms = () => {
+    // Apply filters based on form data
+    let filtered = [...allPrograms];
+    
+    // Filter by study level
+    if (formData.studyLevel) {
+      filtered = filtered.filter(program => 
+        program.study_level?.toLowerCase() === formData.studyLevel.toLowerCase() ||
+        program.type?.toLowerCase().includes(formData.studyLevel.toLowerCase())
       );
     }
     
-    const currentQuestion = studyAbroadQuestions[activeStep];
+    // Filter by subjects
+    if (formData.subjects.length > 0) {
+      filtered = filtered.filter(program => {
+        // Check if any of the selected subjects match the program's field keywords
+        if (program.field_keywords && Array.isArray(program.field_keywords)) {
+          return formData.subjects.some(subject => 
+            program.field_keywords.some((keyword: string) => 
+              keyword.toLowerCase().includes(subject.toLowerCase())
+            )
+          );
+        }
+        // If no field keywords, check program name and description
+        return formData.subjects.some(subject => 
+          program.name.toLowerCase().includes(subject.toLowerCase()) ||
+          (program.description && program.description.toLowerCase().includes(subject.toLowerCase()))
+        );
+      });
+    }
     
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{currentQuestion.title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {currentQuestion.type === "radio" && (
-            <RadioGroup 
-              value={formData[currentQuestion.field as keyof typeof formData]?.toString() || ""} 
-              onValueChange={(value) => handleChange(currentQuestion.field, value)}
-              className="space-y-3"
-            >
-              {currentQuestion.options && currentQuestion.options.map((option: any) => (
-                <div key={option.value} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option.value} id={option.value} />
-                  <Label htmlFor={option.value}>{option.label}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-          )}
-          
-          {currentQuestion.type === "select" && (
-            <Select 
-              value={formData[currentQuestion.field as keyof typeof formData]?.toString() || ""} 
-              onValueChange={(value) => handleChange(currentQuestion.field, value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={currentQuestion.placeholder || "Select an option"} />
-              </SelectTrigger>
-              <SelectContent>
-                {currentQuestion.options && currentQuestion.options.map((option: any) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          
-          {currentQuestion.type === "slider" && (
-            <div className="space-y-6 py-4">
-              <div className="text-center mb-2">
-                <span className="text-2xl font-bold">${formData[currentQuestion.field as keyof typeof formData].toLocaleString()}</span>
-              </div>
-              <Slider
-                min={currentQuestion.min || 0}
-                max={currentQuestion.max || 100000}
-                step={currentQuestion.step || 1000}
-                value={[formData[currentQuestion.field as keyof typeof formData] as number]}
-                onValueChange={(value) => handleChange(currentQuestion.field, value[0])}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <div>${(currentQuestion.min || 0).toLocaleString()}</div>
-                <div>${(currentQuestion.max || 100000).toLocaleString()}</div>
-              </div>
-            </div>
-          )}
-          
-          {currentQuestion.type === "checkbox" && (
-            <div className="space-y-4 py-2">
-              {currentQuestion.options && currentQuestion.options.map((option: any) => (
-                <div key={option.field} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={option.field}
-                    checked={formData[option.field as keyof typeof formData] as boolean || false}
-                    onCheckedChange={() => handleCheckboxChange(option.field)}
-                  />
-                  <Label htmlFor={option.field}>{option.label}</Label>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {currentQuestion.type === "textarea" && (
-            <Textarea 
-              placeholder={currentQuestion.placeholder || "Enter additional information..."}
-              value={formData[currentQuestion.field as keyof typeof formData] as string || ""}
-              onChange={(e) => handleChange(currentQuestion.field, e.target.value)}
-              className="min-h-[100px]"
-            />
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={prevStep} disabled={activeStep === 0}>
-            Back
-          </Button>
-          <Button onClick={nextStep}>
-            {activeStep === studyAbroadQuestions.length - 1 ? "Review" : "Next"}
-          </Button>
-        </CardFooter>
-      </Card>
+    // Filter by location if specified
+    if (formData.location) {
+      filtered = filtered.filter(program => 
+        program.country?.toLowerCase().includes(formData.location.toLowerCase()) ||
+        program.location?.toLowerCase().includes(formData.location.toLowerCase())
+      );
+    }
+    
+    // Filter by duration if specified
+    if (formData.duration) {
+      const durationMonths = parseInt(formData.duration);
+      filtered = filtered.filter(program => {
+        if (!program.duration_months) return true;
+        
+        if (formData.duration === "12") {
+          return program.duration_months <= 12;
+        } else if (formData.duration === "24") {
+          return program.duration_months > 12 && program.duration_months <= 24;
+        } else if (formData.duration === "36") {
+          return program.duration_months > 24 && program.duration_months <= 36;
+        } else if (formData.duration === "48") {
+          return program.duration_months > 36;
+        }
+        return true;
+      });
+    }
+    
+    // Filter by budget if specified
+    if (formData.budget) {
+      const maxBudget = parseInt(formData.budget);
+      filtered = filtered.filter(program => {
+        if (!program.tuition_min) return true;
+        return program.tuition_min <= maxBudget;
+      });
+    }
+    
+    setFilteredPrograms(Array.isArray(filtered) ? filtered : []);
+  };
+  
+  const handleProgramSelect = (programId: string) => {
+    setSelectedPrograms(prev => {
+      if (prev.includes(programId)) {
+        return prev.filter(id => id !== programId);
+      } else {
+        return [...prev, programId];
+      }
+    });
+  };
+  
+  const handleSubmit = () => {
+    toast({
+      title: "Consultation Complete",
+      description: `You've selected ${selectedPrograms.length} programs. Our advisors will contact you soon.`,
+    });
+    
+    // Here you would typically send the data to your backend
+    console.log("Selected programs:", selectedPrograms);
+    console.log("Form data:", formData);
+  };
+  
+  const handleSearchFilter = () => {
+    if (!searchQuery) {
+      filterPrograms();
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    const searchFiltered = filteredPrograms.filter(program => 
+      program.name.toLowerCase().includes(query) ||
+      program.university?.toLowerCase().includes(query) ||
+      program.location?.toLowerCase().includes(query) ||
+      program.country?.toLowerCase().includes(query)
     );
+    
+    setFilteredPrograms(searchFiltered);
   };
   
-  const renderResultsView = () => {
-    if (results.length === 0) {
-      return (
-        <Card className="mb-6">
-          <CardContent className="pt-6 text-center">
-            <AlertTriangle className="h-12 w-12 mx-auto text-amber-500 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Matching Programs Found</h3>
-            <p className="text-muted-foreground mb-6">We couldn't find programs that match your preferences exactly. Try adjusting your criteria.</p>
-            <Button variant="outline" onClick={handleStartOver}>
-              Start Again
-            </Button>
-          </CardContent>
-        </Card>
-      );
+  useEffect(() => {
+    if (searchQuery) {
+      handleSearchFilter();
     }
-    
-    return (
-      <>
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              Consultation Results
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert className="mb-4">
-              <AlertTitle className="flex items-center">
-                <School className="h-4 w-4 mr-2" />
-                We Found {results.length} Programs For You!
-              </AlertTitle>
-              <AlertDescription className="mt-2">
-                Based on your preferences, we've identified these programs that match your criteria. 
-                You can apply directly or schedule a consultation with our advisors for more guidance.
-              </AlertDescription>
-            </Alert>
+  }, [searchQuery]);
+  
+  const toggleFilter = (filter: string) => {
+    setActiveFilters(prev => ({
+      ...prev,
+      [filter]: !prev[filter]
+    }));
+  };
+  
+  // Subject areas
+  const subjectAreas = [
+    "Business & Management",
+    "Computer Science & IT",
+    "Engineering",
+    "Arts & Humanities",
+    "Social Sciences",
+    "Natural Sciences",
+    "Medicine & Health",
+    "Law",
+    "Education",
+    "Architecture & Design"
+  ];
+  
+  return (
+    <div className="space-y-6">
+      {/* Progress bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-sm">
+          <span>Step {step} of 4</span>
+          <span>{progress}% Complete</span>
+        </div>
+        <Progress value={progress} className="h-2" />
+      </div>
+      
+      {/* Step 1: Study Level */}
+      {step === 1 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">What level of study are you interested in?</h2>
+          <p className="text-muted-foreground">Select the academic level you want to pursue</p>
+          
+          <RadioGroup 
+            value={formData.studyLevel} 
+            onValueChange={(value) => setFormData({...formData, studyLevel: value})}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4"
+          >
+            <div>
+              <RadioGroupItem value="Bachelor" id="bachelor" className="peer sr-only" />
+              <Label
+                htmlFor="bachelor"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+              >
+                <GraduationCap className="mb-3 h-6 w-6" />
+                <div className="space-y-1 text-center">
+                  <h3 className="font-medium">Bachelor's Degree</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Undergraduate programs (3-4 years)
+                  </p>
+                </div>
+              </Label>
+            </div>
             
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {results.length} programs
+            <div>
+              <RadioGroupItem value="Master" id="master" className="peer sr-only" />
+              <Label
+                htmlFor="master"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+              >
+                <GraduationCap className="mb-3 h-6 w-6" />
+                <div className="space-y-1 text-center">
+                  <h3 className="font-medium">Master's Degree</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Graduate programs (1-2 years)
+                  </p>
+                </div>
+              </Label>
+            </div>
+            
+            <div>
+              <RadioGroupItem value="PhD" id="phd" className="peer sr-only" />
+              <Label
+                htmlFor="phd"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+              >
+                <GraduationCap className="mb-3 h-6 w-6" />
+                <div className="space-y-1 text-center">
+                  <h3 className="font-medium">PhD / Doctorate</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Advanced research degrees (3+ years)
+                  </p>
+                </div>
+              </Label>
+            </div>
+            
+            <div>
+              <RadioGroupItem value="Certificate" id="certificate" className="peer sr-only" />
+              <Label
+                htmlFor="certificate"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+              >
+                <GraduationCap className="mb-3 h-6 w-6" />
+                <div className="space-y-1 text-center">
+                  <h3 className="font-medium">Certificate / Diploma</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Short-term professional qualifications
+                  </p>
+                </div>
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+      )}
+      
+      {/* Step 2: Subject Areas */}
+      {step === 2 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">What subjects are you interested in studying?</h2>
+          <p className="text-muted-foreground">Select all that apply</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4">
+            {subjectAreas.map((subject) => (
+              <div key={subject} className="flex items-center space-x-2">
+                <Checkbox 
+                  id={subject.toLowerCase().replace(/\s+/g, '-')} 
+                  checked={formData.subjects.includes(subject)}
+                  onCheckedChange={() => handleSubjectToggle(subject)}
+                />
+                <label
+                  htmlFor={subject.toLowerCase().replace(/\s+/g, '-')}
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  {subject}
+                </label>
               </div>
-              <Select defaultValue="match">
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by" />
+            ))}
+          </div>
+        </div>
+      )}
+      
+      {/* Step 3: Additional Preferences */}
+      {step === 3 && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold">Additional Preferences</h2>
+          <p className="text-muted-foreground">Help us narrow down programs that match your needs</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="location">Preferred Location</Label>
+              <Select 
+                value={formData.location} 
+                onValueChange={(value) => setFormData({...formData, location: value})}
+              >
+                <SelectTrigger id="location">
+                  <SelectValue placeholder="Select a location" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="match">Match Score</SelectItem>
-                  <SelectItem value="alphabetical">Alphabetical</SelectItem>
-                  <SelectItem value="tuition-low">Tuition: Low to High</SelectItem>
-                  <SelectItem value="tuition-high">Tuition: High to Low</SelectItem>
+                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                  <SelectItem value="Canada">Canada</SelectItem>
+                  <SelectItem value="Australia">Australia</SelectItem>
+                  <SelectItem value="Germany">Germany</SelectItem>
+                  <SelectItem value="France">France</SelectItem>
+                  <SelectItem value="Spain">Spain</SelectItem>
+                  <SelectItem value="Italy">Italy</SelectItem>
+                  <SelectItem value="Netherlands">Netherlands</SelectItem>
+                  <SelectItem value="Japan">Japan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="space-y-6">
-              {results.map((program) => (
-                <Card key={program.id} className="border-2 hover:border-primary transition-colors cursor-pointer">
-                  <CardContent className="p-4">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="h-32 w-32 md:w-48 md:h-32 bg-muted rounded-md flex-shrink-0 overflow-hidden">
-                        <div 
-                          className="w-full h-full bg-cover bg-center"
-                          style={{ 
-                            backgroundImage: program.image_url 
-                              ? `url(${program.image_url})` 
-                              : `url(/placeholder.svg?height=150&width=200&text=${encodeURIComponent(program.name)})`
-                          }}
-                        ></div>
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-semibold text-lg">{program.name}</h3>
-                            <div className="flex items-center text-muted-foreground mb-2">
-                              <Building className="h-3.5 w-3.5 mr-1" />
-                              <span>{program.university}</span>
-                            </div>
-                          </div>
-                          <Badge className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800">
-                            <Star className="h-3 w-3 mr-1 fill-current" /> 
-                            {program.match_score}% Match
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-y-1 gap-x-4 text-sm mt-1">
-                          <div className="flex items-center">
-                            <MapPin className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            <span>{program.country}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <School className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            <span>{program.study_level}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Languages className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            <span>{program.program_language}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            <span>{program.duration_months} months</span>
-                          </div>
-                          <div className="flex items-center">
-                            <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground mr-1.5" />
-                            <span>${program.tuition_min?.toLocaleString()} / year</span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {program.scholarship_available && (
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800">
-                              Scholarship Available
-                            </Badge>
-                          )}
-                          {program.internship_opportunities && (
-                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800">
-                              Internship Opportunities
-                            </Badge>
-                          )}
-                          {program.religious_facilities && (
-                            <Badge variant="outline" className="text-xs">
-                              Religious Facilities
-                            </Badge>
-                          )}
-                          {program.halal_food_availability && (
-                            <Badge variant="outline" className="text-xs">
-                              Halal Food
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="mt-4 flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => handleViewProgram(program.id)}>
-                            View Details
-                          </Button>
-                          <Button size="sm" onClick={() => handleApplyNow(program.id)}>
-                            Apply Now
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="space-y-2">
+              <Label htmlFor="duration">Program Duration</Label>
+              <Select 
+                value={formData.duration} 
+                onValueChange={(value) => setFormData({...formData, duration: value})}
+              >
+                <SelectTrigger id="duration">
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="12">Up to 1 year</SelectItem>
+                  <SelectItem value="24">1-2 years</SelectItem>
+                  <SelectItem value="36">2-3 years</SelectItem>
+                  <SelectItem value="48">3+ years</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
-        
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={handleStartOver}>
-            Start New Consultation
-          </Button>
-          <Button onClick={() => navigate("/appointments")} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
-            Schedule Advisor Meeting
-          </Button>
+            
+            <div className="space-y-2">
+              <Label htmlFor="budget">Budget (Annual Tuition in USD)</Label>
+              <Select 
+                value={formData.budget} 
+                onValueChange={(value) => setFormData({...formData, budget: value})}
+              >
+                <SelectTrigger id="budget">
+                  <SelectValue placeholder="Select budget range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10000">Under $10,000</SelectItem>
+                  <SelectItem value="20000">Under $20,000</SelectItem>
+                  <SelectItem value="30000">Under $30,000</SelectItem>
+                  <SelectItem value="50000">Under $50,000</SelectItem>
+                  <SelectItem value="100000">Any budget</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Preferred Start Date</Label>
+              <Select 
+                value={formData.startDate} 
+                onValueChange={(value) => setFormData({...formData, startDate: value})}
+              >
+                <SelectTrigger id="startDate">
+                  <SelectValue placeholder="Select start date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fall 2023">Fall 2023</SelectItem>
+                  <SelectItem value="Spring 2024">Spring 2024</SelectItem>
+                  <SelectItem value="Fall 2024">Fall 2024</SelectItem>
+                  <SelectItem value="Spring 2025">Spring 2025</SelectItem>
+                  <SelectItem value="Flexible">Flexible</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="specialRequirements">Special Requirements or Notes</Label>
+            <Textarea 
+              id="specialRequirements" 
+              placeholder="Any additional information that might help us find the right program for you"
+              value={formData.specialRequirements}
+              onChange={(e) => setFormData({...formData, specialRequirements: e.target.value})}
+              className="min-h-[100px]"
+            />
+          </div>
         </div>
-      </>
-    );
-  };
-  
-  return (
-    <div className="container max-w-3xl mx-auto px-4 py-8">
-      {!showResults ? (
-        <>
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold mb-2">Program Finder</h1>
-            <p className="text-muted-foreground">
-              Answer a few questions to find the perfect educational program for you
-            </p>
-          </div>
-          
-          <div className="w-full bg-muted h-2 rounded-full mb-8">
-            <div 
-              className="h-2 bg-primary rounded-full transition-all"
-              style={{ width: `${(activeStep / studyAbroadQuestions.length) * 100}%` }}
-            ></div>
-          </div>
-          
-          {renderCurrentQuestion()}
-        </>
-      ) : (
-        renderResultsView()
       )}
+      
+      {/* Step 4: Results */}
+      {step === 4 && (
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold">Recommended Programs</h2>
+              <p className="text-muted-foreground">
+                Based on your preferences, we found {filteredPrograms.length} matching programs
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search programs..."
+                  className="pl-8 w-[200px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <Button variant="outline" size="icon" onClick={() => toggleFilter('all')}>
+                <Filter className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
+          {/* Active filters */}
+          {Object.values(activeFilters).some(Boolean) && (
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(activeFilters).map(([key, active]) => 
+                active && (
+                  <Badge key={key} variant="secondary" className="px-3 py-1">
+                    {key === 'level' ? 'Study Level' : 
+                     key === 'location' ? 'Location' : 
+                     key === 'duration' ? 'Duration' : 
+                     key === 'budget' ? 'Budget' : key}
+                    <X 
+                      className="ml-1 h-3 w-3 cursor-pointer" 
+                      onClick={() => toggleFilter(key)} 
+                    />
+                  </Badge>
+                )
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 text-xs"
+                onClick={() => setActiveFilters({level: false, location: false, duration: false, budget: false})}
+              >
+                Clear all
+              </Button>
+            </div>
+          )}
+          
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : filteredPrograms.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <X className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-2">No matching programs found</h3>
+                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                  Try adjusting your preferences or filters to see more results.
+                </p>
+                <Button onClick={handlePrevious}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Adjust Preferences
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="all">All Programs</TabsTrigger>
+                  <TabsTrigger value="selected">Selected ({selectedPrograms.length})</TabsTrigger>
+                  <TabsTrigger value="favorites">Favorites ({favoritePrograms.length})</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="all" className="space-y-4 mt-4">
+                  {filteredPrograms.map((program) => (
+                    <ProgramCard 
+                      key={program.id}
+                      program={program}
+                      isSelected={selectedPrograms.includes(program.id)}
+                      isFavorite={favoritePrograms.includes(program.id)}
+                      onSelect={() => handleProgramSelect(program.id)}
+                      onFavorite={() => toggleFavorite(program.id)}
+                    />
+                  ))}
+                </TabsContent>
+                
+                <TabsContent value="selected" className="space-y-4 mt-4">
+                  {filteredPrograms
+                    .filter(program => selectedPrograms.includes(program.id))
+                    .map((program) => (
+                      <ProgramCard 
+                        key={program.id}
+                        program={program}
+                        isSelected={true}
+                        isFavorite={favoritePrograms.includes(program.id)}
+                        onSelect={() => handleProgramSelect(program.id)}
+                        onFavorite={() => toggleFavorite(program.id)}
+                      />
+                    ))}
+                  
+                  {selectedPrograms.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No programs selected yet. Click the checkbox to select programs.
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="favorites" className="space-y-4 mt-4">
+                  {filteredPrograms
+                    .filter(program => favoritePrograms.includes(program.id))
+                    .map((program) => (
+                      <ProgramCard 
+                        key={program.id}
+                        program={program}
+                        isSelected={selectedPrograms.includes(program.id)}
+                        isFavorite={true}
+                        onSelect={() => handleProgramSelect(program.id)}
+                        onFavorite={() => toggleFavorite(program.id)}
+                      />
+                    ))}
+                  
+                  {favoritePrograms.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No favorite programs yet. Click the heart icon to add favorites.
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+          
+          {filteredPrograms.length > 0 && (
+            <div className="flex justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                {selectedPrograms.length} of {filteredPrograms.length} programs selected
+              </p>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={selectedPrograms.length === 0}
+              >
+                Submit Selection
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Navigation buttons */}
+      <div className="flex justify-between pt-4">
+        <Button
+          variant="outline"
+          onClick={handlePrevious}
+          disabled={step === 1}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Previous
+        </Button>
+        
+        {step < 4 && (
+          <Button onClick={handleNext}>
+            Next
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
+};
+
+interface ProgramCardProps {
+  program: Program;
+  isSelected: boolean;
+  isFavorite: boolean;
+  onSelect: () => void;
+  onFavorite: () => void;
 }
+
+const ProgramCard = ({ program, isSelected, isFavorite, onSelect, onFavorite }: ProgramCardProps) => {
+  return (
+    <Card className={`overflow-hidden transition-all ${isSelected ? 'border-primary' : ''}`}>
+      <CardContent className="p-0">
+        <div className="flex flex-col md:flex-row">
+          <div className="p-4 md:p-6 flex-1">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-lg">{program.name}</h3>
+                <p className="text-muted-foreground">{program.university}</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  checked={isSelected} 
+                  onCheckedChange={onSelect}
+                  className="h-5 w-5"
+                />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onFavorite();
+                  }}
+                >
+                  <Heart 
+                    className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
+                  />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 mt-3">
+              <Badge variant="outline">{program.type}</Badge>
+              <Badge variant="secondary">{program.location}</Badge>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="flex items-center">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-sm">{program.duration}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-sm">Deadline: {new Date(program.deadline).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center">
+                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-sm">{program.location}</span>
+              </div>
+              <div className="flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-sm">{program.tuition}</span>
+              </div>
+            </div>
+            
+            <Separator className="my-4" />
+            
+            <div className="space-y-2">
+              <p className="text-sm line-clamp-2">{program.description}</p>
+              <Button variant="link" className="p-0 h-auto">View Details</Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
