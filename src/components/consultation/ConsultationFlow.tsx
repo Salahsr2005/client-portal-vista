@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,28 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { usePrograms } from "@/hooks/usePrograms";
+import { usePrograms, ProgramFilter } from "@/hooks/usePrograms";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
-import { ArrowRight, ArrowLeft, Check, X, Heart, Filter, Search, GraduationCap, MapPin, Calendar, Clock, DollarSign } from 'lucide-react';
+import ProgramCard from './ProgramCard';
+import { ArrowRight, ArrowLeft, Check, X, Filter, Search, GraduationCap } from 'lucide-react';
 
 // Define types
-interface Program {
-  id: string;
-  name: string;
-  university: string;
-  location: string;
-  type: string;
-  duration: string;
-  tuition: string;
-  deadline: string;
-  subjects: string[];
-  description: string;
-  requirements: string;
-  [key: string]: any;
-}
-
 interface FormData {
   studyLevel: string;
   subjects: string[];
@@ -42,12 +28,14 @@ interface FormData {
   budget: string;
   startDate: string;
   specialRequirements: string;
+  scholarshipRequired: boolean;
+  religiousFacilities: boolean;
+  halalFood: boolean;
 }
 
 export const ConsultationFlow = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { data: allPrograms = [], isLoading } = usePrograms();
   
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(25);
@@ -59,9 +47,11 @@ export const ConsultationFlow = () => {
     budget: "",
     startDate: "",
     specialRequirements: "",
+    scholarshipRequired: false,
+    religiousFacilities: false,
+    halalFood: false
   });
   
-  const [filteredPrograms, setFilteredPrograms] = useState<Program[]>([]);
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
   const [favoritePrograms, setFavoritePrograms] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,6 +61,21 @@ export const ConsultationFlow = () => {
     duration: false,
     budget: false,
   });
+  
+  // Create filter object based on form data
+  const programFilter: ProgramFilter = {
+    studyLevel: formData.studyLevel,
+    subjects: formData.subjects,
+    location: formData.location,
+    duration: formData.duration,
+    budget: formData.budget,
+    scholarshipRequired: formData.scholarshipRequired,
+    religiousFacilities: formData.religiousFacilities,
+    halalFood: formData.halalFood
+  };
+  
+  // Get programs with matching algorithm applied
+  const { data: filteredPrograms = [], isLoading } = usePrograms(step === 4 ? programFilter : undefined);
   
   // Initialize favorites
   useEffect(() => {
@@ -83,9 +88,6 @@ export const ConsultationFlow = () => {
     if (!user) return;
     
     try {
-      // Ensure the table exists
-      await createFavoriteProgramsTable();
-      
       // Fetch user's favorite programs
       const { data, error } = await supabase
         .from('favorite_programs')
@@ -183,7 +185,6 @@ export const ConsultationFlow = () => {
       setStep(3);
       setProgress(75);
     } else if (step === 3) {
-      filterPrograms();
       setStep(4);
       setProgress(100);
     }
@@ -218,76 +219,6 @@ export const ConsultationFlow = () => {
     });
   };
   
-  const filterPrograms = () => {
-    // Apply filters based on form data
-    let filtered = [...allPrograms];
-    
-    // Filter by study level
-    if (formData.studyLevel) {
-      filtered = filtered.filter(program => 
-        program.study_level?.toLowerCase() === formData.studyLevel.toLowerCase() ||
-        program.type?.toLowerCase().includes(formData.studyLevel.toLowerCase())
-      );
-    }
-    
-    // Filter by subjects
-    if (formData.subjects.length > 0) {
-      filtered = filtered.filter(program => {
-        // Check if any of the selected subjects match the program's field keywords
-        if (program.field_keywords && Array.isArray(program.field_keywords)) {
-          return formData.subjects.some(subject => 
-            program.field_keywords.some((keyword: string) => 
-              keyword.toLowerCase().includes(subject.toLowerCase())
-            )
-          );
-        }
-        // If no field keywords, check program name and description
-        return formData.subjects.some(subject => 
-          program.name.toLowerCase().includes(subject.toLowerCase()) ||
-          (program.description && program.description.toLowerCase().includes(subject.toLowerCase()))
-        );
-      });
-    }
-    
-    // Filter by location if specified
-    if (formData.location) {
-      filtered = filtered.filter(program => 
-        program.country?.toLowerCase().includes(formData.location.toLowerCase()) ||
-        program.location?.toLowerCase().includes(formData.location.toLowerCase())
-      );
-    }
-    
-    // Filter by duration if specified
-    if (formData.duration) {
-      const durationMonths = parseInt(formData.duration);
-      filtered = filtered.filter(program => {
-        if (!program.duration_months) return true;
-        
-        if (formData.duration === "12") {
-          return program.duration_months <= 12;
-        } else if (formData.duration === "24") {
-          return program.duration_months > 12 && program.duration_months <= 24;
-        } else if (formData.duration === "36") {
-          return program.duration_months > 24 && program.duration_months <= 36;
-        } else if (formData.duration === "48") {
-          return program.duration_months > 36;
-        }
-        return true;
-      });
-    }
-    
-    // Filter by budget if specified
-    if (formData.budget) {
-      const maxBudget = parseInt(formData.budget);
-      filtered = filtered.filter(program => {
-        if (!program.tuition_min) return true;
-        return program.tuition_min <= maxBudget;
-      });
-    }
-    
-    setFilteredPrograms(Array.isArray(filtered) ? filtered : []);
-  };
-  
   const handleProgramSelect = (programId: string) => {
     setSelectedPrograms(prev => {
       if (prev.includes(programId)) {
@@ -309,28 +240,15 @@ export const ConsultationFlow = () => {
     console.log("Form data:", formData);
   };
   
-  const handleSearchFilter = () => {
-    if (!searchQuery) {
-      filterPrograms();
-      return;
-    }
-    
-    const query = searchQuery.toLowerCase();
-    const searchFiltered = filteredPrograms.filter(program => 
-      program.name.toLowerCase().includes(query) ||
-      program.university?.toLowerCase().includes(query) ||
-      program.location?.toLowerCase().includes(query) ||
-      program.country?.toLowerCase().includes(query)
-    );
-    
-    setFilteredPrograms(searchFiltered);
-  };
-  
-  useEffect(() => {
-    if (searchQuery) {
-      handleSearchFilter();
-    }
-  }, [searchQuery]);
+  // Filter programs based on search query
+  const searchFilteredPrograms = searchQuery 
+    ? filteredPrograms.filter(program => 
+        program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        program.university?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        program.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        program.country?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : filteredPrograms;
   
   const toggleFilter = (filter: string) => {
     setActiveFilters(prev => ({
@@ -556,6 +474,45 @@ export const ConsultationFlow = () => {
             </div>
           </div>
           
+          <div className="space-y-4">
+            <Label>Additional Requirements</Label>
+            
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="scholarshipRequired" 
+                  checked={formData.scholarshipRequired}
+                  onCheckedChange={(checked) => setFormData({...formData, scholarshipRequired: !!checked})}
+                />
+                <label htmlFor="scholarshipRequired">
+                  Scholarship available
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="religiousFacilities" 
+                  checked={formData.religiousFacilities}
+                  onCheckedChange={(checked) => setFormData({...formData, religiousFacilities: !!checked})}
+                />
+                <label htmlFor="religiousFacilities">
+                  Religious facilities available
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="halalFood" 
+                  checked={formData.halalFood}
+                  onCheckedChange={(checked) => setFormData({...formData, halalFood: !!checked})}
+                />
+                <label htmlFor="halalFood">
+                  Halal food options
+                </label>
+              </div>
+            </div>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="specialRequirements">Special Requirements or Notes</Label>
             <Textarea 
@@ -630,7 +587,7 @@ export const ConsultationFlow = () => {
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
-          ) : filteredPrograms.length === 0 ? (
+          ) : searchFilteredPrograms.length === 0 ? (
             <Card>
               <CardContent className="py-8 text-center">
                 <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -656,7 +613,7 @@ export const ConsultationFlow = () => {
                 </TabsList>
                 
                 <TabsContent value="all" className="space-y-4 mt-4">
-                  {filteredPrograms.map((program) => (
+                  {searchFilteredPrograms.map((program) => (
                     <ProgramCard 
                       key={program.id}
                       program={program}
@@ -669,7 +626,7 @@ export const ConsultationFlow = () => {
                 </TabsContent>
                 
                 <TabsContent value="selected" className="space-y-4 mt-4">
-                  {filteredPrograms
+                  {searchFilteredPrograms
                     .filter(program => selectedPrograms.includes(program.id))
                     .map((program) => (
                       <ProgramCard 
@@ -690,7 +647,7 @@ export const ConsultationFlow = () => {
                 </TabsContent>
                 
                 <TabsContent value="favorites" className="space-y-4 mt-4">
-                  {filteredPrograms
+                  {searchFilteredPrograms
                     .filter(program => favoritePrograms.includes(program.id))
                     .map((program) => (
                       <ProgramCard 
@@ -713,10 +670,10 @@ export const ConsultationFlow = () => {
             </div>
           )}
           
-          {filteredPrograms.length > 0 && (
+          {searchFilteredPrograms.length > 0 && (
             <div className="flex justify-between pt-4">
               <p className="text-sm text-muted-foreground">
-                {selectedPrograms.length} of {filteredPrograms.length} programs selected
+                {selectedPrograms.length} of {searchFilteredPrograms.length} programs selected
               </p>
               <Button 
                 onClick={handleSubmit} 
@@ -748,83 +705,5 @@ export const ConsultationFlow = () => {
         )}
       </div>
     </div>
-  );
-};
-
-interface ProgramCardProps {
-  program: Program;
-  isSelected: boolean;
-  isFavorite: boolean;
-  onSelect: () => void;
-  onFavorite: () => void;
-}
-
-const ProgramCard = ({ program, isSelected, isFavorite, onSelect, onFavorite }: ProgramCardProps) => {
-  return (
-    <Card className={`overflow-hidden transition-all ${isSelected ? 'border-primary' : ''}`}>
-      <CardContent className="p-0">
-        <div className="flex flex-col md:flex-row">
-          <div className="p-4 md:p-6 flex-1">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <h3 className="font-semibold text-lg">{program.name}</h3>
-                <p className="text-muted-foreground">{program.university}</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  checked={isSelected} 
-                  onCheckedChange={onSelect}
-                  className="h-5 w-5"
-                />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onFavorite();
-                  }}
-                >
-                  <Heart 
-                    className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
-                  />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex flex-wrap gap-2 mt-3">
-              <Badge variant="outline">{program.type}</Badge>
-              <Badge variant="secondary">{program.location}</Badge>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-sm">{program.duration}</span>
-              </div>
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-sm">Deadline: {new Date(program.deadline).toLocaleDateString()}</span>
-              </div>
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-sm">{program.location}</span>
-              </div>
-              <div className="flex items-center">
-                <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-sm">{program.tuition}</span>
-              </div>
-            </div>
-            
-            <Separator className="my-4" />
-            
-            <div className="space-y-2">
-              <p className="text-sm line-clamp-2">{program.description}</p>
-              <Button variant="link" className="p-0 h-auto">View Details</Button>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };

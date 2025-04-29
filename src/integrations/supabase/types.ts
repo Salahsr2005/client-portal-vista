@@ -841,6 +841,35 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_programs: {
+        Row: {
+          created_at: string | null
+          id: string
+          program_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          program_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          program_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_programs_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_attachments: {
         Row: {
           attachment_id: string

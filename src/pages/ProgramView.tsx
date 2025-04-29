@@ -27,6 +27,7 @@ export default function ProgramView() {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [dialogContent, setDialogContent] = useState('requirements');
+  const [isFavorite, setIsFavorite] = useState(false);
   
   useEffect(() => {
     const fetchProgramDetails = async () => {
@@ -59,7 +60,88 @@ export default function ProgramView() {
     };
 
     fetchProgramDetails();
-  }, [programId, toast]);
+    
+    // Check if program is in favorites
+    if (user) {
+      checkFavoriteStatus();
+    }
+  }, [programId, toast, user]);
+  
+  // Check if program is in favorites
+  const checkFavoriteStatus = async () => {
+    if (!user || !programId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('favorite_programs')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('program_id', programId)
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking favorite status:', error);
+      }
+      
+      setIsFavorite(!!data);
+    } catch (err) {
+      console.error('Error in checkFavoriteStatus:', err);
+    }
+  };
+  
+  // Toggle favorite status
+  const toggleFavorite = async () => {
+    if (!user || !programId) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save favorite programs",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      if (isFavorite) {
+        // Remove from favorites
+        const { error } = await supabase
+          .from('favorite_programs')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('program_id', programId);
+          
+        if (error) throw error;
+        
+        setIsFavorite(false);
+        toast({
+          title: "Removed from favorites",
+          description: "Program removed from your favorites",
+        });
+      } else {
+        // Add to favorites
+        const { error } = await supabase
+          .from('favorite_programs')
+          .insert({
+            user_id: user.id,
+            program_id: programId
+          });
+          
+        if (error) throw error;
+        
+        setIsFavorite(true);
+        toast({
+          title: "Added to favorites",
+          description: "Program added to your favorites",
+        });
+      }
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update favorites. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleApplyClick = () => {
     if (!user) {
@@ -105,8 +187,43 @@ export default function ProgramView() {
     );
   }
 
+  // Program image
+  const programImage = program.image_url || '/placeholder.svg';
+
   return (
     <div className="container py-8 max-w-6xl">
+      <div className="mb-6">
+        <div className="relative h-64 w-full rounded-lg overflow-hidden">
+          <img 
+            src={programImage} 
+            alt={program.name} 
+            className="w-full h-full object-cover" 
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+            <div className="text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <Badge className="bg-primary">{program.study_level}</Badge>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 bg-white/20 hover:bg-white/30" 
+                  onClick={toggleFavorite}
+                >
+                  <Heart 
+                    className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-white'}`} 
+                  />
+                </Button>
+              </div>
+              <h1 className="text-3xl font-bold">{program.name}</h1>
+              <div className="flex items-center mt-1">
+                <Building className="h-4 w-4 mr-1" /> 
+                <span>{program.university}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Program Info Column */}
         <div className="md:col-span-2">
@@ -119,9 +236,6 @@ export default function ProgramView() {
                     <Building className="h-4 w-4 mr-1" /> 
                     {program.university}
                   </CardDescription>
-                </div>
-                <div>
-                  <Badge className="mb-2">{program.study_level}</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -438,6 +552,14 @@ export default function ProgramView() {
               </Button>
               <Button variant="outline" className="w-full" onClick={() => navigate('/consultation')}>
                 Get Consultation
+              </Button>
+              <Button 
+                variant={isFavorite ? "secondary" : "outline"}
+                className="w-full"
+                onClick={toggleFavorite}
+              >
+                <Heart className={`mr-2 h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                {isFavorite ? "Saved to Favorites" : "Save to Favorites"}
               </Button>
             </CardFooter>
           </Card>

@@ -1,332 +1,386 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
+import React, { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { usePayments, usePendingApplications } from "@/hooks/usePayments";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { 
-  CreditCard, 
-  Receipt, 
-  Download, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
-  FileText,
-  Calendar,
-  ChevronRight,
-  DollarSign
-} from "lucide-react";
+import { CreditCard, Download, FileText, Info } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Mock data for payments
-const paymentHistory = [
-  {
-    id: "INV-001",
-    date: "2023-08-15",
-    amount: 250,
-    status: "Paid",
-    description: "Application Fee - Harvard University",
-    paymentMethod: "Visa •••• 4242",
-  },
-  {
-    id: "INV-002",
-    date: "2023-07-28",
-    amount: 150,
-    status: "Paid",
-    description: "Document Verification Service",
-    paymentMethod: "MasterCard •••• 5555",
-  },
-  {
-    id: "INV-003",
-    date: "2023-06-10",
-    amount: 500,
-    status: "Paid",
-    description: "Premium Consultation Package",
-    paymentMethod: "Bank Transfer",
-  },
-  {
-    id: "INV-004",
-    date: "2023-05-22",
-    amount: 75,
-    status: "Pending",
-    description: "Express Processing Fee",
-    paymentMethod: "Pending Payment",
-  }
-];
+const PaymentsPage = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { data: payments = [], isLoading: paymentsLoading } = usePayments();
+  const { data: pendingApplications = [], isLoading: pendingLoading } = usePendingApplications();
+  
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [processingPayment, setProcessingPayment] = useState(false);
 
-// Mock data for invoices
-const invoices = [
-  {
-    id: "INV-005",
-    date: "2023-09-01",
-    dueDate: "2023-09-15",
-    amount: 350,
-    status: "Unpaid",
-    description: "University Application Support - Stanford",
-  },
-  {
-    id: "INV-006",
-    date: "2023-08-25",
-    dueDate: "2023-09-10",
-    amount: 200,
-    status: "Unpaid",
-    description: "Visa Consultation Services",
-  }
-];
-
-// Mock data for subscription
-const subscription = {
-  plan: "Premium Support",
-  status: "Active",
-  nextBilling: "2023-09-15",
-  amount: 49.99,
-  features: [
-    "Unlimited application support",
-    "Priority document processing",
-    "24/7 advisor access",
-    "Monthly strategy sessions"
-  ]
-};
-
-const Payments = () => {
-  const [activeTab, setActiveTab] = useState("history");
-
-  // Fix the math operation
-  const calculateTotal = (price: number | string, quantity: number) => {
-    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return numericPrice * quantity;
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="text-amber-600 border-amber-600">Pending</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>;
+      case 'refunded':
+        return <Badge variant="secondary">Refunded</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
-  // Calculate total paid
-  const totalPaid = paymentHistory
-    .filter(payment => payment.status === "Paid")
-    .reduce((sum, payment) => sum + payment.amount, 0);
+  const handlePayNow = (application: any) => {
+    setSelectedApplication(application);
+    setShowPaymentModal(true);
+  };
 
-  // Calculate total due
-  const totalDue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+  const handleSubmitPayment = () => {
+    // Validate form
+    if (!cardNumber || !cardName || !expiryDate || !cvv) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all payment details",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProcessingPayment(true);
+
+    // Simulate payment processing
+    setTimeout(() => {
+      setProcessingPayment(false);
+      setShowPaymentModal(false);
+      
+      // Reset form
+      setCardNumber("");
+      setCardName("");
+      setExpiryDate("");
+      setCvv("");
+      
+      toast({
+        title: "Payment successful",
+        description: `Your payment of $${selectedApplication?.applicationFee} has been processed`,
+        variant: "default",
+      });
+    }, 2000);
+  };
+
+  if (!user) {
+    return (
+      <div className="container max-w-6xl py-8">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-8">
+            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Sign in to access payments</h2>
+            <p className="text-center text-muted-foreground mb-6">
+              You need to be signed in to view your payment history and manage pending payments.
+            </p>
+            <Button asChild>
+              <a href="/login">Sign In</a>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Payments & Billing</h1>
-        <Button>
-          <DollarSign className="mr-2 h-4 w-4" />
-          Make a Payment
-        </Button>
-      </div>
-
-      {/* Payment Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalPaid.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Across {paymentHistory.filter(p => p.status === "Paid").length} transactions
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Outstanding Balance</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalDue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              {invoices.length} unpaid {invoices.length === 1 ? "invoice" : "invoices"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Payment</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${subscription.amount.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Due on {subscription.nextBilling}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Management</CardTitle>
-          <CardDescription>
-            View and manage your payment history, invoices, and subscription
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="history">Payment History</TabsTrigger>
-              <TabsTrigger value="invoices">Invoices</TabsTrigger>
-              <TabsTrigger value="subscription">Subscription</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="history" className="space-y-4">
-              <div className="rounded-md border">
-                <div className="py-3 px-4 text-sm font-medium grid grid-cols-5 bg-muted/50">
-                  <div>Invoice</div>
-                  <div>Date</div>
-                  <div>Description</div>
-                  <div>Amount</div>
-                  <div>Status</div>
+    <div className="container max-w-6xl py-8">
+      <h1 className="text-3xl font-bold mb-6">Payments</h1>
+      
+      <Tabs defaultValue="history">
+        <TabsList className="mb-6">
+          <TabsTrigger value="history">Payment History</TabsTrigger>
+          <TabsTrigger value="pending">
+            Pending Payments
+            {pendingApplications.length > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {pendingApplications.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment History</CardTitle>
+              <CardDescription>
+                View all your past payments and transaction details
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {paymentsLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
                 </div>
-                <div className="divide-y">
-                  {paymentHistory.map((payment) => (
-                    <div key={payment.id} className="py-3 px-4 text-sm grid grid-cols-5 items-center">
-                      <div className="font-medium">{payment.id}</div>
-                      <div>{payment.date}</div>
-                      <div>{payment.description}</div>
-                      <div>${payment.amount.toFixed(2)}</div>
-                      <div>
-                        <Badge variant={payment.status === "Paid" ? "success" : "outline"}>
-                          {payment.status === "Paid" ? (
-                            <CheckCircle className="mr-1 h-3 w-3" />
-                          ) : (
-                            <Clock className="mr-1 h-3 w-3" />
-                          )}
-                          {payment.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <Button variant="outline" size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  Download All Receipts
-                </Button>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="invoices" className="space-y-4">
-              {invoices.length > 0 ? (
-                <div className="space-y-4">
-                  {invoices.map((invoice) => (
-                    <Card key={invoice.id}>
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between">
-                          <CardTitle className="text-base">{invoice.id}</CardTitle>
-                          <Badge variant="destructive">
-                            {invoice.status}
-                          </Badge>
-                        </div>
-                        <CardDescription>{invoice.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent className="pb-2">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Issue Date</p>
-                            <p className="font-medium">{invoice.date}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Due Date</p>
-                            <p className="font-medium">{invoice.dueDate}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Amount</p>
-                            <p className="font-medium">${invoice.amount.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <Button variant="outline" size="sm">
-                          <FileText className="mr-2 h-4 w-4" />
-                          View Invoice
-                        </Button>
-                        <Button size="sm">
-                          Pay Now
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
+              ) : payments.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No payment history</h3>
+                  <p className="text-muted-foreground">
+                    You haven't made any payments yet.
+                  </p>
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-                  <h3 className="text-lg font-medium mb-1">No Outstanding Invoices</h3>
-                  <p className="text-muted-foreground">You don't have any unpaid invoices at the moment.</p>
-                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Receipt</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{payment.date}</TableCell>
+                        <TableCell>
+                          <div className="font-medium">{payment.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {payment.programName && (
+                              <>
+                                {payment.programName}
+                                {payment.universityName && (
+                                  <span> - {payment.universityName}</span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{payment.amount}</TableCell>
+                        <TableCell>{payment.method}</TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                        <TableCell>
+                          {payment.status === "Completed" && (
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                              <Download className="h-4 w-4" />
+                              <span>Receipt</span>
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
-            </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="pending">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pending Payments</CardTitle>
+              <CardDescription>
+                Complete your application process by paying the required fees
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {pendingLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary" />
+                </div>
+              ) : pendingApplications.length === 0 ? (
+                <div className="text-center py-8">
+                  <Info className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No pending payments</h3>
+                  <p className="text-muted-foreground">
+                    You don't have any pending payments at the moment.
+                  </p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Program</TableHead>
+                      <TableHead>University</TableHead>
+                      <TableHead>Fee Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingApplications.map((app) => (
+                      <TableRow key={app.id}>
+                        <TableCell>{app.date}</TableCell>
+                        <TableCell>{app.programName}</TableCell>
+                        <TableCell>{app.university}</TableCell>
+                        <TableCell>${app.applicationFee}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-amber-600 border-amber-600">
+                            Payment Required
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            onClick={() => handlePayNow(app)}
+                            size="sm"
+                          >
+                            Pay Now
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Complete Payment</DialogTitle>
+            <DialogDescription>
+              Please enter your payment details to complete the transaction.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-1">
+              <Label>Payment for:</Label>
+              <p className="text-sm font-medium">{selectedApplication?.programName}</p>
+              <p className="text-sm text-muted-foreground">{selectedApplication?.university}</p>
+            </div>
             
-            <TabsContent value="subscription" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>{subscription.plan}</CardTitle>
-                    <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-100">
-                      {subscription.status}
-                    </Badge>
-                  </div>
-                  <CardDescription>
-                    Your subscription renews on {subscription.nextBilling}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Monthly Fee</p>
-                      <p className="text-2xl font-bold">${subscription.amount.toFixed(2)}</p>
-                    </div>
-                    <Button variant="outline">Change Plan</Button>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h4 className="font-medium mb-2">Plan Features</h4>
-                    <ul className="space-y-2">
-                      {subscription.features.map((feature, index) => (
-                        <li key={index} className="flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          <span className="text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h4 className="font-medium mb-2">Payment Method</h4>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <CreditCard className="h-5 w-5 mr-2" />
-                        <span>Visa ending in 4242</span>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        Change
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline" className="text-destructive hover:bg-destructive/10">
-                    Cancel Subscription
-                  </Button>
-                  <Button>
-                    <Receipt className="mr-2 h-4 w-4" />
-                    Billing History
-                  </Button>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            <div className="space-y-1">
+              <Label>Amount:</Label>
+              <p className="text-xl font-semibold">${selectedApplication?.applicationFee}</p>
+            </div>
+            
+            <Separator className="my-2" />
+            
+            <div className="grid gap-2">
+              <Label htmlFor="cardName">Cardholder Name</Label>
+              <Input 
+                id="cardName" 
+                placeholder="John Smith" 
+                value={cardName}
+                onChange={(e) => setCardName(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="cardNumber">Card Number</Label>
+              <Input 
+                id="cardNumber" 
+                placeholder="1234 5678 9012 3456" 
+                value={cardNumber}
+                onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim())}
+                maxLength={19}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="expiryDate">Expiry Date</Label>
+                <Input 
+                  id="expiryDate" 
+                  placeholder="MM/YY" 
+                  value={expiryDate}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 4) {
+                      let formatted = value;
+                      if (value.length > 2) {
+                        formatted = `${value.slice(0, 2)}/${value.slice(2)}`;
+                      }
+                      setExpiryDate(formatted);
+                    }
+                  }}
+                  maxLength={5}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="cvv">CVV</Label>
+                <Input 
+                  id="cvv" 
+                  type="password"
+                  placeholder="123" 
+                  value={cvv}
+                  onChange={(e) => setCvv(e.target.value.replace(/\D/g, ''))}
+                  maxLength={4}
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="paymentMethod">Payment Method</Label>
+              <Select defaultValue="creditCard">
+                <SelectTrigger id="paymentMethod">
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="creditCard">Credit Card</SelectItem>
+                  <SelectItem value="debitCard">Debit Card</SelectItem>
+                  <SelectItem value="paypal">PayPal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowPaymentModal(false)}
+              disabled={processingPayment}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitPayment}
+              disabled={processingPayment}
+            >
+              {processingPayment ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Pay ${selectedApplication?.applicationFee}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default Payments;
+// Helper component for the separator
+const Separator = ({ className }: { className?: string }) => (
+  <div className={`h-[1px] w-full bg-border ${className || ''}`}></div>
+);
+
+export default PaymentsPage;

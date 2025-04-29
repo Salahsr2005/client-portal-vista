@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,6 +17,7 @@ const MessagesPage = () => {
   const [message, setMessage] = useState("");
   const [chatId, setChatId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   // Query to get or create chat with admin
   const { data: chat, isLoading: chatLoading } = useQuery({
@@ -31,19 +32,26 @@ const MessagesPage = () => {
         .eq("is_group_chat", false)
         .eq("is_active", true);
 
-      if (chatError) throw chatError;
+      if (chatError) {
+        console.error("Error fetching chats:", chatError);
+        throw chatError;
+      }
       
       // Find chat where the user is a participant
       let userChat = null;
       
       if (existingChats && existingChats.length > 0) {
         for (const chat of existingChats) {
-          const { data: participants } = await supabase
+          const { data: participants, error: participantsError } = await supabase
             .from("chat_participants")
             .select("*")
             .eq("chat_id", chat.chat_id)
             .eq("participant_id", user.id)
             .eq("participant_type", "Client");
+            
+          if (participantsError) {
+            console.error("Error fetching participants:", participantsError);
+          }
             
           if (participants && participants.length > 0) {
             userChat = chat;
@@ -66,6 +74,7 @@ const MessagesPage = () => {
         .single();
 
       if (adminError && adminError.code !== 'PGRST116') {
+        console.error("Error fetching admin:", adminError);
         throw adminError;
       }
 
@@ -80,10 +89,13 @@ const MessagesPage = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error creating chat:", error);
+          throw error;
+        }
         
         // Add client as participant
-        await supabase
+        const { error: clientParticipantError } = await supabase
           .from("chat_participants")
           .insert({
             chat_id: newChat.chat_id,
@@ -92,8 +104,12 @@ const MessagesPage = () => {
             display_name: `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email
           });
           
+        if (clientParticipantError) {
+          console.error("Error adding client participant:", clientParticipantError);
+        }
+          
         // Add admin as participant
-        await supabase
+        const { error: adminParticipantError } = await supabase
           .from("chat_participants")
           .insert({
             chat_id: newChat.chat_id,
@@ -101,6 +117,10 @@ const MessagesPage = () => {
             participant_type: "Admin",
             is_admin: true
           });
+          
+        if (adminParticipantError) {
+          console.error("Error adding admin participant:", adminParticipantError);
+        }
         
         setChatId(newChat.chat_id);
         return newChat;
@@ -132,8 +152,12 @@ const MessagesPage = () => {
         .eq("chat_id", chatId)
         .order("sent_at", { ascending: true });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching messages:", error);
+        throw error;
+      }
+      
+      return data || [];
     },
     enabled: !!chatId
   });
@@ -153,21 +177,20 @@ const MessagesPage = () => {
           filter: `chat_id=eq.${chatId}`
         },
         (payload) => {
-          // This will refresh the messages query when a new message is received
-          supabase.from("chat_messages")
-            .select()
-            .eq("message_id", payload.new.message_id)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                // Mark message as read if it's from admin
-                if (data.sender_type === "Admin") {
-                  supabase.from("chat_messages")
-                    .update({ status: "Read" })
-                    .eq("message_id", data.message_id);
+          // Invalidate and refetch messages query
+          queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
+          
+          // Mark message as read if it's from admin
+          if (payload.new && payload.new.sender_type === "Admin") {
+            supabase.from("chat_messages")
+              .update({ status: "Read" })
+              .eq("message_id", payload.new.message_id)
+              .then(({ error }) => {
+                if (error) {
+                  console.error("Error marking message as read:", error);
                 }
-              }
-            });
+              });
+          }
         }
       )
       .subscribe();
@@ -175,7 +198,7 @@ const MessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [chatId]);
+  }, [chatId, queryClient]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -188,14 +211,21 @@ const MessagesPage = () => {
     if (!message.trim() || !chatId || !user) return;
 
     try {
-      await supabase.from("chat_messages").insert({
+      const { error } = await supabase.from("chat_messages").insert({
         chat_id: chatId,
         sender_id: user.id,
         sender_type: "Client",
         message_text: message
       });
 
+      if (error) {
+        console.error("Error sending message:", error);
+        throw error;
+      }
+
+      // Clear input and refetch messages
       setMessage("");
+      queryClient.invalidateQueries({ queryKey: ["messages", chatId] });
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -237,7 +267,7 @@ const MessagesPage = () => {
           </div>
         </div>
 
-        <ScrollArea ref={scrollRef} className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
             {messagesLoading ? (
               <div className="flex justify-center my-8">
