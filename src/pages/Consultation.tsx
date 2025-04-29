@@ -2,8 +2,15 @@
 import React from 'react';
 import { ConsultationFlow } from '@/components/consultation/ConsultationFlow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
+import { useEffect } from 'react';
 
 const Consultation = () => {
+  // Initialize the favorites table when the component mounts
+  useEffect(() => {
+    createFavoriteProgramsTable();
+  }, []);
+
   return (
     <div className="container py-8 mx-auto max-w-5xl">
       <Card className="mb-6">

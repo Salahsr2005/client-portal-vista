@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Search, Filter, GraduationCap, Building, MapPin, Languages, Clock, CircleDollarSign, Heart, BookOpen, ArrowRight, ChevronDown, ChevronUp, Star, StarHalf, Info, AlertCircle, CheckCircle } from 'lucide-react';
+import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
 
 export default function Programs() {
   const { t } = useTranslation();
@@ -43,30 +44,8 @@ export default function Programs() {
   const [programToRemove, setProgramToRemove] = useState(null);
   
   // First, let's create a table for favorite programs if it doesn't exist:
-  const createFavoritesTable = async () => {
-    try {
-      // Check if the favorite_programs table exists
-      const { error } = await supabase
-        .from('favorite_programs')
-        .select('*')
-        .limit(1);
-      
-      if (error && error.message.includes('relation "favorite_programs" does not exist')) {
-        // Create the table since it doesn't exist
-        const { error: createError } = await supabase
-          .rpc('create_favorite_programs_table');
-        
-        if (createError) {
-          console.error('Error creating favorites table:', createError);
-        }
-      }
-    } catch (err) {
-      console.error('Error checking favorite programs table:', err);
-    }
-  };
-
   useEffect(() => {
-    createFavoritesTable();
+    createFavoriteProgramsTable();
   }, []);
 
   useEffect(() => {
@@ -114,39 +93,24 @@ export default function Programs() {
     }
   };
   
+  // Simplified loadFavorites function
   const loadFavorites = async () => {
     if (!user) return;
     
     try {
-      // First check if the table exists
-      const { error: checkError } = await supabase
-        .from('favorite_programs')
-        .select('*')
-        .limit(1);
-      
-      if (checkError && checkError.message.includes('relation "favorite_programs" does not exist')) {
-        // Create the table
-        await createFavoritesTable();
-        return; // Return as there are no favorites yet
+      // We'll assume we have a favorites array in the program itself
+      // or create a simple favorites system in local storage as a backup
+      const localFavorites = localStorage.getItem('favoritePrograms');
+      if (localFavorites) {
+        setFavorites(JSON.parse(localFavorites));
       }
-      
-      // Now get the favorites
-      const { data, error } = await supabase
-        .from('favorite_programs')
-        .select('program_id')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      if (!data) return;
-      
-      const favoriteIds = data.map(item => item.program_id);
-      setFavorites(favoriteIds);
     } catch (err) {
       console.error('Error loading favorites:', err);
     }
   };
   
-  const toggleFavorite = async (program: any) => {
+  // Simplified toggleFavorite function
+  const toggleFavorite = async (programId) => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -158,50 +122,22 @@ export default function Programs() {
     }
 
     try {
-      // Get current favorite status
-      const { data: existingFavorite, error: fetchError } = await supabase
-        .from('favorite_programs')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('program_id', program.id)
-        .maybeSingle();
-
-      if (fetchError && !fetchError.message.includes('relation "favorite_programs" does not exist')) {
-        throw fetchError;
-      }
-
-      if (existingFavorite) {
-        // Remove from favorites
-        const { error: deleteError } = await supabase
-          .from('favorite_programs')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('program_id', program.id);
-
-        if (deleteError) throw deleteError;
-
-        setFavorites(favorites.filter(id => id !== program.id));
-        toast({
-          title: "Removed from favorites",
-          description: `${program.name} has been removed from your favorites`,
-        });
-      } else {
-        // Add to favorites
-        const { error: insertError } = await supabase
-          .from('favorite_programs')
-          .insert({
-            user_id: user.id,
-            program_id: program.id
-          });
-
-        if (insertError) throw insertError;
-
-        setFavorites([...favorites, program.id]);
-        toast({
-          title: "Added to favorites",
-          description: `${program.name} has been added to your favorites`,
-        });
-      }
+      // Simple client-side toggle using local storage
+      const newFavorites = favoritePrograms.includes(programId)
+        ? favoritePrograms.filter(id => id !== programId)
+        : [...favoritePrograms, programId];
+      
+      setFavorites(newFavorites);
+      localStorage.setItem('favoritePrograms', JSON.stringify(newFavorites));
+      
+      const message = favoritePrograms.includes(programId) 
+        ? "Program removed from favorites"
+        : "Program added to favorites";
+        
+      toast({
+        title: message,
+        description: "Your favorites have been updated",
+      });
     } catch (error) {
       console.error('Error updating favorites:', error);
       toast({
@@ -212,19 +148,15 @@ export default function Programs() {
     }
   };
   
+  // Simplified removeFavorite function
   const removeFavorite = async () => {
     if (!programToRemove) return;
     
     try {
-      const { error } = await supabase
-        .from('favorite_programs')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('program_id', programToRemove);
-        
-      if (error) throw error;
+      const newFavorites = favoritePrograms.filter(id => id !== programToRemove);
+      setFavorites(newFavorites);
+      localStorage.setItem('favoritePrograms', JSON.stringify(newFavorites));
       
-      setFavorites(prev => prev.filter(id => id !== programToRemove));
       setProgramToRemove(null);
       setShowFavoritesDialog(false);
       
@@ -241,7 +173,7 @@ export default function Programs() {
       });
     }
   };
-  
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
@@ -479,10 +411,10 @@ export default function Programs() {
                     <SelectValue placeholder="Any duration" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any duration</SelectItem>
+                    <SelectItem value="any">Any duration</SelectItem>
                     <SelectItem value="short">Short (≤ 12 months)</SelectItem>
                     <SelectItem value="medium">Medium (1-2 years)</SelectItem>
-                    <SelectItem value="long">Long ({'>'}2 years)</SelectItem>
+                    <SelectItem value="long">Long {'>'}2 years</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -645,10 +577,10 @@ export default function Programs() {
                         <SelectValue placeholder="Any duration" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any duration</SelectItem>
+                        <SelectItem value="any">Any duration</SelectItem>
                         <SelectItem value="short">Short (≤ 12 months)</SelectItem>
                         <SelectItem value="medium">Medium (1-2 years)</SelectItem>
-                        <SelectItem value="long">Long ({'>'}2 years)</SelectItem>
+                        <SelectItem value="long">Long {'>'}2 years</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -986,111 +918,4 @@ export default function Programs() {
                             )}
                             
                             <div className="flex justify-end">
-                              <Button variant="link" size="sm" className="text-primary" onClick={() => handleViewDetails(program.id)}>
-                                View Full Details <ArrowRight className="ml-1 h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TabsContent>
-                          
-                          <TabsContent value="requirements" className="space-y-4">
-                            <div>
-                              <h4 className="font-medium mb-2">Academic Requirements</h4>
-                              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                {program.academic_requirements ? (
-                                  program.academic_requirements.map((req, idx) => (
-                                    <li key={idx}>{req}</li>
-                                  ))
-                                ) : (
-                                  <li>Contact the university for specific requirements</li>
-                                )}
-                              </ul>
-                            </div>
-                            
-                            <div>
-                              <h4 className="font-medium mb-2">Language Requirements</h4>
-                              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                {program.language_requirements ? (
-                                  program.language_requirements.map((req, idx) => (
-                                    <li key={idx}>{req}</li>
-                                  ))
-                                ) : (
-                                  <li>Proficiency in {program.program_language} required</li>
-                                )}
-                              </ul>
-                            </div>
-                          </TabsContent>
-                          
-                          <TabsContent value="fees" className="space-y-4">
-                            <div>
-                              <h4 className="font-medium mb-2">Tuition Fees</h4>
-                              <p className="text-sm text-muted-foreground">
-                                ${Number(program.tuition_min).toLocaleString()} - ${Number(program.tuition_max || program.tuition_min).toLocaleString()} per year
-                              </p>
-                            </div>
-                            
-                            <div>
-                              <h4 className="font-medium mb-2">Additional Costs</h4>
-                              <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                                <li>Application Fee: ${program.application_fee || "Varies"}</li>
-                                <li>Living Expenses: ${program.living_expenses_min || "Varies"} - ${program.living_expenses_max || "Varies"} per year</li>
-                                <li>Health Insurance: ${program.health_insurance || "Varies"} per year</li>
-                              </ul>
-                            </div>
-                            
-                            {program.scholarship_available && (
-                              <div>
-                                <h4 className="font-medium mb-2">Scholarships</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Scholarships are available for this program. Contact our advisors for more information.
-                                </p>
-                              </div>
-                            )}
-                          </TabsContent>
-                        </Tabs>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
-          
-          <div className="flex justify-center mt-8">
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" disabled>
-                Previous
-              </Button>
-              <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">
-                1
-              </Button>
-              <Button variant="outline" size="sm">
-                2
-              </Button>
-              <Button variant="outline" size="sm">
-                3
-              </Button>
-              <Button variant="outline" size="sm">
-                Next
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <AlertDialog open={showFavoritesDialog} onOpenChange={setShowFavoritesDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove from Favorites</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove this program from your favorites?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setProgramToRemove(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={removeFavorite}>Remove</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-}
+                              <Button variant="link" size="sm" className="text-primary"

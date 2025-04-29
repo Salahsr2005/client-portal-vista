@@ -38,21 +38,34 @@ export const useAppointments = () => {
         throw error;
       }
 
-      if (!data) return [];
+      if (!data || data.length === 0) return [];
 
       return data.map((appointment) => {
         const slotData = appointment.slot || {};
-        // Use optional chaining to safely access nested properties
+        
+        // Safe access to nested properties with nullish coalescing
         const adminData = slotData.admin ? slotData.admin : {};
         const serviceData = slotData.service ? slotData.service : {};
         
-        const dateTimeString = slotData.date_time || new Date().toISOString();
+        const dateTimeString = slotData.date_time ? slotData.date_time : new Date().toISOString();
         const formattedDate = format(new Date(dateTimeString), "yyyy-MM-dd");
-        const formattedTime = `${format(new Date(dateTimeString), "h:mm a")} - ${
-          slotData.end_time 
-            ? format(new Date(slotData.end_time), "h:mm a")
-            : format(new Date(new Date(dateTimeString).getTime() + 60*60*1000), "h:mm a") // Default to 1 hour later
-        }`;
+        
+        let formattedTime = "";
+        if (slotData.date_time) {
+          const startTime = format(new Date(dateTimeString), "h:mm a");
+          let endTime = "";
+          
+          if (slotData.end_time) {
+            endTime = format(new Date(slotData.end_time), "h:mm a");
+          } else {
+            // Default to 1 hour later if no end time
+            endTime = format(new Date(new Date(dateTimeString).getTime() + 60*60*1000), "h:mm a");
+          }
+          
+          formattedTime = `${startTime} - ${endTime}`;
+        } else {
+          formattedTime = "Time not specified";
+        }
         
         return {
           id: appointment.appointment_id,
