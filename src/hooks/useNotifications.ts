@@ -26,18 +26,21 @@ export const useNotifications = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      const { data, error } = await supabase
-        .from("user_notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false }) as { data: UserNotification[] | null, error: any };
-      
-      if (error) {
-        console.error("Error fetching notifications:", error);
-        throw error;
+      try {
+        // Using rpc function instead of direct table access
+        const { data, error } = await supabase
+          .rpc('get_user_notifications', { p_user_id: user.id });
+        
+        if (error) {
+          console.error("Error fetching notifications:", error);
+          throw error;
+        }
+        
+        return data as UserNotification[];
+      } catch (error) {
+        console.error("Error in notification query:", error);
+        return [];
       }
-      
-      return data as UserNotification[];
     },
   });
 
@@ -45,14 +48,20 @@ export const useNotifications = () => {
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
-      const { error } = await supabase
-        .from("user_notifications")
-        .update({ is_read: true })
-        .eq("id", notificationId)
-        .eq("user_id", user?.id) as { error: any };
-      
-      if (error) throw error;
-      return notificationId;
+      try {
+        // Using rpc function instead of direct table access
+        const { error } = await supabase
+          .rpc('mark_notification_as_read', { 
+            p_notification_id: notificationId,
+            p_user_id: user?.id
+          });
+        
+        if (error) throw error;
+        return notificationId;
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+        throw error;
+      }
     },
     onSuccess: (notificationId) => {
       queryClient.setQueryData(
@@ -75,13 +84,16 @@ export const useNotifications = () => {
     mutationFn: async () => {
       if (!user) return;
       
-      const { error } = await supabase
-        .from("user_notifications")
-        .update({ is_read: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false) as { error: any };
-      
-      if (error) throw error;
+      try {
+        // Using rpc function instead of direct table access
+        const { error } = await supabase
+          .rpc('mark_all_notifications_as_read', { p_user_id: user.id });
+        
+        if (error) throw error;
+      } catch (error) {
+        console.error("Error marking all as read:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.setQueryData(

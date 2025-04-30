@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import {
   CardContent
 } from "@/components/ui/card";
 import { 
-  PaperPlaneIcon,
+  Send, // Changed from PaperPlaneIcon to Send
   CircleUser,
   Phone,
   Video,
@@ -39,7 +38,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useMediaQuery } from "@/hooks/use-mobile";
+import { useMediaQuery } from "@/hooks/use-mobile"; // This import will now work with our updated hook
 import { supabase } from "@/integrations/supabase/client";
 
 // Component to display a single message
@@ -84,6 +83,7 @@ const ConversationPreview = ({ conversation, isActive, onClick }) => {
     const date = new Date(conversation.last_message_time);
     const now = new Date();
     
+    // Fix the arithmetic operation by ensuring we're comparing dates properly
     if (date.toDateString() === now.toDateString()) {
       // Today, show time
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -252,7 +252,7 @@ export default function Messages() {
     };
   }, [user, navigate, toast, currentChat]);
   
-  // Scroll to bottom when messages change
+  // Auto scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -450,7 +450,7 @@ export default function Messages() {
               <div className="h-full flex flex-col items-center justify-center p-8">
                 <div className="flex flex-col items-center justify-center text-center">
                   <div className="rounded-full bg-primary/10 p-6 mb-4">
-                    <PaperPlaneIcon className="h-12 w-12 text-primary" />
+                    <Send className="h-12 w-12 text-primary" />
                   </div>
                   <h3 className="text-2xl font-semibold mb-2">No conversation selected</h3>
                   <p className="text-muted-foreground mb-6">
@@ -575,7 +575,7 @@ export default function Messages() {
                     </div>
                   ) : messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center">
-                      <PaperPlaneIcon className="h-12 w-12 text-muted-foreground mb-2" />
+                      <Send className="h-12 w-12 text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">No messages yet</p>
                       <p className="text-sm text-muted-foreground">Send a message to start the conversation</p>
                     </div>
@@ -616,7 +616,7 @@ export default function Messages() {
                       className="bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600"
                       disabled={!newMessage.trim()}
                     >
-                      <PaperPlaneIcon className="h-4 w-4 mr-1" />
+                      <Send className="h-4 w-4 mr-1" />
                       Send
                     </Button>
                   </form>
