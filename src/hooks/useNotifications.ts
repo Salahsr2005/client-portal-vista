@@ -27,20 +27,19 @@ export const useNotifications = () => {
       if (!user) return [];
 
       try {
-        // Since "user_notifications" might not be in the type definitions,
-        // we'll use a more generic approach
+        // Use a generic approach with type casting since the table might not be in the type definitions yet
         const { data, error } = await supabase
           .from("user_notifications")
           .select("*")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false }) as any;
         
         if (error) {
           console.error("Error fetching notifications:", error);
           throw error;
         }
         
-        return data as unknown as UserNotification[];
+        return (data || []) as UserNotification[];
       } catch (error) {
         console.error("Error in notification query:", error);
         return [];
@@ -57,7 +56,7 @@ export const useNotifications = () => {
           .from("user_notifications")
           .update({ is_read: true })
           .eq("id", notificationId)
-          .eq("user_id", user?.id);
+          .eq("user_id", user?.id) as any;
         
         if (error) throw error;
         return notificationId;
@@ -92,7 +91,7 @@ export const useNotifications = () => {
           .from("user_notifications")
           .update({ is_read: true })
           .eq("user_id", user.id)
-          .eq("is_read", false);
+          .eq("is_read", false) as any;
         
         if (error) throw error;
       } catch (error) {
@@ -133,7 +132,7 @@ export const useNotifications = () => {
         },
         (payload) => {
           // Handle new notification
-          const newNotification = payload.new as unknown as UserNotification;
+          const newNotification = payload.new as UserNotification;
           
           // Update cache
           queryClient.setQueryData(
