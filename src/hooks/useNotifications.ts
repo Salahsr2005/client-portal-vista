@@ -30,7 +30,7 @@ export const useNotifications = () => {
         .from("user_notifications")
         .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false }) as { data: UserNotification[] | null, error: any };
       
       if (error) {
         console.error("Error fetching notifications:", error);
@@ -49,7 +49,7 @@ export const useNotifications = () => {
         .from("user_notifications")
         .update({ is_read: true })
         .eq("id", notificationId)
-        .eq("user_id", user?.id);
+        .eq("user_id", user?.id) as { error: any };
       
       if (error) throw error;
       return notificationId;
@@ -79,7 +79,7 @@ export const useNotifications = () => {
         .from("user_notifications")
         .update({ is_read: true })
         .eq("user_id", user.id)
-        .eq("is_read", false);
+        .eq("is_read", false) as { error: any };
       
       if (error) throw error;
     },
