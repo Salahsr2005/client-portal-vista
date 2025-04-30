@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -128,62 +127,67 @@ export const usePendingApplications = () => {
         return [];
       }
 
-      const { data, error } = await supabase
-        .from("applications")
-        .select(`
-          *,
-          programs(name, university, application_fee)
-        `)
-        .eq("client_id", user.id)
-        .eq("payment_status", "Pending")
-        .order("created_at", { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching pending applications:", error);
-        throw new Error(error.message);
-      }
-      
-      // Also fetch pending service applications
-      const { data: serviceData, error: serviceError } = await supabase
-        .from("service_applications")
-        .select(`
-          id, 
-          user_id, 
-          service_id, 
-          payment_status,
-          created_at,
-          services(name, price)
-        `)
-        .eq("user_id", user.id)
-        .eq("payment_status", "Pending");
-
-      if (serviceError) {
-        console.error("Error fetching pending service applications:", serviceError);
-      }
+      try {
+        const { data, error } = await supabase
+          .from("applications")
+          .select(`
+            *,
+            programs(name, university, application_fee)
+          `)
+          .eq("client_id", user.id)
+          .eq("payment_status", "Pending")
+          .order("created_at", { ascending: false });
         
-      // Combine both program and service applications
-      const programApplications = (data || []).map(app => ({
-        id: app.application_id,
-        type: 'program',
-        name: app.programs?.name || "Unknown Program",
-        provider: app.programs?.university || "Unknown University",
-        fee: app.programs?.application_fee || 125,
-        status: app.status,
-        date: app.created_at ? new Date(app.created_at).toLocaleDateString() : "",
-      }));
-      
-      const serviceApplications = (serviceData || []).map(app => ({
-        id: app.id,
-        type: 'service',
-        name: app.services?.name || "Unknown Service",
-        provider: "Euro Visa Services",
-        fee: app.services?.price || 75,
-        status: app.payment_status,
-        date: app.created_at ? new Date(app.created_at).toLocaleDateString() : "",
-        service_id: app.service_id
-      }));
-      
-      return [...programApplications, ...serviceApplications];
+        if (error) {
+          console.error("Error fetching pending applications:", error);
+          throw new Error(error.message);
+        }
+        
+        // Also fetch pending service applications
+        const { data: serviceData, error: serviceError } = await supabase
+          .from("service_applications")
+          .select(`
+            id, 
+            user_id, 
+            service_id, 
+            payment_status,
+            created_at,
+            services(name, price)
+          `)
+          .eq("user_id", user.id)
+          .eq("payment_status", "Pending");
+
+        if (serviceError) {
+          console.error("Error fetching pending service applications:", serviceError);
+        }
+          
+        // Combine both program and service applications using standardized properties
+        const programApplications = (data || []).map(app => ({
+          id: app.application_id,
+          type: 'program',
+          name: app.programs?.name || "Unknown Program",
+          provider: app.programs?.university || "Unknown University",
+          fee: app.programs?.application_fee || 125,
+          status: app.status,
+          date: app.created_at ? new Date(app.created_at).toLocaleDateString() : "",
+        }));
+        
+        const serviceApplications = (serviceData || []).map(app => ({
+          id: app.id,
+          type: 'service',
+          name: app.services?.name || "Unknown Service",
+          provider: "Euro Visa Services",
+          fee: app.services?.price || 75,
+          status: app.payment_status,
+          date: app.created_at ? new Date(app.created_at).toLocaleDateString() : "",
+          service_id: app.service_id
+        }));
+        
+        return [...programApplications, ...serviceApplications];
+      } catch (error) {
+        console.error("Error in pending applications query:", error);
+        return [];
+      }
     },
   });
 };

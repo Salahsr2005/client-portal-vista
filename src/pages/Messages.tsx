@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,26 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useMediaQuery } from "@/hooks/use-mobile.tsx"; // Fixed import
 import { supabase } from "@/integrations/supabase/client";
+
+// Custom hook for media queries
+const useMediaQuery = (query: string): boolean => {
+  const [matches, setMatches] = useState(false);
+  
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    
+    const listener = () => setMatches(media.matches);
+    media.addEventListener('change', listener);
+    
+    return () => media.removeEventListener('change', listener);
+  }, [matches, query]);
+  
+  return matches;
+};
 
 // Component to display a single message
 const Message = ({ message, isCurrentUser }) => {
@@ -237,11 +256,11 @@ export default function Messages() {
                 ...conv, 
                 last_message_text: newMsg.message_text,
                 last_message_time: newMsg.sent_at,
-                unread_count: newMsg.sender_id !== user.id ? conv.unread_count + 1 : conv.unread_count
+                unread_count: newMsg.sender_id !== user.id ? (conv.unread_count || 0) + 1 : (conv.unread_count || 0)
               } 
               : conv
             ).sort((a, b) => 
-              new Date(b.last_message_time) - new Date(a.last_message_time)
+              new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
             )
           );
         }

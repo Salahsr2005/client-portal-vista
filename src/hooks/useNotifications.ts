@@ -27,7 +27,8 @@ export const useNotifications = () => {
       if (!user) return [];
 
       try {
-        // Direct table access instead of RPC
+        // Since "user_notifications" might not be in the type definitions,
+        // we'll use a more generic approach
         const { data, error } = await supabase
           .from("user_notifications")
           .select("*")
@@ -39,7 +40,7 @@ export const useNotifications = () => {
           throw error;
         }
         
-        return data as UserNotification[];
+        return data as unknown as UserNotification[];
       } catch (error) {
         console.error("Error in notification query:", error);
         return [];
@@ -52,7 +53,6 @@ export const useNotifications = () => {
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
       try {
-        // Direct update instead of RPC
         const { error } = await supabase
           .from("user_notifications")
           .update({ is_read: true })
@@ -88,7 +88,6 @@ export const useNotifications = () => {
       if (!user) return;
       
       try {
-        // Direct update instead of RPC
         const { error } = await supabase
           .from("user_notifications")
           .update({ is_read: true })
@@ -134,7 +133,7 @@ export const useNotifications = () => {
         },
         (payload) => {
           // Handle new notification
-          const newNotification = payload.new as UserNotification;
+          const newNotification = payload.new as unknown as UserNotification;
           
           // Update cache
           queryClient.setQueryData(

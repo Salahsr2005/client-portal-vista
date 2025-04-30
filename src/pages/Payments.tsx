@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,7 +80,7 @@ const PaymentsPage = () => {
       
       toast({
         title: "Payment successful",
-        description: `Your payment of $${selectedApplication?.applicationFee} has been processed`,
+        description: `Your payment of $${selectedApplication?.fee} has been processed`,
         variant: "default",
       });
     }, 2000);
@@ -268,13 +267,13 @@ const PaymentsPage = () => {
           <div className="grid gap-4 py-4">
             <div className="space-y-1">
               <Label>Payment for:</Label>
-              <p className="text-sm font-medium">{selectedApplication?.programName}</p>
-              <p className="text-sm text-muted-foreground">{selectedApplication?.university}</p>
+              <p className="text-sm font-medium">{selectedApplication?.name}</p>
+              <p className="text-sm text-muted-foreground">{selectedApplication?.provider}</p>
             </div>
             
             <div className="space-y-1">
               <Label>Amount:</Label>
-              <p className="text-xl font-semibold">${selectedApplication?.applicationFee}</p>
+              <p className="text-xl font-semibold">${selectedApplication?.fee}</p>
             </div>
             
             <Separator className="my-2" />
@@ -367,7 +366,7 @@ const PaymentsPage = () => {
               ) : (
                 <>
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Pay ${selectedApplication?.applicationFee}
+                  Pay ${selectedApplication?.fee}
                 </>
               )}
             </Button>

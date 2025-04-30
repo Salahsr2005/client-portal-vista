@@ -23,25 +23,32 @@ export const useApplications = () => {
         return [];
       }
 
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from("applications")
-        .select("*, programs(*)")
-        .eq("client_id", user.id);
-      
-      if (applicationsError) {
-        console.error("Error fetching applications:", applicationsError);
-        throw new Error(applicationsError.message);
+      try {
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from("applications")
+          .select("*, programs(*)")
+          .eq("client_id", user.id);
+        
+        if (applicationsError) {
+          console.error("Error fetching applications:", applicationsError);
+          throw new Error(applicationsError.message);
+        }
+        
+        console.log("Applications data:", applicationsData);
+        
+        // Map applications data to the expected format
+        return (applicationsData || []).map(application => ({
+          id: application.application_id,
+          program: application.programs?.name || "Unknown Program",
+          destination: application.programs?.country || "Unknown",
+          status: application.status || "Draft",
+          date: new Date(application.created_at).toLocaleDateString(),
+          lastUpdated: new Date(application.updated_at).toLocaleDateString(),
+        })) as ProgramApplication[];
+      } catch (error) {
+        console.error("Error in applications query:", error);
+        return [];
       }
-      
-      // Map applications data to the expected format
-      return (applicationsData || []).map(application => ({
-        id: application.application_id,
-        program: application.programs?.name || "Unknown Program",
-        destination: application.programs?.country || "Unknown",
-        status: application.status || "Draft",
-        date: new Date(application.created_at).toLocaleDateString(),
-        lastUpdated: new Date(application.updated_at).toLocaleDateString(),
-      })) as ProgramApplication[];
     },
   });
 };
