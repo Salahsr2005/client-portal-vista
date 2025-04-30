@@ -3,6 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+export interface ProgramApplication {
+  id: string;
+  program: string;
+  destination: string;
+  status: string;
+  date: string;
+  lastUpdated: string;
+}
+
 export const useApplications = () => {
   const { user } = useAuth();
   
@@ -16,7 +25,7 @@ export const useApplications = () => {
 
       const { data: applicationsData, error: applicationsError } = await supabase
         .from("applications")
-        .select("*")
+        .select("*, programs(*)")
         .eq("client_id", user.id);
       
       if (applicationsError) {
@@ -24,38 +33,15 @@ export const useApplications = () => {
         throw new Error(applicationsError.message);
       }
       
-      // Enrich applications with program data
-      const enrichedApplications = await Promise.all(
-        (applicationsData || []).map(async (application) => {
-          let programName = "Unknown Program";
-          let destination = "Unknown";
-          
-          if (application.program_id) {
-            // Fetch program data
-            const { data: programData, error: programError } = await supabase
-              .from("programs")
-              .select("name, country")  // Using country directly from programs table
-              .eq("id", application.program_id)
-              .maybeSingle();
-            
-            if (!programError && programData) {
-              programName = programData.name;
-              destination = programData.country || "Unknown";
-            }
-          }
-          
-          return {
-            id: application.application_id,
-            program: programName,
-            destination: destination,
-            status: application.status || "Draft",
-            date: new Date(application.created_at).toLocaleDateString(),
-            lastUpdated: new Date(application.updated_at).toLocaleDateString(),
-          };
-        })
-      );
-      
-      return enrichedApplications;
+      // Map applications data to the expected format
+      return (applicationsData || []).map(application => ({
+        id: application.application_id,
+        program: application.programs?.name || "Unknown Program",
+        destination: application.programs?.country || "Unknown",
+        status: application.status || "Draft",
+        date: new Date(application.created_at).toLocaleDateString(),
+        lastUpdated: new Date(application.updated_at).toLocaleDateString(),
+      })) as ProgramApplication[];
     },
   });
 };

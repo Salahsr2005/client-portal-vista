@@ -10,7 +10,7 @@ import {
   CardContent
 } from "@/components/ui/card";
 import { 
-  Send, // Changed from PaperPlaneIcon to Send
+  Send,
   CircleUser,
   Phone,
   Video,
@@ -32,13 +32,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useMediaQuery } from "@/hooks/use-mobile"; // This import will now work with our updated hook
+import { useMediaQuery } from "@/hooks/use-mobile.tsx"; // Fixed import
 import { supabase } from "@/integrations/supabase/client";
 
 // Component to display a single message
@@ -83,7 +83,7 @@ const ConversationPreview = ({ conversation, isActive, onClick }) => {
     const date = new Date(conversation.last_message_time);
     const now = new Date();
     
-    // Fix the arithmetic operation by ensuring we're comparing dates properly
+    // Compare dates properly by comparing day values
     if (date.toDateString() === now.toDateString()) {
       // Today, show time
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -147,6 +147,7 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [mobileChatOpen, setMobileChatOpen] = useState(false);
+  const [activeTabMode, setActiveTabMode] = useState("all");
   
   const messagesEndRef = useRef(null);
   const scrollToBottom = () => {
@@ -383,7 +384,7 @@ export default function Messages() {
   };
   
   // Get total unread count
-  const totalUnreadCount = conversations.reduce((sum, conv) => sum + conv.unread_count, 0);
+  const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
   
   return (
     <div className="container px-4 py-6 max-w-7xl mx-auto">
@@ -401,7 +402,7 @@ export default function Messages() {
             <CardHeader className="py-3 px-4 border-b bg-gradient-to-r from-violet-50/50 to-slate-50/50 dark:from-gray-900/40 dark:to-gray-800/40">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-lg">Conversations</CardTitle>
-                <Tabs defaultValue="all" className="w-[120px]">
+                <Tabs defaultValue="all" className="w-[120px]" value={activeTabMode} onValueChange={setActiveTabMode}>
                   <TabsList className="h-8 bg-muted/50 p-1">
                     <TabsTrigger value="all" className="text-xs h-6">All</TabsTrigger>
                     <TabsTrigger value="unread" className="text-xs h-6">Unread</TabsTrigger>

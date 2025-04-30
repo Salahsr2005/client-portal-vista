@@ -27,9 +27,12 @@ export const useNotifications = () => {
       if (!user) return [];
 
       try {
-        // Using rpc function instead of direct table access
+        // Direct table access instead of RPC
         const { data, error } = await supabase
-          .rpc('get_user_notifications', { p_user_id: user.id });
+          .from("user_notifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
         
         if (error) {
           console.error("Error fetching notifications:", error);
@@ -49,12 +52,12 @@ export const useNotifications = () => {
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
       try {
-        // Using rpc function instead of direct table access
+        // Direct update instead of RPC
         const { error } = await supabase
-          .rpc('mark_notification_as_read', { 
-            p_notification_id: notificationId,
-            p_user_id: user?.id
-          });
+          .from("user_notifications")
+          .update({ is_read: true })
+          .eq("id", notificationId)
+          .eq("user_id", user?.id);
         
         if (error) throw error;
         return notificationId;
@@ -85,9 +88,12 @@ export const useNotifications = () => {
       if (!user) return;
       
       try {
-        // Using rpc function instead of direct table access
+        // Direct update instead of RPC
         const { error } = await supabase
-          .rpc('mark_all_notifications_as_read', { p_user_id: user.id });
+          .from("user_notifications")
+          .update({ is_read: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false);
         
         if (error) throw error;
       } catch (error) {

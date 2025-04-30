@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export interface Service {
   id: string;
-  service_id?: string;  // Added service_id as optional
+  service_id?: string;
   name: string;
   description: string;
   category: string;
@@ -14,7 +14,7 @@ export interface Service {
   price: number;
   estimated_completion: string;
   status: string;
-  fee?: number;  // Added fee as optional
+  fee?: number;
 }
 
 export interface ServiceApplication {
@@ -52,7 +52,7 @@ export const useServices = () => {
         category: service.category || "General",
         duration: service.duration,
         price: service.price,
-        fee: service.price, // Map price to fee for backward compatibility
+        fee: service.price,
         estimated_completion: service.estimated_completion || `${service.duration} min`,
         status: service.status || "Active"
       })) as Service[];

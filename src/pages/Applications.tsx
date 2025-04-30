@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ServiceApplications from '@/components/services/ServiceApplications';
+import ProgramApplications from '@/components/programs/ProgramApplications';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -33,18 +34,7 @@ export default function Applications() {
         </div>
         
         <TabsContent value="programs" className="mt-0">
-          <Card className="bg-gradient-to-r from-violet-50/50 to-slate-50/50 dark:from-gray-900/40 dark:to-gray-800/40 rounded-lg p-8 mb-8 text-center">
-            <CardContent className="space-y-4 p-0">
-              <h2 className="text-2xl font-semibold">Program Applications</h2>
-              <p className="text-gray-600 dark:text-gray-400">
-                Track and manage your applications to educational programs around the world.
-              </p>
-              <Separator className="my-6" />
-              <p className="text-gray-500 dark:text-gray-400">
-                Program applications functionality will be implemented here.
-              </p>
-            </CardContent>
-          </Card>
+          <ProgramApplications />
         </TabsContent>
         
         <TabsContent value="services" className="mt-0">
