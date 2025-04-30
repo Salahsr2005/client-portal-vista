@@ -1527,6 +1527,50 @@ export type Database = {
         }
         Relationships: []
       }
+      service_applications: {
+        Row: {
+          created_at: string | null
+          id: string
+          notes: string | null
+          payment_id: string | null
+          payment_status: string
+          service_id: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_id?: string | null
+          payment_status?: string
+          service_id?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_id?: string | null
+          payment_status?: string
+          service_id?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_applications_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["service_id"]
+          },
+        ]
+      }
       services: {
         Row: {
           category: string

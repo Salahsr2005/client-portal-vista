@@ -24,7 +24,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Search, 
   Filter, 
-  Calendar, 
   Clock, 
   MapPin, 
   Phone,
@@ -226,7 +225,7 @@ export default function Services() {
                     <DropdownMenuLabel>Sort By</DropdownMenuLabel>
                     <DropdownMenuItem>Price (Low to High)</DropdownMenuItem>
                     <DropdownMenuItem>Price (High to Low)</DropdownMenuItem>
-                    <DropdownMenuLabel>Filter By</DropdownMenuItem>
+                    <DropdownMenuLabel>Filter By</DropdownMenuLabel>
                     <DropdownMenuItem>Online Services</DropdownMenuItem>
                     <DropdownMenuItem>In-person Services</DropdownMenuItem>
                   </DropdownMenuContent>

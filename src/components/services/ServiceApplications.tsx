@@ -441,109 +441,73 @@ const ServiceApplications = () => {
           </Tabs>
         </CardContent>
       </Card>
-      
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Service Application Details</DialogTitle>
             <DialogDescription>
-              Complete details about your service application
+              View full details of your service application
             </DialogDescription>
           </DialogHeader>
           
           {detailService && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">{detailService.services?.name}</h3>
-                <p className="text-sm">{detailService.services?.description}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-medium">Status</h4>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Service</h4>
+                  <p>{detailService.services?.name}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Status</h4>
                   <div>{getStatusBadge(detailService.status)}</div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-medium">Payment</h4>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Applied On</h4>
+                  <p>{new Date(detailService.created_at).toLocaleDateString()}</p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Payment Status</h4>
                   <div>{getPaymentStatusBadge(detailService.payment_status)}</div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-medium">Applied On</h4>
-                  <p className="text-sm">
-                    {new Date(detailService.created_at).toLocaleDateString()}
-                  </p>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Price</h4>
+                  <p>${detailService.services?.price}</p>
                 </div>
-                <div>
-                  <h4 className="text-sm font-medium">Price</h4>
-                  <p className="text-sm">${detailService.services?.price}</p>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Duration</h4>
+                  <p>{detailService.services?.duration} minutes</p>
                 </div>
-                <div>
-                  <h4 className="text-sm font-medium">Duration</h4>
-                  <p className="text-sm">{detailService.services?.duration} minutes</p>
+                <div className="space-y-2 md:col-span-2">
+                  <h4 className="text-sm font-semibold text-muted-foreground">Description</h4>
+                  <p className="text-sm">{detailService.services?.description}</p>
                 </div>
-                <div>
-                  <h4 className="text-sm font-medium">Est. Completion</h4>
-                  <p className="text-sm">{detailService.services?.estimated_completion || "TBD"}</p>
-                </div>
-              </div>
-              
-              {detailService.notes && (
-                <div>
-                  <h4 className="text-sm font-medium">Your Notes</h4>
-                  <p className="text-sm p-3 bg-slate-50 dark:bg-slate-900 rounded-md mt-1">
-                    {detailService.notes}
-                  </p>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium">Next Steps</h4>
-                {detailService.payment_status.toLowerCase() === "pending" ? (
-                  <div className="flex items-start gap-2">
-                    <CreditCard className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <p className="text-sm">
-                      Please complete the payment to proceed with your service application.
-                    </p>
-                  </div>
-                ) : detailService.status.toLowerCase() === "pending" ? (
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <p className="text-sm">
-                      Your application is being reviewed. We'll update you soon.
-                    </p>
-                  </div>
-                ) : detailService.status.toLowerCase() === "in progress" ? (
-                  <div className="flex items-start gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <p className="text-sm">
-                      Your service is being processed. Expected completion: {detailService.services?.estimated_completion || "TBD"}.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                    <p className="text-sm">
-                      Your service has been completed. Thank you for using our services!
-                    </p>
+                {detailService.notes && (
+                  <div className="space-y-2 md:col-span-2">
+                    <h4 className="text-sm font-semibold text-muted-foreground">Your Notes</h4>
+                    <p className="text-sm">{detailService.notes}</p>
                   </div>
                 )}
               </div>
+              
+              <DialogFooter>
+                {detailService.payment_status.toLowerCase() === "pending" && (
+                  <Button 
+                    className="bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600"
+                    onClick={() => handlePay(detailService)}
+                  >
+                    Pay Now
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  onClick={() => setDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </DialogFooter>
             </div>
           )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Close
-            </Button>
-            {detailService && detailService.payment_status.toLowerCase() === "pending" && (
-              <Button 
-                onClick={() => handlePay(detailService)}
-                className="bg-gradient-to-r from-violet-500 to-indigo-500"
-              >
-                Pay Now
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
