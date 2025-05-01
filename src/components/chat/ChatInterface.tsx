@@ -328,43 +328,65 @@ const ChatInterface: React.FC = () => {
             </div>
           </div>
           
-          {/* Messages area */}
-          <ScrollArea ref={scrollRef} className="flex-grow p-4">
-            <div className="space-y-4">
-              {messages.map(message => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.isMe ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className="flex items-end gap-2 max-w-[80%] group">
-                    {!message.isMe && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.name} />
-                        <AvatarFallback>{selectedConversation.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                    )}
-                    <div
-                      className={`rounded-lg p-3 ${
-                        message.isMe
-                          ? 'bg-primary text-primary-foreground rounded-br-none'
-                          : 'bg-muted rounded-bl-none'
-                      }`}
-                    >
-                      <p className="text-sm">{message.content}</p>
-                      <div className="flex items-center justify-end gap-1 mt-1">
-                        <span className="text-xs opacity-70">
-                          {formatMessageTime(message.timestamp)}
-                        </span>
-                        {message.isMe && (
-                          <Check className="h-3.5 w-3.5 text-primary-foreground opacity-70" />
-                        )}
+          {/* Messages area with proper Tabs setup */}
+          <Tabs defaultValue="chat" className="flex-grow flex flex-col">
+            <div className="p-3 border-b flex justify-end bg-muted/10">
+              <TabsList className="w-32">
+                <TabsTrigger value="chat" className="flex-1">Chat</TabsTrigger>
+                <TabsTrigger value="faq" className="flex-1">FAQ</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <ScrollArea ref={scrollRef} className="flex-grow p-4">
+              <TabsContent value="chat" className="m-0 h-full space-y-4">
+                {messages.map(message => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.isMe ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className="flex items-end gap-2 max-w-[80%] group">
+                      {!message.isMe && (
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.name} />
+                          <AvatarFallback>{selectedConversation.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                        </Avatar>
+                      )}
+                      <div
+                        className={`rounded-lg p-3 ${
+                          message.isMe
+                            ? 'bg-primary text-primary-foreground rounded-br-none'
+                            : 'bg-muted rounded-bl-none'
+                        }`}
+                      >
+                        <p className="text-sm">{message.content}</p>
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <span className="text-xs opacity-70">
+                            {formatMessageTime(message.timestamp)}
+                          </span>
+                          {message.isMe && (
+                            <Check className="h-3.5 w-3.5 text-primary-foreground opacity-70" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))}
+              </TabsContent>
+              
+              <TabsContent value="faq" className="m-0 h-full space-y-4">
+                <div className="bg-muted/20 p-4 rounded-lg">
+                  <h3 className="font-semibold mb-2">Frequently Asked Questions</h3>
+                  <ul className="space-y-3 list-disc pl-4">
+                    <li>How long does the application process usually take?</li>
+                    <li>What documents do I need for a student visa?</li>
+                    <li>Can I work part-time while studying abroad?</li>
+                    <li>How can I find affordable housing?</li>
+                    <li>Are there scholarships available for international students?</li>
+                  </ul>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
           
           {/* Input area */}
           <div className="p-3 border-t">

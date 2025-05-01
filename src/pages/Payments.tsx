@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,10 +72,10 @@ const Payments = () => {
               {pendingApplications.map((item) => (
                 <div key={item.id} className="flex justify-between items-center cursor-pointer" onClick={() => handlePendingItemClick(item, 'program')}>
                   <div>
-                    <p className="font-medium">{item.program}</p>
-                    <p className="text-sm text-muted-foreground">{item.destination}</p>
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-muted-foreground">{item.provider}</p>
                   </div>
-                  <p className="font-medium">${item.application_fee}</p>
+                  <p className="font-medium">${item.fee}</p>
                 </div>
               ))}
             </div>
@@ -92,7 +93,7 @@ const Payments = () => {
               <p className="font-medium">{getProgramDetails(pendingItem).programName}</p>
               <p className="text-sm text-muted-foreground">{getProgramDetails(pendingItem).university}</p>
               <p className="text-sm font-medium mt-1">${getProgramDetails(pendingItem).applicationFee.toFixed(2)}</p>
-              <Button variant="primary">Pay Now</Button>
+              <Button>Pay Now</Button>
             </div>
           )}
         </div>

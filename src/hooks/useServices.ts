@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -45,7 +44,7 @@ export const useServices = () => {
       }
       
       return data.map(service => ({
-        id: service.service_id || service.id,
+        id: service.service_id || service.service_id, // Use service_id as id since id doesn't exist
         service_id: service.service_id,
         name: service.name,
         description: service.description || "",
