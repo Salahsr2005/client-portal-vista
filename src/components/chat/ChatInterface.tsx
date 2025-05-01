@@ -244,7 +244,24 @@ const ChatInterface: React.FC = () => {
           </div>
           
           <ScrollArea className="flex-grow">
-            {/* ... keep existing code (conversation list) */}
+            {sampleConversations.map(conversation => (
+              <div key={conversation.id} className="p-3 border-b last:border-b-0 cursor-pointer hover:bg-accent">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="font-medium">{conversation.name}</div>
+                    <div className="text-sm text-muted-foreground">{conversation.lastMessage}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">{conversation.timestamp}</div>
+                    {conversation.unread > 0 && (
+                      <Badge className="ml-1 bg-primary text-primary-foreground" variant="secondary">
+                        {conversation.unread}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </ScrollArea>
         </div>
         
