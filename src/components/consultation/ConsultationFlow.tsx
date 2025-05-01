@@ -17,7 +17,8 @@ import { usePrograms, ProgramFilter } from "@/hooks/usePrograms";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ProgramCard from './ProgramCard';
-import { ArrowRight, ArrowLeft, Check, X, Filter, Search, GraduationCap } from 'lucide-react';
+import { getMatchExplanation } from "@/services/ProgramMatchingService";
+import { ArrowRight, ArrowLeft, Check, X, Filter, Search, GraduationCap, FileText } from 'lucide-react';
 
 // Define types
 interface FormData {
@@ -27,6 +28,7 @@ interface FormData {
   duration: string;
   budget: string;
   startDate: string;
+  language: string;
   specialRequirements: string;
   scholarshipRequired: boolean;
   religiousFacilities: boolean;
@@ -46,6 +48,7 @@ export const ConsultationFlow = () => {
     duration: "",
     budget: "",
     startDate: "",
+    language: "",
     specialRequirements: "",
     scholarshipRequired: false,
     religiousFacilities: false,
@@ -61,6 +64,7 @@ export const ConsultationFlow = () => {
     duration: false,
     budget: false,
   });
+  const [showMatchDetails, setShowMatchDetails] = useState<{[key: string]: boolean}>({});
   
   // Create filter object based on form data
   const programFilter: ProgramFilter = {
@@ -68,6 +72,7 @@ export const ConsultationFlow = () => {
     subjects: formData.subjects,
     location: formData.location,
     duration: formData.duration,
+    language: formData.language,
     budget: formData.budget,
     scholarshipRequired: formData.scholarshipRequired,
     religiousFacilities: formData.religiousFacilities,
@@ -229,15 +234,64 @@ export const ConsultationFlow = () => {
     });
   };
   
-  const handleSubmit = () => {
-    toast({
-      title: "Consultation Complete",
-      description: `You've selected ${selectedPrograms.length} programs. Our advisors will contact you soon.`,
-    });
-    
-    // Here you would typically send the data to your backend
-    console.log("Selected programs:", selectedPrograms);
-    console.log("Form data:", formData);
+  const handleSubmit = async () => {
+    try {
+      // Save consultation results to database if user is logged in
+      if (user) {
+        const selectedProgramObjects = filteredPrograms
+          .filter(program => selectedPrograms.includes(program.id))
+          .map(program => ({
+            id: program.id,
+            name: program.name,
+            matchScore: program.matchScore || 0,
+            university: program.university
+          }));
+
+        const { error } = await supabase.from('consultation_results').insert({
+          user_id: user.id,
+          study_level: formData.studyLevel,
+          field_preference: formData.subjects.join(', '),
+          field_keywords: formData.subjects,
+          budget: parseInt(formData.budget || '0'),
+          language_preference: formData.language,
+          destination_preference: formData.location,
+          duration_preference: formData.duration,
+          scholarship_required: formData.scholarshipRequired,
+          religious_facilities_required: formData.religiousFacilities,
+          halal_food_required: formData.halalFood,
+          recommended_programs: selectedProgramObjects,
+          notes: formData.specialRequirements
+        });
+        
+        if (error) {
+          console.error("Error saving consultation results:", error);
+          throw error;
+        }
+      }
+      
+      toast({
+        title: "Consultation Complete",
+        description: `You've selected ${selectedPrograms.length} programs. Our advisors will contact you soon.`,
+      });
+      
+      // Here you would typically send the data to your backend
+      console.log("Selected programs:", selectedPrograms);
+      console.log("Form data:", formData);
+    } catch (err) {
+      console.error("Error in handleSubmit:", err);
+      toast({
+        title: "Error",
+        description: "There was a problem submitting your consultation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const toggleMatchDetails = (programId: string) => {
+    setShowMatchDetails(prev => ({
+      ...prev,
+      [programId]: !prev[programId]
+    }));
   };
   
   // Filter programs based on search query
@@ -269,6 +323,17 @@ export const ConsultationFlow = () => {
     "Law",
     "Education",
     "Architecture & Design"
+  ];
+
+  // Add language options
+  const languageOptions = [
+    { value: "english", label: "English" },
+    { value: "french", label: "French" },
+    { value: "arabic", label: "Arabic" },
+    { value: "spanish", label: "Spanish" },
+    { value: "german", label: "German" },
+    { value: "italian", label: "Italian" },
+    { value: "any", label: "Any language" }
   ];
   
   return (
@@ -403,6 +468,8 @@ export const ConsultationFlow = () => {
                   <SelectValue placeholder="Select a location" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="any">Any Location</SelectItem>
+                  <SelectItem value="europe">Europe</SelectItem>
                   <SelectItem value="United States">United States</SelectItem>
                   <SelectItem value="United Kingdom">United Kingdom</SelectItem>
                   <SelectItem value="Canada">Canada</SelectItem>
@@ -412,7 +479,23 @@ export const ConsultationFlow = () => {
                   <SelectItem value="Spain">Spain</SelectItem>
                   <SelectItem value="Italy">Italy</SelectItem>
                   <SelectItem value="Netherlands">Netherlands</SelectItem>
-                  <SelectItem value="Japan">Japan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="language">Preferred Language</Label>
+              <Select 
+                value={formData.language} 
+                onValueChange={(value) => setFormData({...formData, language: value})}
+              >
+                <SelectTrigger id="language">
+                  <SelectValue placeholder="Select language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {languageOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -464,10 +547,10 @@ export const ConsultationFlow = () => {
                   <SelectValue placeholder="Select start date" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Fall 2023">Fall 2023</SelectItem>
-                  <SelectItem value="Spring 2024">Spring 2024</SelectItem>
-                  <SelectItem value="Fall 2024">Fall 2024</SelectItem>
-                  <SelectItem value="Spring 2025">Spring 2025</SelectItem>
+                  <SelectItem value="Fall 2025">Fall 2025</SelectItem>
+                  <SelectItem value="Spring 2026">Spring 2026</SelectItem>
+                  <SelectItem value="Fall 2026">Fall 2026</SelectItem>
+                  <SelectItem value="Spring 2027">Spring 2027</SelectItem>
                   <SelectItem value="Flexible">Flexible</SelectItem>
                 </SelectContent>
               </Select>
@@ -614,14 +697,36 @@ export const ConsultationFlow = () => {
                 
                 <TabsContent value="all" className="space-y-4 mt-4">
                   {searchFilteredPrograms.map((program) => (
-                    <ProgramCard 
-                      key={program.id}
-                      program={program}
-                      isSelected={selectedPrograms.includes(program.id)}
-                      isFavorite={favoritePrograms.includes(program.id)}
-                      onSelect={() => handleProgramSelect(program.id)}
-                      onFavorite={() => toggleFavorite(program.id)}
-                    />
+                    <div key={program.id} className="space-y-2">
+                      <ProgramCard 
+                        program={program}
+                        isSelected={selectedPrograms.includes(program.id)}
+                        isFavorite={favoritePrograms.includes(program.id)}
+                        onSelect={() => handleProgramSelect(program.id)}
+                        onFavorite={() => toggleFavorite(program.id)}
+                      />
+                      {program.matchScore && (
+                        <div className="pl-4">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => toggleMatchDetails(program.id)}
+                            className="text-xs flex items-center gap-1"
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
+                          </Button>
+                          
+                          {showMatchDetails[program.id] && (
+                            <Card className="mt-2 p-4 text-sm bg-muted/30">
+                              <pre className="whitespace-pre-wrap text-xs">
+                                {getMatchExplanation(program)}
+                              </pre>
+                            </Card>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </TabsContent>
                 
@@ -629,14 +734,36 @@ export const ConsultationFlow = () => {
                   {searchFilteredPrograms
                     .filter(program => selectedPrograms.includes(program.id))
                     .map((program) => (
-                      <ProgramCard 
-                        key={program.id}
-                        program={program}
-                        isSelected={true}
-                        isFavorite={favoritePrograms.includes(program.id)}
-                        onSelect={() => handleProgramSelect(program.id)}
-                        onFavorite={() => toggleFavorite(program.id)}
-                      />
+                      <div key={program.id} className="space-y-2">
+                        <ProgramCard 
+                          program={program}
+                          isSelected={true}
+                          isFavorite={favoritePrograms.includes(program.id)}
+                          onSelect={() => handleProgramSelect(program.id)}
+                          onFavorite={() => toggleFavorite(program.id)}
+                        />
+                        {program.matchScore && (
+                          <div className="pl-4">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => toggleMatchDetails(program.id)}
+                              className="text-xs flex items-center gap-1"
+                            >
+                              <FileText className="h-3.5 w-3.5 mr-1" />
+                              {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
+                            </Button>
+                            
+                            {showMatchDetails[program.id] && (
+                              <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                <pre className="whitespace-pre-wrap text-xs">
+                                  {getMatchExplanation(program)}
+                                </pre>
+                              </Card>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   
                   {selectedPrograms.length === 0 && (
@@ -650,14 +777,36 @@ export const ConsultationFlow = () => {
                   {searchFilteredPrograms
                     .filter(program => favoritePrograms.includes(program.id))
                     .map((program) => (
-                      <ProgramCard 
-                        key={program.id}
-                        program={program}
-                        isSelected={selectedPrograms.includes(program.id)}
-                        isFavorite={true}
-                        onSelect={() => handleProgramSelect(program.id)}
-                        onFavorite={() => toggleFavorite(program.id)}
-                      />
+                      <div key={program.id} className="space-y-2">
+                        <ProgramCard 
+                          program={program}
+                          isSelected={selectedPrograms.includes(program.id)}
+                          isFavorite={true}
+                          onSelect={() => handleProgramSelect(program.id)}
+                          onFavorite={() => toggleFavorite(program.id)}
+                        />
+                        {program.matchScore && (
+                          <div className="pl-4">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => toggleMatchDetails(program.id)}
+                              className="text-xs flex items-center gap-1"
+                            >
+                              <FileText className="h-3.5 w-3.5 mr-1" />
+                              {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
+                            </Button>
+                            
+                            {showMatchDetails[program.id] && (
+                              <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                <pre className="whitespace-pre-wrap text-xs">
+                                  {getMatchExplanation(program)}
+                                </pre>
+                              </Card>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   
                   {favoritePrograms.length === 0 && (

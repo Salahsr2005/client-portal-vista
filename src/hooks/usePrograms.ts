@@ -1,8 +1,8 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getMatchingPrograms, MatchedProgram } from "@/services/ProgramMatchingService";
 
 export interface ProgramWithMatchScore extends Program {
   matchScore?: number;
@@ -40,6 +40,7 @@ export interface ProgramFilter {
   studyLevel?: string;
   subjects?: string[];
   location?: string;
+  language?: string;
   duration?: string;
   budget?: string;
   startDate?: string;
@@ -78,9 +79,9 @@ export const usePrograms = (filters?: ProgramFilter) => {
           return [];
         }
         
-        // Transform programs and calculate match scores if filters exist
+        // Transform programs
         const programs = programsData.map(program => {
-          const transformed: ProgramWithMatchScore = {
+          return {
             id: program.id,
             name: program.name || "Unnamed Program",
             university: program.university || "University",
@@ -99,28 +100,11 @@ export const usePrograms = (filters?: ProgramFilter) => {
             // Include all original fields from the database
             ...program
           };
-          
-          // Calculate match score if filters are provided
-          if (filters) {
-            const matchDetails = calculateMatchScore(program, filters);
-            transformed.matchScore = matchDetails.totalScore;
-            transformed.matchDetails = {
-              budgetMatch: matchDetails.budgetScore,
-              languageMatch: matchDetails.languageScore,
-              levelMatch: matchDetails.levelScore,
-              locationMatch: matchDetails.locationScore,
-              durationMatch: matchDetails.durationScore,
-              fieldMatch: matchDetails.fieldScore,
-              culturalMatch: matchDetails.culturalScore
-            };
-          }
-          
-          return transformed;
         });
 
-        // If filters are provided, sort by match score
+        // If filters are provided, apply our advanced matching algorithm
         if (filters) {
-          programs.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+          return getMatchingPrograms(programs, filters);
         }
         
         return programs;

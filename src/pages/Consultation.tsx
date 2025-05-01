@@ -18,6 +18,8 @@ const Consultation = () => {
           <CardTitle className="text-2xl">Program Consultation</CardTitle>
           <CardDescription>
             Find the perfect educational program that matches your preferences and requirements.
+            Our advanced matching algorithm will recommend programs with the best fit based on factors
+            like budget, field of study, location, and more.
           </CardDescription>
         </CardHeader>
         <CardContent>
