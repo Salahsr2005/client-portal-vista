@@ -494,7 +494,7 @@ export default function ChatSupport() {
             </div>
             
             <ScrollArea ref={scrollRef} className="flex-1 p-4">
-              <div className="space-y-4">
+              <Tabs defaultValue="chat" className="h-full">
                 <TabsContent value="chat" className="m-0 h-full space-y-4">
                   {messages.map((msg) => (
                     <div
@@ -585,7 +585,7 @@ export default function ChatSupport() {
                     </div>
                   )}
                 </TabsContent>
-              </div>
+              </Tabs>
             </ScrollArea>
             
             <div className="p-4 border-t bg-card">

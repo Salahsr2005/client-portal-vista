@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
@@ -245,52 +244,7 @@ const ChatInterface: React.FC = () => {
           </div>
           
           <ScrollArea className="flex-grow">
-            {isLoading ? (
-              // Loading skeletons
-              Array(5).fill(0).map((_, i) => (
-                <div key={i} className="p-3 flex items-center gap-3">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-[80%]" />
-                    <Skeleton className="h-3 w-[60%]" />
-                  </div>
-                </div>
-              ))
-            ) : (
-              sampleConversations
-                .filter(convo => activeTab === 'all' || convo.unread > 0)
-                .map(conversation => (
-                  <div 
-                    key={conversation.id}
-                    className={`p-3 flex items-center gap-3 hover:bg-muted/50 cursor-pointer transition-colors ${
-                      selectedConversation.id === conversation.id ? 'bg-muted' : ''
-                    }`}
-                    onClick={() => setSelectedConversation(conversation)}
-                  >
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={conversation.avatar} alt={conversation.name} />
-                        <AvatarFallback>{conversation.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      {conversation.online && (
-                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-medium text-sm truncate">{conversation.name}</h3>
-                        <span className="text-xs text-muted-foreground">{conversation.timestamp}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">{conversation.lastMessage}</p>
-                    </div>
-                    {conversation.unread > 0 && (
-                      <Badge variant="default" className="rounded-full h-5 w-5 p-0 flex items-center justify-center">
-                        {conversation.unread}
-                      </Badge>
-                    )}
-                  </div>
-                ))
-            )}
+            {/* ... keep existing code (conversation list) */}
           </ScrollArea>
         </div>
         
@@ -338,53 +292,55 @@ const ChatInterface: React.FC = () => {
             </div>
             
             <ScrollArea ref={scrollRef} className="flex-grow p-4">
-              <TabsContent value="chat" className="m-0 h-full space-y-4">
-                {messages.map(message => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.isMe ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className="flex items-end gap-2 max-w-[80%] group">
-                      {!message.isMe && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.name} />
-                          <AvatarFallback>{selectedConversation.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                      )}
-                      <div
-                        className={`rounded-lg p-3 ${
-                          message.isMe
-                            ? 'bg-primary text-primary-foreground rounded-br-none'
-                            : 'bg-muted rounded-bl-none'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <div className="flex items-center justify-end gap-1 mt-1">
-                          <span className="text-xs opacity-70">
-                            {formatMessageTime(message.timestamp)}
-                          </span>
-                          {message.isMe && (
-                            <Check className="h-3.5 w-3.5 text-primary-foreground opacity-70" />
-                          )}
+              <div className="space-y-4">
+                <TabsContent value="chat" className="m-0 h-full space-y-4">
+                  {messages.map(message => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.isMe ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className="flex items-end gap-2 max-w-[80%] group">
+                        {!message.isMe && (
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={selectedConversation.avatar} alt={selectedConversation.name} />
+                            <AvatarFallback>{selectedConversation.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div
+                          className={`rounded-lg p-3 ${
+                            message.isMe
+                              ? 'bg-primary text-primary-foreground rounded-br-none'
+                              : 'bg-muted rounded-bl-none'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content}</p>
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span className="text-xs opacity-70">
+                              {formatMessageTime(message.timestamp)}
+                            </span>
+                            {message.isMe && (
+                              <Check className="h-3.5 w-3.5 text-primary-foreground opacity-70" />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
+                  ))}
+                </TabsContent>
+                
+                <TabsContent value="faq" className="m-0 h-full space-y-4">
+                  <div className="bg-muted/20 p-4 rounded-lg">
+                    <h3 className="font-semibold mb-2">Frequently Asked Questions</h3>
+                    <ul className="space-y-3 list-disc pl-4">
+                      <li>How long does the application process usually take?</li>
+                      <li>What documents do I need for a student visa?</li>
+                      <li>Can I work part-time while studying abroad?</li>
+                      <li>How can I find affordable housing?</li>
+                      <li>Are there scholarships available for international students?</li>
+                    </ul>
                   </div>
-                ))}
-              </TabsContent>
-              
-              <TabsContent value="faq" className="m-0 h-full space-y-4">
-                <div className="bg-muted/20 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">Frequently Asked Questions</h3>
-                  <ul className="space-y-3 list-disc pl-4">
-                    <li>How long does the application process usually take?</li>
-                    <li>What documents do I need for a student visa?</li>
-                    <li>Can I work part-time while studying abroad?</li>
-                    <li>How can I find affordable housing?</li>
-                    <li>Are there scholarships available for international students?</li>
-                  </ul>
-                </div>
-              </TabsContent>
+                </TabsContent>
+              </div>
             </ScrollArea>
           </Tabs>
           
