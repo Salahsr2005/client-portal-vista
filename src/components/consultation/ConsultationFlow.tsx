@@ -12,17 +12,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { usePrograms, ProgramFilter } from "@/hooks/usePrograms";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ProgramCard from './ProgramCard';
-import { getMatchExplanation } from "@/services/ProgramMatchingService";
-import { ArrowRight, ArrowLeft, Check, X, Filter, Search, GraduationCap, FileText } from 'lucide-react';
+import { getMatchExplanation, getBudgetBreakdown } from "@/services/ProgramMatchingService";
+import { ArrowRight, ArrowLeft, Check, X, Filter, Search, GraduationCap, FileText, Euro, Info } from 'lucide-react';
 
 // Define types
 interface FormData {
-  studyLevel: string;
+  studyLevel: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
   subjects: string[];
   location: string;
   duration: string;
@@ -33,6 +34,7 @@ interface FormData {
   scholarshipRequired: boolean;
   religiousFacilities: boolean;
   halalFood: boolean;
+  languageTestRequired: boolean;
 }
 
 export const ConsultationFlow = () => {
@@ -42,7 +44,7 @@ export const ConsultationFlow = () => {
   const [step, setStep] = useState(1);
   const [progress, setProgress] = useState(25);
   const [formData, setFormData] = useState<FormData>({
-    studyLevel: "",
+    studyLevel: "Bachelor",
     subjects: [],
     location: "",
     duration: "",
@@ -52,7 +54,8 @@ export const ConsultationFlow = () => {
     specialRequirements: "",
     scholarshipRequired: false,
     religiousFacilities: false,
-    halalFood: false
+    halalFood: false,
+    languageTestRequired: false
   });
   
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
@@ -65,6 +68,7 @@ export const ConsultationFlow = () => {
     budget: false,
   });
   const [showMatchDetails, setShowMatchDetails] = useState<{[key: string]: boolean}>({});
+  const [showBudgetBreakdown, setShowBudgetBreakdown] = useState<{[key: string]: boolean}>({});
   
   // Create filter object based on form data
   const programFilter: ProgramFilter = {
@@ -76,11 +80,14 @@ export const ConsultationFlow = () => {
     budget: formData.budget,
     scholarshipRequired: formData.scholarshipRequired,
     religiousFacilities: formData.religiousFacilities,
-    halalFood: formData.halalFood
+    halalFood: formData.halalFood,
+    languageTestRequired: formData.languageTestRequired
   };
   
   // Get programs with matching algorithm applied
-  const { data: filteredPrograms = [], isLoading } = usePrograms(step === 4 ? programFilter : undefined);
+  const { data: programs = [], isLoading } = usePrograms(step === 4 ? programFilter : undefined);
+  // Type assertion to ensure programs have matchScore
+  const filteredPrograms = programs as Array<typeof programs[0] & { matchScore?: number, matchDetails?: any }>;
   
   // Initialize favorites
   useEffect(() => {
@@ -294,6 +301,13 @@ export const ConsultationFlow = () => {
     }));
   };
   
+  const toggleBudgetBreakdown = (programId: string) => {
+    setShowBudgetBreakdown(prev => ({
+      ...prev,
+      [programId]: !prev[programId]
+    }));
+  };
+  
   // Filter programs based on search query
   const searchFilteredPrograms = searchQuery 
     ? filteredPrograms.filter(program => 
@@ -336,6 +350,23 @@ export const ConsultationFlow = () => {
     { value: "any", label: "Any language" }
   ];
   
+  // Format budget display for user-friendly viewing
+  const formatBudget = (budget: string) => {
+    const value = parseInt(budget);
+    return `€${value.toLocaleString()}`;
+  };
+  
+  // Add budget options in euros
+  const budgetOptions = [
+    { value: "5000", label: "Under €5,000" },
+    { value: "10000", label: "Under €10,000" },
+    { value: "15000", label: "Under €15,000" },
+    { value: "20000", label: "Under €20,000" },
+    { value: "30000", label: "Under €30,000" },
+    { value: "50000", label: "Under €50,000" },
+    { value: "100000", label: "Any budget" }
+  ];
+  
   return (
     <div className="space-y-6">
       {/* Progress bar */}
@@ -355,7 +386,7 @@ export const ConsultationFlow = () => {
           
           <RadioGroup 
             value={formData.studyLevel} 
-            onValueChange={(value) => setFormData({...formData, studyLevel: value})}
+            onValueChange={(value: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma") => setFormData({...formData, studyLevel: value})}
             className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4"
           >
             <div>
@@ -510,6 +541,8 @@ export const ConsultationFlow = () => {
                   <SelectValue placeholder="Select duration" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="preparatory">Preparatory Program (6-12 months)</SelectItem>
+                  <SelectItem value="full_degree">Full Degree Program (2+ years)</SelectItem>
                   <SelectItem value="12">Up to 1 year</SelectItem>
                   <SelectItem value="24">1-2 years</SelectItem>
                   <SelectItem value="36">2-3 years</SelectItem>
@@ -519,22 +552,43 @@ export const ConsultationFlow = () => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget (Annual Tuition in USD)</Label>
-              <Select 
-                value={formData.budget} 
-                onValueChange={(value) => setFormData({...formData, budget: value})}
-              >
-                <SelectTrigger id="budget">
-                  <SelectValue placeholder="Select budget range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10000">Under $10,000</SelectItem>
-                  <SelectItem value="20000">Under $20,000</SelectItem>
-                  <SelectItem value="30000">Under $30,000</SelectItem>
-                  <SelectItem value="50000">Under $50,000</SelectItem>
-                  <SelectItem value="100000">Any budget</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="budget">Budget (Annual in EUR)</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={formData.budget}
+                        onValueChange={(value) => setFormData({...formData, budget: value})}
+                      >
+                        <SelectTrigger id="budget" className="flex-1">
+                          <SelectValue placeholder="Select budget range">
+                            {formData.budget ? (
+                              <div className="flex items-center">
+                                <Euro className="h-4 w-4 mr-1" />
+                                {formatBudget(formData.budget)}
+                              </div>
+                            ) : (
+                              "Select budget range"
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {budgetOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[300px]">
+                    <p>This budget should include tuition and estimated living expenses for one academic year.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             
             <div className="space-y-2">
@@ -592,6 +646,27 @@ export const ConsultationFlow = () => {
                 <label htmlFor="halalFood">
                   Halal food options
                 </label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="languageTestRequired" 
+                  checked={formData.languageTestRequired}
+                  onCheckedChange={(checked) => setFormData({...formData, languageTestRequired: !!checked})}
+                />
+                <label htmlFor="languageTestRequired">
+                  Language test required
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-4 w-4 text-muted-foreground ml-1" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Check this if you prefer programs that require language tests like IELTS, TOEFL, etc.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </div>
@@ -705,8 +780,9 @@ export const ConsultationFlow = () => {
                         onSelect={() => handleProgramSelect(program.id)}
                         onFavorite={() => toggleFavorite(program.id)}
                       />
-                      {program.matchScore && (
-                        <div className="pl-4">
+                      
+                      <div className="pl-4 flex flex-wrap gap-2">
+                        {program.matchScore !== undefined && (
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -716,15 +792,33 @@ export const ConsultationFlow = () => {
                             <FileText className="h-3.5 w-3.5 mr-1" />
                             {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
                           </Button>
-                          
-                          {showMatchDetails[program.id] && (
-                            <Card className="mt-2 p-4 text-sm bg-muted/30">
-                              <pre className="whitespace-pre-wrap text-xs">
-                                {getMatchExplanation(program)}
-                              </pre>
-                            </Card>
-                          )}
-                        </div>
+                        )}
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => toggleBudgetBreakdown(program.id)}
+                          className="text-xs flex items-center gap-1"
+                        >
+                          <Euro className="h-3.5 w-3.5 mr-1" />
+                          {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
+                        </Button>
+                      </div>
+                      
+                      {showMatchDetails[program.id] && program.matchScore !== undefined && (
+                        <Card className="mt-2 p-4 text-sm bg-muted/30">
+                          <pre className="whitespace-pre-wrap text-xs">
+                            {getMatchExplanation(program)}
+                          </pre>
+                        </Card>
+                      )}
+                      
+                      {showBudgetBreakdown[program.id] && (
+                        <Card className="mt-2 p-4 text-sm bg-muted/30">
+                          <pre className="whitespace-pre-wrap text-xs">
+                            {getBudgetBreakdown(program)}
+                          </pre>
+                        </Card>
                       )}
                     </div>
                   ))}
@@ -742,8 +836,9 @@ export const ConsultationFlow = () => {
                           onSelect={() => handleProgramSelect(program.id)}
                           onFavorite={() => toggleFavorite(program.id)}
                         />
-                        {program.matchScore && (
-                          <div className="pl-4">
+                        
+                        <div className="pl-4 flex flex-wrap gap-2">
+                          {program.matchScore !== undefined && (
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -753,15 +848,33 @@ export const ConsultationFlow = () => {
                               <FileText className="h-3.5 w-3.5 mr-1" />
                               {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
                             </Button>
-                            
-                            {showMatchDetails[program.id] && (
-                              <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                <pre className="whitespace-pre-wrap text-xs">
-                                  {getMatchExplanation(program)}
-                                </pre>
-                              </Card>
-                            )}
-                          </div>
+                          )}
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => toggleBudgetBreakdown(program.id)}
+                            className="text-xs flex items-center gap-1"
+                          >
+                            <Euro className="h-3.5 w-3.5 mr-1" />
+                            {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
+                          </Button>
+                        </div>
+                        
+                        {showMatchDetails[program.id] && program.matchScore !== undefined && (
+                          <Card className="mt-2 p-4 text-sm bg-muted/30">
+                            <pre className="whitespace-pre-wrap text-xs">
+                              {getMatchExplanation(program)}
+                            </pre>
+                          </Card>
+                        )}
+                        
+                        {showBudgetBreakdown[program.id] && (
+                          <Card className="mt-2 p-4 text-sm bg-muted/30">
+                            <pre className="whitespace-pre-wrap text-xs">
+                              {getBudgetBreakdown(program)}
+                            </pre>
+                          </Card>
                         )}
                       </div>
                     ))}
@@ -785,8 +898,9 @@ export const ConsultationFlow = () => {
                           onSelect={() => handleProgramSelect(program.id)}
                           onFavorite={() => toggleFavorite(program.id)}
                         />
-                        {program.matchScore && (
-                          <div className="pl-4">
+                        
+                        <div className="pl-4 flex flex-wrap gap-2">
+                          {program.matchScore !== undefined && (
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -796,15 +910,33 @@ export const ConsultationFlow = () => {
                               <FileText className="h-3.5 w-3.5 mr-1" />
                               {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
                             </Button>
-                            
-                            {showMatchDetails[program.id] && (
-                              <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                <pre className="whitespace-pre-wrap text-xs">
-                                  {getMatchExplanation(program)}
-                                </pre>
-                              </Card>
-                            )}
-                          </div>
+                          )}
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => toggleBudgetBreakdown(program.id)}
+                            className="text-xs flex items-center gap-1"
+                          >
+                            <Euro className="h-3.5 w-3.5 mr-1" />
+                            {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
+                          </Button>
+                        </div>
+                        
+                        {showMatchDetails[program.id] && program.matchScore !== undefined && (
+                          <Card className="mt-2 p-4 text-sm bg-muted/30">
+                            <pre className="whitespace-pre-wrap text-xs">
+                              {getMatchExplanation(program)}
+                            </pre>
+                          </Card>
+                        )}
+                        
+                        {showBudgetBreakdown[program.id] && (
+                          <Card className="mt-2 p-4 text-sm bg-muted/30">
+                            <pre className="whitespace-pre-wrap text-xs">
+                              {getBudgetBreakdown(program)}
+                            </pre>
+                          </Card>
                         )}
                       </div>
                     ))}

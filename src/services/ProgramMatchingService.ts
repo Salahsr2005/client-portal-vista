@@ -10,6 +10,7 @@ export interface MatchScoreDetails {
   fieldMatch: number;
   culturalMatch: number;
   scholarshipMatch?: number;
+  testRequirementsMatch?: number;
   totalScore: number;
 }
 
@@ -32,21 +33,23 @@ export const calculateProgramMatch = (program: Program, filters: ProgramFilter):
   let fieldMatch = 0;
   let culturalMatch = 0;
   let scholarshipMatch = 0;
+  let testRequirementsMatch = 0;
   
-  // Total possible points
+  // Total possible points - now adding test requirements
   const MAX_SCORE = 100;
-  const BUDGET_MAX = 30;
+  const BUDGET_MAX = 25;
   const LANGUAGE_MAX = 15;
-  const LEVEL_MAX = 25;
+  const LEVEL_MAX = 20;
   const LOCATION_MAX = 10;
   const DURATION_MAX = 10;
-  const FIELD_MAX = 15;
+  const FIELD_MAX = 10;
   const CULTURAL_MAX = 5;
+  const TEST_REQ_MAX = 5;
   
-  // Calculate budget match (max 30 points)
+  // Calculate budget match (max 25 points)
   if (filters.budget) {
     const userBudget = parseInt(filters.budget);
-    // Calculate total program cost (tuition + living expenses)
+    // Calculate total program cost (tuition + living expenses) - always in EUR
     const programTuition = typeof program.tuition_min === 'number' ? program.tuition_min : 
                          (parseInt(program.tuition?.replace(/[^0-9]/g, '') || '0'));
     const livingCost = program.living_cost_min || 0;
@@ -54,24 +57,46 @@ export const calculateProgramMatch = (program: Program, filters: ProgramFilter):
     
     if (userBudget >= programCost) {
       budgetMatch = BUDGET_MAX; // Perfect match
-    } else if (userBudget >= programCost * 0.8) {
-      budgetMatch = Math.round(BUDGET_MAX * 0.8); // 80% budget match
-    } else if (userBudget >= programCost * 0.6) {
-      budgetMatch = Math.round(BUDGET_MAX * 0.6); // 60% budget match
+    } else if (userBudget >= programCost * 0.85) {
+      budgetMatch = Math.round(BUDGET_MAX * 0.9); // 90% budget match
+    } else if (userBudget >= programCost * 0.7) {
+      budgetMatch = Math.round(BUDGET_MAX * 0.7); // 70% budget match
+    } else if (userBudget >= programCost * 0.5) {
+      budgetMatch = Math.round(BUDGET_MAX * 0.5); // 50% budget match
     } else {
-      budgetMatch = Math.round(BUDGET_MAX * 0.3); // Low budget match
+      budgetMatch = Math.round(BUDGET_MAX * 0.25); // Low budget match
     }
   } else {
     budgetMatch = Math.round(BUDGET_MAX * 0.5); // Neutral when no budget specified
   }
   
-  // Calculate study level match (max 25 points)
+  // Calculate study level match (max 20 points)
   if (filters.studyLevel) {
     if (program.type?.toLowerCase() === filters.studyLevel.toLowerCase() ||
         program.study_level?.toLowerCase() === filters.studyLevel.toLowerCase()) {
       levelMatch = LEVEL_MAX; // Perfect match
     } else {
-      levelMatch = Math.round(LEVEL_MAX * 0.2); // Different level
+      // Check if there's any similarity (e.g. Bachelor vs Undergraduate)
+      const similarLevels: Record<string, string[]> = {
+        "bachelor": ["undergraduate", "licence", "bachelor's"],
+        "master": ["graduate", "postgraduate", "master's"],
+        "phd": ["doctorate", "doctoral", "research"],
+        "certificate": ["diploma", "short course", "professional certificate"]
+      };
+      
+      const userLevel = filters.studyLevel.toLowerCase();
+      const programLevel = (program.study_level || program.type || "").toLowerCase();
+      
+      let hasSimilarity = false;
+      for (const [key, values] of Object.entries(similarLevels)) {
+        if ((userLevel === key || values.some(v => userLevel.includes(v))) && 
+            (programLevel === key || values.some(v => programLevel.includes(v)))) {
+          hasSimilarity = true;
+          break;
+        }
+      }
+      
+      levelMatch = hasSimilarity ? Math.round(LEVEL_MAX * 0.6) : Math.round(LEVEL_MAX * 0.2);
     }
   } else {
     levelMatch = Math.round(LEVEL_MAX * 0.6); // Neutral when no level specified
@@ -100,8 +125,12 @@ export const calculateProgramMatch = (program: Program, filters: ProgramFilter):
       locationMatch = Math.round(LOCATION_MAX * 0.7); // User doesn't care
     } else {
       // Check regions (e.g., if user wants Europe and program is in a European country)
+      const europeanCountries = ["france", "spain", "belgium", "germany", "italy", "netherlands", 
+                               "portugal", "poland", "greece", "austria", "sweden", "denmark",
+                               "finland", "ireland", "luxembourg"];
+      
       if (filters.location.toLowerCase() === "europe" && 
-          ["france", "spain", "belgium", "germany", "italy", "netherlands"].includes(program.country?.toLowerCase() || '')) {
+          europeanCountries.includes(program.country?.toLowerCase() || '')) {
         locationMatch = Math.round(LOCATION_MAX * 0.8);
       } else {
         locationMatch = Math.round(LOCATION_MAX * 0.3); // Different location
@@ -111,26 +140,38 @@ export const calculateProgramMatch = (program: Program, filters: ProgramFilter):
     locationMatch = Math.round(LOCATION_MAX * 0.5); // Neutral when no location specified
   }
   
-  // Calculate duration match (max 10 points)
+  // Calculate duration match (max 10 points) - now with preparatory/full degree option
   if (filters.duration) {
-    const targetDuration = parseInt(filters.duration);
-    const programDuration = program.duration_months || parseInt(program.duration?.match(/\d+/)?.[0] || '0');
-    
-    const durationDifference = Math.abs(programDuration - targetDuration);
-    if (durationDifference <= 3) {
-      durationMatch = DURATION_MAX; // Within 3 months of target
-    } else if (durationDifference <= 6) {
-      durationMatch = Math.round(DURATION_MAX * 0.8); // Within 6 months of target
-    } else if (durationDifference <= 12) {
-      durationMatch = Math.round(DURATION_MAX * 0.5); // Within a year of target
+    // Handle string-based duration preferences
+    if (filters.duration === "preparatory") {
+      // Preparatory programs are typically shorter (less than 12 months)
+      const isPrepProgram = (program.duration_months || 0) <= 12;
+      durationMatch = isPrepProgram ? DURATION_MAX : Math.round(DURATION_MAX * 0.2);
+    } else if (filters.duration === "full_degree") {
+      // Full degree programs are typically longer
+      const isFullDegree = (program.duration_months || 0) >= 24;
+      durationMatch = isFullDegree ? DURATION_MAX : Math.round(DURATION_MAX * 0.2);
     } else {
-      durationMatch = Math.round(DURATION_MAX * 0.3); // More than a year off
+      // Legacy numeric duration handling
+      const targetDuration = parseInt(filters.duration);
+      const programDuration = program.duration_months || parseInt(program.duration?.match(/\d+/)?.[0] || '0');
+      
+      const durationDifference = Math.abs(programDuration - targetDuration);
+      if (durationDifference <= 3) {
+        durationMatch = DURATION_MAX; // Within 3 months of target
+      } else if (durationDifference <= 6) {
+        durationMatch = Math.round(DURATION_MAX * 0.8); // Within 6 months of target
+      } else if (durationDifference <= 12) {
+        durationMatch = Math.round(DURATION_MAX * 0.5); // Within a year of target
+      } else {
+        durationMatch = Math.round(DURATION_MAX * 0.3); // More than a year off
+      }
     }
   } else {
     durationMatch = Math.round(DURATION_MAX * 0.5); // Neutral when no duration specified
   }
   
-  // Calculate field/subject match (max 15 points)
+  // Calculate field/subject match (max 10 points)
   if (filters.subjects && filters.subjects.length > 0) {
     let hasMatch = false;
     let partialMatch = false;
@@ -192,6 +233,24 @@ export const calculateProgramMatch = (program: Program, filters: ProgramFilter):
     culturalMatch = CULTURAL_MAX; // Max score if user doesn't require these accommodations
   }
   
+  // Calculate language test requirements match (new - max 5 points)
+  if (filters.languageTestRequired !== undefined) {
+    const hasLanguageTest = !!program.language_test_score || !!program.language_test;
+    
+    if (filters.languageTestRequired && hasLanguageTest) {
+      testRequirementsMatch = TEST_REQ_MAX; // User wants program with test requirements
+    } else if (!filters.languageTestRequired && !hasLanguageTest) {
+      testRequirementsMatch = TEST_REQ_MAX; // User doesn't want test requirements
+    } else if (filters.languageTestRequired && !hasLanguageTest) {
+      testRequirementsMatch = 0; // User wants test but program doesn't require it
+    } else {
+      // User doesn't want test but program requires it - check for exemptions
+      testRequirementsMatch = program.language_test_exemptions ? Math.round(TEST_REQ_MAX * 0.6) : Math.round(TEST_REQ_MAX * 0.2);
+    }
+  } else {
+    testRequirementsMatch = Math.round(TEST_REQ_MAX * 0.5); // Neutral
+  }
+  
   // Calculate scholarship match if required
   if (filters.scholarshipRequired) {
     scholarshipMatch = program.scholarship_available ? 5 : 0;
@@ -201,11 +260,12 @@ export const calculateProgramMatch = (program: Program, filters: ProgramFilter):
   
   // Calculate total score (weighted average)
   const totalRawScore = budgetMatch + languageMatch + levelMatch + locationMatch + 
-                       durationMatch + fieldMatch + culturalMatch + scholarshipMatch;
+                       durationMatch + fieldMatch + culturalMatch + scholarshipMatch + 
+                       testRequirementsMatch;
   
   // Convert to percentage (0-100)
   const totalMaxScore = BUDGET_MAX + LANGUAGE_MAX + LEVEL_MAX + LOCATION_MAX + 
-                       DURATION_MAX + FIELD_MAX + CULTURAL_MAX + 5; // +5 for scholarship
+                       DURATION_MAX + FIELD_MAX + CULTURAL_MAX + 5 + TEST_REQ_MAX; // +5 for scholarship
   const totalScore = Math.round((totalRawScore / totalMaxScore) * 100);
   
   // Create match details
@@ -217,6 +277,7 @@ export const calculateProgramMatch = (program: Program, filters: ProgramFilter):
     durationMatch: Math.round((durationMatch / DURATION_MAX) * 100),
     fieldMatch: Math.round((fieldMatch / FIELD_MAX) * 100),
     culturalMatch: Math.round((culturalMatch / CULTURAL_MAX) * 100),
+    testRequirementsMatch: Math.round((testRequirementsMatch / TEST_REQ_MAX) * 100),
     scholarshipMatch: filters.scholarshipRequired ? (program.scholarship_available ? 100 : 0) : 100,
     totalScore
   };
@@ -251,59 +312,92 @@ export const getMatchExplanation = (program: MatchedProgram): string => {
   
   // Budget compatibility
   if (program.matchDetails.budgetMatch >= 80) {
-    explanations.push('Budget: Excellent match - your budget fully covers tuition and living expenses.');
+    explanations.push('💶 Budget: Excellent match - your budget fully covers tuition and living expenses.');
   } else if (program.matchDetails.budgetMatch >= 60) {
-    explanations.push('Budget: Good match - your budget covers most expenses, additional funding may be helpful.');
+    explanations.push('💶 Budget: Good match - your budget covers most expenses, additional funding may be helpful.');
   } else {
-    explanations.push('Budget: Limited match - this program may be challenging for your budget.');
+    explanations.push('💶 Budget: Limited match - this program may be challenging for your budget.');
   }
   
   // Study level match
   if (program.matchDetails.levelMatch >= 80) {
-    explanations.push('Study Level: Excellent match - the program level exactly matches what you\'re looking for.');
+    explanations.push('🎓 Study Level: Excellent match - the program level exactly matches what you\'re looking for.');
   } else if (program.matchDetails.levelMatch >= 50) {
-    explanations.push('Study Level: Good match - the program level is similar to what you\'re looking for.');
+    explanations.push('🎓 Study Level: Good match - the program level is similar to what you\'re looking for.');
   } else {
-    explanations.push('Study Level: Limited match - this program is at a different level than requested.');
+    explanations.push('🎓 Study Level: Limited match - this program is at a different level than requested.');
   }
   
   // Language match
   if (program.matchDetails.languageMatch >= 80) {
-    explanations.push('Language: Excellent match - program language aligns perfectly with your preferences.');
+    explanations.push('🗣️ Language: Excellent match - program language aligns perfectly with your preferences.');
   } else if (program.matchDetails.languageMatch >= 50) {
-    explanations.push('Language: Good match - program offers courses in your preferred language.');
+    explanations.push('🗣️ Language: Good match - program offers courses in your preferred language.');
   } else {
-    explanations.push('Language: Limited match - you may need additional language preparation.');
+    explanations.push('🗣️ Language: Limited match - you may need additional language preparation.');
   }
   
   // Location match
   if (program.matchDetails.locationMatch >= 80) {
-    explanations.push('Location: Excellent match - program is in your preferred location.');
+    explanations.push('📍 Location: Excellent match - program is in your preferred location.');
   } else if (program.matchDetails.locationMatch >= 50) {
-    explanations.push('Location: Good match - program is in a similar region to your preference.');
+    explanations.push('📍 Location: Good match - program is in a similar region to your preference.');
   } else {
-    explanations.push('Location: Limited match - program is in a different location than preferred.');
+    explanations.push('📍 Location: Limited match - program is in a different location than preferred.');
   }
   
   // Field match
   if (program.matchDetails.fieldMatch >= 80) {
-    explanations.push('Field of Study: Excellent match - program field matches your interests very well.');
+    explanations.push('📚 Field of Study: Excellent match - program field matches your interests very well.');
   } else if (program.matchDetails.fieldMatch >= 50) {
-    explanations.push('Field of Study: Good match - program is related to your field of interest.');
+    explanations.push('📚 Field of Study: Good match - program is related to your field of interest.');
   } else {
-    explanations.push('Field of Study: Limited match - program is in a different field than your preference.');
+    explanations.push('📚 Field of Study: Limited match - program is in a different field than your preference.');
+  }
+
+  // Test requirements
+  if (program.matchDetails.testRequirementsMatch) {
+    if (program.matchDetails.testRequirementsMatch >= 80) {
+      explanations.push('📝 Language Test: Perfect match with your preferences for language test requirements.');
+    } else if (program.matchDetails.testRequirementsMatch >= 50) {
+      explanations.push('📝 Language Test: Acceptable match, but test requirements differ slightly from preferences.');
+    } else {
+      explanations.push('📝 Language Test: Not matching your preferences for language testing requirements.');
+    }
   }
   
   // Additional factors
   if (program.matchDetails.scholarshipMatch === 100) {
     if (program.scholarship_available) {
-      explanations.push('Scholarship: Available - this program offers scholarships you requested.');
+      explanations.push('🏆 Scholarship: Available - this program offers scholarships you requested.');
     } else {
-      explanations.push('Scholarship: Not required - as per your preferences.');
+      explanations.push('🏆 Scholarship: Not required - as per your preferences.');
     }
   } else {
-    explanations.push('Scholarship: Not available - but you indicated this was important to you.');
+    explanations.push('🏆 Scholarship: Not available - but you indicated this was important to you.');
   }
   
   return explanations.join('\n');
+};
+
+/**
+ * Returns a visual representation of budget compatibility 
+ * for easy comparison in euros
+ */
+export const getBudgetBreakdown = (program: Program): string => {
+  const tuition = typeof program.tuition_min === 'number' ? program.tuition_min : 
+                parseInt(program.tuition?.replace(/[^0-9]/g, '') || '0');
+  const livingCost = program.living_cost_min || 0;
+  const applicationFee = program.application_fee || 0;
+  const visaFee = program.visa_fee || 0;
+  
+  return `
+Annual Expenses (in €):
+• Tuition: €${tuition.toLocaleString()}
+• Living Expenses: €${(livingCost * 12).toLocaleString()} (€${livingCost.toLocaleString()}/month)
+• Application Fee: €${applicationFee.toLocaleString()}
+• Visa Fee: €${visaFee.toLocaleString()}
+
+Total Annual Cost: €${(tuition + (livingCost * 12) + applicationFee + visaFee).toLocaleString()}
+  `;
 };

@@ -19,7 +19,7 @@ const Consultation = () => {
           <CardDescription>
             Find the perfect educational program that matches your preferences and requirements.
             Our advanced matching algorithm will recommend programs with the best fit based on factors
-            like budget, field of study, location, and more.
+            like budget, field of study, location, language, and more.
           </CardDescription>
         </CardHeader>
         <CardContent>
