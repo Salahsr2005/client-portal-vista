@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Loader2, Trash2, CheckCircle2, XCircle, File } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { getDocumentUrl, uploadUserDocument, deleteUserDocument } from '@/utils/databaseHelpers';
 
 const documentTypes = [
   { id: 'passport', name: 'Passport' },
@@ -115,11 +116,6 @@ export function DocumentUpload() {
     setProgress(0);
     
     try {
-      // 1. Upload file to Storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-      
       // Simulate upload progress
       const progressInterval = setInterval(() => {
         setProgress(prev => {
@@ -131,44 +127,25 @@ export function DocumentUpload() {
         });
       }, 100);
       
-      const { data: fileData, error: fileError } = await supabase.storage
-        .from('user_documents')
-        .upload(filePath, selectedFile);
+      // Use our utility function to upload the document
+      const result = await uploadUserDocument(user.id, selectedFile, documentType, documentName);
       
       clearInterval(progressInterval);
       setProgress(100);
       
-      if (fileError) {
-        throw fileError;
+      if (!result.success) {
+        throw result.error;
       }
       
-      // 2. Create entry in client_documents table
-      const documentData = {
-        client_id: user.id,
-        document_type: documentType,
-        document_name: documentName,
-        file_path: filePath,
-        status: 'Pending'
-      };
-      
-      const { data, error } = await supabase
-        .from('client_documents')
-        .insert([documentData])
-        .select();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // 3. Update local state with transformed data that matches our Document interface
-      if (data && data.length > 0) {
+      // If successful, update local state
+      if (result.data && result.data.length > 0) {
         const newDoc: Document = {
-          id: data[0].document_id,
-          name: data[0].document_name,
-          type: data[0].document_type,
-          status: data[0].status,
-          uploaded_at: data[0].upload_date,
-          file_path: data[0].file_path
+          id: result.data[0].document_id,
+          name: result.data[0].document_name,
+          type: result.data[0].document_type,
+          status: result.data[0].status,
+          uploaded_at: result.data[0].upload_date,
+          file_path: result.data[0].file_path
         };
         
         setDocuments(prev => [newDoc, ...prev]);
@@ -202,26 +179,14 @@ export function DocumentUpload() {
     if (!user) return;
     
     try {
-      // 1. Delete from database
-      const { error: dbError } = await supabase
-        .from('client_documents')
-        .delete()
-        .eq('document_id', documentId);
+      // Use our utility function to delete the document
+      const success = await deleteUserDocument(documentId, filePath);
       
-      if (dbError) {
-        throw dbError;
+      if (!success) {
+        throw new Error("Failed to delete document");
       }
       
-      // 2. Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('user_documents')
-        .remove([filePath]);
-      
-      if (storageError) {
-        console.warn("Could not delete file from storage:", storageError);
-      }
-      
-      // 3. Update local state
+      // Update local state
       setDocuments(prev => prev.filter(doc => doc.id !== documentId));
       
       toast({
@@ -238,22 +203,30 @@ export function DocumentUpload() {
     }
   };
 
-  const getDocumentUrl = async (filePath: string) => {
-    const { data, error } = await supabase.storage
-      .from('user_documents')
-      .createSignedUrl(filePath, 3600); // URL valid for 1 hour
-    
-    if (error) {
+  const handleViewDocument = async (filePath: string) => {
+    try {
+      // Get signed URL using our utility function
+      const url = await getDocumentUrl(filePath);
+      
+      if (!url) {
+        toast({
+          title: "Error",
+          description: "Could not generate download link.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Open in new tab
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error("Error viewing document:", error);
       toast({
         title: "Error",
-        description: "Could not generate download link.",
+        description: "Could not open the document.",
         variant: "destructive",
       });
-      return;
     }
-    
-    // Open in new tab
-    window.open(data.signedUrl, '_blank');
   };
 
   const getStatusIcon = (status: string) => {
@@ -415,7 +388,7 @@ export function DocumentUpload() {
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => getDocumentUrl(doc.file_path)}
+                        onClick={() => handleViewDocument(doc.file_path)}
                       >
                         View
                       </Button>

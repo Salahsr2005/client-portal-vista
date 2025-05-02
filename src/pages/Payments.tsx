@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -20,6 +20,7 @@ const Payments = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("card");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handlePendingItemClick = (item: any, type: string) => {
     setPendingItem(item);
@@ -36,13 +37,21 @@ const Payments = () => {
   };
 
   const handlePayment = () => {
-    toast({
-      title: "Payment Processing",
-      description: `Processing payment of $${getProgramDetails(pendingItem).applicationFee.toFixed(2)} via ${selectedPaymentMethod}`,
-    });
-    
-    // Close the dialog
     setIsDialogOpen(false);
+    setIsDetailsOpen(false);
+    
+    // Navigate to checkout page with payment data
+    navigate("/payment-checkout", {
+      state: {
+        paymentData: {
+          title: getProgramDetails(pendingItem).programName,
+          description: getProgramDetails(pendingItem).university,
+          amount: getProgramDetails(pendingItem).applicationFee.toFixed(2),
+          reference: `APP-${Date.now().toString().substring(8)}`,
+          method: selectedPaymentMethod
+        }
+      }
+    });
   };
 
   if (isLoading || isLoadingPending) {

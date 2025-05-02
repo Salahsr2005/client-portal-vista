@@ -24,6 +24,7 @@ import Appointments from "./pages/Appointments";
 import Services from "./pages/Services";
 import Notifications from "./pages/Notifications";
 import Payments from "./pages/Payments";
+import PaymentCheckout from "./pages/PaymentCheckout";
 import Destinations from "./pages/Destinations";
 import Consultation from "./pages/Consultation";
 import ChatSupport from "./pages/ChatSupport";
@@ -73,6 +74,7 @@ const AppRoutes = () => {
         <Route path="/messages" element={<Messages />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/payments" element={<Payments />} />
+        <Route path="/payment-checkout" element={<PaymentCheckout />} />
         <Route path="/destinations" element={<Destinations />} />
         <Route path="/consultation" element={<Consultation />} />
         <Route path="/chat" element={<ChatSupport />} />
