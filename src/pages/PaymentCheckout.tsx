@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,14 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, Check, CreditCard, Euro } from "lucide-react";
+import { AlertCircle, Check, CreditCard, Euro, FileUp, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { uploadPaymentReceipt } from "@/utils/databaseHelpers";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const PaymentCheckout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("credit-card");
   const [cardNumber, setCardNumber] = useState("");
@@ -23,11 +27,19 @@ const PaymentCheckout = () => {
   const [cvv, setCvv] = useState("");
   const [paymentData, setPaymentData] = useState<any>(null);
   const [step, setStep] = useState(1);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Get payment data passed from previous page
     if (location.state?.paymentData) {
       setPaymentData(location.state.paymentData);
+      
+      // Set default payment method if specified
+      if (location.state.paymentData.method) {
+        setPaymentMethod(location.state.paymentData.method);
+      }
     } else {
       // If no payment data, redirect back to payments
       navigate("/payments");
@@ -56,20 +68,115 @@ const PaymentCheckout = () => {
     setCardNumber(formatted.substring(0, 19)); // Limit to 16 digits + 3 spaces
   };
 
-  const handleSubmitPayment = () => {
-    setLoading(true);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setReceiptFile(e.target.files[0]);
+    }
+  };
 
-    // Simulate payment processing
-    setTimeout(() => {
-      setStep(2); // Move to success step
-      setLoading(false);
-    }, 2000);
+  const handleFileUpload = async () => {
+    if (!receiptFile || !user) return;
+    
+    setUploadingReceipt(true);
+    
+    try {
+      // Create a payment record first
+      const { data: paymentRecord, error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          client_id: user.id,
+          method: paymentMethod,
+          amount: parseFloat(paymentData.amount),
+          status: 'Pending',
+          date: new Date().toISOString(),
+          description: paymentData.description || `Payment for ${paymentData.title}`,
+          reference: paymentData.reference || paymentMethod,
+        })
+        .select();
+      
+      if (paymentError) {
+        throw paymentError;
+      }
+      
+      // Upload receipt with reference to the payment
+      const result = await uploadPaymentReceipt(
+        user.id,
+        paymentRecord[0].payment_id,
+        receiptFile
+      );
+      
+      if (!result.success) {
+        throw result.error;
+      }
+      
+      toast({
+        title: "Receipt uploaded successfully",
+        description: "Your payment is pending verification.",
+      });
+      
+      // Move to success step after upload
+      setStep(2);
+    } catch (error: any) {
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload receipt. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
+  const handleSubmitPayment = () => {
+    if (paymentMethod === "bank-transfer" || paymentMethod === "ccp") {
+      if (!receiptFile) {
+        toast({
+          title: "Receipt required",
+          description: "Please upload your payment receipt to continue.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      handleFileUpload();
+    } else {
+      setLoading(true);
+
+      // Simulate payment processing for card payments
+      setTimeout(async () => {
+        try {
+          // Create payment record for card payments
+          if (user) {
+            await supabase
+              .from('payments')
+              .insert({
+                client_id: user.id,
+                method: 'Credit Card',
+                amount: parseFloat(paymentData.amount),
+                status: 'Completed',
+                date: new Date().toISOString(),
+                description: paymentData.description || `Payment for ${paymentData.title}`,
+                reference: paymentData.reference || 'card',
+                transaction_id: `TXN-${Date.now().toString().substring(5)}`
+              });
+          }
+          
+          setStep(2); // Move to success step
+        } catch (error) {
+          console.error("Error recording payment:", error);
+        } finally {
+          setLoading(false);
+        }
+      }, 2000);
+    }
   };
 
   const handleFinish = () => {
     toast({
-      title: "Payment successful",
-      description: "Your payment has been processed successfully.",
+      title: "Payment processed",
+      description: paymentMethod === "credit-card" 
+        ? "Your payment has been processed successfully." 
+        : "Your payment receipt has been submitted and is pending verification.",
     });
     navigate("/payments");
   };
@@ -229,6 +336,42 @@ const PaymentCheckout = () => {
                       <p>Reference: {paymentData.reference || "Your ID"}</p>
                     </AlertDescription>
                   </Alert>
+                  
+                  <div className="mt-4 space-y-2">
+                    <Label htmlFor="receipt">Upload Payment Receipt</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary/70 transition-colors" 
+                      onClick={() => fileInputRef.current?.click()}>
+                      <Input
+                        id="receipt"
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*,.pdf"
+                        onChange={handleFileChange}
+                      />
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <Upload className="h-10 w-10 text-muted-foreground" />
+                        {receiptFile ? (
+                          <div>
+                            <p className="font-medium">{receiptFile.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {(receiptFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="font-medium">Click to upload receipt</p>
+                            <p className="text-sm text-muted-foreground">
+                              or drag and drop your receipt file
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Supported formats: JPG, PNG, PDF (max 5MB)
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -242,6 +385,42 @@ const PaymentCheckout = () => {
                       <p>Reference: {paymentData.reference || "Your ID"}</p>
                     </AlertDescription>
                   </Alert>
+                  
+                  <div className="mt-4 space-y-2">
+                    <Label htmlFor="receipt-ccp">Upload Payment Receipt</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary/70 transition-colors" 
+                      onClick={() => fileInputRef.current?.click()}>
+                      <Input
+                        id="receipt-ccp"
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*,.pdf"
+                        onChange={handleFileChange}
+                      />
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <FileUp className="h-10 w-10 text-muted-foreground" />
+                        {receiptFile ? (
+                          <div>
+                            <p className="font-medium">{receiptFile.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {(receiptFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="font-medium">Click to upload receipt</p>
+                            <p className="text-sm text-muted-foreground">
+                              Upload proof of your CCP payment
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Supported formats: JPG, PNG, PDF (max 5MB)
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -253,7 +432,7 @@ const PaymentCheckout = () => {
             <Button 
               variant="outline" 
               onClick={() => navigate("/payments")}
-              disabled={loading}
+              disabled={loading || uploadingReceipt}
             >
               Back to Payments
             </Button>
@@ -263,10 +442,13 @@ const PaymentCheckout = () => {
               </p>
               <Button 
                 onClick={handleSubmitPayment}
-                disabled={loading || (paymentMethod === "credit-card" && (!cardNumber || !cardName || !expiryDate || !cvv))}
+                disabled={loading || uploadingReceipt || 
+                  (paymentMethod === "credit-card" && (!cardNumber || !cardName || !expiryDate || !cvv)) ||
+                  ((paymentMethod === "bank-transfer" || paymentMethod === "ccp") && !receiptFile)
+                }
                 className="min-w-[150px]"
               >
-                {loading ? (
+                {loading || uploadingReceipt ? (
                   <>
                     <div className="spinner mr-2" /> Processing...
                   </>
@@ -283,14 +465,18 @@ const PaymentCheckout = () => {
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
               <Check className="h-8 w-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Payment Successful!</h2>
+            <h2 className="text-2xl font-bold mb-2">Payment Submitted!</h2>
             <p className="text-muted-foreground mb-6">
-              Your payment of <span className="font-medium">€{paymentData.amount}</span> has been processed successfully.
+              {paymentMethod === "credit-card" ? (
+                <>Your payment of <span className="font-medium">€{paymentData.amount}</span> has been processed successfully.</>
+              ) : (
+                <>Your receipt has been uploaded. Your payment of <span className="font-medium">€{paymentData.amount}</span> is pending verification.</>
+              )}
             </p>
             <div className="border rounded-lg p-4 bg-muted/30 mb-8 max-w-md mx-auto">
               <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Transaction ID:</span>
-                <span className="font-medium">{Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
+                <span className="text-muted-foreground">Reference:</span>
+                <span className="font-medium">{paymentData.reference || Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-muted-foreground">Date:</span>
@@ -298,7 +484,9 @@ const PaymentCheckout = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>
-                <span className="text-green-600 font-medium">Completed</span>
+                <span className={`font-medium ${paymentMethod === "credit-card" ? "text-green-600" : "text-amber-600"}`}>
+                  {paymentMethod === "credit-card" ? "Completed" : "Pending Verification"}
+                </span>
               </div>
             </div>
             <Button onClick={handleFinish} className="w-full md:w-auto min-w-[200px]">

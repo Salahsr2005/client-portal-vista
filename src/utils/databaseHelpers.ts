@@ -12,6 +12,19 @@ export const createFavoriteProgramsTable = async () => {
   }
 };
 
+// Function to handle Supabase errors
+export const handleSupabaseError = (error: any, toastFunction?: any) => {
+  console.error('Supabase error:', error);
+  if (toastFunction) {
+    toastFunction({
+      title: "Error",
+      description: error.message || "An error occurred with the database operation",
+      variant: "destructive",
+    });
+  }
+  return error;
+};
+
 // Function to get a signed URL for a user document
 export const getDocumentUrl = async (filePath: string): Promise<string | null> => {
   try {
@@ -102,5 +115,67 @@ export const deleteUserDocument = async (documentId: string, filePath: string): 
   } catch (error) {
     console.error("Error deleting document:", error);
     return false;
+  }
+};
+
+// Function to upload payment receipt
+export const uploadPaymentReceipt = async (
+  userId: string,
+  paymentId: string,
+  file: File
+): Promise<{ success: boolean, data?: any, error?: any }> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `receipt-${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${fileName}`;
+    
+    // Upload to storage
+    const { data: fileData, error: fileError } = await supabase.storage
+      .from('payment_receipts')
+      .upload(filePath, file);
+    
+    if (fileError) {
+      return { success: false, error: fileError };
+    }
+    
+    // Create receipt record
+    const receiptData = {
+      payment_id: paymentId,
+      client_id: userId,
+      receipt_path: filePath,
+      status: 'Pending'
+    };
+    
+    const { data, error } = await supabase
+      .from('payment_receipts')
+      .insert([receiptData])
+      .select();
+    
+    if (error) {
+      return { success: false, error };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error };
+  }
+};
+
+// Function to get receipt URL
+export const getReceiptUrl = async (filePath: string): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase.storage
+      .from('payment_receipts')
+      .createSignedUrl(filePath, 3600); // URL valid for 1 hour
+    
+    if (error) {
+      console.error("Error creating signed receipt URL:", error);
+      return null;
+    }
+    
+    return data.signedUrl;
+  } catch (error) {
+    console.error("Error getting receipt URL:", error);
+    return null;
   }
 };

@@ -1037,6 +1037,50 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_receipts: {
+        Row: {
+          client_id: string
+          id: string
+          notes: string | null
+          payment_id: string | null
+          receipt_path: string
+          status: string
+          uploaded_at: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          client_id: string
+          id?: string
+          notes?: string | null
+          payment_id?: string | null
+          receipt_path: string
+          status?: string
+          uploaded_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          client_id?: string
+          id?: string
+          notes?: string | null
+          payment_id?: string | null
+          receipt_path?: string
+          status?: string
+          uploaded_at?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["payment_id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
