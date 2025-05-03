@@ -19,7 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import ProgramCard from './ProgramCard';
 import { getMatchExplanation, getBudgetBreakdown } from "@/services/ProgramMatchingService";
-import { ArrowRight, ArrowLeft, Check, X, Filter, Search, GraduationCap, FileText, Euro, Info } from 'lucide-react';
+import { ArrowRight, ArrowLeft, X, Filter, Search, GraduationCap, FileText, Euro, Info, Grid, ListFilter, Map, Loader2, Building, BookOpen, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Define types
 interface FormData {
@@ -69,6 +70,7 @@ export const ConsultationFlow = () => {
   });
   const [showMatchDetails, setShowMatchDetails] = useState<{[key: string]: boolean}>({});
   const [showBudgetBreakdown, setShowBudgetBreakdown] = useState<{[key: string]: boolean}>({});
+  const [isGridView, setIsGridView] = useState(true);
   
   // Create filter object based on form data
   const programFilter: ProgramFilter = {
@@ -366,6 +368,22 @@ export const ConsultationFlow = () => {
     { value: "50000", label: "Under €50,000" },
     { value: "100000", label: "Any budget" }
   ];
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+  
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
   
   return (
     <div className="space-y-6">
@@ -379,593 +397,835 @@ export const ConsultationFlow = () => {
       </div>
       
       {/* Step 1: Study Level */}
-      {step === 1 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">What level of study are you interested in?</h2>
-          <p className="text-muted-foreground">Select the academic level you want to pursue</p>
-          
-          <RadioGroup 
-            value={formData.studyLevel} 
-            onValueChange={(value: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma") => setFormData({...formData, studyLevel: value})}
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4"
+      <AnimatePresence mode="wait">
+        {step === 1 && (
+          <motion.div 
+            key="step1"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
           >
-            <div>
-              <RadioGroupItem value="Bachelor" id="bachelor" className="peer sr-only" />
-              <Label
-                htmlFor="bachelor"
-                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-              >
-                <GraduationCap className="mb-3 h-6 w-6" />
-                <div className="space-y-1 text-center">
-                  <h3 className="font-medium">Bachelor's Degree</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Undergraduate programs (3-4 years)
-                  </p>
-                </div>
-              </Label>
-            </div>
+            <h2 className="text-xl font-semibold">What level of study are you interested in?</h2>
+            <p className="text-muted-foreground">Select the academic level you want to pursue</p>
             
-            <div>
-              <RadioGroupItem value="Master" id="master" className="peer sr-only" />
-              <Label
-                htmlFor="master"
-                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-              >
-                <GraduationCap className="mb-3 h-6 w-6" />
-                <div className="space-y-1 text-center">
-                  <h3 className="font-medium">Master's Degree</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Graduate programs (1-2 years)
-                  </p>
-                </div>
-              </Label>
-            </div>
-            
-            <div>
-              <RadioGroupItem value="PhD" id="phd" className="peer sr-only" />
-              <Label
-                htmlFor="phd"
-                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-              >
-                <GraduationCap className="mb-3 h-6 w-6" />
-                <div className="space-y-1 text-center">
-                  <h3 className="font-medium">PhD / Doctorate</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Advanced research degrees (3+ years)
-                  </p>
-                </div>
-              </Label>
-            </div>
-            
-            <div>
-              <RadioGroupItem value="Certificate" id="certificate" className="peer sr-only" />
-              <Label
-                htmlFor="certificate"
-                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-              >
-                <GraduationCap className="mb-3 h-6 w-6" />
-                <div className="space-y-1 text-center">
-                  <h3 className="font-medium">Certificate / Diploma</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Short-term professional qualifications
-                  </p>
-                </div>
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-      )}
-      
-      {/* Step 2: Subject Areas */}
-      {step === 2 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">What subjects are you interested in studying?</h2>
-          <p className="text-muted-foreground">Select all that apply</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4">
-            {subjectAreas.map((subject) => (
-              <div key={subject} className="flex items-center space-x-2">
-                <Checkbox 
-                  id={subject.toLowerCase().replace(/\s+/g, '-')} 
-                  checked={formData.subjects.includes(subject)}
-                  onCheckedChange={() => handleSubjectToggle(subject)}
-                />
-                <label
-                  htmlFor={subject.toLowerCase().replace(/\s+/g, '-')}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            <RadioGroup 
+              value={formData.studyLevel} 
+              onValueChange={(value: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma") => setFormData({...formData, studyLevel: value})}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4"
+            >
+              <motion.div variants={itemVariants} initial="hidden" animate="show">
+                <RadioGroupItem value="Bachelor" id="bachelor" className="peer sr-only" />
+                <Label
+                  htmlFor="bachelor"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all duration-200 hover:shadow-md"
                 >
-                  {subject}
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                  <GraduationCap className="mb-3 h-6 w-6" />
+                  <div className="space-y-1 text-center">
+                    <h3 className="font-medium">Bachelor's Degree</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Undergraduate programs (3-4 years)
+                    </p>
+                  </div>
+                </Label>
+              </motion.div>
+              
+              <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{ delay: 0.1 }}>
+                <RadioGroupItem value="Master" id="master" className="peer sr-only" />
+                <Label
+                  htmlFor="master"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all duration-200 hover:shadow-md"
+                >
+                  <GraduationCap className="mb-3 h-6 w-6" />
+                  <div className="space-y-1 text-center">
+                    <h3 className="font-medium">Master's Degree</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Graduate programs (1-2 years)
+                    </p>
+                  </div>
+                </Label>
+              </motion.div>
+              
+              <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{ delay: 0.2 }}>
+                <RadioGroupItem value="PhD" id="phd" className="peer sr-only" />
+                <Label
+                  htmlFor="phd"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all duration-200 hover:shadow-md"
+                >
+                  <GraduationCap className="mb-3 h-6 w-6" />
+                  <div className="space-y-1 text-center">
+                    <h3 className="font-medium">PhD / Doctorate</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Advanced research degrees (3+ years)
+                    </p>
+                  </div>
+                </Label>
+              </motion.div>
+              
+              <motion.div variants={itemVariants} initial="hidden" animate="show" transition={{ delay: 0.3 }}>
+                <RadioGroupItem value="Certificate" id="certificate" className="peer sr-only" />
+                <Label
+                  htmlFor="certificate"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary transition-all duration-200 hover:shadow-md"
+                >
+                  <BookOpen className="mb-3 h-6 w-6" />
+                  <div className="space-y-1 text-center">
+                    <h3 className="font-medium">Certificate / Diploma</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Short-term professional qualifications
+                    </p>
+                  </div>
+                </Label>
+              </motion.div>
+            </RadioGroup>
+          </motion.div>
+        )}
       
-      {/* Step 3: Additional Preferences */}
-      {step === 3 && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Additional Preferences</h2>
-          <p className="text-muted-foreground">Help us narrow down programs that match your needs</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="location">Preferred Location</Label>
-              <Select 
-                value={formData.location} 
-                onValueChange={(value) => setFormData({...formData, location: value})}
+        {/* Step 2: Subject Areas */}
+        {step === 2 && (
+          <motion.div 
+            key="step2"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
+            <h2 className="text-xl font-semibold">What subjects are you interested in studying?</h2>
+            <p className="text-muted-foreground">Select all that apply</p>
+            
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4"
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+            >
+              {subjectAreas.map((subject, index) => (
+                <motion.div 
+                  key={subject} 
+                  className="flex items-center space-x-2"
+                  variants={itemVariants}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Checkbox 
+                    id={subject.toLowerCase().replace(/\s+/g, '-')} 
+                    checked={formData.subjects.includes(subject)}
+                    onCheckedChange={() => handleSubjectToggle(subject)}
+                  />
+                  <label
+                    htmlFor={subject.toLowerCase().replace(/\s+/g, '-')}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {subject}
+                  </label>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      
+        {/* Step 3: Additional Preferences */}
+        {step === 3 && (
+          <motion.div 
+            key="step3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <h2 className="text-xl font-semibold">Additional Preferences</h2>
+            <p className="text-muted-foreground">Help us narrow down programs that match your needs</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
               >
-                <SelectTrigger id="location">
-                  <SelectValue placeholder="Select a location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any Location</SelectItem>
-                  <SelectItem value="europe">Europe</SelectItem>
-                  <SelectItem value="United States">United States</SelectItem>
-                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                  <SelectItem value="Canada">Canada</SelectItem>
-                  <SelectItem value="Australia">Australia</SelectItem>
-                  <SelectItem value="Germany">Germany</SelectItem>
-                  <SelectItem value="France">France</SelectItem>
-                  <SelectItem value="Spain">Spain</SelectItem>
-                  <SelectItem value="Italy">Italy</SelectItem>
-                  <SelectItem value="Netherlands">Netherlands</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="language">Preferred Language</Label>
-              <Select 
-                value={formData.language} 
-                onValueChange={(value) => setFormData({...formData, language: value})}
-              >
-                <SelectTrigger id="language">
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                  {languageOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="duration">Program Duration</Label>
-              <Select 
-                value={formData.duration} 
-                onValueChange={(value) => setFormData({...formData, duration: value})}
-              >
-                <SelectTrigger id="duration">
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="preparatory">Preparatory Program (6-12 months)</SelectItem>
-                  <SelectItem value="full_degree">Full Degree Program (2+ years)</SelectItem>
-                  <SelectItem value="12">Up to 1 year</SelectItem>
-                  <SelectItem value="24">1-2 years</SelectItem>
-                  <SelectItem value="36">2-3 years</SelectItem>
-                  <SelectItem value="48">3+ years</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="budget">Budget (Annual in EUR)</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={formData.budget}
-                        onValueChange={(value) => setFormData({...formData, budget: value})}
-                      >
-                        <SelectTrigger id="budget" className="flex-1">
-                          <SelectValue placeholder="Select budget range">
-                            {formData.budget ? (
-                              <div className="flex items-center">
-                                <Euro className="h-4 w-4 mr-1" />
-                                {formatBudget(formData.budget)}
-                              </div>
-                            ) : (
-                              "Select budget range"
-                            )}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {budgetOptions.map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[300px]">
-                    <p>This budget should include tuition and estimated living expenses for one academic year.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Preferred Start Date</Label>
-              <Select 
-                value={formData.startDate} 
-                onValueChange={(value) => setFormData({...formData, startDate: value})}
-              >
-                <SelectTrigger id="startDate">
-                  <SelectValue placeholder="Select start date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Fall 2025">Fall 2025</SelectItem>
-                  <SelectItem value="Spring 2026">Spring 2026</SelectItem>
-                  <SelectItem value="Fall 2026">Fall 2026</SelectItem>
-                  <SelectItem value="Spring 2027">Spring 2027</SelectItem>
-                  <SelectItem value="Flexible">Flexible</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <Label>Additional Requirements</Label>
-            
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="scholarshipRequired" 
-                  checked={formData.scholarshipRequired}
-                  onCheckedChange={(checked) => setFormData({...formData, scholarshipRequired: !!checked})}
-                />
-                <label htmlFor="scholarshipRequired">
-                  Scholarship available
-                </label>
-              </div>
+                <Label htmlFor="location">Preferred Location</Label>
+                <Select 
+                  value={formData.location} 
+                  onValueChange={(value) => setFormData({...formData, location: value})}
+                >
+                  <SelectTrigger id="location">
+                    <SelectValue placeholder="Select a location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Location</SelectItem>
+                    <SelectItem value="europe">Europe</SelectItem>
+                    <SelectItem value="United States">United States</SelectItem>
+                    <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
+                    <SelectItem value="Australia">Australia</SelectItem>
+                    <SelectItem value="Germany">Germany</SelectItem>
+                    <SelectItem value="France">France</SelectItem>
+                    <SelectItem value="Spain">Spain</SelectItem>
+                    <SelectItem value="Italy">Italy</SelectItem>
+                    <SelectItem value="Netherlands">Netherlands</SelectItem>
+                  </SelectContent>
+                </Select>
+              </motion.div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="religiousFacilities" 
-                  checked={formData.religiousFacilities}
-                  onCheckedChange={(checked) => setFormData({...formData, religiousFacilities: !!checked})}
-                />
-                <label htmlFor="religiousFacilities">
-                  Religious facilities available
-                </label>
-              </div>
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                <Label htmlFor="language">Preferred Language</Label>
+                <Select 
+                  value={formData.language} 
+                  onValueChange={(value) => setFormData({...formData, language: value})}
+                >
+                  <SelectTrigger id="language">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languageOptions.map(option => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </motion.div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="halalFood" 
-                  checked={formData.halalFood}
-                  onCheckedChange={(checked) => setFormData({...formData, halalFood: !!checked})}
-                />
-                <label htmlFor="halalFood">
-                  Halal food options
-                </label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="languageTestRequired" 
-                  checked={formData.languageTestRequired}
-                  onCheckedChange={(checked) => setFormData({...formData, languageTestRequired: !!checked})}
-                />
-                <label htmlFor="languageTestRequired">
-                  Language test required
-                </label>
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+              >
+                <Label htmlFor="duration">Program Duration</Label>
+                <Select 
+                  value={formData.duration} 
+                  onValueChange={(value) => setFormData({...formData, duration: value})}
+                >
+                  <SelectTrigger id="duration">
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="preparatory">Preparatory Program (6-12 months)</SelectItem>
+                    <SelectItem value="full_degree">Full Degree Program (2+ years)</SelectItem>
+                    <SelectItem value="12">Up to 1 year</SelectItem>
+                    <SelectItem value="24">1-2 years</SelectItem>
+                    <SelectItem value="36">2-3 years</SelectItem>
+                    <SelectItem value="48">3+ years</SelectItem>
+                  </SelectContent>
+                </Select>
+              </motion.div>
+              
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.4 }}
+              >
+                <Label htmlFor="budget">Budget (Annual in EUR)</Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground ml-1" />
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={formData.budget}
+                          onValueChange={(value) => setFormData({...formData, budget: value})}
+                        >
+                          <SelectTrigger id="budget" className="flex-1">
+                            <SelectValue placeholder="Select budget range">
+                              {formData.budget ? (
+                                <div className="flex items-center">
+                                  <Euro className="h-4 w-4 mr-1" />
+                                  {formatBudget(formData.budget)}
+                                </div>
+                              ) : (
+                                "Select budget range"
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {budgetOptions.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </div>
                     </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Check this if you prefer programs that require language tests like IELTS, TOEFL, etc.</p>
+                    <TooltipContent className="max-w-[300px]">
+                      <p>This budget should include tuition and estimated living expenses for one academic year.</p>
+                      {formData.budget && (
+                        <p className="mt-2">
+                          Equivalent in DZD: {(parseInt(formData.budget) * 250).toLocaleString()} DZD
+                          <br /><span className="text-xs text-muted-foreground">1 EUR = 250 DZD</span>
+                        </p>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="specialRequirements">Special Requirements or Notes</Label>
-            <Textarea 
-              id="specialRequirements" 
-              placeholder="Any additional information that might help us find the right program for you"
-              value={formData.specialRequirements}
-              onChange={(e) => setFormData({...formData, specialRequirements: e.target.value})}
-              className="min-h-[100px]"
-            />
-          </div>
-        </div>
-      )}
-      
-      {/* Step 4: Results */}
-      {step === 4 && (
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold">Recommended Programs</h2>
-              <p className="text-muted-foreground">
-                Based on your preferences, we found {filteredPrograms.length} matching programs
-              </p>
+              </motion.div>
+              
+              <motion.div 
+                className="space-y-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.5 }}
+              >
+                <Label htmlFor="startDate">Preferred Start Date</Label>
+                <Select 
+                  value={formData.startDate} 
+                  onValueChange={(value) => setFormData({...formData, startDate: value})}
+                >
+                  <SelectTrigger id="startDate">
+                    <SelectValue placeholder="Select start date" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Fall 2025">Fall 2025</SelectItem>
+                    <SelectItem value="Spring 2026">Spring 2026</SelectItem>
+                    <SelectItem value="Fall 2026">Fall 2026</SelectItem>
+                    <SelectItem value="Spring 2027">Spring 2027</SelectItem>
+                    <SelectItem value="Flexible">Flexible</SelectItem>
+                  </SelectContent>
+                </Select>
+              </motion.div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search programs..."
-                  className="pl-8 w-[200px]"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+            <motion.div 
+              className="space-y-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.6 }}
+            >
+              <Label>Additional Requirements</Label>
+              
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="scholarshipRequired" 
+                    checked={formData.scholarshipRequired}
+                    onCheckedChange={(checked) => setFormData({...formData, scholarshipRequired: !!checked})}
+                  />
+                  <label htmlFor="scholarshipRequired">
+                    Scholarship available
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="religiousFacilities" 
+                    checked={formData.religiousFacilities}
+                    onCheckedChange={(checked) => setFormData({...formData, religiousFacilities: !!checked})}
+                  />
+                  <label htmlFor="religiousFacilities">
+                    Religious facilities available
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="halalFood" 
+                    checked={formData.halalFood}
+                    onCheckedChange={(checked) => setFormData({...formData, halalFood: !!checked})}
+                  />
+                  <label htmlFor="halalFood">
+                    Halal food options
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="languageTestRequired" 
+                    checked={formData.languageTestRequired}
+                    onCheckedChange={(checked) => setFormData({...formData, languageTestRequired: !!checked})}
+                  />
+                  <label htmlFor="languageTestRequired">
+                    Language test required
+                  </label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground ml-1" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Check this if you prefer programs that require language tests like IELTS, TOEFL, etc.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              className="space-y-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.7 }}
+            >
+              <Label htmlFor="specialRequirements">Special Requirements or Notes</Label>
+              <Textarea 
+                id="specialRequirements" 
+                placeholder="Any additional information that might help us find the right program for you"
+                value={formData.specialRequirements}
+                onChange={(e) => setFormData({...formData, specialRequirements: e.target.value})}
+                className="min-h-[100px]"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      
+        {/* Step 4: Results */}
+        {step === 4 && (
+          <motion.div 
+            key="step4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-6"
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold">Recommended Programs</h2>
+                <p className="text-muted-foreground">
+                  Based on your preferences, we found {filteredPrograms.length} matching programs
+                </p>
               </div>
               
-              <Button variant="outline" size="icon" onClick={() => toggleFilter('all')}>
-                <Filter className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          {/* Active filters */}
-          {Object.values(activeFilters).some(Boolean) && (
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(activeFilters).map(([key, active]) => 
-                active && (
-                  <Badge key={key} variant="secondary" className="px-3 py-1">
-                    {key === 'level' ? 'Study Level' : 
-                     key === 'location' ? 'Location' : 
-                     key === 'duration' ? 'Duration' : 
-                     key === 'budget' ? 'Budget' : key}
-                    <X 
-                      className="ml-1 h-3 w-3 cursor-pointer" 
-                      onClick={() => toggleFilter(key)} 
-                    />
-                  </Badge>
-                )
-              )}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 text-xs"
-                onClick={() => setActiveFilters({level: false, location: false, duration: false, budget: false})}
-              >
-                Clear all
-              </Button>
-            </div>
-          )}
-          
-          {isLoading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : searchFilteredPrograms.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 text-center">
-                <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                  <X className="h-6 w-6 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search programs..."
+                    className="pl-8 w-[200px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
-                <h3 className="text-lg font-medium mb-2">No matching programs found</h3>
-                <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                  Try adjusting your preferences or filters to see more results.
-                </p>
-                <Button onClick={handlePrevious}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Adjust Preferences
+                
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={isGridView ? "default" : "outline"}
+                    size="icon"
+                    onClick={() => setIsGridView(true)}
+                    className={`h-9 w-9 rounded-r-none ${isGridView ? '' : 'border-r-0'}`}
+                  >
+                    <Grid className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant={!isGridView ? "default" : "outline"}
+                    size="icon"
+                    onClick={() => setIsGridView(false)}
+                    className={`h-9 w-9 rounded-l-none ${!isGridView ? '' : 'border-l-0'}`}
+                  >
+                    <ListFilter className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <Button variant="outline" size="icon" onClick={() => toggleFilter('all')}>
+                  <Filter className="h-4 w-4" />
                 </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              <Tabs defaultValue="all" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="all">All Programs</TabsTrigger>
-                  <TabsTrigger value="selected">Selected ({selectedPrograms.length})</TabsTrigger>
-                  <TabsTrigger value="favorites">Favorites ({favoritePrograms.length})</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="all" className="space-y-4 mt-4">
-                  {searchFilteredPrograms.map((program) => (
-                    <div key={program.id} className="space-y-2">
-                      <ProgramCard 
-                        program={program}
-                        isSelected={selectedPrograms.includes(program.id)}
-                        isFavorite={favoritePrograms.includes(program.id)}
-                        onSelect={() => handleProgramSelect(program.id)}
-                        onFavorite={() => toggleFavorite(program.id)}
-                      />
-                      
-                      <div className="pl-4 flex flex-wrap gap-2">
-                        {program.matchScore !== undefined && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => toggleMatchDetails(program.id)}
-                            className="text-xs flex items-center gap-1"
-                          >
-                            <FileText className="h-3.5 w-3.5 mr-1" />
-                            {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
-                          </Button>
-                        )}
-                        
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => toggleBudgetBreakdown(program.id)}
-                          className="text-xs flex items-center gap-1"
-                        >
-                          <Euro className="h-3.5 w-3.5 mr-1" />
-                          {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
-                        </Button>
-                      </div>
-                      
-                      {showMatchDetails[program.id] && program.matchScore !== undefined && (
-                        <Card className="mt-2 p-4 text-sm bg-muted/30">
-                          <pre className="whitespace-pre-wrap text-xs">
-                            {getMatchExplanation(program)}
-                          </pre>
-                        </Card>
-                      )}
-                      
-                      {showBudgetBreakdown[program.id] && (
-                        <Card className="mt-2 p-4 text-sm bg-muted/30">
-                          <pre className="whitespace-pre-wrap text-xs">
-                            {getBudgetBreakdown(program)}
-                          </pre>
-                        </Card>
-                      )}
-                    </div>
-                  ))}
-                </TabsContent>
-                
-                <TabsContent value="selected" className="space-y-4 mt-4">
-                  {searchFilteredPrograms
-                    .filter(program => selectedPrograms.includes(program.id))
-                    .map((program) => (
-                      <div key={program.id} className="space-y-2">
-                        <ProgramCard 
-                          program={program}
-                          isSelected={true}
-                          isFavorite={favoritePrograms.includes(program.id)}
-                          onSelect={() => handleProgramSelect(program.id)}
-                          onFavorite={() => toggleFavorite(program.id)}
-                        />
-                        
-                        <div className="pl-4 flex flex-wrap gap-2">
-                          {program.matchScore !== undefined && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => toggleMatchDetails(program.id)}
-                              className="text-xs flex items-center gap-1"
-                            >
-                              <FileText className="h-3.5 w-3.5 mr-1" />
-                              {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
-                            </Button>
-                          )}
-                          
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => toggleBudgetBreakdown(program.id)}
-                            className="text-xs flex items-center gap-1"
-                          >
-                            <Euro className="h-3.5 w-3.5 mr-1" />
-                            {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
-                          </Button>
-                        </div>
-                        
-                        {showMatchDetails[program.id] && program.matchScore !== undefined && (
-                          <Card className="mt-2 p-4 text-sm bg-muted/30">
-                            <pre className="whitespace-pre-wrap text-xs">
-                              {getMatchExplanation(program)}
-                            </pre>
-                          </Card>
-                        )}
-                        
-                        {showBudgetBreakdown[program.id] && (
-                          <Card className="mt-2 p-4 text-sm bg-muted/30">
-                            <pre className="whitespace-pre-wrap text-xs">
-                              {getBudgetBreakdown(program)}
-                            </pre>
-                          </Card>
-                        )}
-                      </div>
-                    ))}
-                  
-                  {selectedPrograms.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No programs selected yet. Click the checkbox to select programs.
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="favorites" className="space-y-4 mt-4">
-                  {searchFilteredPrograms
-                    .filter(program => favoritePrograms.includes(program.id))
-                    .map((program) => (
-                      <div key={program.id} className="space-y-2">
-                        <ProgramCard 
-                          program={program}
-                          isSelected={selectedPrograms.includes(program.id)}
-                          isFavorite={true}
-                          onSelect={() => handleProgramSelect(program.id)}
-                          onFavorite={() => toggleFavorite(program.id)}
-                        />
-                        
-                        <div className="pl-4 flex flex-wrap gap-2">
-                          {program.matchScore !== undefined && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              onClick={() => toggleMatchDetails(program.id)}
-                              className="text-xs flex items-center gap-1"
-                            >
-                              <FileText className="h-3.5 w-3.5 mr-1" />
-                              {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
-                            </Button>
-                          )}
-                          
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => toggleBudgetBreakdown(program.id)}
-                            className="text-xs flex items-center gap-1"
-                          >
-                            <Euro className="h-3.5 w-3.5 mr-1" />
-                            {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
-                          </Button>
-                        </div>
-                        
-                        {showMatchDetails[program.id] && program.matchScore !== undefined && (
-                          <Card className="mt-2 p-4 text-sm bg-muted/30">
-                            <pre className="whitespace-pre-wrap text-xs">
-                              {getMatchExplanation(program)}
-                            </pre>
-                          </Card>
-                        )}
-                        
-                        {showBudgetBreakdown[program.id] && (
-                          <Card className="mt-2 p-4 text-sm bg-muted/30">
-                            <pre className="whitespace-pre-wrap text-xs">
-                              {getBudgetBreakdown(program)}
-                            </pre>
-                          </Card>
-                        )}
-                      </div>
-                    ))}
-                  
-                  {favoritePrograms.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No favorite programs yet. Click the heart icon to add favorites.
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
+              </div>
             </div>
-          )}
-          
-          {searchFilteredPrograms.length > 0 && (
-            <div className="flex justify-between pt-4">
-              <p className="text-sm text-muted-foreground">
-                {selectedPrograms.length} of {searchFilteredPrograms.length} programs selected
-              </p>
-              <Button 
-                onClick={handleSubmit} 
-                disabled={selectedPrograms.length === 0}
+            
+            {/* Active filters */}
+            {Object.values(activeFilters).some(Boolean) && (
+              <motion.div 
+                className="flex flex-wrap gap-2"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
               >
-                Submit Selection
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+                {Object.entries(activeFilters).map(([key, active]) => 
+                  active && (
+                    <Badge key={key} variant="secondary" className="px-3 py-1">
+                      {key === 'level' ? 'Study Level' : 
+                       key === 'location' ? 'Location' : 
+                       key === 'duration' ? 'Duration' : 
+                       key === 'budget' ? 'Budget' : key}
+                      <X 
+                        className="ml-1 h-3 w-3 cursor-pointer" 
+                        onClick={() => toggleFilter(key)} 
+                      />
+                    </Badge>
+                  )
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-xs"
+                  onClick={() => setActiveFilters({level: false, location: false, duration: false, budget: false})}
+                >
+                  Clear all
+                </Button>
+              </motion.div>
+            )}
+            
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Finding your perfect programs...</p>
+                </div>
+              </div>
+            ) : searchFilteredPrograms.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                    <X className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No matching programs found</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Try adjusting your preferences or filters to see more results.
+                  </p>
+                  <Button onClick={handlePrevious}>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Adjust Preferences
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                <Tabs defaultValue="all" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="all" className="relative">
+                      All Programs
+                      <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                        {searchFilteredPrograms.length}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="selected" className="relative">
+                      Selected
+                      {selectedPrograms.length > 0 && (
+                        <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                          {selectedPrograms.length}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                    <TabsTrigger value="favorites" className="relative">
+                      Favorites
+                      {favoritePrograms.length > 0 && (
+                        <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                          {favoritePrograms.length}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="all" className="space-y-6 mt-4">
+                    {isGridView ? (
+                      <motion.div 
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
+                      >
+                        {searchFilteredPrograms.map((program) => (
+                          <motion.div
+                            key={program.id}
+                            variants={itemVariants}
+                          >
+                            <ProgramCard 
+                              program={program}
+                              isSelected={selectedPrograms.includes(program.id)}
+                              isFavorite={favoritePrograms.includes(program.id)}
+                              onSelect={() => handleProgramSelect(program.id)}
+                              onFavorite={() => toggleFavorite(program.id)}
+                              isGridView={true}
+                            />
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    ) : (
+                      <motion.div 
+                        className="space-y-4"
+                        variants={containerVariants}
+                        initial="hidden"
+                        animate="show"
+                      >
+                        {searchFilteredPrograms.map((program) => (
+                          <motion.div key={program.id} variants={itemVariants}>
+                            <ProgramCard 
+                              program={program}
+                              isSelected={selectedPrograms.includes(program.id)}
+                              isFavorite={favoritePrograms.includes(program.id)}
+                              onSelect={() => handleProgramSelect(program.id)}
+                              onFavorite={() => toggleFavorite(program.id)}
+                              isGridView={false}
+                            />
+                            
+                            <div className="pl-4 flex flex-wrap gap-2 mt-2">
+                              {program.matchScore !== undefined && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => toggleMatchDetails(program.id)}
+                                  className="text-xs flex items-center gap-1"
+                                >
+                                  <FileText className="h-3.5 w-3.5 mr-1" />
+                                  {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
+                                </Button>
+                              )}
+                              
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => toggleBudgetBreakdown(program.id)}
+                                className="text-xs flex items-center gap-1"
+                              >
+                                <Euro className="h-3.5 w-3.5 mr-1" />
+                                {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
+                              </Button>
+                            </div>
+                            
+                            <AnimatePresence>
+                              {showMatchDetails[program.id] && program.matchScore !== undefined && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                    <pre className="whitespace-pre-wrap text-xs">
+                                      {getMatchExplanation(program)}
+                                    </pre>
+                                  </Card>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                            
+                            <AnimatePresence>
+                              {showBudgetBreakdown[program.id] && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                    <pre className="whitespace-pre-wrap text-xs">
+                                      {getBudgetBreakdown(program)}
+                                    </pre>
+                                  </Card>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="selected" className="space-y-4 mt-4">
+                    {selectedPrograms.length === 0 ? (
+                      <div className="text-center py-12 px-4 bg-muted/30 rounded-lg">
+                        <Users className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                        <h3 className="text-lg font-medium mb-2">No programs selected yet</h3>
+                        <p className="text-muted-foreground max-w-md mx-auto mb-4">
+                          Click the checkbox on any program card to select it for your application.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className={isGridView ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+                        {searchFilteredPrograms
+                          .filter(program => selectedPrograms.includes(program.id))
+                          .map((program) => (
+                            <div key={program.id}>
+                              <ProgramCard 
+                                program={program}
+                                isSelected={true}
+                                isFavorite={favoritePrograms.includes(program.id)}
+                                onSelect={() => handleProgramSelect(program.id)}
+                                onFavorite={() => toggleFavorite(program.id)}
+                                isGridView={isGridView}
+                              />
+                              
+                              {!isGridView && (
+                                <>
+                                  <div className="pl-4 flex flex-wrap gap-2 mt-2">
+                                    {program.matchScore !== undefined && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => toggleMatchDetails(program.id)}
+                                        className="text-xs flex items-center gap-1"
+                                      >
+                                        <FileText className="h-3.5 w-3.5 mr-1" />
+                                        {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
+                                      </Button>
+                                    )}
+                                    
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => toggleBudgetBreakdown(program.id)}
+                                      className="text-xs flex items-center gap-1"
+                                    >
+                                      <Euro className="h-3.5 w-3.5 mr-1" />
+                                      {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
+                                    </Button>
+                                  </div>
+                                  
+                                  <AnimatePresence>
+                                    {showMatchDetails[program.id] && program.matchScore !== undefined && (
+                                      <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                      >
+                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                          <pre className="whitespace-pre-wrap text-xs">
+                                            {getMatchExplanation(program)}
+                                          </pre>
+                                        </Card>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                  
+                                  <AnimatePresence>
+                                    {showBudgetBreakdown[program.id] && (
+                                      <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                      >
+                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                          <pre className="whitespace-pre-wrap text-xs">
+                                            {getBudgetBreakdown(program)}
+                                          </pre>
+                                        </Card>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="favorites" className="space-y-4 mt-4">
+                    {favoritePrograms.length === 0 ? (
+                      <div className="text-center py-12 px-4 bg-muted/30 rounded-lg">
+                        <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                        <h3 className="text-lg font-medium mb-2">No favorite programs yet</h3>
+                        <p className="text-muted-foreground max-w-md mx-auto mb-4">
+                          Click the heart icon on any program card to add it to your favorites.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className={isGridView ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+                        {searchFilteredPrograms
+                          .filter(program => favoritePrograms.includes(program.id))
+                          .map((program) => (
+                            <div key={program.id}>
+                              <ProgramCard 
+                                program={program}
+                                isSelected={selectedPrograms.includes(program.id)}
+                                isFavorite={true}
+                                onSelect={() => handleProgramSelect(program.id)}
+                                onFavorite={() => toggleFavorite(program.id)}
+                                isGridView={isGridView}
+                              />
+                              
+                              {!isGridView && (
+                                <>
+                                  <div className="pl-4 flex flex-wrap gap-2 mt-2">
+                                    {program.matchScore !== undefined && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => toggleMatchDetails(program.id)}
+                                        className="text-xs flex items-center gap-1"
+                                      >
+                                        <FileText className="h-3.5 w-3.5 mr-1" />
+                                        {showMatchDetails[program.id] ? "Hide match details" : "Show match details"}
+                                      </Button>
+                                    )}
+                                    
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => toggleBudgetBreakdown(program.id)}
+                                      className="text-xs flex items-center gap-1"
+                                    >
+                                      <Euro className="h-3.5 w-3.5 mr-1" />
+                                      {showBudgetBreakdown[program.id] ? "Hide cost breakdown" : "Show cost breakdown"}
+                                    </Button>
+                                  </div>
+                                  
+                                  <AnimatePresence>
+                                    {showMatchDetails[program.id] && program.matchScore !== undefined && (
+                                      <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                      >
+                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                          <pre className="whitespace-pre-wrap text-xs">
+                                            {getMatchExplanation(program)}
+                                          </pre>
+                                        </Card>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                  
+                                  <AnimatePresence>
+                                    {showBudgetBreakdown[program.id] && (
+                                      <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.3 }}
+                                      >
+                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
+                                          <pre className="whitespace-pre-wrap text-xs">
+                                            {getBudgetBreakdown(program)}
+                                          </pre>
+                                        </Card>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+            
+            {searchFilteredPrograms.length > 0 && (
+              <motion.div 
+                className="flex justify-between items-center pt-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <p className="text-sm text-muted-foreground">
+                  {selectedPrograms.length} of {searchFilteredPrograms.length} programs selected
+                </p>
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={selectedPrograms.length === 0}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Submit Selection
+                </Button>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Navigation buttons */}
       <div className="flex justify-between pt-4">
@@ -979,7 +1239,7 @@ export const ConsultationFlow = () => {
         </Button>
         
         {step < 4 && (
-          <Button onClick={handleNext}>
+          <Button onClick={handleNext} className="bg-primary hover:bg-primary/90">
             Next
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>

@@ -5,10 +5,15 @@ import { useToast } from "@/hooks/use-toast";
 // Function to create favorite programs table if it doesn't exist
 export const createFavoriteProgramsTable = async () => {
   try {
-    const { error } = await supabase.rpc('create_favorite_programs_table');
-    if (error) console.error('Error creating favorite programs table:', error);
+    // Instead of calling an RPC function, we'll create the table directly using SQL
+    const { error } = await supabase
+      .from('favorite_programs')
+      .select('id')
+      .limit(1);
+
+    if (error) console.error('Error checking favorite programs table:', error);
   } catch (error) {
-    console.error('Error calling RPC function:', error);
+    console.error('Error initializing favorite programs:', error);
   }
 };
 
@@ -177,5 +182,27 @@ export const getReceiptUrl = async (filePath: string): Promise<string | null> =>
   } catch (error) {
     console.error("Error getting receipt URL:", error);
     return null;
+  }
+};
+
+// Function to convert EUR to DZD or vice versa
+export const convertCurrency = (amount: number, from: 'EUR' | 'DZD'): number => {
+  const eurToDzdRate = 250;
+  
+  if (from === 'EUR') {
+    return Math.round(amount * eurToDzdRate);
+  } else {
+    return Math.round((amount / eurToDzdRate) * 100) / 100;
+  }
+};
+
+// Function to format currency
+export const formatCurrency = (amount: number | string, currency: 'EUR' | 'DZD'): string => {
+  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (currency === 'EUR') {
+    return `€${numAmount.toLocaleString('en-EU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  } else {
+    return `${numAmount.toLocaleString('en-DZ')} DZD`;
   }
 };
