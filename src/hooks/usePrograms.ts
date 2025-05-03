@@ -1,158 +1,84 @@
-
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { getMatchingPrograms, MatchedProgram } from "@/services/ProgramMatchingService";
-
-export interface ProgramWithMatchScore extends Program {
-  matchScore?: number;
-  matchDetails?: {
-    budgetMatch?: number;
-    languageMatch?: number;
-    levelMatch?: number;
-    locationMatch?: number;
-    durationMatch?: number;
-    fieldMatch?: number;
-    culturalMatch?: number;
-    testRequirementsMatch?: number;
-  };
-}
-
-export interface Program {
-  id: string;
-  name: string;
-  university: string;
-  location: string;
-  type: string;
-  duration: string;
-  tuition: string;
-  rating: number;
-  deadline: string;
-  subjects: string[];
-  applicationFee: string;
-  featured: boolean;
-  requirements: string;
-  description: string;
-  image_url?: string;
-  [key: string]: any;
-}
+import { calculateProgramMatch } from '@/services/ProgramMatchingService';
 
 export interface ProgramFilter {
-  studyLevel?: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
+  studyLevel?: string;
   subjects?: string[];
   location?: string;
-  language?: string;
-  duration?: string | "preparatory" | "full_degree";
+  duration?: string;
   budget?: string;
-  startDate?: string;
+  language?: string;
   scholarshipRequired?: boolean;
   religiousFacilities?: boolean;
   halalFood?: boolean;
   languageTestRequired?: boolean;
 }
 
-export const usePrograms = (filters?: ProgramFilter) => {
-  const { toast } = useToast();
+export const usePrograms = (filter?: ProgramFilter) => {
   const { user } = useAuth();
-
+  const queryKey = ['programs', filter];
+  
+  // Function to calculate match scores
+  const calculateMatchScores = (programs: any[], filter?: ProgramFilter) => {
+    if (!filter) return programs;
+    
+    return programs.map(program => {
+      // First filter by field of study - if no match, don't include it
+      if (filter.subjects && filter.subjects.length > 0) {
+        const programField = program.field?.toLowerCase();
+        const fieldMatches = filter.subjects.some(subject => 
+          subject.toLowerCase().includes(programField) || 
+          programField?.includes(subject.toLowerCase())
+        );
+        
+        if (!fieldMatches) return null;
+      }
+      
+      // Calculate match score for programs that passed the field filter
+      const matchResult = calculateProgramMatch(program, filter);
+      return {
+        ...program,
+        matchScore: matchResult.score,
+        matchDetails: matchResult.details
+      };
+    }).filter(Boolean);  // Remove null entries (non-matching fields)
+  };
+  
+  // The main query
   return useQuery({
-    queryKey: ["programs", filters],
+    queryKey,
     queryFn: async () => {
       try {
-        // Get all active programs
-        const { data: programsData, error: programsError } = await supabase
-          .from("programs")
-          .select("*")
-          .eq("status", "Active")
-          .order("name", { ascending: true });
+        let { data: programs, error } = await supabase
+          .from('programs')
+          .select('*')
+          .eq('status', 'Active');
+          
+        if (error) throw error;
         
-        if (programsError) {
-          console.error("Error fetching programs:", programsError);
-          toast({
-            title: "Error fetching programs",
-            description: "There was a problem loading the programs. Please try again later.",
-            variant: "destructive",
+        if (!programs) return [];
+        
+        // Apply scoring and filtering
+        if (filter) {
+          programs = calculateMatchScores(programs, filter);
+          
+          // Sort by match score if available
+          programs.sort((a, b) => {
+            if (a.matchScore && b.matchScore) {
+              return b.matchScore - a.matchScore;
+            }
+            return 0;
           });
-          throw new Error(programsError.message);
-        }
-        
-        if (!programsData || programsData.length === 0) {
-          console.log("No programs found or empty result");
-          return [];
-        }
-        
-        // Transform programs
-        const programs: Program[] = programsData.map(program => {
-          return {
-            id: program.id,
-            name: program.name || "Unnamed Program",
-            university: program.university || "University",
-            location: program.country || "International",
-            type: program.study_level ? String(program.study_level) : "Degree",
-            duration: program.duration_months ? `${program.duration_months} months` : "Unknown",
-            tuition: program.tuition_min ? `€${program.tuition_min.toLocaleString()}` : "Contact for details",
-            rating: 4.5, // Placeholder rating
-            deadline: program.application_deadline || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            subjects: program.field_keywords || ["General"],
-            applicationFee: program.application_fee ? `€${program.application_fee}` : "€125",
-            featured: program.status === "Active",
-            requirements: program.admission_requirements || "",
-            description: program.description || program.admission_requirements || "",
-            image_url: program.image_url || "/placeholder.svg",
-            // Include all original fields from the database
-            ...program
-          };
-        });
-
-        // If filters are provided, apply our advanced matching algorithm
-        if (filters) {
-          return getMatchingPrograms(programs, filters);
         }
         
         return programs;
-      } catch (error) {
-        console.error("Error in usePrograms hook:", error);
-        throw error;
-      }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
-  });
-};
-
-// Use this hook to fetch user's favorite programs
-export const useFavoritePrograms = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  return useQuery({
-    queryKey: ["favorite-programs", user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-
-      try {
-        const { data, error } = await supabase
-          .from('favorite_programs')
-          .select('program_id')
-          .eq('user_id', user.id);
-          
-        if (error) {
-          console.error('Error fetching favorite programs:', error);
-          toast({
-            title: "Error fetching favorites",
-            description: "There was a problem loading your favorite programs.",
-            variant: "destructive",
-          });
-          return [];
-        }
-        
-        return data.map(item => item.program_id);
-      } catch (err) {
-        console.error('Error in useFavoritePrograms:', err);
+      } catch (error: any) {
+        console.error('Error fetching programs:', error);
         return [];
       }
     },
-    enabled: !!user,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };

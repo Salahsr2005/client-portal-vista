@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -988,10 +987,33 @@ export const ConsultationFlow = () => {
                                   exit={{ opacity: 0, height: 0 }}
                                   transition={{ duration: 0.3 }}
                                 >
-                                  <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                    <pre className="whitespace-pre-wrap text-xs">
-                                      {getMatchExplanation(program)}
-                                    </pre>
+                                  <Card className="mt-3 overflow-hidden bg-gradient-to-br from-white to-slate-50">
+                                    <CardContent className="p-4">
+                                      <div className="prose prose-sm max-w-none">
+                                        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg">
+                                          <h3 className="text-lg font-semibold mb-2 flex items-center">
+                                            <FileText className="h-5 w-5 mr-2 text-primary" />
+                                            Match Details
+                                          </h3>
+                                          <div className="markdown-content whitespace-pre-wrap">
+                                            {getMatchExplanation(program).split('\n').map((line, i) => {
+                                              if (line.startsWith('##')) {
+                                                return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
+                                              } 
+                                              if (line.startsWith('*')) {
+                                                return (
+                                                  <div key={i} className="flex items-start mb-1">
+                                                    <span className="mr-2">•</span>
+                                                    <span>{line.replace('* ', '')}</span>
+                                                  </div>
+                                                );
+                                              }
+                                              return <p key={i}>{line}</p>;
+                                            })}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </CardContent>
                                   </Card>
                                 </motion.div>
                               )}
@@ -1005,10 +1027,39 @@ export const ConsultationFlow = () => {
                                   exit={{ opacity: 0, height: 0 }}
                                   transition={{ duration: 0.3 }}
                                 >
-                                  <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                    <pre className="whitespace-pre-wrap text-xs">
-                                      {getBudgetBreakdown(program)}
-                                    </pre>
+                                  <Card className="mt-3 overflow-hidden bg-gradient-to-br from-white to-slate-50">
+                                    <CardContent className="p-4">
+                                      <div className="prose prose-sm max-w-none">
+                                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
+                                          <h3 className="text-lg font-semibold mb-2 flex items-center">
+                                            <Euro className="h-5 w-5 mr-2 text-green-600" />
+                                            Cost Breakdown
+                                          </h3>
+                                          <div className="markdown-content whitespace-pre-wrap">
+                                            {getBudgetBreakdown(program).split('\n').map((line, i) => {
+                                              if (line.startsWith('##')) {
+                                                return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
+                                              } 
+                                              if (line.startsWith('###')) {
+                                                return <h5 key={i} className="text-sm font-medium mt-2 mb-1">{line.replace('### ', '')}</h5>;
+                                              }
+                                              if (line.startsWith('*')) {
+                                                return (
+                                                  <div key={i} className="flex items-start mb-1">
+                                                    <span className="mr-2">•</span>
+                                                    <span>{line.replace('* ', '')}</span>
+                                                  </div>
+                                                );
+                                              }
+                                              if (line.startsWith('_')) {
+                                                return <div key={i} className="text-xs text-muted-foreground ml-4">{line}</div>;
+                                              }
+                                              return <p key={i}>{line}</p>;
+                                            })}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </CardContent>
                                   </Card>
                                 </motion.div>
                               )}
@@ -1077,31 +1128,83 @@ export const ConsultationFlow = () => {
                                         exit={{ opacity: 0, height: 0 }}
                                         transition={{ duration: 0.3 }}
                                       >
-                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                          <pre className="whitespace-pre-wrap text-xs">
-                                            {getMatchExplanation(program)}
-                                          </pre>
-                                        </Card>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                                        <Card className="mt-3 overflow-hidden bg-gradient-to-br from-white to-slate-50">
+                                          <CardContent className="p-4">
+                                            <div className="prose prose-sm max-w-none">
+                                              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg">
+                                                <h3 className="text-lg font-semibold mb-2 flex items-center">
+                                                  <FileText className="h-5 w-5 mr-2 text-primary" />
+                                                  Match Details
+                                                </h3>
+                                                <div className="markdown-content whitespace-pre-wrap">
+                                                  {getMatchExplanation(program).split('\n').map((line, i) => {
+                                                    if (line.startsWith('##')) {
+                                                      return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
+                                                    } 
+                                                    if (line.startsWith('*')) {
+                                                      return (
+                                                        <div key={i} className="flex items-start mb-1">
+                                                          <span className="mr-2">•</span>
+                                                          <span>{line.replace('* ', '')}</span>
+                                                        </div>
+                                                      );
+                                                    }
+                                                    return <p key={i}>{line}</p>;
+                                                  })}
+                                                </div>
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
                                   
-                                  <AnimatePresence>
-                                    {showBudgetBreakdown[program.id] && (
-                                      <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                      >
-                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                          <pre className="whitespace-pre-wrap text-xs">
-                                            {getBudgetBreakdown(program)}
-                                          </pre>
-                                        </Card>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                                    <AnimatePresence>
+                                      {showBudgetBreakdown[program.id] && (
+                                        <motion.div
+                                          initial={{ opacity: 0, height: 0 }}
+                                          animate={{ opacity: 1, height: "auto" }}
+                                          exit={{ opacity: 0, height: 0 }}
+                                          transition={{ duration: 0.3 }}
+                                        >
+                                          <Card className="mt-3 overflow-hidden bg-gradient-to-br from-white to-slate-50">
+                                            <CardContent className="p-4">
+                                              <div className="prose prose-sm max-w-none">
+                                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
+                                                  <h3 className="text-lg font-semibold mb-2 flex items-center">
+                                                    <Euro className="h-5 w-5 mr-2 text-green-600" />
+                                                    Cost Breakdown
+                                                  </h3>
+                                                  <div className="markdown-content whitespace-pre-wrap">
+                                                    {getBudgetBreakdown(program).split('\n').map((line, i) => {
+                                                      if (line.startsWith('##')) {
+                                                        return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
+                                                      } 
+                                                      if (line.startsWith('###')) {
+                                                        return <h5 key={i} className="text-sm font-medium mt-2 mb-1">{line.replace('### ', '')}</h5>;
+                                                      }
+                                                      if (line.startsWith('*')) {
+                                                        return (
+                                                          <div key={i} className="flex items-start mb-1">
+                                                            <span className="mr-2">•</span>
+                                                            <span>{line.replace('* ', '')}</span>
+                                                          </div>
+                                                        );
+                                                      }
+                                                      if (line.startsWith('_')) {
+                                                        return <div key={i} className="text-xs text-muted-foreground ml-4">{line}</div>;
+                                                      }
+                                                      return <p key={i}>{line}</p>;
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              </CardContent>
+                                            </Card>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </div>
@@ -1168,31 +1271,83 @@ export const ConsultationFlow = () => {
                                         exit={{ opacity: 0, height: 0 }}
                                         transition={{ duration: 0.3 }}
                                       >
-                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                          <pre className="whitespace-pre-wrap text-xs">
-                                            {getMatchExplanation(program)}
-                                          </pre>
-                                        </Card>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                                        <Card className="mt-3 overflow-hidden bg-gradient-to-br from-white to-slate-50">
+                                          <CardContent className="p-4">
+                                            <div className="prose prose-sm max-w-none">
+                                              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg">
+                                                <h3 className="text-lg font-semibold mb-2 flex items-center">
+                                                  <FileText className="h-5 w-5 mr-2 text-primary" />
+                                                  Match Details
+                                                </h3>
+                                                <div className="markdown-content whitespace-pre-wrap">
+                                                  {getMatchExplanation(program).split('\n').map((line, i) => {
+                                                    if (line.startsWith('##')) {
+                                                      return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
+                                                    } 
+                                                    if (line.startsWith('*')) {
+                                                      return (
+                                                        <div key={i} className="flex items-start mb-1">
+                                                          <span className="mr-2">•</span>
+                                                          <span>{line.replace('* ', '')}</span>
+                                                        </div>
+                                                      );
+                                                    }
+                                                    return <p key={i}>{line}</p>;
+                                                  })}
+                                                </div>
+                                              </div>
+                                            </CardContent>
+                                          </Card>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
                                   
-                                  <AnimatePresence>
-                                    {showBudgetBreakdown[program.id] && (
-                                      <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                      >
-                                        <Card className="mt-2 p-4 text-sm bg-muted/30">
-                                          <pre className="whitespace-pre-wrap text-xs">
-                                            {getBudgetBreakdown(program)}
-                                          </pre>
-                                        </Card>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                                    <AnimatePresence>
+                                      {showBudgetBreakdown[program.id] && (
+                                        <motion.div
+                                          initial={{ opacity: 0, height: 0 }}
+                                          animate={{ opacity: 1, height: "auto" }}
+                                          exit={{ opacity: 0, height: 0 }}
+                                          transition={{ duration: 0.3 }}
+                                        >
+                                          <Card className="mt-3 overflow-hidden bg-gradient-to-br from-white to-slate-50">
+                                            <CardContent className="p-4">
+                                              <div className="prose prose-sm max-w-none">
+                                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
+                                                  <h3 className="text-lg font-semibold mb-2 flex items-center">
+                                                    <Euro className="h-5 w-5 mr-2 text-green-600" />
+                                                    Cost Breakdown
+                                                  </h3>
+                                                  <div className="markdown-content whitespace-pre-wrap">
+                                                    {getBudgetBreakdown(program).split('\n').map((line, i) => {
+                                                      if (line.startsWith('##')) {
+                                                        return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
+                                                      } 
+                                                      if (line.startsWith('###')) {
+                                                        return <h5 key={i} className="text-sm font-medium mt-2 mb-1">{line.replace('### ', '')}</h5>;
+                                                      }
+                                                      if (line.startsWith('*')) {
+                                                        return (
+                                                          <div key={i} className="flex items-start mb-1">
+                                                            <span className="mr-2">•</span>
+                                                            <span>{line.replace('* ', '')}</span>
+                                                          </div>
+                                                        );
+                                                      }
+                                                      if (line.startsWith('_')) {
+                                                        return <div key={i} className="text-xs text-muted-foreground ml-4">{line}</div>;
+                                                      }
+                                                      return <p key={i}>{line}</p>;
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              </CardContent>
+                                            </Card>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </div>

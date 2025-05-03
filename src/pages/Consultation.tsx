@@ -13,14 +13,14 @@ const Consultation = () => {
   }, []);
 
   return (
-    <div className="container py-8 mx-auto max-w-6xl">
+    <div className="container py-8 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         <Card className="mb-6 shadow-lg border-none bg-gradient-to-r from-indigo-50 to-purple-50 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 backdrop-blur-sm p-6">
             <CardTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
               Program Consultation
             </CardTitle>
@@ -30,7 +30,7 @@ const Consultation = () => {
               like budget, field of study, location, language, and more.
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-6">
             <ConsultationFlow />
           </CardContent>
         </Card>
