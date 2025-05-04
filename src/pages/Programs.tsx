@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrograms } from '@/hooks/usePrograms';
@@ -10,9 +11,24 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ListFilter, Grid, Search, Heart, LayoutPanelLeft, AlertTriangle } from 'lucide-react';
+import { 
+  Tabs, TabsContent, TabsList, TabsTrigger 
+} from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
+  ListFilter, Grid, Search, Heart, LayoutPanelLeft, 
+  AlertTriangle, Share2, CircleDollarSign
+} from 'lucide-react';
 import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
+import { CurrencyCode } from '@/utils/currencyConverter';
 
 const Programs = () => {
   const { data: programs = [], isLoading } = usePrograms();
@@ -25,6 +41,7 @@ const Programs = () => {
   const [showCompare, setShowCompare] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isGridView, setIsGridView] = useState(true);
+  const [currency, setCurrency] = useState<CurrencyCode>('EUR');
 
   // Initialize favorites and storage buckets
   useEffect(() => {
@@ -111,6 +128,36 @@ const Programs = () => {
       });
     }
   };
+
+  // Handle sharing program
+  const handleShareProgram = (programId: string) => {
+    const program = programs.find(p => p.id === programId);
+    if (program) {
+      const shareUrl = `${window.location.origin}/programs/${programId}`;
+      if (navigator.share) {
+        navigator.share({
+          title: program.name,
+          text: `Check out ${program.name} at ${program.university}`,
+          url: shareUrl
+        }).catch(err => {
+          console.error('Error sharing:', err);
+          // Fallback for unsuccessful sharing
+          navigator.clipboard.writeText(shareUrl);
+          toast({
+            title: "Link copied",
+            description: "Program link copied to clipboard",
+          });
+        });
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link copied",
+          description: "Program link copied to clipboard",
+        });
+      }
+    }
+  };
   
   // Filter programs based on search query
   const filteredPrograms = searchQuery 
@@ -188,7 +235,7 @@ const Programs = () => {
             </p>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -199,6 +246,21 @@ const Programs = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            
+            <Select value={currency} onValueChange={(value: CurrencyCode) => setCurrency(value)}>
+              <SelectTrigger className="w-[120px] h-9">
+                <SelectValue placeholder="Currency" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Currency</SelectLabel>
+                  <SelectItem value="EUR">Euro (€)</SelectItem>
+                  <SelectItem value="DZD">Dinar (DZD)</SelectItem>
+                  <SelectItem value="USD">Dollar ($)</SelectItem>
+                  <SelectItem value="GBP">Pound (£)</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             
             <div className="flex items-center gap-1">
               <Button
@@ -238,6 +300,7 @@ const Programs = () => {
             programs={programsToCompare}
             onClose={() => setShowCompare(false)} 
             onRemoveProgram={handleCompareRemove}
+            currency={currency}
           />
         )}
 
@@ -306,7 +369,9 @@ const Programs = () => {
                       onSelect={() => handleProgramSelect(program.id)}
                       onFavorite={() => toggleFavorite(program.id)}
                       onCompare={() => handleCompareSelect(program.id)}
+                      onShare={handleShareProgram}
                       isGridView={isGridView}
+                      currency={currency}
                     />
                   </motion.div>
                 ))}
@@ -348,7 +413,9 @@ const Programs = () => {
                         onSelect={() => handleProgramSelect(program.id)}
                         onFavorite={() => toggleFavorite(program.id)}
                         onCompare={() => handleCompareSelect(program.id)}
+                        onShare={handleShareProgram}
                         isGridView={isGridView}
+                        currency={currency}
                       />
                     </motion.div>
                   ))}
@@ -399,7 +466,9 @@ const Programs = () => {
                           onSelect={() => handleProgramSelect(program.id)}
                           onFavorite={() => toggleFavorite(program.id)}
                           onCompare={() => handleCompareSelect(program.id)}
+                          onShare={handleShareProgram}
                           isGridView={isGridView}
+                          currency={currency}
                         />
                       </motion.div>
                     ))}

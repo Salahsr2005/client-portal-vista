@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
-interface UserNotification {
+export interface UserNotification {
   id: string;
   title: string;
   content: string;
@@ -32,7 +32,7 @@ export const useNotifications = () => {
           .from("user_notifications")
           .select("*")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false }) as any;
+          .order("created_at", { ascending: false });
         
         if (error) {
           console.error("Error fetching notifications:", error);
@@ -56,7 +56,7 @@ export const useNotifications = () => {
           .from("user_notifications")
           .update({ is_read: true })
           .eq("id", notificationId)
-          .eq("user_id", user?.id) as any;
+          .eq("user_id", user?.id);
         
         if (error) throw error;
         return notificationId;
@@ -91,7 +91,7 @@ export const useNotifications = () => {
           .from("user_notifications")
           .update({ is_read: true })
           .eq("user_id", user.id)
-          .eq("is_read", false) as any;
+          .eq("is_read", false);
         
         if (error) throw error;
       } catch (error) {
@@ -111,6 +111,83 @@ export const useNotifications = () => {
       toast({
         title: "Error",
         description: "Could not mark all notifications as read",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteNotification = useMutation({
+    mutationFn: async (notificationId: string) => {
+      if (!user) return;
+      
+      try {
+        const { error } = await supabase
+          .from("user_notifications")
+          .delete()
+          .eq("id", notificationId)
+          .eq("user_id", user.id);
+        
+        if (error) throw error;
+        return notificationId;
+      } catch (error) {
+        console.error("Error deleting notification:", error);
+        throw error;
+      }
+    },
+    onSuccess: (notificationId) => {
+      queryClient.setQueryData(
+        ["notifications", user?.id],
+        (old: UserNotification[] | undefined) =>
+          old?.filter(n => n.id !== notificationId)
+      );
+      
+      toast({
+        title: "Success",
+        description: "Notification deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting notification:", error);
+      toast({
+        title: "Error",
+        description: "Could not delete notification",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteAllNotifications = useMutation({
+    mutationFn: async () => {
+      if (!user) return;
+      
+      try {
+        const { error } = await supabase
+          .from("user_notifications")
+          .delete()
+          .eq("user_id", user.id);
+        
+        if (error) throw error;
+      } catch (error) {
+        console.error("Error deleting all notifications:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(
+        ["notifications", user?.id],
+        []
+      );
+      
+      toast({
+        title: "Success",
+        description: "All notifications deleted successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error deleting all notifications:", error);
+      toast({
+        title: "Error",
+        description: "Could not delete notifications",
         variant: "destructive",
       });
     }
@@ -162,6 +239,8 @@ export const useNotifications = () => {
     isLoading,
     error,
     markAsRead: (id: string) => markAsRead.mutate(id),
-    markAllAsRead: () => markAllAsRead.mutate()
+    markAllAsRead: () => markAllAsRead.mutate(),
+    deleteNotification: (id: string) => deleteNotification.mutate(id),
+    deleteAllNotifications: () => deleteAllNotifications.mutate(),
   };
 };

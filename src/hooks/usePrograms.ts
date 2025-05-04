@@ -59,7 +59,9 @@ export const usePrograms = (filter?: ProgramFilter) => {
         // Keep original properties for backward compatibility
         scholarship_available: program.scholarship_available,
         religious_facilities: program.religious_facilities,
-        halal_food_availability: program.halal_food_availability
+        halal_food_availability: program.halal_food_availability,
+        // Ensure image_url is included
+        image_url: program.image_url || '/placeholder.svg'
       };
       
       return enhancedProgram;
@@ -107,7 +109,9 @@ export const usePrograms = (filter?: ProgramFilter) => {
             // Keep original properties for backward compatibility
             scholarship_available: p.scholarship_available,
             religious_facilities: p.religious_facilities,
-            halal_food_availability: p.halal_food_availability
+            halal_food_availability: p.halal_food_availability,
+            // Ensure image_url is included
+            image_url: p.image_url || '/placeholder.svg'
           }));
         }
         

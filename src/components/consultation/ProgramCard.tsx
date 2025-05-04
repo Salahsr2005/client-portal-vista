@@ -6,9 +6,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BarChart, GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, CircleDollarSign, LayoutPanelLeft } from 'lucide-react';
+import { BarChart, GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, CircleDollarSign, LayoutPanelLeft, Share2 } from 'lucide-react';
 import { Program } from './types';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency, CurrencyCode } from '@/utils/currencyConverter';
 
 interface ProgramCardProps {
   program: Program;
@@ -20,6 +21,8 @@ interface ProgramCardProps {
   onCompare?: (id: string) => void;
   isGridView?: boolean;
   showScore?: boolean;
+  currency?: CurrencyCode;
+  onShare?: (id: string) => void;
 }
 
 const ProgramCard: React.FC<ProgramCardProps> = ({ 
@@ -30,8 +33,10 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   onSelect,
   onFavorite,
   onCompare,
+  onShare,
   isGridView = true,
-  showScore = false
+  showScore = false,
+  currency = 'EUR'
 }) => {
   const navigate = useNavigate();
   
@@ -58,6 +63,17 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
           <div className="flex justify-between items-start">
             <CardTitle className="text-lg font-medium line-clamp-2 text-white">{program.name}</CardTitle>
             <div className="flex gap-1">
+              {onShare && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 bg-white/10 hover:bg-white/20 text-white"
+                  onClick={() => onShare(program.id)}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              )}
+              
               {onCompare && (
                 <Button
                   variant="ghost"
@@ -136,7 +152,10 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
           <div className="flex items-center gap-1.5">
             <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
             <span>
-              {program.tuition_min ? `€${program.tuition_min.toLocaleString()}` : 'Not specified'}
+              {program.tuition_min 
+                ? formatCurrency(program.tuition_min, 'EUR', currency)
+                : 'Not specified'
+              }
             </span>
           </div>
         </div>

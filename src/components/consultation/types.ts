@@ -1,4 +1,3 @@
-
 export interface FormData {
   studyLevel: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
   subjects: string[];
@@ -17,30 +16,28 @@ export interface FormData {
 export interface Program {
   id: string;
   name: string;
-  university?: string;
+  university: string;
+  description: string;
   field?: string;
-  city?: string;
+  study_level?: string;
   country?: string;
-  location?: string; // Added for compatibility
+  city?: string;
+  location: string; 
+  duration: string;
+  tuition: number;
   tuition_min?: number;
   tuition_max?: number;
-  tuition?: number; // Added for compatibility
-  duration_months?: number;
-  duration?: string; // Added for compatibility
-  study_level?: string;
-  program_language?: string;
-  language?: string;
-  hasScholarship?: boolean;
-  scholarship_available?: boolean; // For backward compatibility
-  hasReligiousFacilities?: boolean;
-  religious_facilities?: boolean; // For backward compatibility
-  hasHalalFood?: boolean;
-  halal_food_availability?: boolean; // For backward compatibility
-  status?: string;
+  type: string;
+  deadline: string;
+  application_deadline?: string;
   matchScore?: number;
   matchDetails?: any;
-  type?: string; // Added for compatibility
-  featured?: boolean; // Added for compatibility
-  deadline?: string; // Added for compatibility
-  application_deadline?: string;
+  image_url?: string;
+  website_url?: string;
+  hasScholarship?: boolean;
+  hasReligiousFacilities?: boolean;
+  hasHalalFood?: boolean;
+  scholarship_available?: boolean;
+  religious_facilities?: boolean;
+  halal_food_availability?: boolean;
 }
