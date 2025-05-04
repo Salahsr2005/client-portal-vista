@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   School, MapPin, CalendarDays, CircleDollarSign, GraduationCap, BookOpen, Clock, Globe, 
-  Home, Building, Users, FileCheck, Award, Info, Languages, Heart, Check, CheckCircle
+  Home, Building, Users, FileCheck, Award, Info, Languages, Heart, Check, CheckCircle, Share2
 } from 'lucide-react';
 
 export default function ProgramView() {
@@ -143,6 +143,46 @@ export default function ProgramView() {
     }
   };
 
+  // Share program function
+  const handleShare = async () => {
+    const url = window.location.href;
+    const programTitle = program?.name || "Educational Program";
+    const text = `Check out this educational program: ${programTitle}`;
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: programTitle,
+          text: text,
+          url: url,
+        });
+      } else {
+        // Fallback for browsers that don't support the Web Share API
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Link copied!",
+          description: "Program link copied to clipboard",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      // Fallback in case sharing fails
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Link copied!",
+          description: "Program link copied to clipboard",
+        });
+      } catch (err) {
+        toast({
+          title: "Sharing failed",
+          description: "Unable to share this program",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const handleApplyClick = () => {
     if (!user) {
       toast({
@@ -212,6 +252,16 @@ export default function ProgramView() {
                   <Heart 
                     className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-white'}`} 
                   />
+                </Button>
+                
+                {/* Share button */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 bg-white/20 hover:bg-white/30" 
+                  onClick={handleShare}
+                >
+                  <Share2 className="h-4 w-4 text-white" />
                 </Button>
               </div>
               <h1 className="text-3xl font-bold">{program.name}</h1>
@@ -560,6 +610,12 @@ export default function ProgramView() {
               >
                 <Heart className={`mr-2 h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
                 {isFavorite ? "Saved to Favorites" : "Save to Favorites"}
+              </Button>
+              
+              {/* Share button */}
+              <Button variant="outline" className="w-full" onClick={handleShare}>
+                <Share2 className="mr-2 h-4 w-4" />
+                Share Program
               </Button>
             </CardFooter>
           </Card>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BarChart, GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, CircleDollarSign, LayoutPanelLeft } from 'lucide-react';
 import { Program } from './types';
+import { useNavigate } from 'react-router-dom';
 
 interface ProgramCardProps {
   program: Program;
@@ -32,56 +33,78 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   isGridView = true,
   showScore = false
 }) => {
+  const navigate = useNavigate();
+  
+  const handleApplyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate(`/applications/new?program=${program.id}`);
+  };
+  
+  // Default image if not available
+  const backgroundImage = program.image_url || '/placeholder.svg';
+  
   return isGridView ? (
     <Card className={`h-full overflow-hidden transition-all duration-200 hover:shadow-md ${isSelected ? 'border-primary' : ''}`}>
-      <CardHeader className="relative p-4 pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-medium line-clamp-2">{program.name}</CardTitle>
-          <div className="flex gap-1">
-            {onCompare && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-7 w-7 ${isCompare ? 'text-indigo-600 hover:text-indigo-700' : ''}`}
-                onClick={() => onCompare(program.id)}
-              >
-                <LayoutPanelLeft 
-                  className={`h-4 w-4 ${isCompare ? 'fill-indigo-100' : ''}`} 
+      <div className="relative">
+        {/* Program image as background */}
+        <div 
+          className="absolute inset-0 h-32 bg-cover bg-center" 
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70"></div>
+        </div>
+        
+        <CardHeader className="relative p-4 pb-2 pt-24">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-lg font-medium line-clamp-2 text-white">{program.name}</CardTitle>
+            <div className="flex gap-1">
+              {onCompare && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-7 w-7 bg-white/10 hover:bg-white/20 ${isCompare ? 'text-indigo-300 hover:text-indigo-200' : 'text-white'}`}
+                  onClick={() => onCompare(program.id)}
+                >
+                  <LayoutPanelLeft 
+                    className={`h-4 w-4 ${isCompare ? 'fill-indigo-100' : ''}`} 
+                  />
+                </Button>
+              )}
+              
+              {onFavorite && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-7 w-7 bg-white/10 hover:bg-white/20 ${isFavorite ? 'text-red-300 hover:text-red-200' : 'text-white'}`}
+                  onClick={() => onFavorite(program.id)}
+                >
+                  <Heart 
+                    className={`h-4 w-4 ${isFavorite ? 'fill-red-100' : ''}`} 
+                  />
+                </Button>
+              )}
+              
+              {onSelect && (
+                <Checkbox 
+                  id={`program-${program.id}`} 
+                  checked={isSelected}
+                  onCheckedChange={() => onSelect(program.id)}
+                  className="mt-0.5 bg-white/20"
                 />
-              </Button>
-            )}
-            
-            {onFavorite && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-7 w-7 ${isFavorite ? 'text-red-500 hover:text-red-600' : ''}`}
-                onClick={() => onFavorite(program.id)}
-              >
-                <Heart 
-                  className={`h-4 w-4 ${isFavorite ? 'fill-red-100' : ''}`} 
-                />
-              </Button>
-            )}
-            
-            {onSelect && (
-              <Checkbox 
-                id={`program-${program.id}`} 
-                checked={isSelected}
-                onCheckedChange={() => onSelect(program.id)}
-                className="mt-0.5"
-              />
-            )}
+              )}
+            </div>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-          <Building className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="truncate">{program.university}</span>
-        </div>
-        
+          
+          <div className="flex items-center gap-1 text-sm text-white/80 mt-1">
+            <Building className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">{program.university}</span>
+          </div>
+        </CardHeader>
+      </div>
+      
+      <CardContent className="p-4 pt-1 pb-2">
         {program.matchScore !== undefined && showScore && (
-          <div className="flex items-center mt-1">
+          <div className="flex items-center mt-1 mb-3">
             <div className="w-full bg-muted rounded-full h-1.5">
               <div 
                 className="bg-primary h-1.5 rounded-full" 
@@ -93,8 +116,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
             </span>
           </div>
         )}
-      </CardHeader>
-      <CardContent className="p-4 pt-1 pb-2">
+
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex items-center gap-1.5">
             <GraduationCap className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -144,7 +166,12 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
           <a href={`/programs/${program.id}`}>View Details</a>
         </Button>
         
-        <Button variant="ghost" size="sm" className="text-xs flex">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-xs flex"
+          onClick={handleApplyNow}
+        >
           <span className="whitespace-nowrap">Apply Now</span>
           <span className="ml-1" aria-hidden="true">→</span>
         </Button>
@@ -153,6 +180,13 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   ) : (
     <Card className={`w-full overflow-hidden transition-all duration-200 hover:shadow-md ${isSelected ? 'border-primary' : ''}`}>
       <div className="flex">
+        <div 
+          className="hidden md:block w-48 bg-cover bg-center relative"
+          style={{ backgroundImage: `url(${backgroundImage})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent"></div>
+        </div>
+        
         <div className="p-4 flex-grow">
           <div className="flex justify-between items-start">
             <div>
@@ -266,7 +300,12 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
             <a href={`/programs/${program.id}`}>View Details</a>
           </Button>
           
-          <Button variant="ghost" size="sm" className="text-xs whitespace-nowrap mt-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs whitespace-nowrap mt-2"
+            onClick={handleApplyNow}
+          >
             Apply Now
           </Button>
         </div>

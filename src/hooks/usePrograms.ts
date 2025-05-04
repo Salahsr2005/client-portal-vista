@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,7 +66,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
     }).filter(Boolean);  // Remove null entries (non-matching fields)
   };
   
-  // The main query
+  // The main query - no limit applied, fetch all programs
   return useQuery({
     queryKey,
     queryFn: async () => {

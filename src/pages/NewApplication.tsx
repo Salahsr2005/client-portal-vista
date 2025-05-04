@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 
 export default function NewApplication() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [step, setStep] = useState<1 | 2>(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,6 +41,19 @@ export default function NewApplication() {
   
   const { data: programs = [], isLoading: isProgramsLoading } = usePrograms();
   const { submitApplication, isSubmitting } = useApplicationSubmit();
+
+  // Parse program ID from URL params and set the selected program
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const programId = params.get('program');
+    
+    if (programId) {
+      setSelectedProgram(programId);
+      setFormData(prev => ({ ...prev, programId }));
+      // Automatically go to step 2 if program is selected from URL
+      setStep(2);
+    }
+  }, [location]);
 
   const handleProgramSelect = (programId: string) => {
     setSelectedProgram(programId);
