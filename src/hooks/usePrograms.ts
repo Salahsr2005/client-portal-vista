@@ -1,7 +1,9 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { calculateProgramMatch } from '@/services/ProgramMatchingService';
+import { Program } from '@/components/consultation/types';
 
 export interface ProgramFilter {
   studyLevel?: string;
@@ -38,11 +40,21 @@ export const usePrograms = (filter?: ProgramFilter) => {
       
       // Calculate match score for programs that passed the field filter
       const matchResult = calculateProgramMatch(program, filter);
-      return {
+      
+      // Map database fields to our Program interface
+      const enhancedProgram: Program = {
         ...program,
         matchScore: matchResult.score,
-        matchDetails: matchResult.details
+        matchDetails: matchResult.details,
+        // Add compatibility fields
+        location: program.city ? `${program.city}, ${program.country}` : program.country,
+        duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
+        tuition: program.tuition_min,
+        type: program.study_level,
+        deadline: program.application_deadline,
       };
+      
+      return enhancedProgram;
     }).filter(Boolean);  // Remove null entries (non-matching fields)
   };
   
@@ -65,15 +77,25 @@ export const usePrograms = (filter?: ProgramFilter) => {
           programs = calculateMatchScores(programs, filter);
           
           // Sort by match score if available
-          programs.sort((a, b) => {
+          programs.sort((a: Program, b: Program) => {
             if (a.matchScore && b.matchScore) {
               return b.matchScore - a.matchScore;
             }
             return 0;
           });
+        } else {
+          // Map to Program type for consistency even without filters
+          programs = programs.map((p: any) => ({
+            ...p,
+            location: p.city ? `${p.city}, ${p.country}` : p.country,
+            duration: p.duration_months ? `${p.duration_months} months` : 'Not specified',
+            tuition: p.tuition_min,
+            type: p.study_level,
+            deadline: p.application_deadline,
+          }));
         }
         
-        return programs;
+        return programs as Program[];
       } catch (error: any) {
         console.error('Error fetching programs:', error);
         return [];

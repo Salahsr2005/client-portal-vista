@@ -19,11 +19,16 @@ export interface Program {
   name: string;
   university?: string;
   field?: string;
-  location?: string;
+  city?: string;
   country?: string;
-  tuition?: number;
-  duration?: string;
-  studyLevel?: string;
+  location?: string; // Added for compatibility
+  tuition_min?: number;
+  tuition_max?: number;
+  tuition?: number; // Added for compatibility
+  duration_months?: number;
+  duration?: string; // Added for compatibility
+  study_level?: string;
+  program_language?: string;
   language?: string;
   hasScholarship?: boolean;
   hasReligiousFacilities?: boolean;
@@ -31,4 +36,9 @@ export interface Program {
   status?: string;
   matchScore?: number;
   matchDetails?: any;
+  type?: string; // Added for compatibility
+  featured?: boolean; // Added for compatibility
+  deadline?: string; // Added for compatibility
+  application_deadline?: string;
 }
+

@@ -1,5 +1,43 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+// Function to create storage buckets if they don't exist
+export const initializeStorageBuckets = async () => {
+  try {
+    // Check if user_documents bucket exists
+    const { data: userDocBuckets, error: userDocError } = await supabase
+      .storage
+      .getBucket('user_documents');
+    
+    // If bucket doesn't exist, we'll detect it from the error
+    if (userDocError && userDocError.message.includes('The resource was not found')) {
+      console.log('Creating user_documents bucket');
+      const { error } = await supabase
+        .storage
+        .createBucket('user_documents', { public: false });
+      
+      if (error) console.error('Error creating user_documents bucket:', error);
+    }
+    
+    // Check if payment_receipts bucket exists
+    const { data: paymentBuckets, error: paymentError } = await supabase
+      .storage
+      .getBucket('payment_receipts');
+    
+    // If bucket doesn't exist, create it
+    if (paymentError && paymentError.message.includes('The resource was not found')) {
+      console.log('Creating payment_receipts bucket');
+      const { error } = await supabase
+        .storage
+        .createBucket('payment_receipts', { public: false });
+      
+      if (error) console.error('Error creating payment_receipts bucket:', error);
+    }
+  } catch (error) {
+    console.error('Error initializing storage buckets:', error);
+  }
+};
 
 // Function to create favorite programs table if it doesn't exist
 export const createFavoriteProgramsTable = async () => {
@@ -11,6 +49,9 @@ export const createFavoriteProgramsTable = async () => {
       .limit(1);
 
     if (error) console.error('Error checking favorite programs table:', error);
+    
+    // Initialize storage buckets
+    await initializeStorageBuckets();
   } catch (error) {
     console.error('Error initializing favorite programs:', error);
   }
@@ -56,6 +97,9 @@ export const uploadUserDocument = async (
   documentName: string
 ): Promise<{ success: boolean, data?: any, error?: any }> => {
   try {
+    // Initialize storage buckets first to ensure they exist
+    await initializeStorageBuckets();
+    
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
@@ -66,6 +110,7 @@ export const uploadUserDocument = async (
       .upload(filePath, file);
     
     if (fileError) {
+      console.error("Error uploading document:", fileError);
       return { success: false, error: fileError };
     }
     
@@ -89,6 +134,7 @@ export const uploadUserDocument = async (
     
     return { success: true, data };
   } catch (error) {
+    console.error("Error in uploadUserDocument:", error);
     return { success: false, error };
   }
 };
@@ -129,6 +175,9 @@ export const uploadPaymentReceipt = async (
   file: File
 ): Promise<{ success: boolean, data?: any, error?: any }> => {
   try {
+    // Initialize storage buckets first to ensure they exist
+    await initializeStorageBuckets();
+    
     const fileExt = file.name.split('.').pop();
     const fileName = `receipt-${Date.now()}.${fileExt}`;
     const filePath = `${userId}/${fileName}`;
@@ -139,6 +188,7 @@ export const uploadPaymentReceipt = async (
       .upload(filePath, file);
     
     if (fileError) {
+      console.error("Error uploading receipt:", fileError);
       return { success: false, error: fileError };
     }
     
@@ -161,6 +211,7 @@ export const uploadPaymentReceipt = async (
     
     return { success: true, data };
   } catch (error) {
+    console.error("Error in uploadPaymentReceipt:", error);
     return { success: false, error };
   }
 };

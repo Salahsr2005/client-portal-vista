@@ -1,12 +1,11 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Euro, Info } from 'lucide-react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info, Euro } from 'lucide-react';
 import { FormData } from '../types';
 
 interface StepThreeProps {
@@ -17,8 +16,8 @@ interface StepThreeProps {
   formatBudget: (budget: string) => string;
 }
 
-export const StepThree: React.FC<StepThreeProps> = ({ 
-  formData, 
+export const StepThree: React.FC<StepThreeProps> = ({
+  formData,
   setFormData,
   languageOptions,
   budgetOptions,
@@ -45,7 +44,7 @@ export const StepThree: React.FC<StepThreeProps> = ({
         >
           <Label htmlFor="location">Preferred Location</Label>
           <Select 
-            value={formData.location} 
+            value={formData.location || "any"} 
             onValueChange={(value) => setFormData({...formData, location: value})}
           >
             <SelectTrigger id="location">
@@ -75,7 +74,7 @@ export const StepThree: React.FC<StepThreeProps> = ({
         >
           <Label htmlFor="language">Preferred Language</Label>
           <Select 
-            value={formData.language} 
+            value={formData.language || "any"} 
             onValueChange={(value) => setFormData({...formData, language: value})}
           >
             <SelectTrigger id="language">
@@ -97,7 +96,7 @@ export const StepThree: React.FC<StepThreeProps> = ({
         >
           <Label htmlFor="duration">Program Duration</Label>
           <Select 
-            value={formData.duration} 
+            value={formData.duration || "full_degree"} 
             onValueChange={(value) => setFormData({...formData, duration: value})}
           >
             <SelectTrigger id="duration">
@@ -126,7 +125,7 @@ export const StepThree: React.FC<StepThreeProps> = ({
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-2">
                   <Select
-                    value={formData.budget}
+                    value={formData.budget || "100000"}
                     onValueChange={(value) => setFormData({...formData, budget: value})}
                   >
                     <SelectTrigger id="budget" className="flex-1">
@@ -173,7 +172,7 @@ export const StepThree: React.FC<StepThreeProps> = ({
         >
           <Label htmlFor="startDate">Preferred Start Date</Label>
           <Select 
-            value={formData.startDate} 
+            value={formData.startDate || "Fall 2025"} 
             onValueChange={(value) => setFormData({...formData, startDate: value})}
           >
             <SelectTrigger id="startDate">

@@ -1,253 +1,277 @@
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Card, CardContent, CardFooter, CardHeader, CardTitle 
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Heart, Calendar, Clock, MapPin, Euro, Star, GraduationCap, Building, 
-  Globe, BookOpen, Users
-} from 'lucide-react';
-import { motion } from 'framer-motion';
-import { formatCurrency } from '@/utils/databaseHelpers';
-
-interface Program {
-  id: string;
-  name: string;
-  university: string;
-  location: string;
-  type: string;
-  duration: string;
-  tuition: string;
-  deadline: string;
-  description: string;
-  image_url?: string;
-  matchScore?: number;
-  country?: string;
-  tuition_min?: number;
-  [key: string]: any;
-}
+import { BarChart, GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, CircleDollarSign, LayoutCompare } from 'lucide-react';
+import { Program } from './types';
 
 interface ProgramCardProps {
   program: Program;
-  isSelected: boolean;
-  isFavorite: boolean;
-  onSelect: () => void;
-  onFavorite: () => void;
+  isSelected?: boolean;
+  isFavorite?: boolean;
+  isCompare?: boolean;
+  onSelect?: (id: string) => void;
+  onFavorite?: (id: string) => void;
+  onCompare?: (id: string) => void;
   isGridView?: boolean;
+  showScore?: boolean;
 }
 
-const ProgramCard = ({ program, isSelected, isFavorite, onSelect, onFavorite, isGridView = true }: ProgramCardProps) => {
-  const backgroundImage = program.image_url || '/placeholder.svg';
-  
-  const renderStars = (rating: number) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={`full-${i}`} className="h-4 w-4 fill-yellow-400 text-yellow-400" />);
-    }
-    
-    if (hasHalfStar) {
-      stars.push(<Star key="half" className="h-4 w-4 fill-yellow-400 text-yellow-400 half-star" />);
-    }
-    
-    const emptyStars = 5 - stars.length;
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />);
-    }
-    
-    return stars;
-  };
-
-  // Format tuition if available
-  const formattedTuition = program.tuition_min ? 
-    formatCurrency(program.tuition_min, 'EUR') :
-    program.tuition;
-  
-  // Grid view card
-  if (isGridView) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        whileHover={{ y: -5 }}
-        className="h-full"
-      >
-        <Card 
-          className={`overflow-hidden h-full transition-all hover:shadow-xl ${isSelected ? 'ring-2 ring-primary' : ''}`}
-        >
-          <div 
-            className="h-40 bg-cover bg-center relative"
-            style={{ backgroundImage: `url(${backgroundImage})` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-black/70"></div>
-            <div className="absolute inset-0 p-4 flex flex-col justify-between">
-              <div className="flex justify-between items-start">
-                {program.matchScore && (
-                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium">
-                    {program.matchScore}% Match
-                  </Badge>
-                )}
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    checked={isSelected} 
-                    onCheckedChange={onSelect}
-                    className="h-5 w-5 bg-white/80 border-none"
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 bg-white/20 hover:bg-white/40 text-white rounded-full" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onFavorite();
-                    }}
-                  >
-                    <Heart 
-                      className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
-                    />
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg text-white drop-shadow-md line-clamp-1">{program.name}</h3>
-                <p className="text-white/90 text-sm drop-shadow-md line-clamp-1">{program.university}</p>
-              </div>
-            </div>
-          </div>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="flex items-center">
-                <GraduationCap className="h-4 w-4 mr-2 text-primary" />
-                <span className="text-sm">{program.type}</span>
-              </div>
-              <div className="flex items-center">
-                <Globe className="h-4 w-4 mr-2 text-primary" />
-                <span className="text-sm">{program.location}</span>
-              </div>
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2 text-primary" />
-                <span className="text-sm">{program.duration}</span>
-              </div>
-              <div className="flex items-center">
-                <Euro className="h-4 w-4 mr-2 text-primary" />
-                <span className="text-sm font-medium">{formattedTuition}</span>
-              </div>
-            </div>
-            
-            <Separator className="my-3" />
-            
-            <div className="flex justify-between items-center mt-3">
-              <Button variant="link" className="p-0 h-auto text-primary hover:text-primary/80">
-                <a href={`/programs/${program.id}`}>Details</a>
+const ProgramCard: React.FC<ProgramCardProps> = ({ 
+  program, 
+  isSelected = false,
+  isFavorite = false,
+  isCompare = false,
+  onSelect,
+  onFavorite,
+  onCompare,
+  isGridView = true,
+  showScore = false
+}) => {
+  return isGridView ? (
+    <Card className={`h-full overflow-hidden transition-all duration-200 hover:shadow-md ${isSelected ? 'border-primary' : ''}`}>
+      <CardHeader className="relative p-4 pb-2">
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-lg font-medium line-clamp-2">{program.name}</CardTitle>
+          <div className="flex gap-1">
+            {onCompare && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 ${isCompare ? 'text-indigo-600 hover:text-indigo-700' : ''}`}
+                onClick={() => onCompare(program.id)}
+              >
+                <LayoutCompare 
+                  className={`h-4 w-4 ${isCompare ? 'fill-indigo-100' : ''}`} 
+                />
               </Button>
-              <Button size="sm" className="bg-primary hover:bg-primary/90">
-                Apply Now
+            )}
+            
+            {onFavorite && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-7 w-7 ${isFavorite ? 'text-red-500 hover:text-red-600' : ''}`}
+                onClick={() => onFavorite(program.id)}
+              >
+                <Heart 
+                  className={`h-4 w-4 ${isFavorite ? 'fill-red-100' : ''}`} 
+                />
               </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
-  }
-  
-  // List view card
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      whileHover={{ x: 5 }}
-    >
-      <Card 
-        className={`overflow-hidden transition-all hover:shadow-lg ${isSelected ? 'ring-2 ring-primary' : ''}`}
-      >
-        <div className="flex flex-col md:flex-row h-full">
-          <div 
-            className="w-full md:w-1/4 h-40 md:h-auto bg-cover bg-center relative"
-            style={{ backgroundImage: `url(${backgroundImage})` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/30 md:bg-gradient-to-r md:from-black/70 md:to-black/20"></div>
-            {program.matchScore && (
-              <div className="absolute top-3 left-3">
-                <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-medium">
-                  {program.matchScore}% Match
-                </Badge>
-              </div>
+            )}
+            
+            {onSelect && (
+              <Checkbox 
+                id={`program-${program.id}`} 
+                checked={isSelected}
+                onCheckedChange={() => onSelect(program.id)}
+                className="mt-0.5"
+              />
             )}
           </div>
-          <div className="flex-1 p-4">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold text-lg">{program.name}</h3>
-                <p className="text-muted-foreground flex items-center">
-                  <Building className="h-4 w-4 mr-1" />
-                  {program.university}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="outline" className="flex gap-1 items-center">
-                    <GraduationCap className="h-3 w-3" />
-                    {program.type}
-                  </Badge>
-                  <Badge variant="outline" className="flex gap-1 items-center">
-                    <MapPin className="h-3 w-3" />
-                    {program.location}
-                  </Badge>
-                  <Badge variant="outline" className="flex gap-1 items-center">
-                    <Clock className="h-3 w-3" />
-                    {program.duration}
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  checked={isSelected} 
-                  onCheckedChange={onSelect}
-                  className="h-5 w-5"
-                />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 rounded-full" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onFavorite();
-                  }}
-                >
-                  <Heart 
-                    className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
-                  />
-                </Button>
-              </div>
+        </div>
+        
+        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+          <Building className="h-3.5 w-3.5 flex-shrink-0" />
+          <span className="truncate">{program.university}</span>
+        </div>
+        
+        {program.matchScore !== undefined && showScore && (
+          <div className="flex items-center mt-1">
+            <div className="w-full bg-muted rounded-full h-1.5">
+              <div 
+                className="bg-primary h-1.5 rounded-full" 
+                style={{ width: `${program.matchScore}%` }}
+              ></div>
             </div>
-            
-            <div className="mt-3 flex items-center">
-              <Euro className="h-4 w-4 mr-2 text-primary" />
-              <span className="text-sm font-medium">{formattedTuition}</span>
-              
-              <div className="ml-4 flex">
-                {program.rating && renderStars(program.rating)}
-              </div>
-            </div>
-            
-            <p className="text-sm mt-3 line-clamp-2 text-muted-foreground">{program.description}</p>
-            
-            <div className="flex justify-between items-center mt-4">
-              <Button variant="link" className="p-0 h-auto text-primary hover:text-primary/80">
-                <a href={`/programs/${program.id}`}>View Details</a>
-              </Button>
-              <Button size="sm" className="bg-primary hover:bg-primary/90">
-                Apply Now
-              </Button>
-            </div>
+            <span className="text-xs text-muted-foreground ml-2">
+              {program.matchScore}%
+            </span>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="p-4 pt-1 pb-2">
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="flex items-center gap-1.5">
+            <GraduationCap className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span>{program.study_level || 'Not specified'}</span>
+          </div>
+          
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span className="truncate">{program.location || 'Not specified'}</span>
+          </div>
+          
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span>{program.duration || 'Not specified'}</span>
+          </div>
+          
+          <div className="flex items-center gap-1.5">
+            <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+            <span>
+              {program.tuition_min ? `€${program.tuition_min.toLocaleString()}` : 'Not specified'}
+            </span>
           </div>
         </div>
-      </Card>
-    </motion.div>
+        
+        <div className="flex gap-1.5 mt-3 flex-wrap">
+          {program.scholarship_available && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200">
+              Scholarship
+            </Badge>
+          )}
+          
+          {program.religious_facilities && (
+            <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200">
+              Religious Facilities
+            </Badge>
+          )}
+          
+          {program.halal_food_availability && (
+            <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200">
+              Halal Food
+            </Badge>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="border-t p-3 flex justify-between">
+        <Button variant="outline" size="sm" asChild className="text-xs">
+          <a href={`/programs/${program.id}`}>View Details</a>
+        </Button>
+        
+        <Button variant="ghost" size="sm" className="text-xs flex">
+          <span className="whitespace-nowrap">Apply Now</span>
+          <span className="ml-1" aria-hidden="true">→</span>
+        </Button>
+      </CardFooter>
+    </Card>
+  ) : (
+    <Card className={`w-full overflow-hidden transition-all duration-200 hover:shadow-md ${isSelected ? 'border-primary' : ''}`}>
+      <div className="flex">
+        <div className="p-4 flex-grow">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-lg font-medium">{program.name}</CardTitle>
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                <Building className="h-3.5 w-3.5 flex-shrink-0" />
+                <span>{program.university}</span>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              {onCompare && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-7 w-7 ${isCompare ? 'text-indigo-600 hover:text-indigo-700' : ''}`}
+                  onClick={() => onCompare(program.id)}
+                >
+                  <LayoutCompare 
+                    className={`h-4 w-4 ${isCompare ? 'fill-indigo-100' : ''}`} 
+                  />
+                </Button>
+              )}
+              
+              {onFavorite && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-7 w-7 ${isFavorite ? 'text-red-500 hover:text-red-600' : ''}`}
+                  onClick={() => onFavorite(program.id)}
+                >
+                  <Heart 
+                    className={`h-4 w-4 ${isFavorite ? 'fill-red-100' : ''}`} 
+                  />
+                </Button>
+              )}
+              
+              {onSelect && (
+                <Checkbox 
+                  id={`program-${program.id}`} 
+                  checked={isSelected}
+                  onCheckedChange={() => onSelect(program.id)}
+                  className="mt-0.5"
+                />
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-2 mt-3 text-sm">
+            <div className="flex items-center gap-1.5">
+              <GraduationCap className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span>{program.study_level || 'Not specified'}</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span>{program.location || 'Not specified'}</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span>{program.duration || 'Not specified'}</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+              <CircleDollarSign className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <span>
+                {program.tuition_min ? `€${program.tuition_min.toLocaleString()}` : 'Not specified'}
+              </span>
+            </div>
+          </div>
+          
+          {program.matchScore !== undefined && showScore && (
+            <div className="flex items-center mt-3">
+              <BarChart className="h-4 w-4 mr-1.5 text-muted-foreground" />
+              <div className="w-full bg-muted rounded-full h-2 flex-grow">
+                <div 
+                  className="bg-primary h-2 rounded-full" 
+                  style={{ width: `${program.matchScore}%` }}
+                ></div>
+              </div>
+              <span className="text-sm text-muted-foreground ml-2.5">
+                {program.matchScore}% Match
+              </span>
+            </div>
+          )}
+          
+          <div className="flex gap-1.5 mt-3 flex-wrap">
+            {program.scholarship_available && (
+              <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200">
+                Scholarship
+              </Badge>
+            )}
+            
+            {program.religious_facilities && (
+              <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200">
+                Religious Facilities
+              </Badge>
+            )}
+            
+            {program.halal_food_availability && (
+              <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200">
+                Halal Food
+              </Badge>
+            )}
+          </div>
+        </div>
+        
+        <div className="border-l bg-muted/20 p-4 flex flex-col justify-between">
+          <Button variant="outline" size="sm" asChild className="text-xs whitespace-nowrap">
+            <a href={`/programs/${program.id}`}>View Details</a>
+          </Button>
+          
+          <Button variant="ghost" size="sm" className="text-xs whitespace-nowrap mt-2">
+            Apply Now
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 };
 

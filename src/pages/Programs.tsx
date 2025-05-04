@@ -1,27 +1,36 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePrograms } from '@/hooks/usePrograms';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import ProgramCard from '@/components/consultation/ProgramCard';
+import ComparePrograms from '@/components/programs/ComparePrograms';
+import { Program } from '@/components/consultation/types';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ListFilter, Grid, Search, Heart } from 'lucide-react';
+import { ListFilter, Grid, Search, Heart, LayoutCompare, AlertTriangle } from 'lucide-react';
+import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
 
 const Programs = () => {
   const { data: programs = [], isLoading } = usePrograms();
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
   const [favoritePrograms, setFavoritePrograms] = useState<string[]>([]);
+  const [comparePrograms, setComparePrograms] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isGridView, setIsGridView] = useState(true);
 
-  // Initialize favorites
+  // Initialize favorites and storage buckets
   useEffect(() => {
+    createFavoriteProgramsTable();
+    
     if (user) {
       fetchFavoritePrograms();
     }
@@ -123,6 +132,31 @@ const Programs = () => {
       }
     });
   };
+
+  const handleCompareSelect = (programId: string) => {
+    setComparePrograms(prev => {
+      if (prev.includes(programId)) {
+        return prev.filter(id => id !== programId);
+      } else {
+        // Limit the number of programs that can be compared
+        if (prev.length >= 3) {
+          toast({
+            title: "Maximum programs reached",
+            description: "You can compare up to 3 programs at once",
+            variant: "destructive",
+          });
+          return prev;
+        }
+        return [...prev, programId];
+      }
+    });
+  };
+
+  const handleCompareRemove = (programId: string) => {
+    setComparePrograms(prev => prev.filter(id => id !== programId));
+  };
+  
+  const programsToCompare = programs.filter(p => comparePrograms.includes(p.id)) as Program[];
   
   // Animation variants
   const containerVariants = {
@@ -185,8 +219,28 @@ const Programs = () => {
                 <ListFilter className="h-4 w-4" />
               </Button>
             </div>
+
+            {comparePrograms.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCompare(true)}
+                className="flex items-center gap-1"
+              >
+                <LayoutCompare className="h-4 w-4 mr-1" />
+                Compare ({comparePrograms.length})
+              </Button>
+            )}
           </div>
         </div>
+
+        {showCompare && programsToCompare.length > 0 && (
+          <ComparePrograms 
+            programs={programsToCompare}
+            onClose={() => setShowCompare(false)} 
+            onRemoveProgram={handleCompareRemove}
+          />
+        )}
 
         <Tabs defaultValue="all" className="w-full">
           <TabsList>
@@ -201,6 +255,14 @@ const Programs = () => {
               {favoritePrograms.length > 0 && (
                 <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
                   {favoritePrograms.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="compare" className="relative">
+              Compare
+              {comparePrograms.length > 0 && (
+                <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                  {comparePrograms.length}
                 </span>
               )}
             </TabsTrigger>
@@ -241,8 +303,10 @@ const Programs = () => {
                       program={program}
                       isSelected={selectedPrograms.includes(program.id)}
                       isFavorite={favoritePrograms.includes(program.id)}
+                      isCompare={comparePrograms.includes(program.id)}
                       onSelect={() => handleProgramSelect(program.id)}
                       onFavorite={() => toggleFavorite(program.id)}
+                      onCompare={() => handleCompareSelect(program.id)}
                       isGridView={isGridView}
                     />
                   </motion.div>
@@ -281,13 +345,76 @@ const Programs = () => {
                         program={program}
                         isSelected={selectedPrograms.includes(program.id)}
                         isFavorite={true}
+                        isCompare={comparePrograms.includes(program.id)}
                         onSelect={() => handleProgramSelect(program.id)}
                         onFavorite={() => toggleFavorite(program.id)}
+                        onCompare={() => handleCompareSelect(program.id)}
                         isGridView={isGridView}
                       />
                     </motion.div>
                   ))}
               </motion.div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="compare" className="space-y-4 mt-4">
+            {comparePrograms.length === 0 ? (
+              <div className="text-center py-12 px-4 bg-muted/30 rounded-lg">
+                <LayoutCompare className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <h3 className="text-lg font-medium mb-2">No programs selected for comparison</h3>
+                <p className="text-muted-foreground max-w-md mx-auto mb-4">
+                  Click the compare button on program cards to add them for comparison.
+                </p>
+              </div>
+            ) : (
+              <>
+                {comparePrograms.length < 2 && (
+                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 p-3 rounded-md mb-4">
+                    <AlertTriangle className="h-5 w-5 text-amber-600" />
+                    <p className="text-sm text-amber-800">
+                      Select at least 2 programs for a meaningful comparison.
+                    </p>
+                  </div>
+                )}
+                <motion.div 
+                  className={isGridView 
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" 
+                    : "space-y-4"
+                  }
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                >
+                  {filteredPrograms
+                    .filter(program => comparePrograms.includes(program.id))
+                    .map((program) => (
+                      <motion.div
+                        key={program.id}
+                        variants={itemVariants}
+                      >
+                        <ProgramCard 
+                          program={program}
+                          isSelected={selectedPrograms.includes(program.id)}
+                          isFavorite={favoritePrograms.includes(program.id)}
+                          isCompare={true}
+                          onSelect={() => handleProgramSelect(program.id)}
+                          onFavorite={() => toggleFavorite(program.id)}
+                          onCompare={() => handleCompareSelect(program.id)}
+                          isGridView={isGridView}
+                        />
+                      </motion.div>
+                    ))}
+                </motion.div>
+                
+                {comparePrograms.length >= 2 && (
+                  <div className="flex justify-center mt-4">
+                    <Button onClick={() => setShowCompare(true)}>
+                      <LayoutCompare className="h-4 w-4 mr-2" />
+                      Compare Programs
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
         </Tabs>
