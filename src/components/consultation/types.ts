@@ -31,8 +31,11 @@ export interface Program {
   program_language?: string;
   language?: string;
   hasScholarship?: boolean;
+  scholarship_available?: boolean; // For backward compatibility
   hasReligiousFacilities?: boolean;
+  religious_facilities?: boolean; // For backward compatibility
   hasHalalFood?: boolean;
+  halal_food_availability?: boolean; // For backward compatibility
   status?: string;
   matchScore?: number;
   matchDetails?: any;
@@ -41,4 +44,3 @@ export interface Program {
   deadline?: string; // Added for compatibility
   application_deadline?: string;
 }
-

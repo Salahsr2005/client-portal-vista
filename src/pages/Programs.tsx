@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePrograms } from '@/hooks/usePrograms';
@@ -12,7 +11,7 @@ import { motion } from 'framer-motion';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ListFilter, Grid, Search, Heart, LayoutCompare, AlertTriangle } from 'lucide-react';
+import { ListFilter, Grid, Search, Heart, LayoutPanelLeft, AlertTriangle } from 'lucide-react';
 import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
 
 const Programs = () => {
@@ -227,7 +226,7 @@ const Programs = () => {
                 onClick={() => setShowCompare(true)}
                 className="flex items-center gap-1"
               >
-                <LayoutCompare className="h-4 w-4 mr-1" />
+                <LayoutPanelLeft className="h-4 w-4 mr-1" />
                 Compare ({comparePrograms.length})
               </Button>
             )}
@@ -360,7 +359,7 @@ const Programs = () => {
           <TabsContent value="compare" className="space-y-4 mt-4">
             {comparePrograms.length === 0 ? (
               <div className="text-center py-12 px-4 bg-muted/30 rounded-lg">
-                <LayoutCompare className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <LayoutPanelLeft className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                 <h3 className="text-lg font-medium mb-2">No programs selected for comparison</h3>
                 <p className="text-muted-foreground max-w-md mx-auto mb-4">
                   Click the compare button on program cards to add them for comparison.
@@ -409,7 +408,7 @@ const Programs = () => {
                 {comparePrograms.length >= 2 && (
                   <div className="flex justify-center mt-4">
                     <Button onClick={() => setShowCompare(true)}>
-                      <LayoutCompare className="h-4 w-4 mr-2" />
+                      <LayoutPanelLeft className="h-4 w-4 mr-2" />
                       Compare Programs
                     </Button>
                   </div>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, X } from 'lucide-react';
@@ -9,7 +8,7 @@ import { ResultsHeader } from './ResultsHeader';
 import { ActiveFilters } from './ActiveFilters';
 import { ProgramList } from './ProgramList';
 import { EmptyState } from './EmptyState';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, LayoutPanelLeft } from 'lucide-react';
 
 interface StepFourProps {
   filteredPrograms: any[];
@@ -206,6 +205,7 @@ export const StepFour: React.FC<StepFourProps> = ({
             disabled={selectedPrograms.length === 0}
             className="bg-primary hover:bg-primary/90"
           >
+            <LayoutPanelLeft className="h-4 w-4 mr-2" />
             Submit Selection
           </Button>
         </motion.div>

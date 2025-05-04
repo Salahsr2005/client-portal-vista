@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,6 +51,14 @@ export const usePrograms = (filter?: ProgramFilter) => {
         tuition: program.tuition_min,
         type: program.study_level,
         deadline: program.application_deadline,
+        // Map property names for compatibility
+        hasScholarship: program.scholarship_available,
+        hasReligiousFacilities: program.religious_facilities,
+        hasHalalFood: program.halal_food_availability,
+        // Keep original properties for backward compatibility
+        scholarship_available: program.scholarship_available,
+        religious_facilities: program.religious_facilities,
+        halal_food_availability: program.halal_food_availability
       };
       
       return enhancedProgram;
@@ -78,7 +85,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
           
           // Sort by match score if available
           programs.sort((a: Program, b: Program) => {
-            if (a.matchScore && b.matchScore) {
+            if (a.matchScore !== undefined && b.matchScore !== undefined) {
               return b.matchScore - a.matchScore;
             }
             return 0;
@@ -92,6 +99,14 @@ export const usePrograms = (filter?: ProgramFilter) => {
             tuition: p.tuition_min,
             type: p.study_level,
             deadline: p.application_deadline,
+            // Map property names for compatibility
+            hasScholarship: p.scholarship_available,
+            hasReligiousFacilities: p.religious_facilities,
+            hasHalalFood: p.halal_food_availability,
+            // Keep original properties for backward compatibility
+            scholarship_available: p.scholarship_available,
+            religious_facilities: p.religious_facilities,
+            halal_food_availability: p.halal_food_availability
           }));
         }
         

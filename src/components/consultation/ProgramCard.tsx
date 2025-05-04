@@ -6,7 +6,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BarChart, GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, CircleDollarSign, LayoutCompare } from 'lucide-react';
+import { BarChart, GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, CircleDollarSign, LayoutPanelLeft } from 'lucide-react';
 import { Program } from './types';
 
 interface ProgramCardProps {
@@ -45,7 +45,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                 className={`h-7 w-7 ${isCompare ? 'text-indigo-600 hover:text-indigo-700' : ''}`}
                 onClick={() => onCompare(program.id)}
               >
-                <LayoutCompare 
+                <LayoutPanelLeft 
                   className={`h-4 w-4 ${isCompare ? 'fill-indigo-100' : ''}`} 
                 />
               </Button>
@@ -120,19 +120,19 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
         </div>
         
         <div className="flex gap-1.5 mt-3 flex-wrap">
-          {program.scholarship_available && (
+          {(program.hasScholarship || program.scholarship_available) && (
             <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200">
               Scholarship
             </Badge>
           )}
           
-          {program.religious_facilities && (
+          {(program.hasReligiousFacilities || program.religious_facilities) && (
             <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200">
               Religious Facilities
             </Badge>
           )}
           
-          {program.halal_food_availability && (
+          {(program.hasHalalFood || program.halal_food_availability) && (
             <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200">
               Halal Food
             </Badge>
@@ -171,7 +171,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                   className={`h-7 w-7 ${isCompare ? 'text-indigo-600 hover:text-indigo-700' : ''}`}
                   onClick={() => onCompare(program.id)}
                 >
-                  <LayoutCompare 
+                  <LayoutPanelLeft 
                     className={`h-4 w-4 ${isCompare ? 'fill-indigo-100' : ''}`} 
                   />
                 </Button>
@@ -241,19 +241,19 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
           )}
           
           <div className="flex gap-1.5 mt-3 flex-wrap">
-            {program.scholarship_available && (
+            {(program.hasScholarship || program.scholarship_available) && (
               <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200">
                 Scholarship
               </Badge>
             )}
             
-            {program.religious_facilities && (
+            {(program.hasReligiousFacilities || program.religious_facilities) && (
               <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200">
                 Religious Facilities
               </Badge>
             )}
             
-            {program.halal_food_availability && (
+            {(program.hasHalalFood || program.halal_food_availability) && (
               <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200">
                 Halal Food
               </Badge>
