@@ -1,10 +1,25 @@
 
 // Currency conversion rates
-const conversionRates = {
+const conversionRates: Record<CurrencyCode, Partial<Record<CurrencyCode, number>>> = {
   EUR: {
-    DZD: 250, // 1 EUR = 250 DZD
-    USD: 1.09, // 1 EUR = 1.09 USD (example)
-    GBP: 0.85, // 1 EUR = 0.85 GBP (example)
+    DZD: 147.26, // Updated rate: 1 EUR = 147.26 DZD as of 2025
+    USD: 1.09,   // 1 EUR = 1.09 USD
+    GBP: 0.85,   // 1 EUR = 0.85 GBP
+  },
+  DZD: {
+    EUR: 0.0068, // 1 DZD = 0.0068 EUR
+    USD: 0.0074, // 1 DZD = 0.0074 USD
+    GBP: 0.0058, // 1 DZD = 0.0058 GBP
+  },
+  USD: {
+    EUR: 0.92,   // 1 USD = 0.92 EUR
+    DZD: 135.11, // 1 USD = 135.11 DZD
+    GBP: 0.78,   // 1 USD = 0.78 GBP
+  },
+  GBP: {
+    EUR: 1.18,   // 1 GBP = 1.18 EUR
+    DZD: 173.26, // 1 GBP = 173.26 DZD
+    USD: 1.28,   // 1 GBP = 1.28 USD
   }
 };
 
@@ -30,14 +45,14 @@ export const formatCurrency = (
   // Format based on the target currency
   switch (toCurrency) {
     case 'EUR':
-      return `€${convertedAmount.toLocaleString()}`;
+      return `€${convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
     case 'DZD':
-      return `${convertedAmount.toLocaleString()} DZD`;
+      return `${convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} DZD`;
     case 'USD':
-      return `$${convertedAmount.toLocaleString()}`;
+      return `$${convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
     case 'GBP':
-      return `£${convertedAmount.toLocaleString()}`;
+      return `£${convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
     default:
-      return `${convertedAmount.toLocaleString()} ${toCurrency}`;
+      return `${convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${toCurrency}`;
   }
 };

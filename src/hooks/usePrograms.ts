@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,8 +22,8 @@ export const usePrograms = (filter?: ProgramFilter) => {
   const queryKey = ['programs', filter];
   
   // Function to calculate match scores
-  const calculateMatchScores = (programs: any[], filter?: ProgramFilter) => {
-    if (!filter) return programs;
+  const calculateMatchScores = (programs: any[], filter?: ProgramFilter): Program[] => {
+    if (!filter) return programs.map(mapToProgram);
     
     return programs.map(program => {
       // First filter by field of study - if no match, don't include it
@@ -69,6 +68,27 @@ export const usePrograms = (filter?: ProgramFilter) => {
     }).filter(Boolean) as Program[];  // Remove null entries (non-matching fields)
   };
   
+  // Helper function to map raw program data to Program interface
+  const mapToProgram = (p: any): Program => ({
+    ...p,
+    location: p.city ? `${p.city}, ${p.country}` : p.country || 'Not specified',
+    duration: p.duration_months ? `${p.duration_months} months` : 'Not specified',
+    tuition: p.tuition_min || 0,
+    type: p.study_level || 'Not specified',
+    deadline: p.application_deadline || 'Not specified',
+    // Map property names for compatibility
+    hasScholarship: p.scholarship_available,
+    hasReligiousFacilities: p.religious_facilities,
+    hasHalalFood: p.halal_food_availability,
+    // Keep original properties for backward compatibility
+    scholarship_available: p.scholarship_available,
+    religious_facilities: p.religious_facilities,
+    halal_food_availability: p.halal_food_availability,
+    // Ensure image_url is included
+    image_url: p.image_url || '/placeholder.svg',
+    featured: p.featured || false
+  });
+  
   // The main query - fetch all programs
   return useQuery({
     queryKey,
@@ -98,25 +118,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
           return scoredPrograms;
         } else {
           // Map to Program type for consistency even without filters
-          const mappedPrograms = programs.map((p: any): Program => ({
-            ...p,
-            location: p.city ? `${p.city}, ${p.country}` : p.country || 'Not specified',
-            duration: p.duration_months ? `${p.duration_months} months` : 'Not specified',
-            tuition: p.tuition_min || 0,
-            type: p.study_level || 'Not specified',
-            deadline: p.application_deadline || 'Not specified',
-            // Map property names for compatibility
-            hasScholarship: p.scholarship_available,
-            hasReligiousFacilities: p.religious_facilities,
-            hasHalalFood: p.halal_food_availability,
-            // Keep original properties for backward compatibility
-            scholarship_available: p.scholarship_available,
-            religious_facilities: p.religious_facilities,
-            halal_food_availability: p.halal_food_availability,
-            // Ensure image_url is included
-            image_url: p.image_url || '/placeholder.svg',
-            featured: p.featured || false
-          }));
+          const mappedPrograms = programs.map(mapToProgram);
           
           return mappedPrograms;
         }
