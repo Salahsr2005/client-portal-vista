@@ -42,7 +42,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
       const matchResult = calculateProgramMatch(program, filter);
       
       // Map database fields to our Program interface
-      const enhancedProgram = {
+      const enhancedProgram: Program = {
         ...program,
         matchScore: matchResult.score,
         matchDetails: matchResult.details,
@@ -66,7 +66,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
       };
       
       return enhancedProgram;
-    }).filter(Boolean) as any[];  // Remove null entries (non-matching fields)
+    }).filter(Boolean) as Program[];  // Remove null entries (non-matching fields)
   };
   
   // The main query - fetch all programs
@@ -88,17 +88,17 @@ export const usePrograms = (filter?: ProgramFilter) => {
           const scoredPrograms = calculateMatchScores(programs, filter);
           
           // Sort by match score if available
-          scoredPrograms.sort((a: any, b: any) => {
+          scoredPrograms.sort((a: Program, b: Program) => {
             if (a.matchScore !== undefined && b.matchScore !== undefined) {
               return b.matchScore - a.matchScore;
             }
             return 0;
           });
           
-          return scoredPrograms as Program[];
+          return scoredPrograms;
         } else {
           // Map to Program type for consistency even without filters
-          const mappedPrograms = programs.map((p: any): any => ({
+          const mappedPrograms = programs.map((p: any): Program => ({
             ...p,
             location: p.city ? `${p.city}, ${p.country}` : p.country || 'Not specified',
             duration: p.duration_months ? `${p.duration_months} months` : 'Not specified',
@@ -118,7 +118,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
             featured: p.featured || false
           }));
           
-          return mappedPrograms as Program[];
+          return mappedPrograms;
         }
       } catch (error: any) {
         console.error('Error fetching programs:', error);
