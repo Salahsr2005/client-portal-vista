@@ -47,11 +47,11 @@ export const usePrograms = (filter?: ProgramFilter) => {
         matchScore: matchResult.score,
         matchDetails: matchResult.details,
         // Add compatibility fields
-        location: program.city ? `${program.city}, ${program.country}` : program.country,
+        location: program.city ? `${program.city}, ${program.country}` : program.country || 'Not specified',
         duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
-        tuition: program.tuition_min,
-        type: program.study_level,
-        deadline: program.application_deadline,
+        tuition: program.tuition_min || 0,
+        type: program.study_level || 'Not specified',
+        deadline: program.application_deadline || 'Not specified',
         // Map property names for compatibility
         hasScholarship: program.scholarship_available,
         hasReligiousFacilities: program.religious_facilities,
@@ -61,14 +61,15 @@ export const usePrograms = (filter?: ProgramFilter) => {
         religious_facilities: program.religious_facilities,
         halal_food_availability: program.halal_food_availability,
         // Ensure image_url is included
-        image_url: program.image_url || '/placeholder.svg'
+        image_url: program.image_url || '/placeholder.svg',
+        featured: program.featured || false
       };
       
       return enhancedProgram;
-    }).filter(Boolean);  // Remove null entries (non-matching fields)
+    }).filter(Boolean) as Program[];  // Remove null entries (non-matching fields)
   };
   
-  // The main query - no limit applied, fetch all programs
+  // The main query - fetch all programs
   return useQuery({
     queryKey,
     queryFn: async () => {
@@ -80,14 +81,14 @@ export const usePrograms = (filter?: ProgramFilter) => {
           
         if (error) throw error;
         
-        if (!programs) return [];
+        if (!programs) return [] as Program[];
         
         // Apply scoring and filtering
         if (filter) {
           programs = calculateMatchScores(programs, filter);
           
           // Sort by match score if available
-          programs.sort((a: Program, b: Program) => {
+          programs.sort((a: any, b: any) => {
             if (a.matchScore !== undefined && b.matchScore !== undefined) {
               return b.matchScore - a.matchScore;
             }
@@ -95,13 +96,13 @@ export const usePrograms = (filter?: ProgramFilter) => {
           });
         } else {
           // Map to Program type for consistency even without filters
-          programs = programs.map((p: any) => ({
+          programs = programs.map((p: any): Program => ({
             ...p,
-            location: p.city ? `${p.city}, ${p.country}` : p.country,
+            location: p.city ? `${p.city}, ${p.country}` : p.country || 'Not specified',
             duration: p.duration_months ? `${p.duration_months} months` : 'Not specified',
-            tuition: p.tuition_min,
-            type: p.study_level,
-            deadline: p.application_deadline,
+            tuition: p.tuition_min || 0,
+            type: p.study_level || 'Not specified',
+            deadline: p.application_deadline || 'Not specified',
             // Map property names for compatibility
             hasScholarship: p.scholarship_available,
             hasReligiousFacilities: p.religious_facilities,
@@ -111,14 +112,15 @@ export const usePrograms = (filter?: ProgramFilter) => {
             religious_facilities: p.religious_facilities,
             halal_food_availability: p.halal_food_availability,
             // Ensure image_url is included
-            image_url: p.image_url || '/placeholder.svg'
+            image_url: p.image_url || '/placeholder.svg',
+            featured: p.featured || false
           }));
         }
         
         return programs as Program[];
       } catch (error: any) {
         console.error('Error fetching programs:', error);
-        return [];
+        return [] as Program[];
       }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes

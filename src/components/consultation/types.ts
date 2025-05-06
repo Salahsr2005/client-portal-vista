@@ -1,3 +1,4 @@
+
 export interface FormData {
   studyLevel: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
   subjects: string[];
@@ -40,4 +41,6 @@ export interface Program {
   scholarship_available?: boolean;
   religious_facilities?: boolean;
   halal_food_availability?: boolean;
+  program_language?: string;
+  featured?: boolean;
 }
