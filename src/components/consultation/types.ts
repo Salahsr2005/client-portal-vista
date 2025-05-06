@@ -43,4 +43,40 @@ export interface Program {
   halal_food_availability?: boolean;
   program_language?: string;
   featured?: boolean;
+  
+  // Adding other fields from database
+  academic_requirements?: string;
+  admission_requirements?: string;
+  advantages?: string;
+  application_fee?: number;
+  application_process?: string;
+  available_places?: number;
+  duration_months?: number;
+  employment_rate?: number;
+  exchange_opportunities?: boolean;
+  field_keywords?: string[];
+  gpa_requirement?: number;
+  housing_availability?: string;
+  housing_cost_max?: number;
+  housing_cost_min?: number;
+  internship_opportunities?: boolean;
+  language_requirement?: string;
+  language_test?: string;
+  language_test_exemptions?: string;
+  language_test_score?: string;
+  living_cost_max?: number;
+  living_cost_min?: number;
+  north_african_community_size?: string;
+  ranking?: number;
+  scholarship_amount?: number;
+  scholarship_deadline?: string;
+  scholarship_details?: string;
+  scholarship_requirements?: string;
+  secondary_language?: string;
+  status?: string;
+  success_rate?: number;
+  total_places?: number;
+  video_url?: string;
+  virtual_tour_url?: string;
+  visa_fee?: number;
 }

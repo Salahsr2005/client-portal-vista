@@ -42,7 +42,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
       const matchResult = calculateProgramMatch(program, filter);
       
       // Map database fields to our Program interface
-      const enhancedProgram: Program = {
+      const enhancedProgram = {
         ...program,
         matchScore: matchResult.score,
         matchDetails: matchResult.details,
@@ -66,7 +66,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
       };
       
       return enhancedProgram;
-    }).filter(Boolean) as Program[];  // Remove null entries (non-matching fields)
+    }).filter(Boolean) as any[];  // Remove null entries (non-matching fields)
   };
   
   // The main query - fetch all programs
@@ -85,18 +85,20 @@ export const usePrograms = (filter?: ProgramFilter) => {
         
         // Apply scoring and filtering
         if (filter) {
-          programs = calculateMatchScores(programs, filter);
+          const scoredPrograms = calculateMatchScores(programs, filter);
           
           // Sort by match score if available
-          programs.sort((a: any, b: any) => {
+          scoredPrograms.sort((a: any, b: any) => {
             if (a.matchScore !== undefined && b.matchScore !== undefined) {
               return b.matchScore - a.matchScore;
             }
             return 0;
           });
+          
+          return scoredPrograms as Program[];
         } else {
           // Map to Program type for consistency even without filters
-          programs = programs.map((p: any): Program => ({
+          const mappedPrograms = programs.map((p: any): any => ({
             ...p,
             location: p.city ? `${p.city}, ${p.country}` : p.country || 'Not specified',
             duration: p.duration_months ? `${p.duration_months} months` : 'Not specified',
@@ -115,9 +117,9 @@ export const usePrograms = (filter?: ProgramFilter) => {
             image_url: p.image_url || '/placeholder.svg',
             featured: p.featured || false
           }));
+          
+          return mappedPrograms as Program[];
         }
-        
-        return programs as Program[];
       } catch (error: any) {
         console.error('Error fetching programs:', error);
         return [] as Program[];
