@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -94,10 +95,45 @@ export const usePrograms = (filter?: ProgramFilter) => {
     queryKey,
     queryFn: async () => {
       try {
-        let { data: programs, error } = await supabase
+        let query = supabase
           .from('programs')
           .select('*')
           .eq('status', 'Active');
+        
+        // Add filters if provided
+        if (filter) {
+          // Study level filter
+          if (filter.studyLevel) {
+            query = query.eq('study_level', filter.studyLevel);
+          }
+          
+          // Location filter
+          if (filter.location) {
+            query = query.eq('country', filter.location);
+          }
+          
+          // Language filter
+          if (filter.language) {
+            query = query.or(`program_language.eq.${filter.language},secondary_language.eq.${filter.language}`);
+          }
+          
+          // Scholarship filter
+          if (filter.scholarshipRequired) {
+            query = query.eq('scholarship_available', true);
+          }
+          
+          // Religious facilities filter
+          if (filter.religiousFacilities) {
+            query = query.eq('religious_facilities', true);
+          }
+          
+          // Halal food filter
+          if (filter.halalFood) {
+            query = query.eq('halal_food_availability', true);
+          }
+        }
+          
+        const { data: programs, error } = await query;
           
         if (error) throw error;
         

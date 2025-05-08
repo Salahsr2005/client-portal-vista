@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,7 +9,8 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardContent
+  CardContent,
+  CardFooter
 } from "@/components/ui/card";
 import { 
   Send,
@@ -20,7 +22,11 @@ import {
   MoreHorizontal,
   ImageIcon,
   Paperclip,
-  SmileIcon
+  SmileIcon,
+  Lock,
+  AlertTriangle,
+  CreditCard,
+  HelpCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
 
 // Custom hook for media queries
 const useMediaQuery = (query: string): boolean => {
@@ -158,6 +165,7 @@ export default function Messages() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const { data: paymentStatus, isLoading: paymentLoading } = useUserPaymentStatus();
   
   const [loading, setLoading] = useState(true);
   const [conversations, setConversations] = useState([]);
@@ -172,11 +180,22 @@ export default function Messages() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Check if user can access chat based on payment status
+  const canAccessChat = () => {
+    if (!paymentStatus) return false;
+    return paymentStatus.isPaid;
+  };
   
   // Fetch conversations when component mounts
   useEffect(() => {
     if (!user) {
       navigate("/login");
+      return;
+    }
+    
+    if (!canAccessChat()) {
+      setLoading(false);
       return;
     }
     
@@ -270,7 +289,7 @@ export default function Messages() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, navigate, toast, currentChat]);
+  }, [user, navigate, toast, currentChat, paymentStatus]);
   
   // Auto scroll to bottom when messages change
   useEffect(() => {
@@ -404,6 +423,103 @@ export default function Messages() {
   
   // Get total unread count
   const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+
+  // If no user is logged in
+  if (!user) {
+    return (
+      <div className="container h-[calc(100vh-100px)] flex items-center justify-center">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CircleUser className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <CardTitle>Sign In Required</CardTitle>
+            <CardDescription>You need to sign in to access your messages</CardDescription>
+          </CardHeader>
+          <CardFooter className="flex justify-center">
+            <Button asChild>
+              <Link to="/login">Sign In</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  // If payment status is loading
+  if (paymentLoading) {
+    return (
+      <div className="container px-4 py-6 max-w-7xl mx-auto">
+        <div className="flex flex-col h-[80vh] items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <Skeleton className="h-12 w-12 mx-auto rounded-full mb-4" />
+              <Skeleton className="h-6 w-48 mx-auto mb-2" />
+              <Skeleton className="h-4 w-64 mx-auto mb-4" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Skeleton className="h-10 w-32 mx-auto" />
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // If user hasn't paid or payment isn't approved
+  if (!canAccessChat()) {
+    return (
+      <div className="container px-4 py-6 max-w-7xl mx-auto">
+        <div className="flex flex-col h-[80vh] items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <Lock className="h-12 w-12 mx-auto text-amber-500 mb-2" />
+              <CardTitle>Message Access Restricted</CardTitle>
+              <CardDescription>
+                Message access is only available for users with approved payments
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-muted p-4 rounded-lg">
+                <h3 className="font-semibold text-lg flex items-center">
+                  <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
+                  Payment Status
+                </h3>
+                <p className="text-sm mt-2">
+                  {paymentStatus?.isPending 
+                    ? "Your payment is pending verification. Access will be granted once approved."
+                    : "You need to make a payment to access the messaging feature."}
+                </p>
+              </div>
+              
+              <div className="flex flex-col space-y-2">
+                {!paymentStatus?.isPending && (
+                  <Button asChild className="w-full">
+                    <Link to="/payments">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Make a Payment
+                    </Link>
+                  </Button>
+                )}
+                
+                <Button variant="outline" asChild className="w-full">
+                  <Link to="/profile">
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    View Payment Status
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="container px-4 py-6 max-w-7xl mx-auto">

@@ -1,16 +1,18 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
 import {
   Send,
   Search,
@@ -21,6 +23,9 @@ import {
   Smile,
   Check,
   MessageSquare,
+  AlertTriangle,
+  CreditCard,
+  Lock
 } from 'lucide-react';
 
 interface Message {
@@ -145,6 +150,7 @@ const ChatInterface: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { data: paymentStatus, isLoading: paymentLoading } = useUserPaymentStatus();
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -201,6 +207,13 @@ const ChatInterface: React.FC = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Check if user can access chat based on payment status
+  const canAccessChat = () => {
+    if (!paymentStatus) return false;
+    return paymentStatus.isPaid;
+  };
+
+  // If no user is logged in
   if (!user) {
     return (
       <div className="h-[600px] flex items-center justify-center">
@@ -218,6 +231,80 @@ const ChatInterface: React.FC = () => {
     );
   }
 
+  // If payment is loading
+  if (paymentLoading) {
+    return (
+      <div className="h-[600px] flex items-center justify-center">
+        <div className="text-center">
+          <Skeleton className="h-12 w-12 mx-auto rounded-full mb-4" />
+          <Skeleton className="h-6 w-48 mx-auto mb-2" />
+          <Skeleton className="h-4 w-64 mx-auto mb-4" />
+          <Skeleton className="h-10 w-32 mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  // If user hasn't paid or payment isn't approved
+  if (!canAccessChat()) {
+    return (
+      <div className="h-[600px] flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Lock className="h-12 w-12 mx-auto text-amber-500 mb-2" />
+            <CardTitle>Chat Access Restricted</CardTitle>
+            <CardDescription>
+              Chat access is only available for users with approved payments
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <h3 className="font-semibold text-lg flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
+                Payment Status
+              </h3>
+              <p className="text-sm mt-2">
+                {paymentStatus?.isPending 
+                  ? "Your payment is pending verification. Access will be granted once approved."
+                  : "You need to make a payment to access the chat feature."}
+              </p>
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              {!paymentStatus?.isPending && (
+                <Button asChild className="w-full">
+                  <Link to="/payments">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Make a Payment
+                  </Link>
+                </Button>
+              )}
+              
+              <Tabs defaultValue="faq" className="w-full">
+                <TabsList className="grid w-full grid-cols-1">
+                  <TabsTrigger value="faq">FAQ Section</TabsTrigger>
+                </TabsList>
+                <TabsContent value="faq" className="mt-4 space-y-4">
+                  <div className="bg-muted/20 p-4 rounded-lg">
+                    <h3 className="font-semibold mb-2">Frequently Asked Questions</h3>
+                    <ul className="space-y-3 list-disc pl-4">
+                      <li>How long does the application process usually take?</li>
+                      <li>What documents do I need for a student visa?</li>
+                      <li>Can I work part-time while studying abroad?</li>
+                      <li>How can I find affordable housing?</li>
+                      <li>Are there scholarships available for international students?</li>
+                    </ul>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Regular chat interface for paid users
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col">
       <h1 className="text-2xl font-bold mb-4">Messages</h1>
