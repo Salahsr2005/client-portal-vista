@@ -10,14 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMessages } from "@/hooks/useMessages";
 import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
 import { useApplications } from "@/hooks/useApplications";
-import { MessageCircle, Send, Search, User, MessagesSquare, AlertTriangle, HelpCircle } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Link } from "react-router-dom";
+import { MessageCircle, Send, Search, User, MessagesSquare, AlertTriangle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Type definition for formatted messages
 interface FormattedMessage {
@@ -42,21 +40,25 @@ interface FormattedMessage {
 }
 
 export default function Messages() {
-  const { data: messages = [], isLoading } = useMessages();
-  const { data: paymentStatus } = useUserPaymentStatus();
-  const { data: applications = [] } = useApplications();
+  const { data: messages = [], isLoading: messagesLoading } = useMessages();
+  const { data: paymentStatus, isLoading: paymentLoading } = useUserPaymentStatus();
+  const { data: applications = [], isLoading: applicationsLoading } = useApplications();
+  const { user } = useAuth();
+  const { toast } = useToast();
   
   // Group messages into conversations
   const [conversations, setConversations] = useState<FormattedMessage[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<FormattedMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
   
   const hasApprovedApplication = applications?.some(app => 
-    app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'under review'
+    app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'in review'
   );
   
   const canAccessMessages = paymentStatus?.isPaid && hasApprovedApplication;
+  const isLoading = messagesLoading || paymentLoading || applicationsLoading;
   
   useEffect(() => {
     // Transform raw messages into conversation format
@@ -81,7 +83,10 @@ export default function Messages() {
               time: msg.sentAt,
               isMe: !msg.isIncoming
             }],
-            isOnline: false
+            isOnline: false,
+            avatar: msg.senderType === 'Admin' ? '/placeholder.svg?text=ST' : 
+                   msg.senderType === 'System' ? '/placeholder.svg?text=SYS' : 
+                   '/placeholder.svg?text=ME'
           };
         } else {
           groupedConversations[conversationId].messages?.push({
@@ -123,14 +128,68 @@ export default function Messages() {
     }
   }, [conversations, selectedConversation, canAccessMessages]);
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !user || !selectedConversation) return;
     
-    // Implement send message logic here
-    console.log("Sending message:", newMessage);
+    setIsSending(true);
     
-    // Clear the input after sending
-    setNewMessage("");
+    try {
+      // Create a temporary message to show immediately
+      const tempMessage = {
+        id: `temp-${Date.now()}`,
+        text: newMessage,
+        time: new Date().toLocaleString(),
+        isMe: true
+      };
+      
+      // Update the UI immediately
+      setSelectedConversation(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: [...(prev.messages || []), tempMessage],
+          lastMessage: newMessage,
+          lastMessageTime: new Date().toLocaleString()
+        };
+      });
+      
+      // Send the message to the backend
+      const { data, error } = await supabase
+        .from("chat_messages")
+        .insert({
+          chat_id: selectedConversation.id,
+          sender_id: user.id,
+          sender_type: "Client",
+          message_text: newMessage,
+          message_type: "Text",
+          status: "Sent"
+        })
+        .select();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update conversation with the real message data
+      // This will happen when useMessages refetches
+      
+      // Clear the input after sending
+      setNewMessage("");
+      
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully.",
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Failed to send message",
+        description: "Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // Filter conversations based on search query
@@ -139,31 +198,18 @@ export default function Messages() {
     conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // FAQ data for users who can't access messages
-  const faqs = [
-    {
-      question: "Why can't I access messages?",
-      answer: "Messages are only available for users with approved applications and completed payments. This ensures our staff can focus on providing support to active clients."
-    },
-    {
-      question: "How do I get access to messages?",
-      answer: "To access messages, you need to: 1) Complete your payment (visit the Payments page), and 2) Submit an application that gets approved or is under review."
-    },
-    {
-      question: "How can I contact support without messages?",
-      answer: "You can reach our support team via email at support@eurovisadz.com or by phone at +213 XXXXXXXX during business hours."
-    },
-    {
-      question: "When will my application be approved?",
-      answer: "Application review typically takes 2-5 business days after submission and payment confirmation. You'll receive an email notification when your status changes."
-    },
-    {
-      question: "What if my payment is still pending?",
-      answer: "Payments are typically verified within 24-48 hours. If your payment has been pending for longer, please contact our finance team at finance@eurovisadz.com."
-    }
-  ];
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex justify-center items-center h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-lg">Loading messages...</span>
+        </div>
+      </div>
+    );
+  }
 
-  // If user doesn't have access to messages, show the FAQ section
+  // If user doesn't have access to messages, show the access restricted page
   if (!canAccessMessages) {
     return (
       <div className="container mx-auto py-8 px-4">
@@ -209,32 +255,15 @@ export default function Messages() {
               </div>
             </div>
             
-            <div>
-              <h3 className="text-lg font-medium mb-4 flex items-center">
-                <HelpCircle className="mr-2 h-5 w-5 text-primary" />
-                Frequently Asked Questions
-              </h3>
-              <Accordion type="single" collapsible className="w-full">
-                {faqs.map((faq, index) => (
-                  <AccordionItem key={index} value={`item-${index}`}>
-                    <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
-                    <AccordionContent>
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </div>
-            
             <div className="mt-6 flex justify-center space-x-4">
               {!paymentStatus?.isPaid && (
-                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600" onClick={() => window.location.href = '/payments'}>
-                  Complete Payment
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600" asChild>
+                  <Link to="/payments">Complete Payment</Link>
                 </Button>
               )}
               {!hasApprovedApplication && (
-                <Button variant="outline" onClick={() => window.location.href = '/applications'}>
-                  View Applications
+                <Button variant="outline" asChild>
+                  <Link to="/applications">View Applications</Link>
                 </Button>
               )}
             </div>
@@ -271,7 +300,7 @@ export default function Messages() {
           <Separator />
           
           <ScrollArea className="h-[calc(100vh-350px)]">
-            {isLoading ? (
+            {messagesLoading ? (
               <div className="p-4 text-center text-muted-foreground">
                 Loading conversations...
               </div>
@@ -385,9 +414,13 @@ export default function Messages() {
                     size="icon" 
                     className="h-[60px] w-[60px]" 
                     onClick={sendMessage}
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() || isSending}
                   >
-                    <Send className="h-4 w-4" />
+                    {isSending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>

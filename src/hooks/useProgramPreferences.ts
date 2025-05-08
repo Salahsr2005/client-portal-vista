@@ -58,7 +58,7 @@ export const useProgramPreferences = () => {
       // First check if the user has preferences stored in their profile
       const { data, error } = await supabase
         .from('client_profiles')
-        .select('*')
+        .select('profile_id, preferences')
         .eq('client_id', user?.id)
         .maybeSingle();
         
@@ -66,7 +66,7 @@ export const useProgramPreferences = () => {
       
       if (data) {
         // Create the profile entry if it doesn't exist
-        if (!data.id) {
+        if (!data.profile_id) {
           await supabase
             .from('client_profiles')
             .insert({
