@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocalStorage } from './useLocalStorage';
 
 export interface ProgramPreferences {
   studyLevel: string;
@@ -28,10 +29,24 @@ export const useProgramPreferences = () => {
   });
   const [loading, setLoading] = useState(true);
   
+  // Use local storage as a fallback for non-authenticated users
+  const [localPreferences, setLocalPreferences] = useLocalStorage<ProgramPreferences>("program_preferences", {
+    studyLevel: "Undergraduate",
+    language: "English",
+    budget: 20000,
+    subjects: ["Business"],
+    religiousFacilities: false,
+    halalFood: false,
+    scholarshipRequired: false,
+    languageTestRequired: false
+  });
+  
   useEffect(() => {
     if (user) {
       fetchPreferences();
     } else {
+      // Use local preferences for non-authenticated users
+      setPreferences(localPreferences);
       setLoading(false);
     }
   }, [user]);
@@ -40,19 +55,31 @@ export const useProgramPreferences = () => {
     try {
       setLoading(true);
       
+      // First check if the user has preferences stored in their profile
       const { data, error } = await supabase
         .from('client_profiles')
-        .select('preferences')
+        .select('*')
         .eq('client_id', user?.id)
         .maybeSingle();
         
       if (error) throw error;
       
-      if (data?.preferences) {
-        setPreferences({
-          ...preferences, // Keep defaults for missing fields
-          ...data.preferences // Override with stored preferences
-        });
+      if (data) {
+        // Create the profile entry if it doesn't exist
+        if (!data.id) {
+          await supabase
+            .from('client_profiles')
+            .insert({
+              client_id: user?.id,
+              preferences: preferences
+            });
+        } else if (data.preferences) {
+          // Use the stored preferences if available
+          setPreferences({
+            ...preferences, // Keep defaults for missing fields
+            ...data.preferences // Override with stored preferences
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching program preferences:', error);
@@ -65,17 +92,42 @@ export const useProgramPreferences = () => {
     try {
       setLoading(true);
       
-      if (!user) throw new Error('User not authenticated');
+      // Save to local storage regardless of authentication status
+      setLocalPreferences(newPreferences);
       
-      const { error } = await supabase
+      if (!user) {
+        setPreferences(newPreferences);
+        return { success: true };
+      }
+      
+      // Try to update an existing profile
+      const { data: existingProfile } = await supabase
         .from('client_profiles')
-        .upsert({
-          client_id: user.id,
-          preferences: newPreferences,
-          updated_at: new Date().toISOString()
-        });
-        
-      if (error) throw error;
+        .select('profile_id')
+        .eq('client_id', user.id)
+        .maybeSingle();
+      
+      if (existingProfile) {
+        const { error } = await supabase
+          .from('client_profiles')
+          .update({
+            preferences: newPreferences,
+            updated_at: new Date().toISOString()
+          })
+          .eq('client_id', user.id);
+          
+        if (error) throw error;
+      } else {
+        // Create a new profile if one doesn't exist
+        const { error } = await supabase
+          .from('client_profiles')
+          .insert({
+            client_id: user.id,
+            preferences: newPreferences,
+          });
+          
+        if (error) throw error;
+      }
       
       setPreferences(newPreferences);
       return { success: true };

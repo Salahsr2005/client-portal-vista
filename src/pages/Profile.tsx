@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,10 +18,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import {
   User,
@@ -47,7 +49,7 @@ import { useProgramPreferences } from "@/hooks/useProgramPreferences";
 
 const Profile = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast: toastHook } = useToast();
   const { data: profile, isLoading } = useUserProfile();
   const { data: paymentStatus } = useUserPaymentStatus();
   const [updating, setUpdating] = useState(false);
@@ -122,13 +124,13 @@ const Profile = () => {
       
       setEditMode(false);
       
-      toast({
+      toastHook({
         title: "Profile Updated",
         description: "Your profile information has been updated successfully",
       });
     } catch (error) {
       console.error("Error updating profile:", error);
-      toast({
+      toastHook({
         title: "Update Failed",
         description: "There was a problem updating your profile",
         variant: "destructive",
@@ -482,8 +484,8 @@ const Profile = () => {
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="religiousFacilities">Religious Facilities</Label>
+            <div className="space-y-2 flex items-center">
+              <Label htmlFor="religiousFacilities" className="flex-grow">Religious Facilities</Label>
               <Checkbox
                 id="religiousFacilities"
                 checked={preferences.religiousFacilities}
@@ -491,8 +493,8 @@ const Profile = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="halalFood">Halal Food</Label>
+            <div className="space-y-2 flex items-center">
+              <Label htmlFor="halalFood" className="flex-grow">Halal Food</Label>
               <Checkbox
                 id="halalFood"
                 checked={preferences.halalFood}
@@ -500,8 +502,8 @@ const Profile = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="scholarshipRequired">Scholarship Required</Label>
+            <div className="space-y-2 flex items-center">
+              <Label htmlFor="scholarshipRequired" className="flex-grow">Scholarship Required</Label>
               <Checkbox
                 id="scholarshipRequired"
                 checked={preferences.scholarshipRequired}
@@ -509,8 +511,8 @@ const Profile = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="languageTestRequired">Language Test Required</Label>
+            <div className="space-y-2 flex items-center">
+              <Label htmlFor="languageTestRequired" className="flex-grow">Language Test Required</Label>
               <Checkbox
                 id="languageTestRequired"
                 checked={preferences.languageTestRequired}

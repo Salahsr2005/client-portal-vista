@@ -190,7 +190,7 @@ const DocumentUpload = () => {
 
   // Function to determine if user can upload more documents
   const canUploadDocuments = () => {
-    return paymentStatus?.isPaid || paymentStatus?.status === 'Verified';
+    return paymentStatus?.isPaid || false;
   };
 
   return (
@@ -348,7 +348,7 @@ const DocumentUpload = () => {
                     <Badge
                       variant={
                         doc.status === "Approved"
-                          ? "success"
+                          ? "default"
                           : doc.status === "Rejected"
                           ? "destructive"
                           : "outline"

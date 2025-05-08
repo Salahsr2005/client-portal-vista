@@ -19,12 +19,36 @@ import {
 } from "@/components/ui/accordion";
 import { format } from "date-fns";
 
+// Type definition for formatted messages
+interface FormattedMessage {
+  id: string;
+  subject: string;
+  content: string;
+  sentAt: string;
+  isRead: boolean;
+  isIncoming: boolean;
+  senderType: "Admin" | "Client" | "System";
+  senderId: string;
+  recipientType: string;
+  recipientId: string;
+  // Added properties for UI display
+  displayName: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unread: number;
+  avatar?: string;
+  messages?: any[];
+  isOnline?: boolean;
+}
+
 export default function Messages() {
-  const { data: conversations = [], isLoading } = useMessages();
+  const { data: messages = [], isLoading } = useMessages();
   const { data: paymentStatus } = useUserPaymentStatus();
   const { data: applications = [] } = useApplications();
   
-  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  // Group messages into conversations
+  const [conversations, setConversations] = useState<FormattedMessage[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<FormattedMessage | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [newMessage, setNewMessage] = useState("");
   
@@ -33,6 +57,64 @@ export default function Messages() {
   );
   
   const canAccessMessages = paymentStatus?.isPaid && hasApprovedApplication;
+  
+  useEffect(() => {
+    // Transform raw messages into conversation format
+    if (messages.length > 0) {
+      const groupedConversations: Record<string, FormattedMessage> = {};
+      
+      messages.forEach(msg => {
+        const conversationId = `${msg.senderId}-${msg.recipientId}`;
+        const senderName = msg.senderType === 'Admin' ? 'Support Team' : 
+                         msg.senderType === 'System' ? 'System' : 'You';
+        
+        if (!groupedConversations[conversationId]) {
+          groupedConversations[conversationId] = {
+            ...msg,
+            displayName: senderName,
+            lastMessage: msg.content,
+            lastMessageTime: msg.sentAt,
+            unread: msg.isRead ? 0 : 1,
+            messages: [{
+              id: msg.id,
+              text: msg.content,
+              time: msg.sentAt,
+              isMe: !msg.isIncoming
+            }],
+            isOnline: false
+          };
+        } else {
+          groupedConversations[conversationId].messages?.push({
+            id: msg.id,
+            text: msg.content,
+            time: msg.sentAt,
+            isMe: !msg.isIncoming
+          });
+          
+          // Update last message data
+          groupedConversations[conversationId].lastMessage = msg.content;
+          groupedConversations[conversationId].lastMessageTime = msg.sentAt;
+          
+          // Update unread count
+          if (!msg.isRead && msg.isIncoming) {
+            groupedConversations[conversationId].unread += 1;
+          }
+        }
+      });
+      
+      // Convert to array and sort by last message time
+      const conversationsArray = Object.values(groupedConversations).sort((a, b) => 
+        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+      );
+      
+      setConversations(conversationsArray);
+      
+      // Select first conversation by default if none selected
+      if (conversationsArray.length > 0 && !selectedConversation) {
+        setSelectedConversation(conversationsArray[0]);
+      }
+    }
+  }, [messages]);
   
   // Select the first conversation by default
   useEffect(() => {
@@ -53,7 +135,7 @@ export default function Messages() {
 
   // Filter conversations based on search query
   const filteredConversations = conversations.filter(conv => 
-    conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -210,7 +292,7 @@ export default function Messages() {
                     {conversation.avatar ? (
                       <img
                         src={conversation.avatar}
-                        alt={conversation.name}
+                        alt={conversation.displayName}
                         className="w-10 h-10 rounded-full"
                       />
                     ) : (
@@ -221,7 +303,7 @@ export default function Messages() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-baseline">
-                      <h3 className="text-sm font-medium truncate">{conversation.name}</h3>
+                      <h3 className="text-sm font-medium truncate">{conversation.displayName}</h3>
                       <span className="text-xs text-muted-foreground">
                         {format(new Date(conversation.lastMessageTime), "HH:mm")}
                       </span>
@@ -248,7 +330,7 @@ export default function Messages() {
                   {selectedConversation.avatar ? (
                     <img
                       src={selectedConversation.avatar}
-                      alt={selectedConversation.name}
+                      alt={selectedConversation.displayName}
                       className="w-10 h-10 rounded-full mr-3"
                     />
                   ) : (
@@ -257,7 +339,7 @@ export default function Messages() {
                     </div>
                   )}
                   <div>
-                    <CardTitle className="text-lg">{selectedConversation.name}</CardTitle>
+                    <CardTitle className="text-lg">{selectedConversation.displayName}</CardTitle>
                     <CardDescription>
                       {selectedConversation.isOnline ? "Online" : "Last seen recently"}
                     </CardDescription>

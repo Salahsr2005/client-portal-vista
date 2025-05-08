@@ -64,6 +64,7 @@ export default function ApplicationView() {
       case 'submitted':
         return 'bg-blue-500';
       case 'under review':
+      case 'in review':
         return 'bg-amber-500';
       case 'approved':
         return 'bg-green-500';
@@ -81,6 +82,7 @@ export default function ApplicationView() {
       case 'submitted':
         return 50;
       case 'under review':
+      case 'in review':
         return 75;
       case 'approved':
         return 100;
@@ -238,7 +240,7 @@ export default function ApplicationView() {
                       Your application is submitted. Our team will review it shortly.
                     </p>
                   )}
-                  {application.status === 'Under Review' && (
+                  {(application.status === 'In Review' || application.status === 'Under Review') && (
                     <p className="text-sm text-muted-foreground">
                       Your application is currently under review. We'll notify you of any updates.
                     </p>
