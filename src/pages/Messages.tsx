@@ -1,766 +1,325 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter
-} from "@/components/ui/card";
-import { 
-  Send,
-  CircleUser,
-  Phone,
-  Video,
-  Info,
-  ChevronLeft,
-  MoreHorizontal,
-  ImageIcon,
-  Paperclip,
-  SmileIcon,
-  Lock,
-  AlertTriangle,
-  CreditCard,
-  HelpCircle
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useMessages } from "@/hooks/useMessages";
 import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
-
-// Custom hook for media queries
-const useMediaQuery = (query: string): boolean => {
-  const [matches, setMatches] = useState(false);
-  
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
-    
-    const listener = () => setMatches(media.matches);
-    media.addEventListener('change', listener);
-    
-    return () => media.removeEventListener('change', listener);
-  }, [matches, query]);
-  
-  return matches;
-};
-
-// Component to display a single message
-const Message = ({ message, isCurrentUser }) => {
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-  
-  return (
-    <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
-      {!isCurrentUser && (
-        <Avatar className="h-8 w-8 mr-2">
-          <AvatarFallback className="bg-primary/20">
-            {message.sender_name?.charAt(0) || "U"}
-          </AvatarFallback>
-        </Avatar>
-      )}
-      <div className={`max-w-[75%] ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-secondary'} rounded-lg p-3 break-words`}>
-        <div className="text-sm">{message.message_text}</div>
-        <div className={`text-[10px] mt-1 ${isCurrentUser ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-          {formatTime(message.sent_at)}
-        </div>
-      </div>
-      {isCurrentUser && (
-        <Avatar className="h-8 w-8 ml-2">
-          <AvatarImage src={message.sender_avatar || ""} alt="User" />
-          <AvatarFallback className="bg-primary/20">
-            {message.sender_name?.charAt(0) || "U"}
-          </AvatarFallback>
-        </Avatar>
-      )}
-    </div>
-  );
-};
-
-// Component to display a conversation preview
-const ConversationPreview = ({ conversation, isActive, onClick }) => {
-  const getLastMessageTime = () => {
-    if (!conversation.last_message_time) return "";
-    
-    const date = new Date(conversation.last_message_time);
-    const now = new Date();
-    
-    // Compare dates properly by comparing day values
-    if (date.toDateString() === now.toDateString()) {
-      // Today, show time
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (date.getFullYear() === now.getFullYear()) {
-      // This year, show month and day
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    } else {
-      // Different year
-      return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
-    }
-  };
-  
-  // Find the other participant (not current user)
-  const otherParticipant = conversation.participants?.find(p => 
-    p.participant_type !== 'Client' || p.participant_id !== conversation.currentUserId);
-    
-  return (
-    <div 
-      className={`flex items-center p-3 cursor-pointer rounded-md transition-colors hover:bg-accent/50 ${isActive ? 'bg-accent' : ''}`}
-      onClick={() => onClick(conversation.chat_id)}
-    >
-      <Avatar className="h-10 w-10 mr-3">
-        <AvatarFallback className="bg-primary/20">
-          {otherParticipant?.display_name?.charAt(0) || "C"}
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center">
-          <h4 className="text-sm font-medium truncate">
-            {otherParticipant?.display_name || "Chat"}
-          </h4>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {getLastMessageTime()}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <p className="text-xs text-muted-foreground truncate">
-            {conversation.last_message_text || "No messages yet"}
-          </p>
-          {conversation.unread_count > 0 && (
-            <Badge variant="default" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
-              {conversation.unread_count}
-            </Badge>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+import { useApplications } from "@/hooks/useApplications";
+import { MessageCircle, Send, Search, User, MessagesSquare, AlertTriangle, HelpCircle } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { format } from "date-fns";
 
 export default function Messages() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const isMobile = useMediaQuery("(max-width: 768px)");
-  const { data: paymentStatus, isLoading: paymentLoading } = useUserPaymentStatus();
+  const { data: conversations = [], isLoading } = useMessages();
+  const { data: paymentStatus } = useUserPaymentStatus();
+  const { data: applications = [] } = useApplications();
   
-  const [loading, setLoading] = useState(true);
-  const [conversations, setConversations] = useState([]);
-  const [currentChat, setCurrentChat] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [newMessage, setNewMessage] = useState("");
-  const [messagesLoading, setMessagesLoading] = useState(false);
-  const [mobileChatOpen, setMobileChatOpen] = useState(false);
-  const [activeTabMode, setActiveTabMode] = useState("all");
   
-  const messagesEndRef = useRef(null);
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const hasApprovedApplication = applications?.some(app => 
+    app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'under review'
+  );
+  
+  const canAccessMessages = paymentStatus?.isPaid && hasApprovedApplication;
+  
+  // Select the first conversation by default
+  useEffect(() => {
+    if (conversations.length > 0 && !selectedConversation && canAccessMessages) {
+      setSelectedConversation(conversations[0]);
+    }
+  }, [conversations, selectedConversation, canAccessMessages]);
+
+  const sendMessage = () => {
+    if (!newMessage.trim()) return;
+    
+    // Implement send message logic here
+    console.log("Sending message:", newMessage);
+    
+    // Clear the input after sending
+    setNewMessage("");
   };
 
-  // Check if user can access chat based on payment status
-  const canAccessChat = () => {
-    if (!paymentStatus) return false;
-    return paymentStatus.isPaid;
-  };
-  
-  // Fetch conversations when component mounts
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-    
-    if (!canAccessChat()) {
-      setLoading(false);
-      return;
-    }
-    
-    const fetchConversations = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .rpc('get_user_chats', { 
-            p_user_id: user.id, 
-            p_user_type: 'Client' 
-          });
-        
-        if (error) throw error;
-        
-        // Add current user ID to each conversation object for easier access
-        const conversationsWithUserId = data.map(conv => ({
-          ...conv,
-          currentUserId: user.id
-        }));
-        
-        setConversations(conversationsWithUserId);
-        
-        // If there are conversations and none selected, select the first one
-        if (conversationsWithUserId.length > 0 && !currentChat) {
-          setCurrentChat(conversationsWithUserId[0]);
-          fetchMessages(conversationsWithUserId[0].chat_id);
-        }
-      } catch (error) {
-        console.error("Error fetching conversations:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load conversations",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchConversations();
-    
-    // Set up a real-time subscription for new messages
-    const channel = supabase
-      .channel('chat_updates')
-      .on(
-        'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'chat_messages' 
-        },
-        (payload) => {
-          // Handle new message
-          const newMsg = payload.new;
-          
-          // Update messages if part of current chat
-          if (currentChat && newMsg.chat_id === currentChat.chat_id) {
-            setMessages(prev => [...prev, {
-              ...newMsg,
-              sender_name: currentChat.participants.find(p => 
-                p.participant_id === newMsg.sender_id && 
-                p.participant_type === newMsg.sender_type
-              )?.display_name || "Unknown"
-            }]);
-            
-            // Mark message as read if not from current user
-            if (newMsg.sender_id !== user.id || newMsg.sender_type !== 'Client') {
-              markMessagesAsRead(currentChat.chat_id);
-            }
-          }
-          
-          // Update conversation list
-          setConversations(prev => 
-            prev.map(conv => 
-              conv.chat_id === newMsg.chat_id 
-              ? { 
-                ...conv, 
-                last_message_text: newMsg.message_text,
-                last_message_time: newMsg.sent_at,
-                unread_count: newMsg.sender_id !== user.id ? (conv.unread_count || 0) + 1 : (conv.unread_count || 0)
-              } 
-              : conv
-            ).sort((a, b) => 
-              new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
-            )
-          );
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, navigate, toast, currentChat, paymentStatus]);
-  
-  // Auto scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-  
-  // Fetch messages for a specific chat
-  const fetchMessages = async (chatId) => {
-    setMessagesLoading(true);
-    try {
-      const { data, error } = await supabase
-        .rpc('get_chat_messages', { 
-          p_chat_id: chatId,
-          p_limit: 50,
-          p_offset: 0
-        });
-      
-      if (error) throw error;
-      
-      // Add sender name from participants
-      const chat = conversations.find(c => c.chat_id === chatId);
-      const messagesWithNames = data.map(msg => ({
-        ...msg,
-        sender_name: chat.participants.find(p => 
-          p.participant_id === msg.sender_id && 
-          p.participant_type === msg.sender_type
-        )?.display_name || "Unknown"
-      }));
-      
-      setMessages(messagesWithNames.reverse());
-      
-      // Mark messages as read
-      markMessagesAsRead(chatId);
-      
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load messages",
-        variant: "destructive",
-      });
-    } finally {
-      setMessagesLoading(false);
-    }
-  };
-  
-  // Mark messages as read
-  const markMessagesAsRead = async (chatId) => {
-    try {
-      await supabase.rpc('mark_messages_as_read', { 
-        p_chat_id: chatId,
-        p_participant_id: user.id,
-        p_participant_type: 'Client'
-      });
-      
-      // Update unread count in conversations
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.chat_id === chatId 
-            ? { ...conv, unread_count: 0 } 
-            : conv
-        )
-      );
-    } catch (error) {
-      console.error("Error marking messages as read:", error);
-    }
-  };
-  
-  // Send a new message
-  const sendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !currentChat) return;
-    
-    try {
-      const { error } = await supabase
-        .from('chat_messages')
-        .insert({
-          chat_id: currentChat.chat_id,
-          sender_id: user.id,
-          sender_type: 'Client',
-          message_text: newMessage.trim(),
-          message_type: 'Text'
-        });
-      
-      if (error) throw error;
-      
-      // Clear input
-      setNewMessage("");
-      
-    } catch (error) {
-      console.error("Error sending message:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive",
-      });
-    }
-  };
-  
-  // Handle chat selection
-  const handleSelectChat = (chatId) => {
-    const selectedChat = conversations.find(c => c.chat_id === chatId);
-    setCurrentChat(selectedChat);
-    fetchMessages(chatId);
-    setMobileChatOpen(true);
-  };
-  
-  // Get current chat title or participant name
-  const getChatTitle = () => {
-    if (!currentChat) return "No conversation selected";
-    
-    if (currentChat.title) return currentChat.title;
-    
-    const otherParticipant = currentChat.participants.find(p => 
-      p.participant_id !== user.id || p.participant_type !== 'Client'
-    );
-    
-    return otherParticipant?.display_name || "Chat";
-  };
-  
-  // Get other participant's type (Admin, Support, etc.)
-  const getParticipantType = () => {
-    if (!currentChat) return "";
-    
-    const otherParticipant = currentChat.participants.find(p => 
-      p.participant_id !== user.id || p.participant_type !== 'Client'
-    );
-    
-    return otherParticipant?.participant_type || "";
-  };
-  
-  // Get total unread count
-  const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
+  // Filter conversations based on search query
+  const filteredConversations = conversations.filter(conv => 
+    conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // If no user is logged in
-  if (!user) {
+  // FAQ data for users who can't access messages
+  const faqs = [
+    {
+      question: "Why can't I access messages?",
+      answer: "Messages are only available for users with approved applications and completed payments. This ensures our staff can focus on providing support to active clients."
+    },
+    {
+      question: "How do I get access to messages?",
+      answer: "To access messages, you need to: 1) Complete your payment (visit the Payments page), and 2) Submit an application that gets approved or is under review."
+    },
+    {
+      question: "How can I contact support without messages?",
+      answer: "You can reach our support team via email at support@eurovisadz.com or by phone at +213 XXXXXXXX during business hours."
+    },
+    {
+      question: "When will my application be approved?",
+      answer: "Application review typically takes 2-5 business days after submission and payment confirmation. You'll receive an email notification when your status changes."
+    },
+    {
+      question: "What if my payment is still pending?",
+      answer: "Payments are typically verified within 24-48 hours. If your payment has been pending for longer, please contact our finance team at finance@eurovisadz.com."
+    }
+  ];
+
+  // If user doesn't have access to messages, show the FAQ section
+  if (!canAccessMessages) {
     return (
-      <div className="container h-[calc(100vh-100px)] flex items-center justify-center">
-        <Card className="w-full max-w-md text-center">
+      <div className="container mx-auto py-8 px-4">
+        <Card className="max-w-3xl mx-auto">
           <CardHeader>
-            <CircleUser className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <CardTitle>Sign In Required</CardTitle>
-            <CardDescription>You need to sign in to access your messages</CardDescription>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <CardTitle>Message Access Restricted</CardTitle>
+            </div>
+            <CardDescription>
+              Message access is available only to users with approved applications and completed payments.
+            </CardDescription>
           </CardHeader>
-          <CardFooter className="flex justify-center">
-            <Button asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-          </CardFooter>
+          <CardContent>
+            <div className="mb-8">
+              <div className="flex items-center justify-center space-x-2 mb-6">
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentStatus?.isPaid ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                    1
+                  </div>
+                  <span className="text-sm mt-2">Payment</span>
+                </div>
+                <div className="h-0.5 w-12 bg-gray-200"></div>
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${hasApprovedApplication ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                    2
+                  </div>
+                  <span className="text-sm mt-2">Application</span>
+                </div>
+                <div className="h-0.5 w-12 bg-gray-200"></div>
+                <div className="flex flex-col items-center">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 text-gray-400">
+                    3
+                  </div>
+                  <span className="text-sm mt-2">Messages</span>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+                <p className="text-blue-800">
+                  To access messages, you need to complete your payment and have an approved application. Once your payment is verified and your application is reviewed, you'll be able to communicate with our team here.
+                </p>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium mb-4 flex items-center">
+                <HelpCircle className="mr-2 h-5 w-5 text-primary" />
+                Frequently Asked Questions
+              </h3>
+              <Accordion type="single" collapsible className="w-full">
+                {faqs.map((faq, index) => (
+                  <AccordionItem key={index} value={`item-${index}`}>
+                    <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
+                    <AccordionContent>
+                      {faq.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+            
+            <div className="mt-6 flex justify-center space-x-4">
+              {!paymentStatus?.isPaid && (
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600" onClick={() => window.location.href = '/payments'}>
+                  Complete Payment
+                </Button>
+              )}
+              {!hasApprovedApplication && (
+                <Button variant="outline" onClick={() => window.location.href = '/applications'}>
+                  View Applications
+                </Button>
+              )}
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
-  // If payment status is loading
-  if (paymentLoading) {
-    return (
-      <div className="container px-4 py-6 max-w-7xl mx-auto">
-        <div className="flex flex-col h-[80vh] items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <Skeleton className="h-12 w-12 mx-auto rounded-full mb-4" />
-              <Skeleton className="h-6 w-48 mx-auto mb-2" />
-              <Skeleton className="h-4 w-64 mx-auto mb-4" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-center">
-              <Skeleton className="h-10 w-32 mx-auto" />
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-  
-  // If user hasn't paid or payment isn't approved
-  if (!canAccessChat()) {
-    return (
-      <div className="container px-4 py-6 max-w-7xl mx-auto">
-        <div className="flex flex-col h-[80vh] items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <Lock className="h-12 w-12 mx-auto text-amber-500 mb-2" />
-              <CardTitle>Message Access Restricted</CardTitle>
-              <CardDescription>
-                Message access is only available for users with approved payments
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-muted p-4 rounded-lg">
-                <h3 className="font-semibold text-lg flex items-center">
-                  <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
-                  Payment Status
-                </h3>
-                <p className="text-sm mt-2">
-                  {paymentStatus?.isPending 
-                    ? "Your payment is pending verification. Access will be granted once approved."
-                    : "You need to make a payment to access the messaging feature."}
-                </p>
-              </div>
-              
-              <div className="flex flex-col space-y-2">
-                {!paymentStatus?.isPending && (
-                  <Button asChild className="w-full">
-                    <Link to="/payments">
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Make a Payment
-                    </Link>
-                  </Button>
-                )}
-                
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/profile">
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    View Payment Status
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-  
   return (
-    <div className="container px-4 py-6 max-w-7xl mx-auto">
-      <div className="flex flex-col h-[80vh]">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Messages</h1>
-          {totalUnreadCount > 0 && (
-            <Badge>{totalUnreadCount} unread</Badge>
-          )}
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
+          <p className="text-muted-foreground">Chat with our support team and track your conversations</p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 flex-grow">
-          {/* Conversations List - Hidden on mobile when a chat is open */}
-          <Card className={`col-span-1 border-0 shadow-md overflow-hidden ${isMobile && mobileChatOpen ? 'hidden' : 'block'}`}>
-            <CardHeader className="py-3 px-4 border-b bg-gradient-to-r from-violet-50/50 to-slate-50/50 dark:from-gray-900/40 dark:to-gray-800/40">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-lg">Conversations</CardTitle>
-                <Tabs defaultValue="all" className="w-[120px]" value={activeTabMode} onValueChange={setActiveTabMode}>
-                  <TabsList className="h-8 bg-muted/50 p-1">
-                    <TabsTrigger value="all" className="text-xs h-6">All</TabsTrigger>
-                    <TabsTrigger value="unread" className="text-xs h-6">Unread</TabsTrigger>
-                  </TabsList>
-                </Tabs>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-[calc(100vh-250px)]">
+        {/* Conversations Sidebar */}
+        <Card className="col-span-1 md:col-span-4">
+          <CardHeader className="p-4">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search conversations..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+          
+          <Separator />
+          
+          <ScrollArea className="h-[calc(100vh-350px)]">
+            {isLoading ? (
+              <div className="p-4 text-center text-muted-foreground">
+                Loading conversations...
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="p-4 space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-2/3" />
-                        <Skeleton className="h-3 w-1/2" />
+            ) : filteredConversations.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                No conversations found
+              </div>
+            ) : (
+              filteredConversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`flex items-start p-4 cursor-pointer hover:bg-accent transition-colors ${
+                    selectedConversation?.id === conversation.id ? "bg-accent" : ""
+                  }`}
+                  onClick={() => setSelectedConversation(conversation)}
+                >
+                  <div className="flex-shrink-0 mr-3">
+                    {conversation.avatar ? (
+                      <img
+                        src={conversation.avatar}
+                        alt={conversation.name}
+                        className="w-10 h-10 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                        <User className="h-5 w-5" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline">
+                      <h3 className="text-sm font-medium truncate">{conversation.name}</h3>
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(conversation.lastMessageTime), "HH:mm")}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {conversation.lastMessage}
+                    </p>
+                  </div>
+                  {conversation.unread > 0 && (
+                    <Badge className="ml-2 bg-primary">{conversation.unread}</Badge>
+                  )}
+                </div>
+              ))
+            )}
+          </ScrollArea>
+        </Card>
+
+        {/* Chat Window */}
+        <Card className="col-span-1 md:col-span-8 flex flex-col">
+          {selectedConversation ? (
+            <>
+              <CardHeader className="p-4 border-b flex-shrink-0">
+                <div className="flex items-center">
+                  {selectedConversation.avatar ? (
+                    <img
+                      src={selectedConversation.avatar}
+                      alt={selectedConversation.name}
+                      className="w-10 h-10 rounded-full mr-3"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center mr-3">
+                      <User className="h-5 w-5" />
+                    </div>
+                  )}
+                  <div>
+                    <CardTitle className="text-lg">{selectedConversation.name}</CardTitle>
+                    <CardDescription>
+                      {selectedConversation.isOnline ? "Online" : "Last seen recently"}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4">
+                  {selectedConversation.messages?.map((message: any) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${
+                        message.isMe ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] p-3 rounded-lg ${
+                          message.isMe
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted"
+                        }`}
+                      >
+                        <p className="text-sm">{message.text}</p>
+                        <span className="text-xs opacity-70 block text-right mt-1">
+                          {format(new Date(message.time), "HH:mm")}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : conversations.length === 0 ? (
-                <div className="p-8 text-center">
-                  <CircleUser className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                  <p className="text-muted-foreground">No conversations yet</p>
-                </div>
-              ) : (
-                <ScrollArea className="h-[calc(80vh-130px)]">
-                  <div className="p-2">
-                    {conversations.map((conversation) => (
-                      <ConversationPreview
-                        key={conversation.chat_id}
-                        conversation={conversation}
-                        isActive={currentChat?.chat_id === conversation.chat_id}
-                        onClick={handleSelectChat}
-                      />
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Chat Area - Full screen on mobile when a chat is open */}
-          <Card className={`col-span-1 md:col-span-2 lg:col-span-3 border-0 shadow-md overflow-hidden ${isMobile && !mobileChatOpen ? 'hidden' : 'block'}`}>
-            {!currentChat ? (
-              <div className="h-full flex flex-col items-center justify-center p-8">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <div className="rounded-full bg-primary/10 p-6 mb-4">
-                    <Send className="h-12 w-12 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-semibold mb-2">No conversation selected</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Select a conversation from the sidebar to start chatting
-                  </p>
+              </ScrollArea>
+              
+              <div className="p-4 border-t mt-auto">
+                <div className="flex space-x-2">
+                  <Textarea
+                    placeholder="Type your message..."
+                    className="flex-1 min-h-[60px] max-h-[120px]"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                  />
+                  <Button 
+                    size="icon" 
+                    className="h-[60px] w-[60px]" 
+                    onClick={sendMessage}
+                    disabled={!newMessage.trim()}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            ) : (
-              <>
-                {/* Chat Header */}
-                <div className="border-b bg-gradient-to-r from-violet-50/50 to-slate-50/50 dark:from-gray-900/40 dark:to-gray-800/40 py-3 px-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      {isMobile && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="mr-2"
-                          onClick={() => setMobileChatOpen(false)}
-                        >
-                          <ChevronLeft className="h-5 w-5" />
-                        </Button>
-                      )}
-                      <Avatar className="h-9 w-9 mr-3">
-                        <AvatarFallback className="bg-primary/20">
-                          {getChatTitle().charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h2 className="font-medium text-base">{getChatTitle()}</h2>
-                        <p className="text-xs text-muted-foreground">
-                          {getParticipantType()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon">
-                        <Phone className="h-5 w-5" />
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Video className="h-5 w-5" />
-                      </Button>
-                      <Sheet>
-                        <SheetTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Info className="h-5 w-5" />
-                          </Button>
-                        </SheetTrigger>
-                        <SheetContent className="w-full sm:max-w-sm">
-                          <SheetHeader>
-                            <SheetTitle>Chat Information</SheetTitle>
-                          </SheetHeader>
-                          <div className="mt-6">
-                            <div className="flex flex-col items-center">
-                              <Avatar className="h-20 w-20 mb-4">
-                                <AvatarFallback className="text-xl">
-                                  {getChatTitle().charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <h3 className="text-xl font-semibold">{getChatTitle()}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {getParticipantType()}
-                              </p>
-                            </div>
-                            
-                            <Separator className="my-4" />
-                            
-                            <div className="space-y-4">
-                              <h4 className="text-sm font-medium">Participants</h4>
-                              {currentChat.participants?.map((p, index) => (
-                                <div key={index} className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarFallback>
-                                        {p.display_name.charAt(0)}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="text-sm font-medium">{p.display_name}</p>
-                                      <p className="text-xs text-muted-foreground">{p.participant_type}</p>
-                                    </div>
-                                  </div>
-                                  {p.is_admin && (
-                                    <Badge variant="outline">Admin</Badge>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </SheetContent>
-                      </Sheet>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Chat Options</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem>Search Messages</DropdownMenuItem>
-                          <DropdownMenuItem>Mute Notifications</DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">Delete Chat</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Messages Area */}
-                <ScrollArea className="h-[calc(80vh-215px)] px-4 py-4">
-                  {messagesLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-                          {i % 2 !== 0 && <Skeleton className="h-8 w-8 rounded-full mr-2" />}
-                          <Skeleton className={`h-16 ${i % 2 === 0 ? 'w-2/3 ml-auto' : 'w-2/3'} rounded-lg`} />
-                          {i % 2 === 0 && <Skeleton className="h-8 w-8 rounded-full ml-2" />}
-                        </div>
-                      ))}
-                    </div>
-                  ) : messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center">
-                      <Send className="h-12 w-12 text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No messages yet</p>
-                      <p className="text-sm text-muted-foreground">Send a message to start the conversation</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {messages.map((message) => (
-                        <Message 
-                          key={message.message_id} 
-                          message={message} 
-                          isCurrentUser={message.sender_id === user.id && message.sender_type === 'Client'} 
-                        />
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  )}
-                </ScrollArea>
-                
-                {/* Input Area */}
-                <div className="border-t p-4 bg-background">
-                  <form onSubmit={sendMessage} className="flex items-center gap-2">
-                    <Button type="button" size="icon" variant="ghost">
-                      <ImageIcon className="h-5 w-5" />
-                    </Button>
-                    <Button type="button" size="icon" variant="ghost">
-                      <Paperclip className="h-5 w-5" />
-                    </Button>
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      className="flex-1"
-                    />
-                    <Button type="button" size="icon" variant="ghost">
-                      <SmileIcon className="h-5 w-5" />
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      className="bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600"
-                      disabled={!newMessage.trim()}
-                    >
-                      <Send className="h-4 w-4 mr-1" />
-                      Send
-                    </Button>
-                  </form>
-                </div>
-              </>
-            )}
-          </Card>
-        </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+              <MessagesSquare className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-xl font-medium">Select a Conversation</h3>
+              <p className="text-muted-foreground mt-2 mb-4">
+                Choose a conversation from the list to start chatting
+              </p>
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );

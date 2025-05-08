@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,7 +101,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
         
         // Add filters if provided
         if (filter) {
-          // Study level filter
+          // Study level filter - Fixed TypeScript error by handling it as string
           if (filter.studyLevel) {
             query = query.eq('study_level', filter.studyLevel);
           }

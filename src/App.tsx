@@ -20,6 +20,7 @@ import Programs from "./pages/Programs";
 import ProgramView from "./pages/ProgramView";
 import Applications from "./pages/Applications";
 import NewApplication from "./pages/NewApplication"; 
+import ApplicationView from "./pages/ApplicationView";
 import Appointments from "./pages/Appointments";
 import Services from "./pages/Services";
 import Notifications from "./pages/Notifications";
@@ -28,6 +29,7 @@ import PaymentCheckout from "./pages/PaymentCheckout";
 import Destinations from "./pages/Destinations";
 import Consultation from "./pages/Consultation";
 import ChatSupport from "./pages/ChatSupport";
+import Settings from "./pages/Settings";
 
 // Layout
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -67,6 +69,7 @@ const AppRoutes = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/applications" element={<Applications />} />
         <Route path="/applications/new" element={<NewApplication />} />
+        <Route path="/applications/:applicationId" element={<ApplicationView />} />
         <Route path="/programs" element={<Programs />} />
         <Route path="/programs/:programId" element={<ProgramView />} />
         <Route path="/services" element={<Services />} />
@@ -78,6 +81,7 @@ const AppRoutes = () => {
         <Route path="/destinations" element={<Destinations />} />
         <Route path="/consultation" element={<Consultation />} />
         <Route path="/chat" element={<ChatSupport />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       
       {/* Catch-all route */}
