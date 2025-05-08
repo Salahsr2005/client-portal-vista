@@ -56,3 +56,39 @@ export const formatCurrency = (
       return `${convertedAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${toCurrency}`;
   }
 };
+
+// New helper functions for currency conversion
+export const convertCurrency = (
+  amount: number, 
+  fromCurrency: CurrencyCode, 
+  toCurrency: CurrencyCode
+): number => {
+  if (fromCurrency === toCurrency) return amount;
+  
+  const rate = conversionRates[fromCurrency]?.[toCurrency];
+  if (rate) {
+    return amount * rate;
+  }
+  
+  // If direct conversion not available, try via EUR
+  if (fromCurrency !== 'EUR' && toCurrency !== 'EUR') {
+    const toEur = conversionRates[fromCurrency]?.['EUR'];
+    const fromEur = conversionRates['EUR']?.[toCurrency];
+    if (toEur && fromEur) {
+      return amount * toEur * fromEur;
+    }
+  }
+  
+  return amount; // Return original if conversion not possible
+};
+
+// Get currency symbol for display
+export const getCurrencySymbol = (currency: CurrencyCode): string => {
+  switch (currency) {
+    case 'EUR': return '€';
+    case 'USD': return '$';
+    case 'GBP': return '£';
+    case 'DZD': return 'DZD';
+    default: return '';
+  }
+};

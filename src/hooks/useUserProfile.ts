@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { initializeStorageBuckets } from "@/utils/databaseHelpers";
 
 export const useUserProfile = () => {
   const { user } = useAuth();
@@ -13,6 +14,9 @@ export const useUserProfile = () => {
       if (!user) {
         return null;
       }
+
+      // Initialize storage buckets
+      await initializeStorageBuckets();
 
       // First, fetch the client user data
       const { data: userData, error: userError } = await supabase
@@ -62,10 +66,12 @@ export const useUserProfile = () => {
           createdAt: newUserData.created_at || "",
           lastLogin: newUserData.last_login || "",
           photoUrl: newUserData.photo_url || "",
+          city: newUserData.city || "",
+          country: newUserData.country || "",
+          nationality: newUserData.nationality || "",
           
           // Profile data (empty since it's a new user)
           currentAddress: "",
-          nationality: "",
           passportNumber: "",
           passportExpiryDate: "",
           emergencyContactName: "",
@@ -101,6 +107,8 @@ export const useUserProfile = () => {
         lastLogin: userData.last_login || "",
         photoUrl: userData.photo_url || "",
         nationality: userData.nationality || "",
+        city: userData.city || "",
+        country: userData.country || "",
         
         // Profile data (if available)
         currentAddress: profileData?.current_address || "",

@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Loader2, Trash2, CheckCircle2, XCircle, File } from 'lucide-react';
+import { Upload, Loader2, Trash2, CheckCircle2, XCircle, File, AlertTriangle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { getDocumentUrl, uploadUserDocument, deleteUserDocument } from '@/utils/databaseHelpers';
+import { getDocumentUrl, uploadUserDocument, deleteUserDocument, initializeStorageBuckets } from '@/utils/databaseHelpers';
+import { useUserPaymentStatus } from '@/hooks/useUserPaymentStatus';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const documentTypes = [
   { id: 'passport', name: 'Passport' },
@@ -44,8 +46,17 @@ export function DocumentUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentType, setDocumentType] = useState<string>('');
   const [documentName, setDocumentName] = useState<string>('');
+  const { data: paymentStatus, isLoading: paymentLoading } = useUserPaymentStatus();
 
+  const canUploadDocuments = paymentStatus?.isPaid || paymentStatus?.hasPendingReceipt;
+  
   React.useEffect(() => {
+    const setupStorage = async () => {
+      await initializeStorageBuckets();
+    };
+    
+    setupStorage();
+    
     if (user && !fetched) {
       fetchDocuments();
     }
@@ -107,6 +118,15 @@ export function DocumentUpload() {
       toast({
         title: "Missing information",
         description: "Please select a file, document type, and provide a name.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!canUploadDocuments) {
+      toast({
+        title: "Cannot upload documents",
+        description: "You need to make a payment before uploading documents.",
         variant: "destructive",
       });
       return;
@@ -251,6 +271,52 @@ export function DocumentUpload() {
     }
   };
 
+  if (paymentLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>My Documents</CardTitle>
+          <CardDescription>
+            Loading document access...
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!canUploadDocuments) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>My Documents</CardTitle>
+          <CardDescription>
+            Upload and manage your important documents for your applications
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Access Restricted</AlertTitle>
+            <AlertDescription>
+              You need to make a payment before you can upload documents. Please navigate to the Payments section to complete a payment.
+            </AlertDescription>
+          </Alert>
+          
+          <div className="flex justify-center mt-6">
+            <Button asChild>
+              <a href="/payments">Go to Payments</a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -262,7 +328,7 @@ export function DocumentUpload() {
       <CardContent>
         <div className="space-y-6">
           {/* Upload Form */}
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg p-4 bg-card">
             <h3 className="font-medium mb-4">Upload New Document</h3>
             
             <div className="grid gap-4 mb-4">
@@ -294,15 +360,13 @@ export function DocumentUpload() {
               
               <div className="space-y-2">
                 <Label htmlFor="file-upload">Upload File</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={handleFileChange}
-                    className="flex-1"
-                  />
-                </div>
+                <Input
+                  id="file-upload"
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  className="flex-1"
+                />
                 {selectedFile && (
                   <p className="text-sm text-muted-foreground mt-1">
                     Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
@@ -348,33 +412,32 @@ export function DocumentUpload() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : documents.length === 0 ? (
-              <div className="text-center py-8 border rounded-lg">
+              <div className="text-center py-8 border rounded-lg bg-muted/30">
                 <File className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">No documents uploaded yet</p>
+                <p className="text-sm text-muted-foreground mt-1">Upload your first document using the form above</p>
               </div>
             ) : (
               <div className="border rounded-lg divide-y">
                 {documents.map((doc) => (
                   <div key={doc.id} className="p-4 flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-none">
-                          <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
-                            <File className="h-5 w-5 text-muted-foreground" />
-                          </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-none">
+                        <div className="h-10 w-10 bg-muted rounded flex items-center justify-center">
+                          <File className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{doc.name}</p>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <span className="truncate">
-                              {documentTypes.find(t => t.id === doc.type)?.name || doc.type}
-                            </span>
-                            <span className="mx-2">•</span>
-                            <span>
-                              {new Date(doc.uploaded_at).toLocaleDateString()}
-                            </span>
-                          </div>
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{doc.name}</p>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span className="truncate">
+                            {documentTypes.find(t => t.id === doc.type)?.name || doc.type}
+                          </span>
+                          <span className="mx-2">•</span>
+                          <span>
+                            {new Date(doc.uploaded_at).toLocaleDateString()}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -409,7 +472,7 @@ export function DocumentUpload() {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
+      <CardFooter className="flex justify-between border-t pt-4">
         <p className="text-sm text-muted-foreground">
           Supported formats: PDF, DOC, DOCX, JPG, JPEG, PNG
         </p>

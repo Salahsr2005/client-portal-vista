@@ -29,14 +29,18 @@ import {
   Edit,
   Camera,
   CheckCircle,
+  CreditCard,
 } from "lucide-react";
 import { DocumentUpload } from "@/components/profile/DocumentUpload";
+import { PaymentStatus } from "@/components/profile/PaymentStatus";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
 
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: profile, isLoading } = useUserProfile();
+  const { data: paymentStatus } = useUserPaymentStatus();
   const [updating, setUpdating] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("personal");
@@ -51,44 +55,18 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!user) return;
-      
-      try {
-        setLoading(true);
-        
-        const { data, error } = await supabase
-          .from("client_users")
-          .select("*, client_profiles(*)")
-          .eq("client_id", user.id)
-          .single();
-        
-        if (error) throw error;
-        
-        setProfile(data);
-        setFormData({
-          firstName: data.first_name || "",
-          lastName: data.last_name || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          city: data.city || "",
-          country: data.country || "",
-          dateOfBirth: data.date_of_birth ? new Date(data.date_of_birth).toISOString().split("T")[0] : "",
-        });
-      } catch (error) {
-        console.error("Error fetching user profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile information",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUserProfile();
-  }, [user, toast]);
+    if (profile && !isLoading) {
+      setFormData({
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        city: profile.city || "",
+        country: profile.country || "",
+        dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split("T")[0] : "",
+      });
+    }
+  }, [profile, isLoading]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -115,16 +93,6 @@ const Profile = () => {
       
       if (error) throw error;
       
-      // Refresh the profile data
-      const { data: updatedProfile, error: fetchError } = await supabase
-        .from("client_users")
-        .select("*, client_profiles(*)")
-        .eq("client_id", user.id)
-        .single();
-      
-      if (fetchError) throw fetchError;
-      
-      setProfile(updatedProfile);
       setEditMode(false);
       
       toast({
@@ -143,7 +111,7 @@ const Profile = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container max-w-4xl py-8">
         <div className="flex justify-center items-center h-64">
@@ -171,198 +139,223 @@ const Profile = () => {
   }
 
   const renderPersonalInfoTab = () => (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Your personal details and contact information</CardDescription>
-        </div>
-        {!editMode && (
-          <Button variant="outline" onClick={() => setEditMode(true)}>
-            <Edit className="h-4 w-4 mr-1" /> Edit
-          </Button>
-        )}
-      </CardHeader>
-      <CardContent>
-        {editMode ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  disabled
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                <Input
-                  id="dateOfBirth"
-                  name="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Personal Information</CardTitle>
+            <CardDescription>Your personal details and contact information</CardDescription>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">First Name</p>
-                <p className="font-medium">{profile.first_name || "Not provided"}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Last Name</p>
-                <p className="font-medium">{profile.last_name || "Not provided"}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="font-medium">{profile.email}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Phone Number</p>
-                <p className="font-medium">{profile.phone || "Not provided"}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">City</p>
-                <p className="font-medium">{profile.city || "Not provided"}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Country</p>
-                <p className="font-medium">{profile.country || "Not provided"}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Date of Birth</p>
-                <p className="font-medium">
-                  {profile.date_of_birth 
-                    ? new Date(profile.date_of_birth).toLocaleDateString() 
-                    : "Not provided"}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Nationality</p>
-                <p className="font-medium">{profile.nationality || "Not provided"}</p>
+          {!editMode && (
+            <Button variant="outline" onClick={() => setEditMode(true)}>
+              <Edit className="h-4 w-4 mr-1" /> Edit
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {editMode ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    disabled
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input
+                    id="country"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={handleInputChange}
+                  />
+                </div>
               </div>
             </div>
-            
-            <Separator />
-            
-            <div>
-              <h3 className="text-lg font-medium mb-3">Additional Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Membership Status</p>
-                  <div className="flex items-center">
-                    <Badge variant={profile.client_tier === "Paid" ? "default" : "secondary"}>
-                      {profile.client_tier || "Basic"}
-                    </Badge>
-                  </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <User className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Member Since</p>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Name</p>
                   <p className="font-medium">
-                    {new Date(profile.created_at).toLocaleDateString()}
+                    {profile.firstName} {profile.lastName}
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Profile Completion</p>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Email</p>
+                  <p className="font-medium">{profile.email}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Phone</p>
+                  <p className="font-medium">{profile.phone || "Not provided"}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Location</p>
+                  <p className="font-medium">
+                    {profile.city && profile.country 
+                      ? `${profile.city}, ${profile.country}`
+                      : profile.city || profile.country || "Not provided"}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Date of Birth</p>
+                  <p className="font-medium">
+                    {profile.dateOfBirth 
+                      ? new Date(profile.dateOfBirth).toLocaleDateString() 
+                      : "Not provided"}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <Shield className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Account Status</p>
                   <div className="flex items-center">
+                    <Badge 
+                      variant={paymentStatus?.isPaid ? "default" : "secondary"}
+                      className="mr-2"
+                    >
+                      {paymentStatus?.isPaid ? "Paid" : "Basic"}
+                    </Badge>
+                    {paymentStatus?.isPaid && <CheckCircle className="h-4 w-4 text-green-500" />}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Profile Completion</p>
+                  <div>
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-100">
-                      {profile.profile_status || "Incomplete"}
+                      {profile.profileStatus || "Incomplete"}
                     </Badge>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-muted-foreground">Contact Preference</p>
-                  <p className="font-medium">{profile.contact_preference || "Email"}</p>
-                </div>
               </div>
             </div>
-          </div>
+          )}
+        </CardContent>
+        {editMode && (
+          <CardFooter className="flex justify-end gap-2 border-t pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditMode(false);
+                // Reset form data to original values
+                if (profile) {
+                  setFormData({
+                    firstName: profile.firstName || "",
+                    lastName: profile.lastName || "",
+                    email: profile.email || "",
+                    phone: profile.phone || "",
+                    city: profile.city || "",
+                    country: profile.country || "",
+                    dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split("T")[0] : "",
+                  });
+                }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveProfile} disabled={updating}>
+              {updating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </CardFooter>
         )}
-      </CardContent>
-      {editMode && (
-        <CardFooter className="flex justify-end gap-2 pt-0">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEditMode(false);
-              // Reset form data to original values
-              setFormData({
-                firstName: profile.first_name || "",
-                lastName: profile.last_name || "",
-                email: profile.email || "",
-                phone: profile.phone || "",
-                city: profile.city || "",
-                country: profile.country || "",
-                dateOfBirth: profile.date_of_birth ? new Date(profile.date_of_birth).toISOString().split("T")[0] : "",
-              });
-            }}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSaveProfile} disabled={updating}>
-            {updating ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
-        </CardFooter>
-      )}
-    </Card>
+      </Card>
+      
+      <PaymentStatus />
+    </div>
   );
 
   const renderEducationTab = () => (
@@ -372,8 +365,8 @@ const Profile = () => {
         <CardDescription>Your academic background and qualifications</CardDescription>
       </CardHeader>
       <CardContent>
-        {profile.client_profiles?.[0]?.education_background ? (
-          <div dangerouslySetInnerHTML={{ __html: profile.client_profiles[0].education_background }} />
+        {profile.educationBackground ? (
+          <div dangerouslySetInnerHTML={{ __html: profile.educationBackground }} />
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-3" />
@@ -390,35 +383,66 @@ const Profile = () => {
   return (
     <div className="container max-w-4xl py-8">
       {/* Profile Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6">
-        <div className="flex items-center gap-4 mb-4 sm:mb-0">
-          <Avatar className="h-20 w-20 border-2 border-primary">
-            <AvatarImage src={profile.photo_url || undefined} alt={profile.first_name} />
-            <AvatarFallback className="text-2xl bg-primary text-white">
-              {profile.first_name?.[0]}{profile.last_name?.[0]}
-            </AvatarFallback>
-          </Avatar>
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-6">
+        <div className="flex items-center gap-5 mb-4 sm:mb-0">
+          <div className="relative group">
+            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+              <AvatarImage src={profile.photoUrl || undefined} alt={profile.firstName} />
+              <AvatarFallback className="text-3xl bg-primary text-white">
+                {profile.firstName?.[0]}{profile.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute bottom-0 right-0 bg-primary rounded-full p-1 shadow-md cursor-pointer opacity-80 hover:opacity-100 transition-opacity">
+              <Camera className="h-4 w-4 text-white" />
+            </div>
+          </div>
           <div>
-            <h1 className="text-2xl font-bold mb-1">{profile.first_name} {profile.last_name}</h1>
+            <h1 className="text-2xl font-bold mb-1">{profile.firstName} {profile.lastName}</h1>
             <div className="flex items-center text-muted-foreground text-sm">
               <Mail className="h-4 w-4 mr-1" />
               {profile.email}
             </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge 
+                variant={paymentStatus?.isPaid ? "default" : "outline"} 
+                className="mr-1"
+              >
+                {paymentStatus?.isPaid ? "Premium" : "Basic"}
+              </Badge>
+              <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-100">
+                Verified
+              </Badge>
+            </div>
           </div>
         </div>
-        <div>
-          <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900 dark:text-green-100">
-            Verified
-          </Badge>
+        <div className="flex flex-col items-end">
+          <div className="text-sm text-muted-foreground mb-2">
+            Member since {new Date(profile.createdAt).toLocaleDateString()}
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <a href="/settings">
+              <Shield className="h-4 w-4 mr-1" />
+              Security Settings
+            </a>
+          </Button>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="personal" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-3 mb-8">
-          <TabsTrigger value="personal">Personal Info</TabsTrigger>
-          <TabsTrigger value="education">Education</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="personal">
+            <User className="h-4 w-4 mr-1.5" />
+            Personal
+          </TabsTrigger>
+          <TabsTrigger value="education">
+            <FileText className="h-4 w-4 mr-1.5" />
+            Education
+          </TabsTrigger>
+          <TabsTrigger value="documents">
+            <FileText className="h-4 w-4 mr-1.5" />
+            Documents
+          </TabsTrigger>
         </TabsList>
         
         {/* Personal Info Tab */}

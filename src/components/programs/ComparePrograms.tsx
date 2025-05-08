@@ -9,8 +9,28 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
-import { Program } from '@/components/consultation/types';
-import { formatCurrency, CurrencyCode } from '@/utils/currencyConverter';
+import { CurrencyCode, formatCurrency } from '@/utils/currencyConverter';
+
+export interface Program {
+  id: string;
+  name: string;
+  university: string;
+  location: string;
+  study_level?: string;
+  type?: string;
+  duration: string;
+  tuition_min?: number;
+  program_language?: string;
+  application_deadline?: string;
+  deadline?: string;
+  scholarship_available?: boolean;
+  hasScholarship?: boolean;
+  religious_facilities?: boolean;
+  hasReligiousFacilities?: boolean;
+  halal_food_availability?: boolean;
+  hasHalalFood?: boolean;
+  [key: string]: any;
+}
 
 interface CompareProgramsProps {
   programs: Program[];

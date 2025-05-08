@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CurrencyCode, convertCurrency } from "./currencyConverter";
 
 // Function to create storage buckets if they don't exist
 export const initializeStorageBuckets = async () => {
@@ -235,14 +236,45 @@ export const getReceiptUrl = async (filePath: string): Promise<string | null> =>
   }
 };
 
-// Function to convert EUR to DZD or vice versa
-export const convertCurrency = (amount: number, from: 'EUR' | 'DZD'): number => {
-  const eurToDzdRate = 250;
-  
-  if (from === 'EUR') {
-    return Math.round(amount * eurToDzdRate);
-  } else {
-    return Math.round((amount / eurToDzdRate) * 100) / 100;
+// Function to check if user has paid status
+export const checkUserPaymentStatus = async (userId: string): Promise<{
+  isPaid: boolean;
+  isPending: boolean;
+  hasPendingReceipt: boolean;
+}> => {
+  try {
+    // Get client tier from client_users
+    const { data: userData, error: userError } = await supabase
+      .from('client_users')
+      .select('client_tier')
+      .eq('client_id', userId)
+      .single();
+      
+    if (userError) {
+      console.error("Error checking user payment status:", userError);
+      return { isPaid: false, isPending: false, hasPendingReceipt: false };
+    }
+    
+    // Check if user has any pending payment receipt
+    const { data: receiptData, error: receiptError } = await supabase
+      .from('payment_receipts')
+      .select('status')
+      .eq('client_id', userId)
+      .eq('status', 'Pending')
+      .limit(1);
+      
+    if (receiptError) {
+      console.error("Error checking receipt status:", receiptError);
+    }
+    
+    return {
+      isPaid: userData?.client_tier === 'Paid',
+      isPending: userData?.client_tier === 'Applicant',
+      hasPendingReceipt: (receiptData && receiptData.length > 0) || false
+    };
+  } catch (error) {
+    console.error("Error in checkUserPaymentStatus:", error);
+    return { isPaid: false, isPending: false, hasPendingReceipt: false };
   }
 };
 
