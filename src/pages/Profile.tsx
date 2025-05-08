@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +17,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
+
 import {
   User,
   Mail,
@@ -30,11 +34,16 @@ import {
   Camera,
   CheckCircle,
   CreditCard,
+  Lightbulb,
+  GraduationCap,
 } from "lucide-react";
-import { DocumentUpload } from "@/components/profile/DocumentUpload";
+import DocumentUpload from "@/components/profile/DocumentUpload";
 import { PaymentStatus } from "@/components/profile/PaymentStatus";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
+import { usePrograms } from "@/hooks/usePrograms";
+import ProgramCard from "@/components/consultation/ProgramCard";
+import { useProgramPreferences } from "@/hooks/useProgramPreferences";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -53,6 +62,24 @@ const Profile = () => {
     country: "",
     dateOfBirth: "",
   });
+  
+  // Program matching preferences
+  const { preferences, loading: loadingPreferences, updatePreference, savePreferences } = useProgramPreferences();
+  
+  // Fetch programs with user preferences
+  const { data: recommendedPrograms, isLoading: loadingPrograms } = usePrograms({
+    studyLevel: preferences.studyLevel,
+    language: preferences.language,
+    budget: preferences.budget.toString(),
+    subjects: preferences.subjects,
+    religiousFacilities: preferences.religiousFacilities,
+    halalFood: preferences.halalFood,
+    scholarshipRequired: preferences.scholarshipRequired,
+    languageTestRequired: preferences.languageTestRequired,
+  });
+  
+  // Top matched programs
+  const topMatches = recommendedPrograms?.slice(0, 3) || [];
 
   useEffect(() => {
     if (profile && !isLoading) {
@@ -110,8 +137,23 @@ const Profile = () => {
       setUpdating(false);
     }
   };
+  
+  // Function to handle saving preferences
+  const handleSavePreferences = async () => {
+    try {
+      const result = await savePreferences(preferences);
+      if (result?.success) {
+        toast.success("Your program preferences have been saved");
+      } else {
+        toast.error(result?.error || "There was a problem saving your preferences");
+      }
+    } catch (error) {
+      console.error("Error saving preferences:", error);
+      toast.error("There was a problem saving your preferences");
+    }
+  };
 
-  if (isLoading) {
+  if (isLoading || loadingPreferences) {
     return (
       <div className="container max-w-4xl py-8">
         <div className="flex justify-center items-center h-64">
@@ -352,6 +394,222 @@ const Profile = () => {
             </Button>
           </CardFooter>
         )}
+      </Card>
+      
+      {/* Program Matching Preferences */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Program Matching</CardTitle>
+            <CardDescription>Set your preferences for program recommendations</CardDescription>
+          </div>
+          <Lightbulb className="h-5 w-5 text-amber-500" />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-2">
+              <Label htmlFor="studyLevel">Education Level</Label>
+              <Select 
+                value={preferences.studyLevel}
+                onValueChange={(value) => updatePreference("studyLevel", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your target education level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Undergraduate">Undergraduate (Bachelor)</SelectItem>
+                  <SelectItem value="Graduate">Graduate (Master)</SelectItem>
+                  <SelectItem value="PhD">PhD</SelectItem>
+                  <SelectItem value="Certificate">Certificate/Diploma</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="language">Preferred Language</Label>
+              <Select 
+                value={preferences.language}
+                onValueChange={(value) => updatePreference("language", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select preferred language" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="English">English</SelectItem>
+                  <SelectItem value="French">French</SelectItem>
+                  <SelectItem value="Spanish">Spanish</SelectItem>
+                  <SelectItem value="German">German</SelectItem>
+                  <SelectItem value="Italian">Italian</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="subject">Field of Study</Label>
+              <Select
+                value={preferences.subjects[0]}
+                onValueChange={(value) => updatePreference("subjects", [value])}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select field of study" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Business">Business & Management</SelectItem>
+                  <SelectItem value="Engineering">Engineering</SelectItem>
+                  <SelectItem value="Computer Science">Computer Science</SelectItem>
+                  <SelectItem value="Medicine">Medicine & Health</SelectItem>
+                  <SelectItem value="Arts">Arts & Humanities</SelectItem>
+                  <SelectItem value="Law">Law</SelectItem>
+                  <SelectItem value="Sciences">Sciences</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <Label htmlFor="budget">Budget (€): {preferences.budget}</Label>
+              </div>
+              <Slider
+                value={[preferences.budget]}
+                min={5000}
+                max={50000}
+                step={1000}
+                onValueChange={([value]) => updatePreference("budget", value)}
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>€5,000</span>
+                <span>€50,000</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="religiousFacilities">Religious Facilities</Label>
+              <Checkbox
+                id="religiousFacilities"
+                checked={preferences.religiousFacilities}
+                onCheckedChange={(checked) => updatePreference("religiousFacilities", checked)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="halalFood">Halal Food</Label>
+              <Checkbox
+                id="halalFood"
+                checked={preferences.halalFood}
+                onCheckedChange={(checked) => updatePreference("halalFood", checked)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="scholarshipRequired">Scholarship Required</Label>
+              <Checkbox
+                id="scholarshipRequired"
+                checked={preferences.scholarshipRequired}
+                onCheckedChange={(checked) => updatePreference("scholarshipRequired", checked)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="languageTestRequired">Language Test Required</Label>
+              <Checkbox
+                id="languageTestRequired"
+                checked={preferences.languageTestRequired}
+                onCheckedChange={(checked) => updatePreference("languageTestRequired", checked)}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleSavePreferences} 
+              variant="outline"
+            >
+              Update Preferences
+            </Button>
+          </div>
+        </CardContent>
+
+        {/* Top matched programs */}
+        <Separator />
+        <CardHeader>
+          <CardTitle className="text-lg">Your Top Matches</CardTitle>
+          <CardDescription>Programs that best match your preferences</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingPrograms ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+              <p>Finding your best program matches...</p>
+            </div>
+          ) : topMatches.length > 0 ? (
+            <div className="space-y-4">
+              {topMatches.map(program => (
+                <div key={program.id} className="flex flex-col md:flex-row gap-4 border rounded-lg p-4 bg-muted/10">
+                  <div className="w-full md:w-1/4">
+                    <div className="aspect-video md:aspect-square rounded-md overflow-hidden bg-cover bg-center" 
+                      style={{ backgroundImage: `url(${program.image_url})` }}>
+                    </div>
+                  </div>
+                  <div className="flex-grow">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium text-lg">{program.name}</h4>
+                        <p className="text-sm text-muted-foreground">{program.university}</p>
+                      </div>
+                      {program.matchScore && (
+                        <div className="bg-amber-50 text-amber-800 px-2 py-1 rounded text-sm flex items-center">
+                          <span className="font-bold mr-1">{program.matchScore}%</span> Match
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-2 mb-3">
+                      <Progress value={program.matchScore} className="h-1.5" />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-2">
+                      <div className="flex items-center">
+                        <span className="text-muted-foreground mr-2">Level:</span> {program.type}
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-muted-foreground mr-2">Language:</span> {program.program_language || "English"}
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-muted-foreground mr-2">Duration:</span> {program.duration}
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-muted-foreground mr-2">Tuition:</span> €{program.tuition?.toLocaleString()}
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" asChild>
+                        <a href={`/programs/${program.id}`}>View Details</a>
+                      </Button>
+                      <Button size="sm" variant="outline" asChild>
+                        <a href={`/applications/new?program=${program.id}`}>Apply Now</a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              <div className="flex justify-center mt-6">
+                <Button asChild>
+                  <a href="/programs">Explore All Programs</a>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <GraduationCap className="h-12 w-12 mx-auto mb-3" />
+              <p className="mb-4">No matching programs found with your current preferences.</p>
+              <Button asChild>
+                <a href="/programs">Browse All Programs</a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
       </Card>
       
       <PaymentStatus />

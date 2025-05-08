@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,35 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { usePrograms } from "@/hooks/usePrograms";
+import { usePrograms, ProgramFilter } from "@/hooks/usePrograms";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Filter, ChevronRight, GraduationCap, MapPin, Calendar, Clock, Star, DollarSign } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import ComparePrograms from "@/components/programs/ComparePrograms";
+
+import { 
+  Search, 
+  Filter, 
+  ChevronRight, 
+  GraduationCap, 
+  MapPin, 
+  Calendar, 
+  Clock, 
+  Star, 
+  Heart, 
+  DollarSign,
+  LayoutPanelLeft,
+  Share2
+} from "lucide-react";
 import { formatCurrency } from "@/utils/currencyConverter";
+import { Program } from '@/components/consultation/types';
+import ProgramCard from '@/components/consultation/ProgramCard';
 
 export default function Programs() {
   // State for filters and pagination
@@ -31,19 +51,27 @@ export default function Programs() {
   const [field, setField] = useState("");
   const [budget, setBudget] = useState([0, 50000]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(6);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [showFilters, setShowFilters] = useState(false);
   const [language, setLanguage] = useState("");
 
-  // Get programs data with filters
-  const { data: programsData, isLoading } = usePrograms({
+  // State for favorites and comparison
+  const [favorites, setFavorites] = useLocalStorage<string[]>("favorite-programs", []);
+  const [compareList, setCompareList] = useLocalStorage<string[]>("compare-programs", []);
+  const [showCompare, setShowCompare] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  
+  // Create filter object
+  const filter: ProgramFilter = {
     studyLevel: studyLevel || undefined,
     location: country || undefined,
     subjects: field ? [field] : undefined,
     budget: budget[1].toString(),
     language: language || undefined,
-  });
+  };
   
+  // Get programs data with filters
+  const { data: programsData, isLoading } = usePrograms(filter);
   const programs = programsData || [];
   
   // Calculate pagination values
@@ -52,6 +80,9 @@ export default function Programs() {
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = programs.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Get programs for comparison
+  const programsToCompare = programs.filter(p => compareList.includes(p.id));
 
   // Function to change page
   const paginate = (pageNumber: number) => {
@@ -63,6 +94,66 @@ export default function Programs() {
   const handleFilterChange = () => {
     setCurrentPage(1); // Reset to first page on filter change
   };
+  
+  // Function to handle favorite toggle
+  const handleToggleFavorite = (programId: string) => {
+    setFavorites(prev => {
+      if (prev.includes(programId)) {
+        toast.info("Removed from favorites");
+        return prev.filter(id => id !== programId);
+      } else {
+        toast.success("Added to favorites");
+        return [...prev, programId];
+      }
+    });
+  };
+  
+  // Function to handle compare toggle
+  const handleToggleCompare = (programId: string) => {
+    setCompareList(prev => {
+      if (prev.includes(programId)) {
+        return prev.filter(id => id !== programId);
+      } else {
+        if (prev.length >= 3) {
+          toast.warning("You can compare up to 3 programs at once");
+          return prev;
+        }
+        setShowCompare(true);
+        return [...prev, programId];
+      }
+    });
+  };
+
+  // Function to handle sharing
+  const handleShareProgram = (programId: string) => {
+    const url = `${window.location.origin}/programs/${programId}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Check out this program',
+        url: url,
+      }).catch(() => {
+        copyToClipboard(url);
+      });
+    } else {
+      copyToClipboard(url);
+    }
+  };
+  
+  // Helper function to copy to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Link copied to clipboard");
+  };
+
+  // Reset compare when unmounting
+  useEffect(() => {
+    return () => {
+      if (compareList.length > 0) {
+        setCompareList([]);
+      }
+    };
+  }, []);
 
   // Function to render pagination numbers
   const renderPaginationNumbers = () => {
@@ -151,17 +242,57 @@ export default function Programs() {
             Browse educational programs across Europe
           </p>
         </div>
-        <div className="mt-4 md:mt-0">
+        <div className="mt-4 md:mt-0 flex items-center gap-2">
+          <div className="flex rounded-md overflow-hidden border">
+            <Button 
+              variant={viewMode === "grid" ? "default" : "ghost"} 
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="rounded-none"
+            >
+              Grid
+            </Button>
+            <Button 
+              variant={viewMode === "list" ? "default" : "ghost"} 
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="rounded-none"
+            >
+              List
+            </Button>
+          </div>
+          
           <Button 
             variant="outline" 
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center mb-4 md:mb-0"
+            className="flex items-center"
           >
             <Filter className="mr-2 h-4 w-4" />
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </Button>
         </div>
       </div>
+      
+      {/* Comparison panel */}
+      {compareList.length > 0 && showCompare && (
+        <ComparePrograms 
+          programs={programsToCompare}
+          onClose={() => setShowCompare(false)}
+          onRemoveProgram={(id) => {
+            setCompareList(prev => prev.filter(programId => programId !== id));
+          }}
+        />
+      )}
+      
+      {/* Compare button */}
+      {compareList.length > 0 && !showCompare && (
+        <div className="mb-4">
+          <Button onClick={() => setShowCompare(true)}>
+            <LayoutPanelLeft className="mr-2 h-4 w-4" />
+            Compare ({compareList.length}) Programs
+          </Button>
+        </div>
+      )}
       
       {/* Filters */}
       {showFilters && (
@@ -320,18 +451,31 @@ export default function Programs() {
             <SelectValue placeholder="Items per page" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="6">6 per page</SelectItem>
             <SelectItem value="12">12 per page</SelectItem>
             <SelectItem value="24">24 per page</SelectItem>
+            <SelectItem value="36">36 per page</SelectItem>
             <SelectItem value="48">48 per page</SelectItem>
           </SelectContent>
         </Select>
       </div>
       
+      {/* Display favorites count if any */}
+      {favorites.length > 0 && (
+        <Alert className="mb-4 bg-pink-50 border-pink-200">
+          <Heart className="h-4 w-4 text-pink-500" />
+          <AlertDescription>
+            You have {favorites.length} favorite programs. 
+            <Button variant="link" className="p-0 h-auto text-pink-600" onClick={() => setShowFilters(true)}>
+              Find more programs matching your interests
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {/* Program Cards */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <div className="aspect-video w-full">
                 <Skeleton className="h-full w-full" />
@@ -372,68 +516,22 @@ export default function Programs() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={viewMode === "grid" 
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+          : "flex flex-col gap-4"
+        }>
           {currentItems.map((program) => (
-            <Card key={program.id} className="overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md">
-              <div 
-                className="aspect-[16/9] w-full bg-cover bg-center" 
-                style={{ backgroundImage: `url(${program.image_url || '/placeholder.svg'})` }}
-              />
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{program.name}</CardTitle>
-                  {program.matchScore !== undefined && (
-                    <div className="bg-muted text-primary px-2 py-1 rounded text-xs font-medium flex items-center">
-                      <Star className="h-3 w-3 mr-1 fill-amber-500 stroke-amber-500" />
-                      {program.matchScore}% match
-                    </div>
-                  )}
-                </div>
-                <CardDescription className="line-clamp-1">
-                  {program.university || 'Unknown University'}, {program.country}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-4 flex-grow">
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{program.type || 'Degree Program'}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{program.location}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{program.duration}</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <DollarSign className="h-4 w-4 mr-2 text-muted-foreground" />
-                    <span>{formatCurrency(program.tuition, 'EUR', 'EUR')} tuition</span>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1 mt-3">
-                    {program.hasScholarship && (
-                      <Badge variant="secondary" className="text-xs">Scholarship</Badge>
-                    )}
-                    {program.hasReligiousFacilities && (
-                      <Badge variant="secondary" className="text-xs">Religious Facilities</Badge>
-                    )}
-                    {program.hasHalalFood && (
-                      <Badge variant="secondary" className="text-xs">Halal Food</Badge>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="pt-0">
-                <Button asChild className="w-full">
-                  <Link to={`/programs/${program.id}`} className="flex items-center justify-center">
-                    View Details
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
+            <ProgramCard 
+              key={program.id}
+              program={program}
+              isGridView={viewMode === "grid"}
+              showScore={true}
+              isFavorite={favorites.includes(program.id)}
+              isCompare={compareList.includes(program.id)}
+              onFavorite={handleToggleFavorite}
+              onCompare={handleToggleCompare}
+              onShare={handleShareProgram}
+            />
           ))}
         </div>
       )}
