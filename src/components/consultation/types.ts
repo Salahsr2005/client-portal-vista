@@ -1,3 +1,4 @@
+
 // Update or add the appropriate types for your project
 // This is a placeholder based on how the Program type is likely defined
 
@@ -48,4 +49,19 @@ export interface ConsultationResults {
   personalizedAdvice?: string;
   matchScore?: number;
   applicationStatus?: ApplicationStatus;
+}
+
+// Add FormData interface to fix build errors
+export interface FormData {
+  studyLevel: string;
+  subjects: string[];
+  budget: number;
+  duration: string;
+  location: string;
+  language: string;
+  scholarshipRequired: boolean;
+  religiousFacilities: boolean;
+  halalFood: boolean;
+  languageTestRequired: boolean;
+  additionalInfo: string;
 }

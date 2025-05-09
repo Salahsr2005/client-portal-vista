@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,7 +158,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
         if (filter) {
           // Study level filter
           if (filter.studyLevel) {
-            query = query.eq('study_level', filter.studyLevel);
+            query = query.eq('study_level', filter.studyLevel as string);
           }
           
           // Location filter
@@ -186,7 +187,7 @@ export const usePrograms = (filter?: ProgramFilter) => {
           }
         }
         
-        // Don't limit the number of programs by default
+        // Don't limit the number of programs - remove any limit to fetch all programs
         // Only apply limit if specifically requested
         if (filter?.limit) {
           query = query.limit(filter.limit);
