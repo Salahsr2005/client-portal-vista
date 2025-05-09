@@ -60,6 +60,8 @@ export const useNotificationSystem = () => {
           toast({
             title: payload.new.title,
             description: payload.new.content,
+            variant: "default",
+            className: "bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0",
           });
           
           // Refetch notifications
@@ -118,12 +120,36 @@ export const useNotificationSystem = () => {
     }
   };
 
+  // Create a notification (usually called from the backend, but can be used for testing)
+  const createNotification = async (title: string, content: string, type: string, metadata?: any) => {
+    try {
+      const { error } = await supabase
+        .from('user_notifications')
+        .insert({
+          user_id: user?.id,
+          title,
+          content,
+          type,
+          metadata,
+          is_read: false
+        });
+        
+      if (error) throw error;
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      return false;
+    }
+  };
+
   return {
     notifications,
     isLoading,
     unreadCount: notifications.filter(n => !n.is_read).length,
     markAsRead,
     markAllAsRead,
+    createNotification,
     refetch
   };
 };

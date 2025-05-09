@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,32 +7,33 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { List, ListItem } from "@/components/ui/list";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useApplications } from "@/hooks/useApplications";
+import { useApplications, useApplicationDetails } from "@/hooks/useApplications";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText, ArrowLeft, CalendarClock, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
 
 export default function ApplicationView() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: applications, isLoading } = useApplications();
+  const { data: applications, isLoading: applicationsLoading } = useApplications();
+  const { data: applicationDetail, isLoading: detailLoading } = useApplicationDetails(id || '');
   const [formData, setFormData] = useState({
-    program_id: '',
-    personal_statement: '',
-    transcript_path: '',
-    additional_documents_path: '',
-    agreed_to_terms: false,
+    programId: '',
+    personalStatement: '',
+    transcriptPath: '',
+    additionalDocumentsPath: '',
+    agreedToTerms: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Check if the application exists
-  const application = applications?.find(app => app.application_id === id);
+  const application = applications?.find(app => app.id === id);
   
   // Check if the user has an approved application
   const hasApprovedOrReviewingApplication = applications?.some(app => 
@@ -41,11 +43,11 @@ export default function ApplicationView() {
   useEffect(() => {
     if (application) {
       setFormData({
-        program_id: application.program_id || '',
-        personal_statement: application.personal_statement || '',
-        transcript_path: application.transcript_path || '',
-        additional_documents_path: application.additional_documents_path || '',
-        agreed_to_terms: application.agreed_to_terms || false,
+        programId: application.program || '',
+        personalStatement: '',
+        transcriptPath: '',
+        additionalDocumentsPath: '',
+        agreedToTerms: false,
       });
     }
   }, [application]);
@@ -55,9 +57,8 @@ export default function ApplicationView() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: checked }));
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData(prev => ({ ...prev, agreedToTerms: checked }));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,7 +73,7 @@ export default function ApplicationView() {
       return;
     }
     
-    if (!formData.agreed_to_terms) {
+    if (!formData.agreedToTerms) {
       toast({
         title: "Terms not accepted",
         description: "Please accept the terms and conditions to proceed",
@@ -89,7 +90,8 @@ export default function ApplicationView() {
         const { error } = await supabase
           .from('applications')
           .update({
-            ...formData,
+            program_id: formData.programId,
+            notes: formData.personalStatement,
             updated_at: new Date().toISOString()
           })
           .eq('application_id', id);
@@ -105,9 +107,10 @@ export default function ApplicationView() {
         const { error } = await supabase
           .from('applications')
           .insert({
-            ...formData,
+            program_id: formData.programId,
+            notes: formData.personalStatement,
             client_id: user.id,
-            status: 'Pending'
+            status: 'Draft'
           });
           
         if (error) throw error;
@@ -132,7 +135,7 @@ export default function ApplicationView() {
     }
   };
   
-  if (isLoading) {
+  if (applicationsLoading || detailLoading) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="flex justify-center items-center h-[400px]">
@@ -158,7 +161,204 @@ export default function ApplicationView() {
       </div>
     );
   }
+
+  // If we have application detail, show the detailed view
+  if (applicationDetail) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/applications')}
+            className="mr-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Applications
+          </Button>
+          <h1 className="text-2xl font-bold">Application Details</h1>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Application Information */}
+          <div className="col-span-2">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <ClipboardCheck className="mr-2 h-5 w-5 text-purple-500" />
+                  Application #{applicationDetail.id.substring(0, 8)}
+                </CardTitle>
+                <CardDescription>
+                  Submitted on {applicationDetail.createdAt}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Program Information */}
+                  <div className="flex items-center space-x-4">
+                    <div 
+                      className="w-16 h-16 rounded-md bg-cover bg-center shrink-0"
+                      style={{ backgroundImage: `url(${applicationDetail.program.image || '/placeholder.svg'})` }}
+                    />
+                    <div>
+                      <h3 className="font-medium">{applicationDetail.program.name}</h3>
+                      <p className="text-sm text-muted-foreground">{applicationDetail.program.university}</p>
+                      <p className="text-sm text-muted-foreground">{applicationDetail.program.location}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Application Timeline */}
+                  <ApplicationTimeline 
+                    events={applicationDetail.timeline || []}
+                    currentStatus={applicationDetail.status}
+                  />
+                  
+                  {/* Application Notes */}
+                  {applicationDetail.notes && (
+                    <div className="mt-6">
+                      <h3 className="font-medium mb-2">Notes</h3>
+                      <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-4 text-sm">
+                        {applicationDetail.notes}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Documents Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Documents</CardTitle>
+                <CardDescription>
+                  Required documents for your application
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {applicationDetail.documents && applicationDetail.documents.length > 0 ? (
+                    applicationDetail.documents.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-md">
+                        <div className="flex items-center">
+                          <FileText className="h-5 w-5 text-purple-500 mr-3" />
+                          <div>
+                            <p className="font-medium">{doc.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Uploaded on {new Date(doc.uploaded_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge 
+                          variant={doc.status === 'Verified' ? 'default' : doc.status === 'Rejected' ? 'destructive' : 'outline'}
+                          className={doc.status === 'Verified' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                        >
+                          {doc.status}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="mx-auto h-10 w-10 opacity-20 mb-3" />
+                      <p>No documents uploaded yet</p>
+                      <Button variant="outline" className="mt-4">
+                        Upload Documents
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Sidebar */}
+          <div className="col-span-1">
+            <Card className="sticky top-4">
+              <CardHeader>
+                <CardTitle>Application Status</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge 
+                      className={
+                        applicationDetail.status === 'Approved' ? 'bg-green-100 text-green-800 border-green-200' :
+                        applicationDetail.status === 'Rejected' ? 'bg-red-100 text-red-800 border-red-200' :
+                        applicationDetail.status === 'In Review' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                        'bg-blue-100 text-blue-800 border-blue-200'
+                      }
+                    >
+                      {applicationDetail.status}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Submitted On</span>
+                    <span className="font-medium">{applicationDetail.submittedAt || applicationDetail.createdAt}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Last Updated</span>
+                    <span className="font-medium">{applicationDetail.updatedAt}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Priority</span>
+                    <Badge variant="outline" className={
+                      applicationDetail.priority === 'High' ? 'border-orange-200 text-orange-700 bg-orange-50' :
+                      applicationDetail.priority === 'Medium' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                      'border-green-200 text-green-700 bg-green-50'
+                    }>
+                      {applicationDetail.priority}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2">Payment Status</h4>
+                  <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">
+                        {applicationDetail.paymentStatus === 'Completed' ? 'Paid' : 
+                         applicationDetail.paymentStatus === 'Partial' ? 'Partially Paid' : 
+                         'Payment Required'}
+                      </span>
+                      <Badge 
+                        variant={
+                          applicationDetail.paymentStatus === 'Completed' ? 'default' : 
+                          applicationDetail.paymentStatus === 'Partial' ? 'outline' : 
+                          'destructive'
+                        }
+                        className={
+                          applicationDetail.paymentStatus === 'Completed' ? 'bg-green-100 text-green-800 border-green-200' : ''
+                        }
+                      >
+                        {applicationDetail.paymentStatus}
+                      </Badge>
+                    </div>
+                    
+                    {applicationDetail.paymentStatus !== 'Completed' && (
+                      <Button variant="default" className="w-full mt-3 bg-gradient-to-r from-violet-600 to-purple-700">
+                        Complete Payment
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2">Support</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Need help with your application?
+                  </p>
+                  <Button variant="outline" className="w-full">
+                    Contact Support
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
+  // If there's no detail but there's an application in the list
   if (hasApprovedOrReviewingApplication) {
     return (
       <div className="container mx-auto py-8 px-4">
@@ -175,6 +375,7 @@ export default function ApplicationView() {
     );
   }
   
+  // Default view for new or editable applications
   return (
     <div className="container mx-auto py-8 px-4">
       <Card className="max-w-2xl mx-auto">
@@ -185,44 +386,44 @@ export default function ApplicationView() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="program_id">Program ID</Label>
+              <Label htmlFor="programId">Program ID</Label>
               <Input 
                 type="text" 
-                id="program_id" 
-                name="program_id" 
-                value={formData.program_id} 
+                id="programId" 
+                name="programId" 
+                value={formData.programId} 
                 onChange={handleChange} 
                 placeholder="Enter program ID" 
               />
             </div>
             <div>
-              <Label htmlFor="personal_statement">Personal Statement</Label>
+              <Label htmlFor="personalStatement">Personal Statement</Label>
               <Textarea 
-                id="personal_statement" 
-                name="personal_statement" 
-                value={formData.personal_statement} 
+                id="personalStatement" 
+                name="personalStatement" 
+                value={formData.personalStatement} 
                 onChange={handleChange} 
                 placeholder="Write your personal statement" 
               />
             </div>
             <div>
-              <Label htmlFor="transcript_path">Transcript Path</Label>
+              <Label htmlFor="transcriptPath">Transcript Path</Label>
               <Input 
                 type="text" 
-                id="transcript_path" 
-                name="transcript_path" 
-                value={formData.transcript_path} 
+                id="transcriptPath" 
+                name="transcriptPath" 
+                value={formData.transcriptPath} 
                 onChange={handleChange} 
                 placeholder="Enter transcript path" 
               />
             </div>
             <div>
-              <Label htmlFor="additional_documents_path">Additional Documents Path</Label>
+              <Label htmlFor="additionalDocumentsPath">Additional Documents Path</Label>
               <Input 
                 type="text" 
-                id="additional_documents_path" 
-                name="additional_documents_path" 
-                value={formData.additional_documents_path} 
+                id="additionalDocumentsPath" 
+                name="additionalDocumentsPath" 
+                value={formData.additionalDocumentsPath} 
                 onChange={handleChange} 
                 placeholder="Enter additional documents path" 
               />
@@ -230,12 +431,11 @@ export default function ApplicationView() {
             <div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="agreed_to_terms" 
-                  name="agreed_to_terms" 
-                  checked={formData.agreed_to_terms} 
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreed_to_terms: !!checked }))}
+                  id="agreedToTerms" 
+                  checked={formData.agreedToTerms} 
+                  onCheckedChange={handleCheckboxChange}
                 />
-                <Label htmlFor="agreed_to_terms">I agree to the terms and conditions</Label>
+                <Label htmlFor="agreedToTerms">I agree to the terms and conditions</Label>
               </div>
             </div>
             <Button type="submit" disabled={isSubmitting}>

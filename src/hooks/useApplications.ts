@@ -12,6 +12,36 @@ export interface ProgramApplication {
   lastUpdated: string;
 }
 
+export interface ApplicationEvent {
+  id: string;
+  status: string;
+  date: string;
+  note?: string;
+}
+
+export interface ApplicationDetails {
+  id: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  notes?: string;
+  program: {
+    id: string;
+    name: string;
+    university: string;
+    location: string;
+    type: string;
+    duration: string;
+    tuition: number;
+    image?: string;
+  };
+  paymentStatus: string;
+  timeline: ApplicationEvent[];
+  documents: any[];
+}
+
 export const useApplications = () => {
   const { user } = useAuth();
   
@@ -34,8 +64,6 @@ export const useApplications = () => {
           console.error("Error fetching applications:", applicationsError);
           throw new Error(applicationsError.message);
         }
-        
-        console.log("Applications data:", applicationsData);
         
         // Map applications data to the expected format
         return (applicationsData || []).map(application => ({
@@ -119,7 +147,7 @@ export const useApplicationDetails = (applicationId: string) => {
             note: event.note
           })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
           documents: documents || []
-        };
+        } as ApplicationDetails;
       } catch (error) {
         console.error("Error fetching application details:", error);
         throw error;

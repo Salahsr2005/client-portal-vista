@@ -55,31 +55,45 @@ export const useProgramPreferences = () => {
     try {
       setLoading(true);
       
-      // First check if the user has preferences stored in their profile
+      // First check if the user has a profile
       const { data, error } = await supabase
         .from('client_profiles')
-        .select('profile_id, preferences')
+        .select('profile_id, current_address, education_background, language_proficiency')
         .eq('client_id', user?.id)
         .maybeSingle();
         
       if (error) throw error;
       
-      if (data) {
-        // Create the profile entry if it doesn't exist
-        if (!data.profile_id) {
-          await supabase
-            .from('client_profiles')
-            .insert({
-              client_id: user?.id,
-              preferences: preferences
-            });
-        } else if (data.preferences) {
-          // Use the stored preferences if available
-          setPreferences({
-            ...preferences, // Keep defaults for missing fields
-            ...data.preferences // Override with stored preferences
+      // Get user preferences from a separate table
+      const { data: prefData, error: prefError } = await supabase
+        .from('user_program_preferences')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+      
+      if (prefError && prefError.code !== 'PGRST116') throw prefError;
+      
+      if (prefData) {
+        // Use the stored preferences
+        setPreferences({
+          studyLevel: prefData.study_level || preferences.studyLevel,
+          language: prefData.language || preferences.language,
+          budget: prefData.budget || preferences.budget,
+          subjects: prefData.subjects || preferences.subjects,
+          religiousFacilities: prefData.religious_facilities || preferences.religiousFacilities,
+          halalFood: prefData.halal_food || preferences.halalFood,
+          scholarshipRequired: prefData.scholarship_required || preferences.scholarshipRequired,
+          languageTestRequired: prefData.language_test_required || preferences.languageTestRequired
+        });
+      }
+      
+      // If no profile exists, create one
+      if (!data?.profile_id) {
+        await supabase
+          .from('client_profiles')
+          .insert({
+            client_id: user?.id,
           });
-        }
       }
     } catch (error) {
       console.error('Error fetching program preferences:', error);
@@ -100,30 +114,45 @@ export const useProgramPreferences = () => {
         return { success: true };
       }
       
-      // Try to update an existing profile
-      const { data: existingProfile } = await supabase
-        .from('client_profiles')
-        .select('profile_id')
-        .eq('client_id', user.id)
+      // Check if preferences exists
+      const { data: existingPref } = await supabase
+        .from('user_program_preferences')
+        .select('id')
+        .eq('user_id', user.id)
         .maybeSingle();
       
-      if (existingProfile) {
+      if (existingPref) {
+        // Update existing preferences
         const { error } = await supabase
-          .from('client_profiles')
+          .from('user_program_preferences')
           .update({
-            preferences: newPreferences,
+            study_level: newPreferences.studyLevel,
+            language: newPreferences.language,
+            budget: newPreferences.budget,
+            subjects: newPreferences.subjects,
+            religious_facilities: newPreferences.religiousFacilities,
+            halal_food: newPreferences.halalFood,
+            scholarship_required: newPreferences.scholarshipRequired,
+            language_test_required: newPreferences.languageTestRequired,
             updated_at: new Date().toISOString()
           })
-          .eq('client_id', user.id);
+          .eq('user_id', user.id);
           
         if (error) throw error;
       } else {
-        // Create a new profile if one doesn't exist
+        // Create new preferences
         const { error } = await supabase
-          .from('client_profiles')
+          .from('user_program_preferences')
           .insert({
-            client_id: user.id,
-            preferences: newPreferences,
+            user_id: user.id,
+            study_level: newPreferences.studyLevel,
+            language: newPreferences.language,
+            budget: newPreferences.budget,
+            subjects: newPreferences.subjects,
+            religious_facilities: newPreferences.religiousFacilities,
+            halal_food: newPreferences.halalFood,
+            scholarship_required: newPreferences.scholarshipRequired,
+            language_test_required: newPreferences.languageTestRequired
           });
           
         if (error) throw error;
