@@ -1,4 +1,5 @@
 
+// Only updating the necessary parts of the Programs.tsx file to maintain functionality while improving UI
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import ComparePrograms from "@/components/programs/ComparePrograms";
+import { motion } from "framer-motion";
 
 import { 
   Search, 
@@ -36,13 +38,17 @@ import {
   Clock, 
   Star, 
   Heart, 
-  DollarSign,
+  CircleDollarSign,
   LayoutPanelLeft,
-  Share2
+  Share2,
+  Grid,
+  List,
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { formatCurrency } from "@/utils/currencyConverter";
 import { Program } from '@/components/consultation/types';
-import ProgramCard from '@/components/consultation/ProgramCard';
+import ProgramCard from '@/components/programs/ProgramCard';
 
 export default function Programs() {
   // State for filters and pagination
@@ -165,6 +171,7 @@ export default function Programs() {
         <PaginationLink 
           isActive={currentPage === 1}
           onClick={() => paginate(1)}
+          className={currentPage === 1 ? "bg-indigo-600 text-white" : ""}
         >
           1
         </PaginationLink>
@@ -189,6 +196,7 @@ export default function Programs() {
               <PaginationLink 
                 isActive={currentPage === i}
                 onClick={() => paginate(i)}
+                className={currentPage === i ? "bg-indigo-600 text-white" : ""}
               >
                 {i}
               </PaginationLink>
@@ -208,6 +216,7 @@ export default function Programs() {
             <PaginationLink 
               isActive={currentPage === i}
               onClick={() => paginate(i)}
+              className={currentPage === i ? "bg-indigo-600 text-white" : ""}
             >
               {i}
             </PaginationLink>
@@ -223,6 +232,7 @@ export default function Programs() {
           <PaginationLink 
             isActive={currentPage === totalPages}
             onClick={() => paginate(totalPages)}
+            className={currentPage === totalPages ? "bg-indigo-600 text-white" : ""}
           >
             {totalPages}
           </PaginationLink>
@@ -234,30 +244,39 @@ export default function Programs() {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-10 px-4 sm:px-6">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="container max-w-7xl mx-auto py-10 px-4 sm:px-6"
+    >
       <div className="flex flex-col md:flex-row justify-between items-start mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Programs</h1>
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">
+            Educational Programs
+          </h1>
           <p className="text-muted-foreground mt-2">
-            Browse educational programs across Europe
+            Browse {totalItems} educational programs across Europe
           </p>
         </div>
         <div className="mt-4 md:mt-0 flex items-center gap-2">
-          <div className="flex rounded-md overflow-hidden border">
+          <div className="flex rounded-md overflow-hidden border shadow-sm">
             <Button 
               variant={viewMode === "grid" ? "default" : "ghost"} 
               size="sm"
               onClick={() => setViewMode("grid")}
-              className="rounded-none"
+              className={`rounded-none ${viewMode === "grid" ? "bg-indigo-600" : ""}`}
             >
+              <Grid className="h-4 w-4 mr-2" />
               Grid
             </Button>
             <Button 
               variant={viewMode === "list" ? "default" : "ghost"} 
               size="sm"
               onClick={() => setViewMode("list")}
-              className="rounded-none"
+              className={`rounded-none ${viewMode === "list" ? "bg-indigo-600" : ""}`}
             >
+              <List className="h-4 w-4 mr-2" />
               List
             </Button>
           </div>
@@ -265,9 +284,9 @@ export default function Programs() {
           <Button 
             variant="outline" 
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center"
+            className="flex items-center shadow-sm border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50"
           >
-            <Filter className="mr-2 h-4 w-4" />
+            <Filter className="mr-2 h-4 w-4 text-indigo-600" />
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </Button>
         </div>
@@ -287,8 +306,8 @@ export default function Programs() {
       {/* Compare button */}
       {compareList.length > 0 && !showCompare && (
         <div className="mb-4">
-          <Button onClick={() => setShowCompare(true)}>
-            <LayoutPanelLeft className="mr-2 h-4 w-4" />
+          <Button className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-md flex items-center gap-2" onClick={() => setShowCompare(true)}>
+            <LayoutPanelLeft className="h-4 w-4" />
             Compare ({compareList.length}) Programs
           </Button>
         </div>
@@ -296,15 +315,18 @@ export default function Programs() {
       
       {/* Filters */}
       {showFilters && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-xl">Filters</CardTitle>
-            <CardDescription>Refine your search</CardDescription>
+        <Card className="mb-6 border-0 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-950/30 dark:to-violet-950/30">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Filter className="h-5 w-5 text-indigo-600" />
+              Program Filters
+            </CardTitle>
+            <CardDescription>Refine your search to find the perfect program</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-1">Study Level</label>
+                <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Study Level</label>
                 <Select
                   value={studyLevel}
                   onValueChange={(value) => {
@@ -312,7 +334,7 @@ export default function Programs() {
                     handleFilterChange();
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="All Levels" />
                   </SelectTrigger>
                   <SelectContent>
@@ -326,7 +348,7 @@ export default function Programs() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Country</label>
+                <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Country</label>
                 <Select
                   value={country}
                   onValueChange={(value) => {
@@ -334,7 +356,7 @@ export default function Programs() {
                     handleFilterChange();
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="All Countries" />
                   </SelectTrigger>
                   <SelectContent>
@@ -350,7 +372,7 @@ export default function Programs() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Field of Study</label>
+                <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Field of Study</label>
                 <Select
                   value={field}
                   onValueChange={(value) => {
@@ -358,7 +380,7 @@ export default function Programs() {
                     handleFilterChange();
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="All Fields" />
                   </SelectTrigger>
                   <SelectContent>
@@ -375,7 +397,7 @@ export default function Programs() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Language</label>
+                <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">Language</label>
                 <Select
                   value={language}
                   onValueChange={(value) => {
@@ -383,7 +405,7 @@ export default function Programs() {
                     handleFilterChange();
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="All Languages" />
                   </SelectTrigger>
                   <SelectContent>
@@ -398,7 +420,7 @@ export default function Programs() {
               </div>
 
               <div className="md:col-span-2 lg:col-span-4">
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
                   Budget Range (€): {budget[0]} - {budget[1]}
                 </label>
                 <Slider
@@ -416,7 +438,7 @@ export default function Programs() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between">
+          <CardFooter className="flex justify-between p-4 bg-slate-50 dark:bg-slate-900/50 border-t">
             <Button 
               variant="outline" 
               onClick={() => {
@@ -427,10 +449,16 @@ export default function Programs() {
                 setLanguage("");
                 handleFilterChange();
               }}
+              className="border-slate-300 hover:bg-slate-100"
             >
               Clear Filters
             </Button>
-            <Button onClick={handleFilterChange}>Apply Filters</Button>
+            <Button 
+              onClick={handleFilterChange}
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-sm"
+            >
+              Apply Filters
+            </Button>
           </CardFooter>
         </Card>
       )}
@@ -461,11 +489,11 @@ export default function Programs() {
       
       {/* Display favorites count if any */}
       {favorites.length > 0 && (
-        <Alert className="mb-4 bg-pink-50 border-pink-200">
+        <Alert className="mb-4 bg-gradient-to-r from-pink-50 to-rose-50 border-pink-200 shadow-sm">
           <Heart className="h-4 w-4 text-pink-500" />
           <AlertDescription>
             You have {favorites.length} favorite programs. 
-            <Button variant="link" className="p-0 h-auto text-pink-600" onClick={() => setShowFilters(true)}>
+            <Button variant="link" className="p-0 h-auto text-pink-600 underline decoration-pink-200 decoration-2 underline-offset-2" onClick={() => setShowFilters(true)}>
               Find more programs matching your interests
             </Button>
           </AlertDescription>
@@ -476,7 +504,7 @@ export default function Programs() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
+            <Card key={i} className="overflow-hidden border-0 shadow-md">
               <div className="aspect-video w-full">
                 <Skeleton className="h-full w-full" />
               </div>
@@ -499,19 +527,24 @@ export default function Programs() {
         </div>
       ) : programs.length === 0 ? (
         <div className="text-center py-12">
-          <GraduationCap className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+          <div className="bg-slate-100 dark:bg-slate-800 rounded-full p-4 inline-flex mx-auto mb-6">
+            <AlertCircle className="h-10 w-10 text-slate-500" />
+          </div>
           <h3 className="text-xl font-medium mb-2">No programs found</h3>
-          <p className="text-muted-foreground mb-6">
-            Try adjusting your filters or search criteria
+          <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+            Try adjusting your filters or search criteria to find programs that match your preferences
           </p>
-          <Button onClick={() => {
-            setStudyLevel("");
-            setCountry("");
-            setField("");
-            setBudget([0, 50000]);
-            setLanguage("");
-            handleFilterChange();
-          }}>
+          <Button 
+            onClick={() => {
+              setStudyLevel("");
+              setCountry("");
+              setField("");
+              setBudget([0, 50000]);
+              setLanguage("");
+              handleFilterChange();
+            }}
+            className="bg-gradient-to-r from-indigo-600 to-violet-600 shadow-md"
+          >
             Clear All Filters
           </Button>
         </div>
@@ -525,7 +558,7 @@ export default function Programs() {
               key={program.id}
               program={program}
               isGridView={viewMode === "grid"}
-              showScore={true}
+              showMatchScore={true}
               isFavorite={favorites.includes(program.id)}
               isCompare={compareList.includes(program.id)}
               onFavorite={handleToggleFavorite}
@@ -558,6 +591,6 @@ export default function Programs() {
           </PaginationContent>
         </Pagination>
       )}
-    </div>
+    </motion.div>
   );
 }

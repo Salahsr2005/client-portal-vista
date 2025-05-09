@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { CheckCircle, Clock, AlertTriangle, X, CalendarCheck, FileCheck } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, X, CalendarCheck, FileCheck, CircleDot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '../ui/badge';
+import { Card } from '../ui/card';
 
 interface TimelineEvent {
   id: string;
@@ -32,7 +33,7 @@ const getStatusIcon = (status: string) => {
     case 'submitted':
       return <CalendarCheck className="h-6 w-6 text-violet-500" />;
     default:
-      return <AlertTriangle className="h-6 w-6 text-gray-500" />;
+      return <CircleDot className="h-6 w-6 text-gray-500" />;
   }
 };
 
@@ -63,47 +64,58 @@ const ApplicationTimeline: React.FC<ApplicationTimelineProps> = ({ events, curre
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Application Timeline</h3>
-        <Badge className={cn("font-medium", getStatusColor(currentStatus))}>
-          {currentStatus}
-        </Badge>
-      </div>
-      
-      <div className="relative border-l-2 border-slate-200 pl-6 pb-2 space-y-6">
-        {sortedEvents.map((event, index) => (
-          <div
-            key={event.id}
-            className={cn(
-              "relative",
-              index === 0 ? "pt-0" : "pt-2"
-            )}
-          >
-            <div className="absolute -left-[25px] bg-white dark:bg-slate-950 p-1">
-              {getStatusIcon(event.status)}
-            </div>
-            
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-4">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
-                <h4 className="font-medium">{event.status}</h4>
-                <span className="text-sm text-muted-foreground">{event.date}</span>
+    <Card className="overflow-hidden border-0 shadow-md bg-gradient-to-br from-white to-slate-50/80">
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium flex items-center">
+            <CircleDot className="h-5 w-5 mr-2 text-indigo-500" />
+            Application Timeline
+          </h3>
+          <Badge className={cn("font-medium shadow-sm", getStatusColor(currentStatus))}>
+            {currentStatus}
+          </Badge>
+        </div>
+        
+        <div className="relative border-l-2 border-indigo-200 pl-6 pb-2 space-y-8">
+          {sortedEvents.map((event, index) => (
+            <div
+              key={event.id}
+              className={cn(
+                "relative",
+                index === 0 ? "pt-0" : "pt-2"
+              )}
+            >
+              <div className="absolute -left-[25px] bg-white dark:bg-slate-950 p-1 rounded-full shadow-sm">
+                {getStatusIcon(event.status)}
               </div>
               
-              {event.note && (
-                <p className="mt-2 text-sm text-muted-foreground">{event.note}</p>
-              )}
+              <div className="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-100 hover:border-indigo-100 transition-all">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                  <h4 className="font-medium text-indigo-900 dark:text-indigo-300">{event.status}</h4>
+                  <span className="text-sm text-muted-foreground px-2 py-1 bg-slate-50 dark:bg-slate-800 rounded-full">{event.date}</span>
+                </div>
+                
+                {event.note && (
+                  <p className="mt-3 text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-lg">
+                    {event.note}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-        
-        {sortedEvents.length === 0 && (
-          <div className="py-8 text-center text-muted-foreground">
-            No timeline events available
-          </div>
-        )}
+          ))}
+          
+          {sortedEvents.length === 0 && (
+            <div className="py-10 text-center">
+              <AlertTriangle className="h-12 w-12 mx-auto text-amber-500 mb-3 opacity-80" />
+              <h4 className="text-base font-medium text-slate-700 dark:text-slate-300">No Timeline Events</h4>
+              <p className="mt-1 text-sm text-muted-foreground max-w-md mx-auto">
+                Your application timeline will appear here once you've submitted an application.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </Card>
   );
 };
 
