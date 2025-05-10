@@ -126,3 +126,35 @@ export const getBudgetBreakdown = (program: any) => {
     }
   };
 };
+
+// Add the missing calculateProgramMatch function
+export const calculateProgramMatch = (program: any, filter: any) => {
+  // Calculate match score using the existing calculateMatchScore function
+  const score = calculateMatchScore(program, {
+    field: filter.subjects ? filter.subjects[0] : undefined,
+    level: filter.studyLevel,
+    budget: filter.budget ? parseInt(filter.budget) : undefined,
+    language: filter.language,
+    destination: filter.location,
+    religious_facilities: filter.religiousFacilities,
+    halal_food: filter.halalFood,
+    scholarship: filter.scholarshipRequired
+  });
+  
+  // Get match explanation reasons
+  const details = getMatchExplanation(program, {
+    field: filter.subjects ? filter.subjects[0] : undefined,
+    level: filter.studyLevel,
+    budget: filter.budget ? parseInt(filter.budget) : undefined,
+    language: filter.language,
+    destination: filter.location,
+    religious_facilities: filter.religiousFacilities,
+    halal_food: filter.halalFood,
+    scholarship: filter.scholarshipRequired
+  });
+  
+  return {
+    score,
+    details
+  };
+};
