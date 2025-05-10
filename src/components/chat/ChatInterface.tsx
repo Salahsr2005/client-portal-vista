@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +25,9 @@ import {
   MessageSquare,
   AlertTriangle,
   CreditCard,
-  Lock
+  Lock,
+  FileText,
+  Clock
 } from 'lucide-react';
 
 interface Message {
@@ -148,6 +151,7 @@ const ChatInterface: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
+  const [hasApprovedApplication, setHasApprovedApplication] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: paymentStatus, isLoading: paymentLoading } = useUserPaymentStatus();
 
@@ -157,6 +161,30 @@ const ChatInterface: React.FC = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Check if user has approved applications
+  useEffect(() => {
+    const checkApplicationStatus = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('client_id', user.id)
+          .eq('status', 'Approved')
+          .limit(1);
+          
+        if (error) throw error;
+        
+        setHasApprovedApplication(data && data.length > 0);
+      } catch (error) {
+        console.error('Error checking application status:', error);
+      }
+    };
+    
+    checkApplicationStatus();
+  }, [user]);
 
   // Simulate real-time messaging
   useEffect(() => {
@@ -206,9 +234,10 @@ const ChatInterface: React.FC = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Check if user can access chat based on payment status
+  // Check if user can access chat based on payment status and application approval
   const canAccessChat = () => {
     if (!paymentStatus) return false;
+    if (!hasApprovedApplication) return false;
     return paymentStatus.isPaid;
   };
 
@@ -230,7 +259,7 @@ const ChatInterface: React.FC = () => {
     );
   }
 
-  // If payment is loading
+  // If payment or application status is loading
   if (paymentLoading) {
     return (
       <div className="h-[600px] flex items-center justify-center">
@@ -240,6 +269,43 @@ const ChatInterface: React.FC = () => {
           <Skeleton className="h-4 w-64 mx-auto mb-4" />
           <Skeleton className="h-10 w-32 mx-auto" />
         </div>
+      </div>
+    );
+  }
+
+  // If user doesn't have approved application
+  if (!hasApprovedApplication) {
+    return (
+      <div className="h-[600px] flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <FileText className="h-12 w-12 mx-auto text-amber-500 mb-2" />
+            <CardTitle>Application Required</CardTitle>
+            <CardDescription>
+              You need an approved application to access the chat feature
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <h3 className="font-semibold text-lg flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-amber-500" />
+                Application Status
+              </h3>
+              <p className="text-sm mt-2">
+                Please submit an application and wait for approval to access the chat feature.
+              </p>
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <Button asChild className="w-full">
+                <Link to="/applications/new">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Submit an Application
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -285,7 +351,7 @@ const ChatInterface: React.FC = () => {
     );
   }
 
-  // Regular chat interface for paid users
+  // Regular chat interface for paid users with approved applications
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col">
       <h1 className="text-2xl font-bold mb-4">Messages</h1>

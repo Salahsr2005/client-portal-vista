@@ -156,9 +156,9 @@ export const usePrograms = (filter?: ProgramFilter) => {
         
         // Add filters if provided
         if (filter) {
-          // Study level filter
+          // Study level filter - convert to string without typecasting
           if (filter.studyLevel) {
-            query = query.eq('study_level', filter.studyLevel as string);
+            query = query.eq('study_level', filter.studyLevel);
           }
           
           // Location filter

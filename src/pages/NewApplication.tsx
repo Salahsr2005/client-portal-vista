@@ -1,41 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { useApplicationSubmit } from '@/hooks/useApplicationSubmit';
-import { Program } from '@/components/consultation/types';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from '@/components/ui/input';
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  MapPin as LocationIcon, 
-  GraduationCap as EducationIcon, 
-  Clock as DurationIcon, 
-  CircleDollarSign as CostIcon,
-  BookOpen,
-  Building,
-  Calendar,
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Globe,
-  Info,
-  Loader2,
-  LucideSearch as Search
-} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Info } from 'lucide-react';
 
 export default function NewApplication() {
   const [searchParams] = useSearchParams();
@@ -118,7 +89,7 @@ export default function NewApplication() {
     <div className="container max-w-3xl py-8">
       <Button asChild variant="ghost" className="mb-4">
         <Link to="/applications">
-          <ChevronLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Applications
         </Link>
       </Button>

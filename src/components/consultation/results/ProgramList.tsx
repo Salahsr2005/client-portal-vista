@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Euro } from 'lucide-react';
@@ -122,7 +121,7 @@ export const ProgramList: React.FC<ProgramListProps> = ({
                           Match Details
                         </h3>
                         <div className="markdown-content whitespace-pre-wrap">
-                          {getMatchExplanation(program).split('\n').map((line, i) => {
+                          {typeof program.matchDetails === 'string' ? program.matchDetails.split('\n').map((line: string, i: number) => {
                             if (line.startsWith('##')) {
                               return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
                             } 
@@ -135,7 +134,14 @@ export const ProgramList: React.FC<ProgramListProps> = ({
                               );
                             }
                             return <p key={i}>{line}</p>;
-                          })}
+                          }) : (
+                            program.matchDetails && program.matchDetails.map((detail: string, i: number) => (
+                              <div key={i} className="flex items-start mb-1">
+                                <span className="mr-2">•</span>
+                                <span>{detail}</span>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     </div>
@@ -162,26 +168,67 @@ export const ProgramList: React.FC<ProgramListProps> = ({
                           Cost Breakdown
                         </h3>
                         <div className="markdown-content whitespace-pre-wrap">
-                          {getBudgetBreakdown(program).split('\n').map((line, i) => {
-                            if (line.startsWith('##')) {
-                              return <h4 key={i} className="text-md font-medium mb-2">{line.replace('## ', '')}</h4>;
-                            } 
-                            if (line.startsWith('###')) {
-                              return <h5 key={i} className="text-sm font-medium mt-2 mb-1">{line.replace('### ', '')}</h5>;
-                            }
-                            if (line.startsWith('*')) {
-                              return (
-                                <div key={i} className="flex items-start mb-1">
+                          {(() => {
+                            const breakdown = getBudgetBreakdown(program);
+                            const items = [];
+                            
+                            // Tuition
+                            items.push(<h4 key="tuition" className="text-md font-medium mt-2 mb-1">Tuition</h4>);
+                            items.push(
+                              <div key="tuition-val" className="flex items-start mb-1">
+                                <span className="mr-2">•</span>
+                                <span>€{breakdown.tuition.min.toLocaleString()} - €{breakdown.tuition.max.toLocaleString()}</span>
+                              </div>
+                            );
+                            
+                            // Living costs
+                            items.push(<h4 key="living" className="text-md font-medium mt-2 mb-1">Living Costs</h4>);
+                            items.push(
+                              <div key="living-val" className="flex items-start mb-1">
+                                <span className="mr-2">•</span>
+                                <span>€{breakdown.living.min.toLocaleString()} - €{breakdown.living.max.toLocaleString()}</span>
+                              </div>
+                            );
+                            
+                            // Housing
+                            items.push(<h4 key="housing" className="text-md font-medium mt-2 mb-1">Housing</h4>);
+                            items.push(
+                              <div key="housing-val" className="flex items-start mb-1">
+                                <span className="mr-2">•</span>
+                                <span>€{breakdown.housing.min.toLocaleString()} - €{breakdown.housing.max.toLocaleString()}</span>
+                              </div>
+                            );
+                            
+                            // Other fees
+                            items.push(<h4 key="fees" className="text-md font-medium mt-2 mb-1">Other Fees</h4>);
+                            if (breakdown.applicationFee) {
+                              items.push(
+                                <div key="app-fee" className="flex items-start mb-1">
                                   <span className="mr-2">•</span>
-                                  <span>{line.replace('* ', '')}</span>
+                                  <span>Application Fee: €{breakdown.applicationFee.toLocaleString()}</span>
                                 </div>
                               );
                             }
-                            if (line.startsWith('_')) {
-                              return <div key={i} className="text-xs text-muted-foreground ml-4">{line}</div>;
+                            if (breakdown.visaFee) {
+                              items.push(
+                                <div key="visa-fee" className="flex items-start mb-1">
+                                  <span className="mr-2">•</span>
+                                  <span>Visa Fee: €{breakdown.visaFee.toLocaleString()}</span>
+                                </div>
+                              );
                             }
-                            return <p key={i}>{line}</p>;
-                          })}
+                            
+                            // Total
+                            items.push(<h4 key="total" className="text-md font-medium mt-3 mb-1">Estimated Total</h4>);
+                            items.push(
+                              <div key="total-val" className="flex items-start mb-1 font-bold">
+                                <span className="mr-2">•</span>
+                                <span>€{breakdown.total.min.toLocaleString()} - €{breakdown.total.max.toLocaleString()}</span>
+                              </div>
+                            );
+                            
+                            return items;
+                          })()}
                         </div>
                       </div>
                     </div>

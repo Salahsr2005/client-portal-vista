@@ -1,339 +1,284 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, AlertTriangle } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import PaymentStatus from '@/components/profile/PaymentStatus';
+import DocumentsList from '@/components/profile/DocumentsList';
 
-export default function Profile() {
-  const { user, signOut } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [country, setCountry] = useState("");
-  const [city, setCity] = useState("");
-  const [address, setAddress] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [currentAddress, setCurrentAddress] = useState("");
-  const [educationBackground, setEducationBackground] = useState("");
-  const [workExperience, setWorkExperience] = useState("");
-  const [additionalNotes, setAdditionalNotes] = useState("");
-  const [emergencyContactName, setEmergencyContactName] = useState("");
-  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+const Profile = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    setIsLoading(true);
-    try {
-      // First check if profile exists in client_profiles
-      const { data, error } = await supabase
-        .from("client_profiles")
-        .select("*")
-        .eq("client_id", user?.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error("Error fetching profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile. Please try again.",
-          variant: "destructive",
-        });
-      }
-
-      if (data) {
-        // Support both old and new schema
-        setFullName(data.full_name || "");
-        setEmail(data.email || user?.email || "");
-        setPhone(data.phone || "");
-        setCountry(data.country || "");
-        setCity(data.city || "");
-        setAddress(data.address || data.current_address || "");
-        setIsSubscribed(data.is_subscribed || false);
-        
-        // New schema fields
-        setCurrentAddress(data.current_address || "");
-        setEducationBackground(data.education_background || "");
-        setWorkExperience(data.work_experience || "");
-        setAdditionalNotes(data.additional_notes || "");
-        setEmergencyContactName(data.emergency_contact_name || "");
-        setEmergencyContactPhone(data.emergency_contact_phone || "");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateProfile = async () => {
-    setIsLoading(true);
-    try {
-      const profileData = {
-        client_id: user?.id,
-        full_name: fullName,
-        email: email,
-        phone: phone,
-        country: country,
-        city: city,
-        address: address,
-        current_address: currentAddress || address,
-        is_subscribed: isSubscribed,
-        education_background: educationBackground,
-        work_experience: workExperience,
-        additional_notes: additionalNotes,
-        emergency_contact_name: emergencyContactName,
-        emergency_contact_phone: emergencyContactPhone,
-      };
+  const [activeTab, setActiveTab] = useState("personal");
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Fetch user profile data
+  const { data: profileData, isLoading, isError, refetch } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
       
-      const { error } = await supabase
-        .from("client_profiles")
-        .upsert(profileData, { onConflict: 'client_id' });
+      // Join client_users and client_profiles
+      const { data: userData, error: userError } = await supabase
+        .from('client_users')
+        .select(`
+          client_id, 
+          first_name, 
+          last_name, 
+          email, 
+          phone, 
+          nationality,
+          country,
+          city,
+          photo_url,
+          client_profiles (*)
+        `)
+        .eq('client_id', user.id)
+        .single();
+      
+      if (userError) throw userError;
+      
+      return {
+        ...userData,
+        // Extract data from the nested client_profiles
+        ...(userData.client_profiles || {}),
+      };
+    },
+    enabled: !!user,
+  });
 
-      if (error) {
-        console.error("Error updating profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to update profile. Please try again.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Profile updated successfully!",
-        });
-      }
-    } finally {
-      setIsLoading(false);
+  if (!user) {
+    return (
+      <div className="container max-w-6xl py-8">
+        <h1 className="text-2xl font-bold mb-4">Profile</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Required</CardTitle>
+            <CardDescription>Please log in to view your profile.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  const formattedName = () => {
+    if (profileData) {
+      return `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'User';
     }
+    return 'User';
   };
 
-  const handleSignOut = async () => {
-    setIsLoading(true);
-    try {
-      await signOut();
-      toast({
-        title: "Success",
-        description: "Signed out successfully!",
-      });
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  const avatarFallback = () => {
+    if (profileData) {
+      return `${profileData.first_name?.[0] || ''}${profileData.last_name?.[0] || ''}`.toUpperCase() || 'U';
     }
+    return 'U';
   };
 
   return (
-    <div className="container max-w-3xl py-8">
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Profile Information</CardTitle>
-          <CardDescription>Update your profile information here.</CardDescription>
-        </CardHeader>
-        
-        <Tabs defaultValue="personal" className="w-full">
-          <div className="px-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="personal">Personal Info</TabsTrigger>
-              <TabsTrigger value="education">Education & Work</TabsTrigger>
-              <TabsTrigger value="emergency">Emergency Contact</TabsTrigger>
-            </TabsList>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center h-48">
-              <Loader2 className="h-6 w-6 animate-spin" />
+    <div className="container max-w-6xl py-8">
+      <h1 className="text-2xl font-bold mb-4">My Profile</h1>
+      
+      {/* User summary card */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={profileData?.photo_url || undefined} alt={formattedName()} />
+              <AvatarFallback className="text-lg">{avatarFallback()}</AvatarFallback>
+            </Avatar>
+            
+            <div className="text-center sm:text-left flex-1">
+              <h2 className="text-xl font-semibold">{formattedName()}</h2>
+              {profileData && (
+                <div className="text-muted-foreground mt-1">
+                  {profileData.email && <p>{profileData.email}</p>}
+                  {profileData.phone && <p>{profileData.phone}</p>}
+                  {profileData.country && <p>{profileData.country}</p>}
+                </div>
+              )}
+              <div className="mt-4">
+                <Button variant="outline" size="sm">Edit Profile</Button>
+              </div>
             </div>
-          ) : (
-            <>
-              <TabsContent value="personal" className="p-0">
-                <CardContent className="p-6 grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Enter your full name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={true}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      placeholder="Enter your phone number"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      placeholder="Enter your country"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      placeholder="Enter your city"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="address">Address</Label>
-                    <Input
-                      id="address"
-                      placeholder="Enter your address"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="subscribed"
-                      checked={isSubscribed}
-                      onCheckedChange={(checked) => setIsSubscribed(!!checked)}
-                    />
-                    <Label htmlFor="subscribed">Subscribe to newsletter</Label>
-                  </div>
-                </CardContent>
-              </TabsContent>
-              
-              <TabsContent value="education" className="p-0">
-                <CardContent className="p-6 grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="current-address">Current Address</Label>
-                    <Input
-                      id="current-address"
-                      placeholder="Enter your current address"
-                      value={currentAddress}
-                      onChange={(e) => setCurrentAddress(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="education">Education Background</Label>
-                    <Textarea
-                      id="education"
-                      placeholder="Describe your education background"
-                      value={educationBackground}
-                      onChange={(e) => setEducationBackground(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="work">Work Experience</Label>
-                    <Textarea
-                      id="work"
-                      placeholder="Describe your work experience"
-                      value={workExperience}
-                      onChange={(e) => setWorkExperience(e.target.value)}
-                      rows={4}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="notes">Additional Notes</Label>
-                    <Textarea
-                      id="notes"
-                      placeholder="Any additional information"
-                      value={additionalNotes}
-                      onChange={(e) => setAdditionalNotes(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                </CardContent>
-              </TabsContent>
-              
-              <TabsContent value="emergency" className="p-0">
-                <CardContent className="p-6 grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="emergency-name">Emergency Contact Name</Label>
-                    <Input
-                      id="emergency-name"
-                      placeholder="Enter emergency contact name"
-                      value={emergencyContactName}
-                      onChange={(e) => setEmergencyContactName(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="emergency-phone">Emergency Contact Phone</Label>
-                    <Input
-                      id="emergency-phone"
-                      placeholder="Enter emergency contact phone"
-                      value={emergencyContactPhone}
-                      onChange={(e) => setEmergencyContactPhone(e.target.value)}
-                    />
-                  </div>
-                </CardContent>
-              </TabsContent>
-              
-              <CardContent className="px-6 pb-6">
-                <Button onClick={updateProfile} disabled={isLoading} className="w-full">
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    "Update Profile"
-                  )}
-                </Button>
-              </CardContent>
-            </>
-          )}
-        </Tabs>
-        
-        <CardContent className="grid gap-4 pt-0">
-          <Separator />
-          <Button
-            variant="destructive"
-            onClick={handleSignOut}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing Out...
-              </>
-            ) : (
-              "Sign Out"
-            )}
-          </Button>
+          </div>
         </CardContent>
       </Card>
+      
+      {/* Tabs for different sections */}
+      <Tabs defaultValue="personal" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-6 w-full sm:w-auto">
+          <TabsTrigger value="personal">Personal Information</TabsTrigger>
+          <TabsTrigger value="payments">Payments & Finances</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
+        
+        {/* Personal Information Tab */}
+        <TabsContent value="personal" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Details</CardTitle>
+              <CardDescription>Your personal information used for applications and services</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input 
+                    id="firstName"
+                    value={profileData?.first_name || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input 
+                    id="lastName"
+                    value={profileData?.last_name || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input 
+                    id="email"
+                    type="email"
+                    value={profileData?.email || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input 
+                    id="phone"
+                    value={profileData?.phone || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nationality">Nationality</Label>
+                  <Input 
+                    id="nationality"
+                    value={profileData?.nationality || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="passport">Passport Number</Label>
+                  <Input 
+                    id="passport"
+                    value={profileData?.passport_number || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+              </div>
+                
+              <div className="space-y-2">
+                <Label htmlFor="address">Current Address</Label>
+                <Textarea 
+                  id="address"
+                  value={profileData?.current_address || ''}
+                  readOnly={!isEditing}
+                  className={!isEditing ? 'bg-muted cursor-default' : ''}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="education">Education Background</Label>
+                <Textarea 
+                  id="education"
+                  value={profileData?.education_background || ''}
+                  readOnly={!isEditing}
+                  className={!isEditing ? 'bg-muted cursor-default' : ''}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="work">Work Experience</Label>
+                <Textarea 
+                  id="work"
+                  value={profileData?.work_experience || ''}
+                  readOnly={!isEditing}
+                  className={!isEditing ? 'bg-muted cursor-default' : ''}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="language">Language Proficiency</Label>
+                <Textarea 
+                  id="language"
+                  value={profileData?.language_proficiency || ''}
+                  readOnly={!isEditing}
+                  className={!isEditing ? 'bg-muted cursor-default' : ''}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="justify-between">
+              <Button variant="outline" onClick={() => setIsEditing(!isEditing)}>
+                {isEditing ? 'Cancel' : 'Edit Information'}
+              </Button>
+              {isEditing && (
+                <Button>Save Changes</Button>
+              )}
+            </CardFooter>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Emergency Contact</CardTitle>
+              <CardDescription>Contact person in case of emergency</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyName">Full Name</Label>
+                  <Input 
+                    id="emergencyName"
+                    value={profileData?.emergency_contact_name || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="emergencyPhone">Phone Number</Label>
+                  <Input 
+                    id="emergencyPhone"
+                    value={profileData?.emergency_contact_phone || ''}
+                    readOnly={!isEditing}
+                    className={!isEditing ? 'bg-muted cursor-default' : ''}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Payments Tab */}
+        <TabsContent value="payments">
+          <PaymentStatus />
+        </TabsContent>
+        
+        {/* Documents Tab */}
+        <TabsContent value="documents">
+          <DocumentsList />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default Profile;

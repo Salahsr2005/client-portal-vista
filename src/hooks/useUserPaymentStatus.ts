@@ -3,110 +3,90 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface PaymentStatusResult {
-  isPaid: boolean;
-  isPending: boolean;
-  hasPendingReceipt: boolean;
-  hasPendingApplication: boolean;
-  error?: string;
+interface PaymentReceipt {
+  id: string;
+  client_id: string;
+  payment_id: string;
+  receipt_path: string;
+  notes: string;
+  status: string;
+  uploaded_at: string;
+  verified_at: string;
+  verified_by: string;
 }
 
-// Add missing export for useUploadedReceipts
-export const useUploadedReceipts = () => {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['paymentReceipts', user?.id],
-    queryFn: async () => {
-      if (!user) {
-        return [];
-      }
-      
-      try {
-        const { data, error } = await supabase
-          .from('payment_receipts')
-          .select('*')
-          .eq('client_id', user.id);
-          
-        if (error) throw error;
-        
-        return data || [];
-      } catch (error: any) {
-        console.error('Error fetching payment receipts:', error);
-        return [];
-      }
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
+interface PaymentStatus {
+  id: string;
+  amount: number;
+  status: string;
+  date: string;
+  method: string;
+  reference: string;
+  notes: string;
+  isPaid: boolean;
+  hasPendingReceipt: boolean;
+  receipts: PaymentReceipt[];
+}
 
 export const useUserPaymentStatus = () => {
   const { user } = useAuth();
   
   return useQuery({
-    queryKey: ['paymentStatus', user?.id],
-    queryFn: async (): Promise<PaymentStatusResult> => {
-      if (!user) {
-        return { 
-          isPaid: false, 
-          isPending: false,
-          hasPendingReceipt: false, 
-          hasPendingApplication: false,
-          error: 'User not authenticated' 
-        };
-      }
-
+    queryKey: ['userPaymentStatus'],
+    queryFn: async (): Promise<PaymentStatus | null> => {
+      if (!user) return null;
+      
       try {
-        // Check for payments with Completed status
-        const { data: payments, error: paymentsError } = await supabase
+        // Get the latest payment for this user
+        const { data: paymentData, error: paymentError } = await supabase
           .from('payments')
           .select('*')
           .eq('client_id', user.id)
-          .eq('status', 'Completed');
-          
-        if (paymentsError) throw paymentsError;
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
         
-        // Check for pending receipts
-        const { data: pendingReceipts, error: receiptsError } = await supabase
+        if (paymentError) {
+          // If no payment record found, return null
+          if (paymentError.code === 'PGRST116') return null;
+          throw paymentError;
+        }
+        
+        if (!paymentData) return null;
+        
+        // Get receipts for this payment
+        const { data: receipts, error: receiptsError } = await supabase
           .from('payment_receipts')
           .select('*')
-          .eq('client_id', user.id)
-          .eq('status', 'Pending');
-          
+          .eq('payment_id', paymentData.payment_id);
+        
         if (receiptsError) throw receiptsError;
         
-        // Check for applications
-        const { data: applications, error: applicationsError } = await supabase
-          .from('applications')
-          .select('*')
-          .eq('client_id', user.id);
-          
-        if (applicationsError) throw applicationsError;
+        // Calculate payment status flags
+        const isPaid = paymentData.status === 'Completed' || paymentData.status === 'Approved';
         
-        // Check for pending applications
-        const pendingApplications = applications?.filter(app => 
-          app.status === 'Submitted' || app.status === 'Under Review'
-        ) || [];
+        const hasPendingReceipt = receipts?.some(receipt => 
+          receipt.status === 'Pending'
+        ) || false;
         
         return {
-          isPaid: payments && payments.length > 0,
-          isPending: (pendingReceipts && pendingReceipts.length > 0) || false,
-          hasPendingReceipt: pendingReceipts && pendingReceipts.length > 0,
-          hasPendingApplication: pendingApplications.length > 0
+          id: paymentData.payment_id,
+          amount: paymentData.amount,
+          status: paymentData.status,
+          date: paymentData.date,
+          method: paymentData.method,
+          reference: paymentData.reference,
+          notes: paymentData.notes || '',
+          isPaid,
+          hasPendingReceipt,
+          receipts: receipts || []
         };
-      } catch (error: any) {
-        console.error('Error checking payment status:', error);
-        return { 
-          isPaid: false,
-          isPending: false,
-          hasPendingReceipt: false,
-          hasPendingApplication: false,
-          error: error.message || 'Failed to check payment status'
-        };
+      } catch (error) {
+        console.error('Error fetching payment status:', error);
+        throw error;
       }
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };

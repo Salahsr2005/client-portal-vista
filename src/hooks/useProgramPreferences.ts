@@ -1,105 +1,123 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProgramPreference {
-  id?: string;
-  userId: string;
-  studyLevel?: string;
-  language?: string;
-  budget?: number;
-  subjects?: string[];
-  religiousFacilities?: boolean;
-  halalFood?: boolean;
-  scholarshipRequired?: boolean;
-  languageTestRequired?: boolean;
-  destinations?: string[];
-  createdAt?: string;
-  updatedAt?: string;
+  user_id: string;
+  study_level: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
+  language_preference: string;
+  budget: number;
+  field_keywords: string[];
+  destination_preference: string;
+  religious_facilities_required: boolean;
+  halal_food_required: boolean;
+  scholarship_required: boolean;
 }
 
 export const useProgramPreferences = () => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const { toast } = useToast();
   
-  const query = useQuery({
+  // Query to fetch user's program preferences
+  const preferencesQuery = useQuery({
     queryKey: ['programPreferences', user?.id],
     queryFn: async () => {
-      if (!user) return null;
+      if (!user) throw new Error('User not authenticated');
       
-      // Instead of querying a non-existent table, let's use consultation_results
-      // which exists in the schema and contains similar data
       const { data, error } = await supabase
         .from('consultation_results')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .maybeSingle();
-        
+        .limit(1)
+        .single();
+      
       if (error) {
-        console.error("Error fetching program preferences:", error);
-        return null;
+        // If no record found, return null instead of throwing an error
+        if (error.code === 'PGRST116') return null;
+        throw error;
       }
       
-      // If we find data, return it in our expected format
-      if (data) {
-        return {
-          id: data.id,
-          userId: data.user_id,
-          studyLevel: data.study_level || undefined,
-          language: data.language_preference || undefined,
-          budget: data.budget,
-          subjects: data.field_keywords || [],
-          religiousFacilities: data.religious_facilities_required || false,
-          halalFood: data.halal_food_required || false,
-          scholarshipRequired: data.scholarship_required || false,
-          destinations: data.destination_preference ? [data.destination_preference] : [],
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-        };
-      }
-      
-      return null;
+      return data;
     },
     enabled: !!user,
   });
   
-  const mutation = useMutation({
-    mutationFn: async (preferences: ProgramPreference) => {
+  // Mutation to save/update preferences
+  const saveMutation = useMutation({
+    mutationFn: async (preferences: Partial<ProgramPreference>) => {
       if (!user) throw new Error('User not authenticated');
       
-      // Format for consultation_results table
-      const formattedData = {
-        user_id: user.id,
-        study_level: preferences.studyLevel,
-        language_preference: preferences.language,
-        budget: preferences.budget || 0,
-        field_keywords: preferences.subjects || [],
-        destination_preference: preferences.destinations?.[0] || null,
-        religious_facilities_required: preferences.religiousFacilities || false,
-        halal_food_required: preferences.halalFood || false,
-        scholarship_required: preferences.scholarshipRequired || false,
-      };
-      
-      const { data, error } = await supabase
+      // Check if user already has preferences
+      const { data: existingData } = await supabase
         .from('consultation_results')
-        .upsert(formattedData)
-        .select();
-        
-      if (error) throw error;
-      return data;
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (existingData) {
+        // Update existing preferences
+        const { data, error } = await supabase
+          .from('consultation_results')
+          .update({
+            study_level: preferences.study_level,
+            language_preference: preferences.language_preference,
+            budget: preferences.budget,
+            field_keywords: preferences.field_keywords,
+            destination_preference: preferences.destination_preference,
+            religious_facilities_required: preferences.religious_facilities_required,
+            halal_food_required: preferences.halal_food_required,
+            scholarship_required: preferences.scholarship_required,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingData.id);
+          
+        if (error) throw error;
+        return data;
+      } else {
+        // Create new preferences
+        const { data, error } = await supabase
+          .from('consultation_results')
+          .insert({
+            user_id: user.id,
+            study_level: preferences.study_level,
+            language_preference: preferences.language_preference,
+            budget: preferences.budget,
+            field_keywords: preferences.field_keywords,
+            destination_preference: preferences.destination_preference,
+            religious_facilities_required: preferences.religious_facilities_required,
+            halal_food_required: preferences.halal_food_required,
+            scholarship_required: preferences.scholarship_required,
+          });
+          
+        if (error) throw error;
+        return data;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['programPreferences', user?.id] });
+      toast({
+        title: "Preferences saved",
+        description: "Your program preferences have been updated",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error saving preferences",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
     },
   });
   
   return {
-    preferences: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-    savePreferences: mutation.mutate,
-    isSaving: mutation.isPending,
+    preferences: preferencesQuery.data,
+    isLoading: preferencesQuery.isLoading,
+    isError: preferencesQuery.isError,
+    savePreferences: saveMutation.mutate,
+    isSaving: saveMutation.isPending,
   };
 };

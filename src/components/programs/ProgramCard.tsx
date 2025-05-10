@@ -111,7 +111,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program, showMatchScore = fal
     }
   };
 
-  // Determine card background based on deadline status
+  // Determine card background based on deadline status - use modern green for open programs and modern red for closed ones
   const cardBackgroundClass = program.deadlinePassed 
     ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border-red-200 dark:border-red-800/30' 
     : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800/30';

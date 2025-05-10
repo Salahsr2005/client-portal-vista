@@ -1,274 +1,238 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info, Euro } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon, CheckCircle } from "lucide-react";
+import { format } from "date-fns";
+import { usePrograms } from "@/hooks/usePrograms";
 import { FormData } from '../types';
 
 interface StepThreeProps {
   formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
-  languageOptions: { value: string; label: string }[];
-  budgetOptions: { value: string; label: string }[];
-  formatBudget: (budget: string) => string;
+  updateForm: (key: keyof FormData, value: any) => void;
+  onNext: () => void;
+  onBack: () => void;
+  isSubmitting: boolean;
 }
 
-export const StepThree: React.FC<StepThreeProps> = ({
-  formData,
-  setFormData,
-  languageOptions,
-  budgetOptions,
-  formatBudget
+const StepThree: React.FC<StepThreeProps> = ({ 
+  formData, 
+  updateForm, 
+  onNext, 
+  onBack,
+  isSubmitting 
 }) => {
-  return (
-    <motion.div 
-      key="step3"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-      className="space-y-6"
-    >
-      <h2 className="text-xl font-semibold">Additional Preferences</h2>
-      <p className="text-muted-foreground">Help us narrow down programs that match your needs</p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <motion.div 
-          className="space-y-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-        >
-          <Label htmlFor="location">Preferred Location</Label>
-          <Select 
-            value={formData.location || "any"} 
-            onValueChange={(value) => setFormData({...formData, location: value})}
-          >
-            <SelectTrigger id="location">
-              <SelectValue placeholder="Select a location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">Any Location</SelectItem>
-              <SelectItem value="europe">Europe</SelectItem>
-              <SelectItem value="United States">United States</SelectItem>
-              <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-              <SelectItem value="Canada">Canada</SelectItem>
-              <SelectItem value="Australia">Australia</SelectItem>
-              <SelectItem value="Germany">Germany</SelectItem>
-              <SelectItem value="France">France</SelectItem>
-              <SelectItem value="Spain">Spain</SelectItem>
-              <SelectItem value="Italy">Italy</SelectItem>
-              <SelectItem value="Netherlands">Netherlands</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
-        
-        <motion.div 
-          className="space-y-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <Label htmlFor="language">Preferred Language</Label>
-          <Select 
-            value={formData.language || "any"} 
-            onValueChange={(value) => setFormData({...formData, language: value})}
-          >
-            <SelectTrigger id="language">
-              <SelectValue placeholder="Select language" />
-            </SelectTrigger>
-            <SelectContent>
-              {languageOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </motion.div>
-        
-        <motion.div 
-          className="space-y-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <Label htmlFor="duration">Program Duration</Label>
-          <Select 
-            value={formData.duration || "full_degree"} 
-            onValueChange={(value) => setFormData({...formData, duration: value})}
-          >
-            <SelectTrigger id="duration">
-              <SelectValue placeholder="Select duration" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="preparatory">Preparatory Program (6-12 months)</SelectItem>
-              <SelectItem value="full_degree">Full Degree Program (2+ years)</SelectItem>
-              <SelectItem value="12">Up to 1 year</SelectItem>
-              <SelectItem value="24">1-2 years</SelectItem>
-              <SelectItem value="36">2-3 years</SelectItem>
-              <SelectItem value="48">3+ years</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
-        
-        <motion.div 
-          className="space-y-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.4 }}
-        >
-          <Label htmlFor="budget">Budget (Annual in EUR)</Label>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={formData.budget || "100000"}
-                    onValueChange={(value) => setFormData({...formData, budget: value})}
-                  >
-                    <SelectTrigger id="budget" className="flex-1">
-                      <SelectValue placeholder="Select budget range">
-                        {formData.budget ? (
-                          <div className="flex items-center">
-                            <Euro className="h-4 w-4 mr-1" />
-                            {formatBudget(formData.budget)}
-                          </div>
-                        ) : (
-                          "Select budget range"
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {budgetOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-[300px]">
-                <p>This budget should include tuition and estimated living expenses for one academic year.</p>
-                {formData.budget && (
-                  <p className="mt-2">
-                    Equivalent in DZD: {(parseInt(formData.budget) * 250).toLocaleString()} DZD
-                    <br /><span className="text-xs text-muted-foreground">1 EUR = 250 DZD</span>
-                  </p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </motion.div>
-        
-        <motion.div 
-          className="space-y-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-        >
-          <Label htmlFor="startDate">Preferred Start Date</Label>
-          <Select 
-            value={formData.startDate || "Fall 2025"} 
-            onValueChange={(value) => setFormData({...formData, startDate: value})}
-          >
-            <SelectTrigger id="startDate">
-              <SelectValue placeholder="Select start date" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Fall 2025">Fall 2025</SelectItem>
-              <SelectItem value="Spring 2026">Spring 2026</SelectItem>
-              <SelectItem value="Fall 2026">Fall 2026</SelectItem>
-              <SelectItem value="Spring 2027">Spring 2027</SelectItem>
-              <SelectItem value="Flexible">Flexible</SelectItem>
-            </SelectContent>
-          </Select>
-        </motion.div>
-      </div>
-      
-      <motion.div 
-        className="space-y-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.6 }}
-      >
-        <Label>Additional Requirements</Label>
-        
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="scholarshipRequired" 
-              checked={formData.scholarshipRequired}
-              onCheckedChange={(checked) => setFormData({...formData, scholarshipRequired: !!checked})}
-            />
-            <label htmlFor="scholarshipRequired">
-              Scholarship available
-            </label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="religiousFacilities" 
-              checked={formData.religiousFacilities}
-              onCheckedChange={(checked) => setFormData({...formData, religiousFacilities: !!checked})}
-            />
-            <label htmlFor="religiousFacilities">
-              Religious facilities available
-            </label>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="halalFood" 
-              checked={formData.halalFood}
-              onCheckedChange={(checked) => setFormData({...formData, halalFood: !!checked})}
-            />
-            <label htmlFor="halalFood">
-              Halal food options
-            </label>
-          </div>
+  const [date, setDate] = useState<Date | undefined>(
+    formData.startDate ? new Date(formData.startDate) : undefined
+  );
 
-          <div className="flex items-center space-x-2">
-            <Checkbox 
-              id="languageTestRequired" 
-              checked={formData.languageTestRequired}
-              onCheckedChange={(checked) => setFormData({...formData, languageTestRequired: !!checked})}
-            />
-            <label htmlFor="languageTestRequired">
-              Language test required
-            </label>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground ml-1" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Check this if you prefer programs that require language tests like IELTS, TOEFL, etc.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+  const budget = Number(formData.budget) || 0;
+
+  // Fetch sample programs based on form data to show preview
+  const { data: programs, isLoading } = usePrograms({
+    studyLevel: formData.level,
+    subjects: formData.subjects || [formData.subject || ''],
+    location: formData.destination,
+    budget: formData.budget?.toString(),
+    language: formData.language,
+    limit: 3, // Just fetch a few for preview
+  });
+
+  const handleDateChange = (date: Date | undefined) => {
+    setDate(date);
+    if (date) {
+      updateForm('startDate', date.toISOString());
+    }
+  };
+  
+  const handleSwitchChange = (key: 'religiousFacilities' | 'halalFood' | 'scholarshipRequired', checked: boolean) => {
+    // Update formData.specialRequirements
+    updateForm('specialRequirements', {
+      ...formData.specialRequirements,
+      [key]: checked,
+    });
+    
+    // Also update the top-level properties for compatibility
+    updateForm(key, checked);
+  };
+
+  const formatBudget = (amount: string | number) => {
+    if (!amount) return "€0";
+    const numericAmount = typeof amount === 'string' ? parseInt(amount, 10) : amount;
+    return `€${numericAmount.toLocaleString()}`;
+  };
+  
+  const formatCost = (program: any) => {
+    const min = program.tuition_min || 0;
+    const max = program.tuition_max || min;
+    
+    if (min === max) {
+      return `€${min.toLocaleString()}`;
+    }
+    
+    return `€${min.toLocaleString()} - €${max.toLocaleString()}`;
+  };
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold mb-6">Final Details</h2>
+      
+      <div className="space-y-8">
+        {/* Budget Selection */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Budget Range</h3>
+          <p className="text-muted-foreground mb-4">
+            Your selected budget is {formatBudget(formData.budget)}
+          </p>
+        </div>
+        
+        <Separator />
+        
+        {/* Special Requirements */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Special Requirements</h3>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="religious-facilities" className="text-base font-medium">Religious Facilities</Label>
+                <p className="text-sm text-muted-foreground">Need access to prayer rooms or places of worship</p>
+              </div>
+              <Switch 
+                id="religious-facilities" 
+                checked={formData.specialRequirements?.religiousFacilities || formData.religiousFacilities || false} 
+                onCheckedChange={(checked) => handleSwitchChange('religiousFacilities', checked)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="halal-food" className="text-base font-medium">Halal Food Options</Label>
+                <p className="text-sm text-muted-foreground">Require halal food availability</p>
+              </div>
+              <Switch 
+                id="halal-food" 
+                checked={formData.specialRequirements?.halalFood || formData.halalFood || false} 
+                onCheckedChange={(checked) => handleSwitchChange('halalFood', checked)}
+              />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="scholarship" className="text-base font-medium">Scholarship Required</Label>
+                <p className="text-sm text-muted-foreground">Need financial assistance with tuition</p>
+              </div>
+              <Switch 
+                id="scholarship" 
+                checked={formData.specialRequirements?.scholarshipRequired || formData.scholarshipRequired || false} 
+                onCheckedChange={(checked) => handleSwitchChange('scholarshipRequired', checked)}
+              />
+            </div>
           </div>
         </div>
-      </motion.div>
-      
-      <motion.div 
-        className="space-y-2"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.7 }}
-      >
-        <Label htmlFor="specialRequirements">Special Requirements or Notes</Label>
-        <Textarea 
-          id="specialRequirements" 
-          placeholder="Any additional information that might help us find the right program for you"
-          value={formData.specialRequirements}
-          onChange={(e) => setFormData({...formData, specialRequirements: e.target.value})}
-          className="min-h-[100px]"
-        />
-      </motion.div>
-    </motion.div>
+        
+        <Separator />
+        
+        {/* Preferred Start Date */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Preferred Start Date</h3>
+          
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full md:w-[280px] justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : "Pick a date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={handleDateChange}
+                initialFocus
+                disabled={(date) => date < new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+          
+          <p className="text-sm text-muted-foreground mt-2">
+            Select your preferred program start date (optional)
+          </p>
+        </div>
+        
+        <Separator />
+        
+        {/* Additional Notes */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Additional Notes</h3>
+          
+          <Textarea
+            placeholder="Any additional requirements or information you'd like to share..."
+            className="min-h-[120px]"
+          />
+        </div>
+        
+        {/* Preview Based on Selections */}
+        <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Based on your preferences</h3>
+          
+          {isLoading ? (
+            <p>Loading preview...</p>
+          ) : programs && programs.length > 0 ? (
+            <div className="space-y-3">
+              {programs.slice(0, 3).map((program) => (
+                <div key={program.id} className="flex items-center gap-3 bg-white dark:bg-slate-800 p-3 rounded-md shadow-sm">
+                  <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">{program.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {program.university} • {formatCost(program)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <p className="text-sm text-muted-foreground italic">
+                {programs.length > 3 ? `+ ${programs.length - 3} more programs match your criteria` : ''}
+              </p>
+            </div>
+          ) : (
+            <p>No matching programs found. Consider adjusting your criteria.</p>
+          )}
+        </div>
+        
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-4">
+          <Button 
+            type="button" 
+            onClick={onBack}
+            variant="outline"
+          >
+            Back
+          </Button>
+          <Button 
+            type="button" 
+            onClick={onNext}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Submitting..." : "View Matching Programs"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
+
+export default StepThree;

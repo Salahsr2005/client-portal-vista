@@ -1,28 +1,28 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useApplications, useApplicationDetails } from "@/hooks/useApplications";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate, useParams } from 'react-router-dom';
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, FileText, ArrowLeft, CalendarClock, ClipboardCheck } from "lucide-react";
+import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  FileText, CheckCircle, Clock, AlertCircle, 
+  Building, Globe, GraduationCap, User, CalendarRange,
+  CircleDollarSign, PenLine, ArrowLeft, AlertTriangle
+} from 'lucide-react';
 
 export default function ApplicationView() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: applications, isLoading: applicationsLoading } = useApplications();
-  const { data: applicationDetail, isLoading: detailLoading } = useApplicationDetails(id || '');
+  const { data: applications, isLoading: applicationsLoading } = useQuery(['applications'], () => supabase.from('applications').select('*'));
+  const { data: applicationDetail, isLoading: detailLoading } = useQuery(['applicationDetail', id || ''], () => supabase.from('applications').select('*').eq('application_id', id || ''));
   const [formData, setFormData] = useState({
     programId: '',
     personalStatement: '',
