@@ -22,8 +22,8 @@ export const ConsultationFlow = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [step, setStep] = useState<number>(1);
-  const [progress, setProgress] = useState<number>(25);
+  const [step, setStep] = useState(1);
+  const [progress, setProgress] = useState(25);
   const [formData, setFormData] = useState<FormData>({
     studyLevel: "Bachelor",
     subjects: [],
@@ -236,15 +236,12 @@ export const ConsultationFlow = () => {
             university: program.university
           }));
 
-        // Parse budget to a number or use 0 if empty
-        const budgetValue = formData.budget ? parseInt(formData.budget) : 0;
-
         const { error } = await supabase.from('consultation_results').insert({
           user_id: user.id,
-          study_level: formData.studyLevel as any, // Type cast to match the enum type
+          study_level: formData.studyLevel,
           field_preference: formData.subjects.join(', '),
           field_keywords: formData.subjects,
-          budget: budgetValue,
+          budget: parseInt(formData.budget || '0'),
           language_preference: formData.language,
           destination_preference: formData.location,
           duration_preference: formData.duration,
@@ -298,7 +295,7 @@ export const ConsultationFlow = () => {
     ? filteredPrograms.filter(program => 
         program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         program.university?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (program.location && program.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        program.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         program.country?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : filteredPrograms;
@@ -394,7 +391,7 @@ export const ConsultationFlow = () => {
           <StepOne 
             formData={formData} 
             setFormData={setFormData} 
-            itemVariants={{}}
+            itemVariants={itemVariants}
           />
         )}
       

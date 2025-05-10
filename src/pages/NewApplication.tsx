@@ -11,7 +11,6 @@ import {
   MessageSquare,
   Calendar,
   AlertCircle,
-  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,9 +100,6 @@ export default function NewApplication() {
     }
   };
 
-  // Check if the selected program's deadline has passed
-  const isDeadlinePassed = selectedProgramDetails?.deadlinePassed || false;
-
   return (
     <div className="container max-w-5xl px-4 py-8">
       <div className="flex items-center justify-between mb-8">
@@ -117,20 +113,20 @@ export default function NewApplication() {
         </Button>
       </div>
 
-      {/* Stepper - modernized UI */}
+      {/* Stepper */}
       <div className="mb-8">
         <div className="flex items-center justify-between relative">
           <div className="w-full absolute top-1/2 -translate-y-1/2 h-1 bg-muted"></div>
           <div className={`flex flex-col items-center relative z-10`}>
             <div className={`w-10 h-10 rounded-full flex items-center justify-center 
-              ${step >= 1 ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white' : 'bg-muted text-muted-foreground'}`}>
+              ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
               <School className="h-5 w-5" />
             </div>
             <span className="text-sm font-medium mt-2">Select Program</span>
           </div>
           <div className={`flex flex-col items-center relative z-10`}>
             <div className={`w-10 h-10 rounded-full flex items-center justify-center 
-              ${step >= 2 ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white' : 'bg-muted text-muted-foreground'}`}>
+              ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
               <ClipboardList className="h-5 w-5" />
             </div>
             <span className="text-sm font-medium mt-2">Application Details</span>
@@ -138,92 +134,78 @@ export default function NewApplication() {
         </div>
       </div>
 
-      {/* Step 1: Program Selection - enhanced UI */}
+      {/* Step 1: Program Selection */}
       {step === 1 && (
         <div className="space-y-6">
-          <Card className="border-0 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-violet-50 dark:from-slate-900 dark:to-slate-800/50 rounded-t-xl">
+          <Card>
+            <CardHeader>
               <CardTitle>Select a Program</CardTitle>
               <CardDescription>
                 Choose the program you want to apply for
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent>
               <div className="relative mb-6">
                 <Input
                   placeholder="Search programs by name or university..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  className="pl-10"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               </div>
 
               {isProgramsLoading ? (
                 <div className="flex justify-center items-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : filteredPrograms.length > 0 ? (
                 <div className="grid md:grid-cols-2 gap-4">
-                  {filteredPrograms.map((program) => {
-                    // Check if program deadline has passed
-                    const deadlinePassed = program.deadlinePassed || false;
-                    
-                    return (
-                      <div 
-                        key={program.id}
-                        className={cn(
-                          "relative border rounded-xl p-4 cursor-pointer transition-all hover:shadow-md",
-                          selectedProgram === program.id ? "border-violet-400 bg-violet-50/50 dark:bg-violet-900/10" : "",
-                          deadlinePassed ? "opacity-70" : ""
-                        )}
-                        onClick={() => !deadlinePassed && handleProgramSelect(program.id)}
-                      >
-                        {deadlinePassed && (
-                          <div className="absolute inset-0 bg-white/30 dark:bg-black/30 rounded-xl backdrop-blur-[1px] flex items-center justify-center z-10">
-                            <Badge variant="destructive" className="absolute top-2 right-2">
-                              Deadline Passed
-                            </Badge>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <h3 className="font-medium">{program.name}</h3>
-                            <p className="text-sm text-muted-foreground">{program.university}</p>
-                          </div>
-                          {selectedProgram === program.id && (
-                            <CheckCircle className="h-5 w-5 text-violet-600" />
-                          )}
+                  {filteredPrograms.map((program) => (
+                    <div 
+                      key={program.id}
+                      className={cn(
+                        "border rounded-lg p-4 cursor-pointer transition-all hover:border-primary",
+                        selectedProgram === program.id ? "border-primary bg-primary/5" : ""
+                      )}
+                      onClick={() => handleProgramSelect(program.id)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <h3 className="font-medium">{program.name}</h3>
+                          <p className="text-sm text-muted-foreground">{program.university}</p>
                         </div>
-                        
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {program.type || 'Degree'}
+                        {selectedProgram === program.id && (
+                          <CheckCircle className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                      
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {program.type || 'Degree'}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {program.location || 'International'}
+                        </Badge>
+                        {program.featured && (
+                          <Badge variant="default" className="text-xs">
+                            Featured
                           </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {program.location || 'International'}
-                          </Badge>
-                          {program.featured && (
-                            <Badge variant="default" className="text-xs bg-gradient-to-r from-amber-500 to-yellow-500">
-                              Featured
-                            </Badge>
-                          )}
+                        )}
+                      </div>
+                      
+                      <div className="mt-3 text-sm grid grid-cols-2 gap-x-4 gap-y-1">
+                        <div className="flex items-center text-muted-foreground">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          <span>{program.duration}</span>
                         </div>
-                        
-                        <div className="mt-3 text-sm grid grid-cols-2 gap-x-4 gap-y-1">
-                          <div className="flex items-center text-muted-foreground">
-                            <Calendar className="h-3 w-3 mr-1 text-violet-500" />
-                            <span>{program.duration}</span>
-                          </div>
-                          <div className="flex items-center text-muted-foreground">
-                            <School className="h-3 w-3 mr-1 text-violet-500" />
-                            <span>{program.deadline?.split('T')[0] || 'Contact for details'}</span>
-                          </div>
+                        <div className="flex items-center text-muted-foreground">
+                          <School className="h-3 w-3 mr-1" />
+                          <span>{program.deadline?.split('T')[0] || 'Contact for details'}</span>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -235,15 +217,11 @@ export default function NewApplication() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between border-t p-4 bg-slate-50 dark:bg-slate-900">
+            <CardFooter className="flex justify-between">
               <Button variant="ghost" onClick={() => navigate("/programs")}>
                 Browse All Programs
               </Button>
-              <Button 
-                className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
-                onClick={handleNextStep} 
-                disabled={!selectedProgram}
-              >
+              <Button onClick={handleNextStep} disabled={!selectedProgram}>
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -252,178 +230,131 @@ export default function NewApplication() {
         </div>
       )}
 
-      {/* Step 2: Application Details - improved UI */}
+      {/* Step 2: Application Details */}
       {step === 2 && selectedProgramDetails && (
         <div className="space-y-6">
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="md:col-span-2 border-0 shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-violet-50 dark:from-slate-900 dark:to-slate-800/50 rounded-t-xl">
+            <Card className="md:col-span-2">
+              <CardHeader>
                 <CardTitle>Application Details</CardTitle>
                 <CardDescription>
                   Provide additional information for your application
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pt-6">
-                {isDeadlinePassed ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-                    <AlertCircle className="h-12 w-12 mx-auto text-red-500 mb-2" />
-                    <h3 className="text-lg font-medium text-red-800">Application Deadline Passed</h3>
-                    <p className="mt-2 text-red-700">
-                      The deadline for this program has passed. You cannot submit an application at this time.
-                    </p>
-                    <Button 
-                      variant="outline"
-                      className="mt-4" 
-                      onClick={() => navigate("/programs")}
+              <CardContent>
+                <form id="applicationForm" onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Application Priority</h3>
+                    <RadioGroup 
+                      defaultValue="Medium" 
+                      value={formData.priority}
+                      onValueChange={(value) => handleInputChange('priority', value)}
+                      className="grid grid-cols-3 gap-4"
                     >
-                      Browse Other Programs
-                    </Button>
+                      <div>
+                        <RadioGroupItem value="High" id="priority-high" className="peer sr-only" />
+                        <Label
+                          htmlFor="priority-high"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                          <AlertCircle className="h-6 w-6 mb-2 text-orange-500" />
+                          High Priority
+                        </Label>
+                      </div>
+                      <div>
+                        <RadioGroupItem value="Medium" id="priority-medium" className="peer sr-only" />
+                        <Label
+                          htmlFor="priority-medium"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                          <MessageSquare className="h-6 w-6 mb-2 text-blue-500" />
+                          Medium Priority
+                        </Label>
+                      </div>
+                      <div>
+                        <RadioGroupItem value="Low" id="priority-low" className="peer sr-only" />
+                        <Label
+                          htmlFor="priority-low"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                        >
+                          <Calendar className="h-6 w-6 mb-2 text-green-500" />
+                          Low Priority
+                        </Label>
+                      </div>
+                    </RadioGroup>
                   </div>
-                ) : (
-                  <form id="applicationForm" onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-4">
-                      <h3 className="text-sm font-medium">Application Priority</h3>
-                      <RadioGroup 
-                        defaultValue="Medium" 
-                        value={formData.priority}
-                        onValueChange={(value) => handleInputChange('priority', value)}
-                        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-                      >
-                        <div>
-                          <RadioGroupItem value="High" id="priority-high" className="peer sr-only" />
-                          <Label
-                            htmlFor="priority-high"
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-violet-500 [&:has([data-state=checked])]:border-violet-500 [&:has([data-state=checked])]:bg-violet-50 dark:[&:has([data-state=checked])]:bg-violet-900/20"
-                          >
-                            <AlertCircle className="h-6 w-6 mb-2 text-orange-500" />
-                            High Priority
-                          </Label>
-                        </div>
-                        <div>
-                          <RadioGroupItem value="Medium" id="priority-medium" className="peer sr-only" />
-                          <Label
-                            htmlFor="priority-medium"
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-violet-500 [&:has([data-state=checked])]:border-violet-500 [&:has([data-state=checked])]:bg-violet-50 dark:[&:has([data-state=checked])]:bg-violet-900/20"
-                          >
-                            <MessageSquare className="h-6 w-6 mb-2 text-blue-500" />
-                            Medium Priority
-                          </Label>
-                        </div>
-                        <div>
-                          <RadioGroupItem value="Low" id="priority-low" className="peer sr-only" />
-                          <Label
-                            htmlFor="priority-low"
-                            className="flex flex-col items-center justify-between rounded-md border-2 border-muted p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-violet-500 [&:has([data-state=checked])]:border-violet-500 [&:has([data-state=checked])]:bg-violet-50 dark:[&:has([data-state=checked])]:bg-violet-900/20"
-                          >
-                            <Calendar className="h-6 w-6 mb-2 text-green-500" />
-                            Low Priority
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                      <Textarea
-                        id="notes"
-                        placeholder="Add any specific requirements or questions about your application"
-                        value={formData.notes}
-                        onChange={(e) => handleInputChange('notes', e.target.value)}
-                        className="min-h-[120px] resize-y"
-                      />
-                    </div>
-                  </form>
-                )}
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Add any additional information or questions about your application"
+                      value={formData.notes}
+                      onChange={(e) => handleInputChange('notes', e.target.value)}
+                      className="min-h-[120px]"
+                    />
+                  </div>
+                </form>
               </CardContent>
-              <CardFooter className="flex justify-between border-t p-4 bg-slate-50 dark:bg-slate-900">
+              <CardFooter className="flex justify-between">
                 <Button variant="outline" onClick={handlePreviousStep}>
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                {!isDeadlinePassed && (
-                  <Button 
-                    type="submit" 
-                    form="applicationForm" 
-                    disabled={isSubmitting}
-                    className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Submit Application
-                        <FileText className="ml-2 h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                )}
+                <Button 
+                  type="submit" 
+                  form="applicationForm" 
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Submit Application
+                      <FileText className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
               </CardFooter>
             </Card>
             
-            {/* Program summary card - enhanced UI */}
-            <Card className="border-0 shadow-md">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-violet-50 dark:from-slate-900 dark:to-slate-800/50 rounded-t-xl">
+            <Card>
+              <CardHeader>
                 <CardTitle className="text-lg">Selected Program</CardTitle>
               </CardHeader>
-              <CardContent className="pt-6">
+              <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="font-bold text-lg text-violet-900 dark:text-violet-300">{selectedProgramDetails.name}</h3>
+                    <h3 className="font-bold text-lg">{selectedProgramDetails.name}</h3>
                     <p className="text-muted-foreground">{selectedProgramDetails.university}</p>
                   </div>
-                  
-                  {selectedProgramDetails.featured && (
-                    <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500">
-                      Featured Program
-                    </Badge>
-                  )}
                   
                   <Separator />
                   
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground flex items-center">
-                        <MapPin className="h-3.5 w-3.5 mr-1.5 text-violet-500" />
-                        Location:
-                      </span>
+                      <span className="text-sm text-muted-foreground">Location:</span>
                       <span className="text-sm font-medium">{selectedProgramDetails.location}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground flex items-center">
-                        <GraduationCap className="h-3.5 w-3.5 mr-1.5 text-violet-500" />
-                        Type:
-                      </span>
+                      <span className="text-sm text-muted-foreground">Type:</span>
                       <span className="text-sm font-medium">{selectedProgramDetails.type}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground flex items-center">
-                        <Clock className="h-3.5 w-3.5 mr-1.5 text-violet-500" />
-                        Duration:
-                      </span>
+                      <span className="text-sm text-muted-foreground">Duration:</span>
                       <span className="text-sm font-medium">{selectedProgramDetails.duration}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground flex items-center">
-                        <CircleDollarSign className="h-3.5 w-3.5 mr-1.5 text-violet-500" />
-                        Tuition:
-                      </span>
-                      <span className={`text-sm font-medium ${isDeadlinePassed ? 'text-red-600' : ''}`}>
-                        €{selectedProgramDetails.tuition.toLocaleString()}
-                        {isDeadlinePassed && ' (Passed)'}
-                      </span>
+                      <span className="text-sm text-muted-foreground">Tuition:</span>
+                      <span className="text-sm font-medium">{selectedProgramDetails.tuition}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground flex items-center">
-                        <Calendar className="h-3.5 w-3.5 mr-1.5 text-violet-500" />
-                        Deadline:
-                      </span>
-                      <span className={`text-sm font-medium ${isDeadlinePassed ? 'text-red-600' : ''}`}>
-                        {selectedProgramDetails.deadline?.split('T')[0] || 'Contact for details'}
-                        {isDeadlinePassed && ' (Passed)'}
-                      </span>
+                      <span className="text-sm text-muted-foreground">Application Deadline:</span>
+                      <span className="text-sm font-medium">{selectedProgramDetails.deadline?.split('T')[0] || 'Contact for details'}</span>
                     </div>
                   </div>
                   

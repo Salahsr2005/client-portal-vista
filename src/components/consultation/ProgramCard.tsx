@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, 
-  CircleDollarSign, LayoutPanelLeft, Share2, ArrowRight, Trophy, Sparkles
+  CircleDollarSign, LayoutPanelLeft, Share2, ArrowRight
 } from 'lucide-react';
 import { Program } from './types';
 import { useNavigate } from 'react-router-dom';
@@ -55,25 +55,25 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   const deadlinePassed = program.deadlinePassed || false;
   
   return isGridView ? (
-    <Card className={`h-full overflow-hidden transition-all duration-300 hover:shadow-xl border border-slate-200/60 dark:border-slate-800/60 ${isSelected ? 'ring-2 ring-primary ring-offset-2' : ''} group hover:-translate-y-1`}>
+    <Card className={`h-full overflow-hidden transition-all duration-300 hover:shadow-lg ${isSelected ? 'border-primary' : ''} group`}>
       <div className="relative">
         {/* Program image as background */}
         <div 
           className="absolute inset-0 h-40 bg-cover bg-center" 
           style={{ backgroundImage: `url(${backgroundImage})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black/80"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80"></div>
         </div>
         
         <CardHeader className="relative p-4 pb-2 pt-28 z-10">
           <div className="flex justify-between items-start">
-            <CardTitle className="text-lg font-medium line-clamp-2 text-white drop-shadow-md">{program.name}</CardTitle>
+            <CardTitle className="text-lg font-medium line-clamp-2 text-white">{program.name}</CardTitle>
             <div className="flex gap-1">
               {onShare && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white rounded-full"
+                  className="h-7 w-7 bg-white/10 hover:bg-white/20 text-white"
                   onClick={() => onShare(program.id)}
                 >
                   <Share2 className="h-4 w-4" />
@@ -84,7 +84,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-7 w-7 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full ${isCompare ? 'text-indigo-300 hover:text-indigo-200' : 'text-white'}`}
+                  className={`h-7 w-7 bg-white/10 hover:bg-white/20 ${isCompare ? 'text-indigo-300 hover:text-indigo-200' : 'text-white'}`}
                   onClick={() => onCompare(program.id)}
                 >
                   <LayoutPanelLeft 
@@ -97,7 +97,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-7 w-7 bg-white/10 backdrop-blur-md hover:bg-white/20 rounded-full ${isFavorite ? 'text-rose-300 hover:text-rose-200' : 'text-white'}`}
+                  className={`h-7 w-7 bg-white/10 hover:bg-white/20 ${isFavorite ? 'text-rose-300 hover:text-rose-200' : 'text-white'}`}
                   onClick={() => onFavorite(program.id)}
                 >
                   <Heart 
@@ -124,16 +124,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
         </CardHeader>
       </div>
       
-      <CardContent className="p-4 pt-3 pb-2">
-        {program.featured && (
-          <div className="mb-3">
-            <Badge variant="outline" className="bg-gradient-to-r from-amber-50 to-yellow-100 text-amber-700 border-amber-200 flex items-center gap-1 px-2 py-0.5">
-              <Sparkles className="h-3 w-3" />
-              <span>Featured Program</span>
-            </Badge>
-          </div>
-        )}
-        
+      <CardContent className="p-4 pt-1 pb-2">
         {program.matchScore !== undefined && showScore && (
           <div className="flex items-center mt-1 mb-3">
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
@@ -142,12 +133,9 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
                 style={{ width: `${program.matchScore}%` }}
               ></div>
             </div>
-            <div className="flex items-center gap-1 ml-2">
-              <span className="text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-700 text-transparent bg-clip-text">
-                {Math.round(program.matchScore)}%
-              </span>
-              <Trophy className="h-3 w-3 text-amber-500" />
-            </div>
+            <span className="text-xs text-muted-foreground ml-2 font-medium">
+              {Math.round(program.matchScore)}%
+            </span>
           </div>
         )}
 
@@ -210,9 +198,9 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
         </Button>
         
         <Button 
-          variant={deadlinePassed ? "outline" : "default"}
+          variant={deadlinePassed ? "outline" : "ghost"}
           size="sm" 
-          className={`text-xs flex ${!deadlinePassed ? "bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white" : "text-muted-foreground"}`}
+          className={`text-xs flex ${!deadlinePassed ? "text-violet-600" : "text-muted-foreground"}`}
           onClick={deadlinePassed ? undefined : handleApplyNow}
           disabled={deadlinePassed}
         >

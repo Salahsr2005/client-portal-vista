@@ -186,7 +186,11 @@ export const usePrograms = (filter?: ProgramFilter) => {
           }
         }
         
-        // Remove the limit to fetch all programs - key change!
+        // Don't limit the number of programs by default
+        // Only apply limit if specifically requested
+        if (filter?.limit) {
+          query = query.limit(filter.limit);
+        }
           
         const { data: programs, error } = await query;
           

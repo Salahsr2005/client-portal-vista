@@ -1,72 +1,80 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
-export interface ApplicationFormData {
+export type ApplicationFormData = {
   programId: string;
-  notes: string;
-  priority: string;
-}
+  notes?: string;
+  priority: 'High' | 'Medium' | 'Low';
+};
 
 export const useApplicationSubmit = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   const { user } = useAuth();
 
-  const submitApplication = async (formData: ApplicationFormData) => {
+  const submitApplication = async (data: ApplicationFormData) => {
     if (!user) {
-      toast.error("You need to be logged in to submit an application");
-      return { success: false, error: "Authentication required" };
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to submit an application",
+        variant: "destructive",
+      });
+      return { success: false };
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
-      // Make sure priority is one of the allowed values
-      const validPriorities = ["Low", "Medium", "High", "Urgent"] as const;
-      type PriorityType = typeof validPriorities[number];
-      
-      const validPriority: PriorityType = validPriorities.includes(formData.priority as PriorityType) 
-        ? (formData.priority as PriorityType) 
-        : "Medium";
-        
-      // Insert application into the database
-      const { data, error } = await supabase
-        .from('applications')
+      const { data: result, error } = await supabase
+        .from("applications")
         .insert({
-          program_id: formData.programId,
           client_id: user.id,
-          notes: formData.notes,
-          priority: validPriority,
-          status: 'Draft',
+          program_id: data.programId,
+          notes: data.notes || null,
+          priority: data.priority,
+          status: "Draft",
         })
-        .select('application_id')
+        .select("application_id")
         .single();
-        
-      if (error) throw error;
-      
-      toast.success("Application submitted successfully");
-      
-      // Create initial timeline event
-      await supabase
-        .from('application_timeline')
-        .insert({
-          application_id: data.application_id,
-          status: 'Draft',
-          date: new Date().toISOString(),
-          note: 'Application created'
-        });
-      
-      return { success: true, applicationId: data.application_id };
-    } catch (error) {
+
+      if (error) {
+        throw error;
+      }
+
+      // Add first timeline event
+      await supabase.from("application_timeline").insert({
+        application_id: result.application_id,
+        status: "Draft",
+        date: new Date().toISOString(),
+        note: "Application created",
+      });
+
+      toast({
+        title: "Application submitted",
+        description: "Your application has been created successfully",
+      });
+
+      return { success: true, applicationId: result.application_id };
+    } catch (error: any) {
       console.error("Error submitting application:", error);
-      toast.error("Failed to submit application. Please try again.");
-      return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+      
+      toast({
+        title: "Submission failed",
+        description: error.message || "Failed to submit your application. Please try again.",
+        variant: "destructive",
+      });
+      
+      return { success: false };
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  return { submitApplication, isSubmitting };
+
+  return {
+    submitApplication,
+    isSubmitting,
+  };
 };
