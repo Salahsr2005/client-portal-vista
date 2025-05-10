@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import StepOne from "./steps/StepOne";
-import StepTwo from "./steps/StepTwo";
-import StepThree from "./steps/StepThree";
+import { StepOne } from "./steps/StepOne";
+import { StepTwo } from "./steps/StepTwo";
+import { StepThree } from "./steps/StepThree";
 import Results from "./results/Results";
 import { FormData } from './types';
 
@@ -33,7 +33,6 @@ const ConsultationFlow: React.FC = () => {
     startDate: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [results, setResults] = useState(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -73,7 +72,7 @@ const ConsultationFlow: React.FC = () => {
       // Prepare consultation data
       const consultationData = {
         user_id: user.id,
-        study_level: formData.level,
+        study_level: formData.level as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma",
         language_preference: formData.language,
         budget: numericBudget,
         field_keywords: formData.subjects || [formData.subject] || [],
@@ -158,4 +157,4 @@ const ConsultationFlow: React.FC = () => {
   );
 };
 
-export default ConsultationFlow;
+export { ConsultationFlow };
