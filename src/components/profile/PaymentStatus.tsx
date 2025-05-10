@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useUserPaymentStatus, useUploadedReceipts } from "@/hooks/useUserPaymentStatus";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +54,9 @@ export function PaymentStatus() {
     );
   }
 
+  // Check if there are pending receipts or applications
+  const hasPendingStatus = paymentStatus?.hasPendingReceipt || paymentStatus?.hasPendingApplication;
+
   return (
     <Card>
       <CardHeader className="border-b">
@@ -74,7 +76,7 @@ export function PaymentStatus() {
             <div className="bg-muted p-3 rounded-full">
               {paymentStatus?.isPaid ? (
                 <CheckCircle className="h-6 w-6 text-green-500" />
-              ) : paymentStatus?.isPending || paymentStatus?.hasPendingReceipt ? (
+              ) : hasPendingStatus ? (
                 <Clock className="h-6 w-6 text-amber-500" />
               ) : (
                 <AlertCircle className="h-6 w-6 text-red-500" />
@@ -86,7 +88,7 @@ export function PaymentStatus() {
                 <h4 className="font-semibold">
                   {paymentStatus?.isPaid 
                     ? "Paid Member" 
-                    : paymentStatus?.isPending || paymentStatus?.hasPendingReceipt
+                    : hasPendingStatus
                     ? "Payment Pending Verification"
                     : "Payment Required"}
                 </h4>
@@ -96,7 +98,7 @@ export function PaymentStatus() {
                 >
                   {paymentStatus?.isPaid 
                     ? "Active" 
-                    : paymentStatus?.hasPendingReceipt
+                    : hasPendingStatus
                     ? "Pending" 
                     : "Required"}
                 </Badge>

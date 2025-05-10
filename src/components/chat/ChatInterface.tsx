@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,7 +24,8 @@ import {
   MessageSquare,
   AlertTriangle,
   CreditCard,
-  Lock
+  Lock,
+  Clock
 } from 'lucide-react';
 
 interface Message {
@@ -264,14 +264,14 @@ const ChatInterface: React.FC = () => {
                 Payment Status
               </h3>
               <p className="text-sm mt-2">
-                {paymentStatus?.isPending 
+                {paymentStatus?.hasPendingReceipt || paymentStatus?.hasPendingApplication
                   ? "Your payment is pending verification. Access will be granted once approved."
                   : "You need to make a payment to access the chat feature."}
               </p>
             </div>
             
             <div className="flex flex-col space-y-2">
-              {!paymentStatus?.isPending && (
+              {!(paymentStatus?.hasPendingReceipt || paymentStatus?.hasPendingApplication) && (
                 <Button asChild className="w-full">
                   <Link to="/payments">
                     <CreditCard className="mr-2 h-4 w-4" />

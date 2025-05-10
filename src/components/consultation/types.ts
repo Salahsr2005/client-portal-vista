@@ -1,67 +1,35 @@
 
-// Update or add the appropriate types for your project
-// This is a placeholder based on how the Program type is likely defined
-
 export interface Program {
   id: string;
   name: string;
   university: string;
-  description?: string;
-  location: string;
-  country?: string;
-  city?: string;
-  duration: string;
-  duration_months?: number;
-  type: string;
-  study_level?: string;
-  tuition: number;
-  tuition_min?: number;
-  tuition_max?: number;
-  deadline?: string;
-  application_deadline?: string;
-  field?: string;
-  field_keywords?: string[];
+  city: string;
+  country: string;
+  program_language: string;
+  field: string;
+  study_level: string;
+  duration_months: number;
+  tuition_min: number;
+  tuition_max: number;
+  living_cost_min: number;
+  living_cost_max: number;
   image_url?: string;
-  website_url?: string;
-  program_language?: string;
-  secondary_language?: string;
-  hasScholarship?: boolean;
-  scholarship_available?: boolean;
-  hasReligiousFacilities?: boolean;
-  religious_facilities?: boolean;
-  hasHalalFood?: boolean;
-  halal_food_availability?: boolean;
+  description?: string;
   matchScore?: number;
-  matchDetails?: string;
-  featured?: boolean;
   deadlinePassed?: boolean;
 }
 
-export interface ApplicationStatus {
-  total: number;
-  completed: number;
-  inProgress: number;
-  pending: number;
-}
-
-export interface ConsultationResults {
-  programs?: Program[];
-  personalizedAdvice?: string;
-  matchScore?: number;
-  applicationStatus?: ApplicationStatus;
-}
-
-// Add FormData interface to fix build errors
 export interface FormData {
   studyLevel: string;
   subjects: string[];
-  budget: number;
-  duration: string;
   location: string;
+  duration: string;
+  budget: string;
   language: string;
+  startDate: string;
+  specialRequirements: string;
   scholarshipRequired: boolean;
   religiousFacilities: boolean;
   halalFood: boolean;
   languageTestRequired: boolean;
-  additionalInfo: string;
 }

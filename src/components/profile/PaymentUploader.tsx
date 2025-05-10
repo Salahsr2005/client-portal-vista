@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -96,7 +95,7 @@ export function PaymentUploader({ onSuccess }: { onSuccess?: () => void }) {
       setProgress(0);
     }
   };
-
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

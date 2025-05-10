@@ -2,7 +2,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { initializeStorageBuckets } from "@/utils/databaseHelpers";
 
 export const useUserProfile = () => {
   const { user } = useAuth();
@@ -14,9 +13,6 @@ export const useUserProfile = () => {
       if (!user) {
         return null;
       }
-
-      // Initialize storage buckets
-      await initializeStorageBuckets();
 
       // First, fetch the client user data
       const { data: userData, error: userError } = await supabase

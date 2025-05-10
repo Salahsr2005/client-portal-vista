@@ -1,7 +1,7 @@
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/utils/databaseHelpers";
 
@@ -10,76 +10,108 @@ export const useFavorites = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const addToFavorites = useMutation({
-    mutationFn: async (programId: string) => {
-      if (!user) throw new Error("User not authenticated");
-      
+  // Get favorite programs
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["favorites", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
       const { data, error } = await supabase
-        .from('favorite_programs')
+        .from("favorite_programs")
+        .select("program_id, programs(*)")
+        .eq("user_id", user.id);
+
+      if (error) {
+        const formattedError = handleSupabaseError(error);
+        throw new Error(formattedError?.message || "Failed to fetch favorites");
+      }
+
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Add a program to favorites
+  const addFavoriteMutation = useMutation({
+    mutationFn: async (programId: string) => {
+      if (!user) throw new Error("User must be logged in");
+
+      const { data, error } = await supabase
+        .from("favorite_programs")
         .insert({
           user_id: user.id,
-          program_id: programId
+          program_id: programId,
         })
         .select();
-        
+
       if (error) {
-        handleSupabaseError(error, toast);
-        throw error;
+        const formattedError = handleSupabaseError(error);
+        throw new Error(formattedError?.message || "Failed to add favorite");
       }
-      
+
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["favorite-programs"] });
+      queryClient.invalidateQueries({ queryKey: ["favorites", user?.id] });
       toast({
-        title: "Added to favorites",
-        description: "Program added to your favorites",
+        title: "Success",
+        description: "Program added to favorites",
       });
     },
     onError: (error) => {
-      console.error("Error adding to favorites:", error);
       toast({
         title: "Error",
-        description: "Failed to add to favorites. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add favorite",
         variant: "destructive",
       });
-    }
+    },
   });
 
-  const removeFromFavorites = useMutation({
+  // Remove a program from favorites
+  const removeFavoriteMutation = useMutation({
     mutationFn: async (programId: string) => {
-      if (!user) throw new Error("User not authenticated");
-      
-      const { error } = await supabase
-        .from('favorite_programs')
+      if (!user) throw new Error("User must be logged in");
+
+      const { data, error } = await supabase
+        .from("favorite_programs")
         .delete()
-        .eq('user_id', user.id)
-        .eq('program_id', programId);
-        
+        .eq("user_id", user.id)
+        .eq("program_id", programId);
+
       if (error) {
-        handleSupabaseError(error, toast);
-        throw error;
+        const formattedError = handleSupabaseError(error);
+        throw new Error(formattedError?.message || "Failed to remove favorite");
       }
+
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["favorite-programs"] });
+      queryClient.invalidateQueries({ queryKey: ["favorites", user?.id] });
       toast({
-        title: "Removed from favorites",
-        description: "Program removed from your favorites",
+        title: "Success",
+        description: "Program removed from favorites",
       });
     },
     onError: (error) => {
-      console.error("Error removing from favorites:", error);
       toast({
         title: "Error",
-        description: "Failed to remove from favorites. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to remove favorite",
         variant: "destructive",
       });
-    }
+    },
   });
 
+  // Check if a program is favorited
+  const isFavorite = (programId: string) => {
+    return data?.some((fav) => fav.program_id === programId) || false;
+  };
+
   return {
-    addToFavorites,
-    removeFromFavorites,
+    favorites: data || [],
+    isLoading,
+    error,
+    addFavorite: addFavoriteMutation.mutate,
+    removeFavorite: removeFavoriteMutation.mutate,
+    isFavorite,
   };
 };

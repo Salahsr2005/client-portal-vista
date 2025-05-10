@@ -23,6 +23,11 @@ export const useApplicationSubmit = () => {
     setIsSubmitting(true);
     
     try {
+      // Make sure priority is one of the allowed values
+      const validPriority = ["Low", "Medium", "High", "Urgent"].includes(formData.priority) 
+        ? formData.priority 
+        : "Medium";
+        
       // Insert application into the database
       const { data, error } = await supabase
         .from('applications')
@@ -30,7 +35,7 @@ export const useApplicationSubmit = () => {
           program_id: formData.programId,
           client_id: user.id,
           notes: formData.notes,
-          priority: formData.priority,
+          priority: validPriority,
           status: 'Draft',
         })
         .select('application_id')
