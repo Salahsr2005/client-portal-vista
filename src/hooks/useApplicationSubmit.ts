@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-type Priority = 'High' | 'Medium' | 'Low';
+type Priority = 'High' | 'Medium' | 'Low' | 'Urgent';
 
 export type ApplicationFormData = {
   programId: string;
@@ -31,7 +31,8 @@ export const useApplicationSubmit = () => {
 
     try {
       // Make sure priority is one of the valid enum values
-      const validPriority = ['High', 'Medium', 'Low', 'Urgent'].includes(data.priority) 
+      const validPriorities: Priority[] = ['High', 'Medium', 'Low', 'Urgent'];
+      const validPriority = validPriorities.includes(data.priority as Priority) 
         ? data.priority as Priority
         : 'Medium';
 

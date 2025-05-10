@@ -11,6 +11,36 @@ interface PaymentStatusResult {
   error?: string;
 }
 
+// Add missing export for useUploadedReceipts
+export const useUploadedReceipts = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['paymentReceipts', user?.id],
+    queryFn: async () => {
+      if (!user) {
+        return [];
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('payment_receipts')
+          .select('*')
+          .eq('client_id', user.id);
+          
+        if (error) throw error;
+        
+        return data || [];
+      } catch (error: any) {
+        console.error('Error fetching payment receipts:', error);
+        return [];
+      }
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
 export const useUserPaymentStatus = () => {
   const { user } = useAuth();
   
