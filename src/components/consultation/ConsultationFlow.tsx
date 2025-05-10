@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -240,7 +241,7 @@ export const ConsultationFlow = () => {
 
         const { error } = await supabase.from('consultation_results').insert({
           user_id: user.id,
-          study_level: formData.studyLevel,
+          study_level: formData.studyLevel as any, // Type cast to match the enum type
           field_preference: formData.subjects.join(', '),
           field_keywords: formData.subjects,
           budget: budgetValue,
@@ -297,7 +298,7 @@ export const ConsultationFlow = () => {
     ? filteredPrograms.filter(program => 
         program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         program.university?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        program.location?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (program.location && program.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
         program.country?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : filteredPrograms;
@@ -401,9 +402,9 @@ export const ConsultationFlow = () => {
           <StepTwo
             formData={formData}
             handleSubjectToggle={handleSubjectToggle}
-            subjectAreas={[]}
-            containerVariants={{}}
-            itemVariants={{}}
+            subjectAreas={subjectAreas}
+            containerVariants={containerVariants}
+            itemVariants={itemVariants}
           />
         )}
       
@@ -411,9 +412,9 @@ export const ConsultationFlow = () => {
           <StepThree
             formData={formData}
             setFormData={setFormData}
-            languageOptions={[]}
-            budgetOptions={[]}
-            formatBudget={() => ""}
+            languageOptions={languageOptions}
+            budgetOptions={budgetOptions}
+            formatBudget={formatBudget}
           />
         )}
       
@@ -423,24 +424,24 @@ export const ConsultationFlow = () => {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             activeFilters={activeFilters}
-            toggleFilter={() => {}}
-            clearAllFilters={() => {}}
+            toggleFilter={toggleFilter}
+            clearAllFilters={clearAllFilters}
             isGridView={isGridView}
             setIsGridView={setIsGridView}
             selectedPrograms={selectedPrograms}
             favoritePrograms={favoritePrograms}
             showMatchDetails={showMatchDetails}
             showBudgetBreakdown={showBudgetBreakdown}
-            handleProgramSelect={() => {}}
-            toggleFavorite={() => {}}
-            toggleMatchDetails={() => {}}
-            toggleBudgetBreakdown={() => {}}
+            handleProgramSelect={handleProgramSelect}
+            toggleFavorite={toggleFavorite}
+            toggleMatchDetails={toggleMatchDetails}
+            toggleBudgetBreakdown={toggleBudgetBreakdown}
             handleSubmit={handleSubmit}
             handlePrevious={handlePrevious}
             isLoading={isLoading}
-            containerVariants={{}}
-            itemVariants={{}}
-            searchFilteredPrograms={[]}
+            containerVariants={containerVariants}
+            itemVariants={itemVariants}
+            searchFilteredPrograms={searchFilteredPrograms}
           />
         )}
       </AnimatePresence>

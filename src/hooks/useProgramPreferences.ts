@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { handleSupabaseError } from "@/utils/databaseHelpers";
 
 interface UserPreference {
   id?: string;
@@ -24,8 +25,7 @@ export const useProgramPreferences = () => {
     queryFn: async () => {
       if (!user) return null;
 
-      // This is the corrected query - we don't use "user_program_preferences" 
-      // since it doesn't exist in the tables known to Supabase
+      // Query the consultation_results table directly
       const { data, error } = await supabase
         .from("consultation_results")
         .select(`
@@ -75,7 +75,7 @@ export const useProgramPreferences = () => {
         .from("consultation_results")
         .insert({
           user_id: user.id,
-          study_level: newPrefs.study_level,
+          study_level: newPrefs.study_level as any,  // Handle enum type
           language_preference: newPrefs.language,
           budget: newPrefs.budget,
           destination_preference: newPrefs.location,

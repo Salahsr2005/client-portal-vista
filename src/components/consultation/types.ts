@@ -17,6 +17,19 @@ export interface Program {
   description?: string;
   matchScore?: number;
   deadlinePassed?: boolean;
+  location?: string;
+  duration?: string;
+  tuition?: number;
+  type?: string;
+  deadline?: string;
+  hasScholarship?: boolean;
+  hasReligiousFacilities?: boolean;
+  hasHalalFood?: boolean;
+  featured?: boolean;
+  scholarship_available?: boolean;
+  religious_facilities?: boolean;
+  halal_food_availability?: boolean;
+  matchDetails?: any;
 }
 
 export interface FormData {

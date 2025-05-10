@@ -1,4 +1,3 @@
-
 import { formatCurrency } from "@/utils/databaseHelpers";
 
 // Function to calculate the match score between a program and user preferences

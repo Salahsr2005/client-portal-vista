@@ -150,7 +150,37 @@ export const handleSupabaseError = (error: PostgrestError | null) => {
   };
 };
 
-// This function is needed by useUserProfile but was missing
+/**
+ * Format currency values for display
+ */
+export const formatCurrency = (amount: number, currency: string = 'EUR') => {
+  if (!amount && amount !== 0) return 'N/A';
+  
+  try {
+    if (currency === 'EUR') {
+      return new Intl.NumberFormat('en-EU', { 
+        style: 'currency', 
+        currency: 'EUR', 
+        maximumFractionDigits: 0 
+      }).format(amount);
+    } else if (currency === 'DZD') {
+      return new Intl.NumberFormat('en-DZ', { 
+        style: 'currency', 
+        currency: 'DZD', 
+        maximumFractionDigits: 0 
+      }).format(amount);
+    } else {
+      return `${amount.toFixed(0)} ${currency}`;
+    }
+  } catch (error) {
+    // Fallback if Intl.NumberFormat fails
+    return currency === 'EUR' ? `€${amount.toFixed(0)}` : `${amount.toFixed(0)} ${currency}`;
+  }
+};
+
+/**
+ * Initialize storage buckets function needed by useUserProfile
+ */
 export const initializeStorageBuckets = async () => {
   try {
     // Check if buckets exist and create them if they don't

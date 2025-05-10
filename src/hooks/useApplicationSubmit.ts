@@ -24,8 +24,11 @@ export const useApplicationSubmit = () => {
     
     try {
       // Make sure priority is one of the allowed values
-      const validPriority = ["Low", "Medium", "High", "Urgent"].includes(formData.priority) 
-        ? formData.priority 
+      const validPriorities = ["Low", "Medium", "High", "Urgent"] as const;
+      type PriorityType = typeof validPriorities[number];
+      
+      const validPriority: PriorityType = validPriorities.includes(formData.priority as PriorityType) 
+        ? (formData.priority as PriorityType) 
         : "Medium";
         
       // Insert application into the database

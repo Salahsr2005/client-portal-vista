@@ -1,180 +1,224 @@
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { Upload, Loader2 } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/contexts/AuthContext';
-import { uploadPaymentReceipt } from '@/utils/databaseHelpers';
-import { usePendingApplications } from '@/hooks/usePayments';
 
-export function PaymentUploader({ onSuccess }: { onSuccess?: () => void }) {
+import React, { useState, useRef } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { AlertCircle, Upload, X } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { uploadPaymentReceipt } from "@/utils/databaseHelpers";
+
+interface PaymentUploaderProps {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export const PaymentUploader = ({ onSuccess, onCancel }: PaymentUploaderProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { data: pendingApplications = [] } = usePendingApplications();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [paymentId, setPaymentId] = useState<string>('');
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [open, setOpen] = useState(false);
-
+  const [paymentId, setPaymentId] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        setErrorMessage('Please select a valid file (JPEG, PNG, or PDF)');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrorMessage('File is too large (max 5MB)');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setErrorMessage(null);
     }
   };
 
-  const handleUpload = async () => {
-    if (!user || !selectedFile || !paymentId) {
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
       toast({
-        title: "Missing information",
-        description: "Please select a payment and upload a receipt",
+        title: "Authentication required",
+        description: "Please sign in to upload payment receipt",
         variant: "destructive",
       });
       return;
     }
     
-    setUploading(true);
-    setProgress(0);
+    if (!selectedFile) {
+      setErrorMessage('Please select a file to upload');
+      return;
+    }
+    
+    setIsLoading(true);
     
     try {
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 95) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          return prev + 5;
+      const result = await uploadPaymentReceipt(
+        user.id,
+        paymentId || 'manual-upload', // Use 'manual-upload' if no payment ID is provided
+        selectedFile
+      );
+      
+      if (result.success) {
+        toast({
+          title: "Receipt uploaded successfully",
+          description: "We'll review your payment receipt and update your status soon.",
         });
-      }, 100);
-      
-      const result = await uploadPaymentReceipt(user.id, paymentId, selectedFile);
-      
-      clearInterval(progressInterval);
-      setProgress(100);
-      
-      if (!result.success) {
-        throw result.error;
-      }
-      
-      toast({
-        title: "Receipt uploaded",
-        description: "Your payment receipt has been uploaded successfully and will be verified soon.",
-      });
-      
-      // Reset and close dialog
-      setSelectedFile(null);
-      setPaymentId('');
-      setOpen(false);
-      
-      // Call success callback if provided
-      if (onSuccess) {
-        onSuccess();
+        if (onSuccess) onSuccess();
+      } else {
+        setErrorMessage(result.error || 'Failed to upload receipt');
+        toast({
+          title: "Upload failed",
+          description: result.error || 'There was a problem uploading your receipt',
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error("Error uploading receipt:", error);
+      console.error('Error uploading receipt:', error);
+      setErrorMessage('An unexpected error occurred');
       toast({
-        title: "Upload failed",
-        description: "There was an error uploading your receipt. Please try again.",
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
-      setUploading(false);
-      setProgress(0);
+      setIsLoading(false);
     }
   };
   
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Payment Receipt
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Upload Payment Receipt</DialogTitle>
-          <DialogDescription>
-            Upload a receipt for your payment to verify your account status.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="payment-id">Select Payment</Label>
-            <Select value={paymentId} onValueChange={setPaymentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a payment" />
-              </SelectTrigger>
-              <SelectContent>
-                {pendingApplications.map((app) => (
-                  <SelectItem key={app.id} value={app.id}>
-                    {app.name} - €{app.fee}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="receipt">Payment Receipt</Label>
-            <Input
-              id="receipt"
-              type="file"
-              accept="image/*,.pdf"
-              onChange={handleFileChange}
-            />
-            {selectedFile && (
-              <p className="text-sm text-muted-foreground">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
-            )}
-          </div>
-          
-          {uploading && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span>Uploading...</span>
-                <span>{progress}%</span>
-              </div>
-              <Progress value={progress} />
-            </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-lg">Upload Payment Receipt</CardTitle>
+      </CardHeader>
+      <form onSubmit={handleSubmit}>
+        <CardContent className="space-y-4">
+          {errorMessage && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
           )}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleUpload}
-            disabled={!selectedFile || !paymentId || uploading}
+          
+          <div className="space-y-2">
+            <Label htmlFor="payment-id">Payment Reference (Optional)</Label>
+            <Input
+              id="payment-id"
+              placeholder="Enter payment reference number"
+              value={paymentId}
+              onChange={(e) => setPaymentId(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="payment-receipt">Payment Receipt</Label>
+            <Input
+              ref={fileInputRef}
+              id="payment-receipt"
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+              accept=".jpg,.jpeg,.png,.pdf"
+            />
+            
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 transition-colors ${
+                selectedFile ? 'border-green-400 bg-green-50' : 'border-slate-300'
+              }`}
+              onClick={triggerFileInput}
+            >
+              {selectedFile ? (
+                <div className="flex flex-col items-center">
+                  <div className="bg-green-100 text-green-700 rounded-full p-2 mb-2">
+                    <CheckCircle2 className="h-6 w-6" />
+                  </div>
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 h-8 text-xs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedFile(null);
+                    }}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center">
+                  <div className="bg-primary/10 text-primary rounded-full p-2 mb-2">
+                    <Upload className="h-6 w-6" />
+                  </div>
+                  <p className="font-medium">Click to upload file</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    JPG, PNG or PDF (max 5MB)
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="notes">Additional Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              placeholder="Any additional information about your payment"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+            />
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-end space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isLoading}
+            onClick={onCancel}
           >
-            {uploading ? (
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isLoading || !selectedFile}>
+            {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <span className="animate-spin mr-2">⏳</span>
                 Uploading...
               </>
             ) : (
-              <>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload
-              </>
+              'Upload Receipt'
             )}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </CardFooter>
+      </form>
+    </Card>
   );
-}
+};
+
+// Import the CheckCircle2 icon that was missing
+import { CheckCircle2 } from 'lucide-react';
