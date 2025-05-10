@@ -14,7 +14,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { usePrograms, ProgramFilter } from "@/hooks/usePrograms";
+import { usePrograms, ProgramsQueryParams } from "@/hooks/usePrograms";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
@@ -41,7 +41,6 @@ import {
   Share2
 } from "lucide-react";
 import { formatCurrency } from "@/utils/currencyConverter";
-import { Program } from '@/components/consultation/types';
 import ProgramCard from '@/components/consultation/ProgramCard';
 
 export default function Programs() {
@@ -61,25 +60,28 @@ export default function Programs() {
   const [showCompare, setShowCompare] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   
-  // Create filter object
-  const filter: ProgramFilter = {
-    studyLevel: studyLevel || undefined,
-    location: country || undefined,
-    subjects: field ? [field] : undefined,
-    budget: budget[1].toString(),
+  // Create query params object
+  const queryParams: ProgramsQueryParams = {
+    page: currentPage,
+    limit: itemsPerPage,
+    country: country || undefined,
+    level: studyLevel as any || undefined,
+    field: field || undefined,
+    maxBudget: budget[1],
     language: language || undefined,
+    withScholarship: false
   };
   
   // Get programs data with filters
-  const { data: programsData, isLoading } = usePrograms(filter);
-  const programs = programsData || [];
+  const { data: programsData, isLoading } = usePrograms(queryParams);
   
-  // Calculate pagination values
-  const totalItems = programs.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = programs.slice(indexOfFirstItem, indexOfLastItem);
+  // Calculate pagination values - make sure we're working with arrays
+  const programs = programsData?.programs || [];
+  const totalItems = programsData?.totalCount || 0;
+  const totalPages = programsData?.totalPages || 1;
+  
+  // We don't need to slice here since the API already handles pagination
+  const currentItems = programs;
 
   // Get programs for comparison
   const programsToCompare = programs.filter(p => compareList.includes(p.id));
@@ -317,10 +319,11 @@ export default function Programs() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">All Levels</SelectItem>
-                    <SelectItem value="Undergraduate">Undergraduate</SelectItem>
-                    <SelectItem value="Graduate">Graduate</SelectItem>
+                    <SelectItem value="Bachelor">Bachelor</SelectItem>
+                    <SelectItem value="Master">Master</SelectItem>
                     <SelectItem value="PhD">PhD</SelectItem>
                     <SelectItem value="Certificate">Certificate</SelectItem>
+                    <SelectItem value="Diploma">Diploma</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -438,7 +441,11 @@ export default function Programs() {
       {/* Results & Pagination Info */}
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-muted-foreground">
-          Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, totalItems)} of {totalItems} programs
+          {isLoading ? (
+            "Loading programs..."
+          ) : (
+            `Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalItems)} of ${totalItems} programs`
+          )}
         </p>
         <Select 
           value={itemsPerPage.toString()}
@@ -537,7 +544,7 @@ export default function Programs() {
       )}
       
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalPages > 1 && !isLoading && (
         <Pagination className="mt-8">
           <PaginationContent>
             <PaginationItem>

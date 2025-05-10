@@ -26,6 +26,12 @@ export interface Program {
   ranking: number;
   application_deadline: string;
   scholarship_available: boolean;
+  location?: string; // Added for compatibility with ProgramCard component
+  duration?: string; // Added for compatibility with ProgramCard component
+  matchScore?: number; // Added for compatibility with ProgramCard component
+  isFavorite?: boolean;
+  religious_facilities?: boolean;
+  halal_food_availability?: boolean;
 }
 
 export interface ProgramsQueryParams {
@@ -45,6 +51,15 @@ export interface ProgramsData {
   totalCount: number;
   currentPage: number;
   totalPages: number;
+}
+
+// For compatibility with other components
+export interface ProgramFilter {
+  studyLevel?: string;
+  location?: string;
+  subjects?: string[];
+  budget?: string;
+  language?: string;
 }
 
 export const usePrograms = (params: ProgramsQueryParams = {}) => {
@@ -128,11 +143,13 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
         }
       }
       
-      // Add favorite flag to programs
-      const programsWithFavorites = data?.map((program) => ({
+      // Add favorite flag to programs and additional fields for compatibility
+      const programsWithFavorites = (data || []).map((program) => ({
         ...program,
-        isFavorite: favorites.includes(program.id)
-      })) || [];
+        isFavorite: favorites.includes(program.id),
+        location: `${program.city}, ${program.country}`,
+        duration: program.duration_months ? `${program.duration_months} months` : 'Not specified'
+      }));
       
       return {
         programs: programsWithFavorites as Program[],
@@ -175,7 +192,15 @@ export const useProgram = (id: string) => {
         isFavorite = !!favoriteData;
       }
       
-      return { ...data, isFavorite } as Program & { isFavorite: boolean };
+      // Add additional fields for compatibility
+      const programWithExtras = {
+        ...data,
+        isFavorite,
+        location: `${data.city}, ${data.country}`,
+        duration: data.duration_months ? `${data.duration_months} months` : 'Not specified'
+      };
+      
+      return programWithExtras as Program & { isFavorite: boolean };
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5 // 5 minutes
