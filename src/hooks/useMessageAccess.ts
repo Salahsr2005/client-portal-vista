@@ -86,26 +86,6 @@ export const useMessageAccess = () => {
         return;
       }
       
-      // Check user tier - paid tier users get access to messages
-      const { data: userData, error: userError } = await supabase
-        .from('client_users')
-        .select('client_tier')
-        .eq('client_id', user?.id)
-        .single();
-        
-      if (userError) throw userError;
-      
-      if (userData?.client_tier === 'Paid') {
-        setAccessState({
-          canAccessMessages: true,
-          isLoading: false,
-          reason: 'You have premium access',
-          status: 'paid',
-          requiresPayment: false
-        });
-        return;
-      }
-      
       // Default - user has applications but no completed payment
       setAccessState({
         canAccessMessages: false,

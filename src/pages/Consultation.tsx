@@ -2,41 +2,40 @@
 import React from 'react';
 import { ConsultationFlow } from '@/components/consultation/ConsultationFlow';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { createFavoriteProgramsTable } from '@/utils/databaseHelpers';
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-const Consultation = () => {
-  // Initialize the favorites table when the component mounts
+export default function Consultation() {
   useEffect(() => {
-    createFavoriteProgramsTable();
+    // Initialize consultation data or setup any necessary state
+    console.log('Consultation page loaded');
   }, []);
 
   return (
-    <div className="container py-8 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="mb-6 shadow-lg border-none bg-gradient-to-r from-indigo-50 to-purple-50 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-purple-500/10 to-indigo-500/10 backdrop-blur-sm p-6">
-            <CardTitle className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
-              Program Consultation
-            </CardTitle>
-            <CardDescription className="text-gray-700">
-              Find the perfect educational program that matches your preferences and requirements.
-              Our advanced matching algorithm will recommend programs with the best fit based on factors
-              like budget, field of study, location, language, and more.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <ConsultationFlow />
-          </CardContent>
-        </Card>
-      </motion.div>
-    </div>
-  );
-};
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="container max-w-6xl mx-auto px-4 py-8 sm:px-6"
+    >
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Education Consultation</h1>
+        <p className="text-muted-foreground mt-2">
+          Tell us about your preferences and goals to get personalized program recommendations
+        </p>
+      </div>
 
-export default Consultation;
+      <Card className="border-0 shadow-md">
+        <CardHeader className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-t-lg">
+          <CardTitle className="text-xl md:text-2xl">Find Your Perfect Program</CardTitle>
+          <CardDescription>
+            Complete the questionnaire below to get personalized recommendations
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ConsultationFlow />
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}

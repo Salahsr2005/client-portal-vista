@@ -111,8 +111,19 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program, showMatchScore = fal
     }
   };
 
+  // Determine card background based on deadline status
+  const cardBackgroundClass = program.deadlinePassed 
+    ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20 border-red-200 dark:border-red-800/30' 
+    : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800/30';
+  
+  // Determine button color based on deadline status
+  const buttonVariant = program.deadlinePassed ? "outline" : "default";
+  const buttonClass = program.deadlinePassed 
+    ? "text-red-600 border-red-300 hover:bg-red-50" 
+    : "bg-green-600 hover:bg-green-700 text-white";
+
   return (
-    <Card className="h-full flex flex-col hover:shadow-lg transition-shadow duration-200">
+    <Card className={`h-full flex flex-col hover:shadow-lg transition-shadow duration-200 ${cardBackgroundClass}`}>
       <div className="relative">
         <img 
           src={program.image_url || "/placeholder.svg"} 
@@ -136,7 +147,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program, showMatchScore = fal
         )}
         
         {program.deadlinePassed && (
-          <Badge variant="destructive" className="absolute bottom-2 right-2">
+          <Badge variant="destructive" className="absolute bottom-2 right-2 bg-red-600">
             Application Closed
           </Badge>
         )}
@@ -187,7 +198,12 @@ const ProgramCard: React.FC<ProgramCardProps> = ({ program, showMatchScore = fal
       </CardContent>
       
       <CardFooter className="pt-2 mt-auto">
-        <Button asChild className="w-full" disabled={program.deadlinePassed}>
+        <Button 
+          asChild 
+          className={`w-full ${program.deadlinePassed ? "" : buttonClass}`} 
+          disabled={program.deadlinePassed}
+          variant={buttonVariant}
+        >
           <Link to={`/programs/${program.id}`}>
             {program.deadlinePassed ? 'View Details' : 'Apply Now'}
           </Link>
