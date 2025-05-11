@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
+import { Program } from "@/types/Program";
 
 // Define a type for the detailed application response
 interface ProgramDetail {
@@ -40,6 +41,7 @@ interface ApplicationDetailResponse {
   created_at?: string;
   notes?: string;
   programs?: ProgramDetail;
+  program_id?: string; // Added to access program ID
   program?: {
     id: string;
     name: string;
@@ -71,6 +73,36 @@ export default function ApplicationView() {
     }
   });
   
+  // Additional query to fetch program details separately
+  const { data: programDetail, isLoading: programLoading } = useQuery({
+    queryKey: ['programDetail', id || ''],
+    queryFn: async () => {
+      if (!id || !applicationDetail) return null;
+      
+      try {
+        const { data, error } = await supabase
+          .from('programs')
+          .select('*')
+          .eq('id', applicationDetail.program_id)
+          .single();
+        
+        if (error) throw error;
+        
+        return {
+          id: data.id,
+          name: data.name,
+          university: data.university,
+          location: `${data.city || ''}, ${data.country || ''}`,
+          image: data.image_url || '/placeholder.svg',
+        };
+      } catch (error) {
+        console.error("Error fetching program:", error);
+        return null;
+      }
+    },
+    enabled: !!id && !!applicationDetail
+  });
+  
   // Update query to use proper format 
   const { data: applicationDetail, isLoading: detailLoading } = useQuery({
     queryKey: ['applicationDetail', id || ''],
@@ -89,16 +121,11 @@ export default function ApplicationView() {
         
         if (error) throw error;
         
-        // Transform the response to include program as a property
+        // Transform the response
         return {
           ...data,
-          program: data.programs ? {
-            id: data.programs.id,
-            name: data.programs.name,
-            university: data.programs.university,
-            location: `${data.programs.city || ''}, ${data.programs.country || ''}`,
-            image: data.programs.image_url || '/placeholder.svg',
-          } : null
+          program_id: data.program_id,
+          programs: data.programs,
         } as ApplicationDetailResponse;
       } catch (error) {
         console.error("Error fetching application:", error);
@@ -250,6 +277,19 @@ export default function ApplicationView() {
   if (applicationDetail) {
     // Create a safe version of applicationDetail with proper type checking
     const safeAppDetail = applicationDetail as ApplicationDetailResponse;
+    
+    // Combine program data from both queries
+    const programData = {
+      id: safeAppDetail.programs?.id || programDetail?.id || '',
+      name: safeAppDetail.programs?.name || programDetail?.name || "Unknown Program",
+      university: safeAppDetail.programs?.university || programDetail?.university || "Unknown University",
+      location: 
+        safeAppDetail.programs?.location || 
+        (safeAppDetail.programs?.city && safeAppDetail.programs?.country 
+          ? `${safeAppDetail.programs.city}, ${safeAppDetail.programs.country}` 
+          : programDetail?.location || "Unknown Location"),
+      image: safeAppDetail.programs?.image_url || programDetail?.image || '/placeholder.svg'
+    };
 
     return (
       <div className="container mx-auto py-8 px-4">
@@ -284,12 +324,12 @@ export default function ApplicationView() {
                   <div className="flex items-center space-x-4">
                     <div 
                       className="w-16 h-16 rounded-md bg-cover bg-center shrink-0"
-                      style={{ backgroundImage: `url(${safeAppDetail.program?.image || '/placeholder.svg'})` }}
+                      style={{ backgroundImage: `url(${programData.image})` }}
                     />
                     <div>
-                      <h3 className="font-medium">{safeAppDetail.program?.name || "Unknown Program"}</h3>
-                      <p className="text-sm text-muted-foreground">{safeAppDetail.program?.university || "Unknown University"}</p>
-                      <p className="text-sm text-muted-foreground">{safeAppDetail.program?.location || "Unknown Location"}</p>
+                      <h3 className="font-medium">{programData.name}</h3>
+                      <p className="text-sm text-muted-foreground">{programData.university}</p>
+                      <p className="text-sm text-muted-foreground">{programData.location}</p>
                     </div>
                   </div>
                   
