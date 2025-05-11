@@ -104,7 +104,7 @@ export const getDocumentUrl = async (documentPath: string) => {
 };
 
 // Added missing function for handling Supabase errors
-export const handleSupabaseError = (error: any, toastFn: any) => {
+export const handleSupabaseError = (error: any, toastFn: any = toast) => {
   console.error('Supabase error:', error);
   toastFn({
     title: "Error",

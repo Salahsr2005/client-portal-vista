@@ -10,9 +10,8 @@ import {
   GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, 
   CircleDollarSign, LayoutPanelLeft, Share2, ArrowRight
 } from 'lucide-react';
-import { Program } from './types';
+import { Program } from '@/hooks/usePrograms';
 import { useNavigate } from 'react-router-dom';
-import { formatCurrency, CurrencyCode } from '@/utils/currencyConverter';
 
 interface ProgramCardProps {
   program: Program;
@@ -24,7 +23,6 @@ interface ProgramCardProps {
   onCompare?: (id: string) => void;
   isGridView?: boolean;
   showScore?: boolean;
-  currency?: CurrencyCode;
   onShare?: (id: string) => void;
 }
 
@@ -38,8 +36,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   onCompare,
   onShare,
   isGridView = true,
-  showScore = false,
-  currency = 'EUR'
+  showScore = false
 }) => {
   const navigate = useNavigate();
   
@@ -54,8 +51,28 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   // Check deadline
   const deadlinePassed = program.deadlinePassed || false;
   
+  // Apply modern color scheme based on status
+  let cardClass = "h-full overflow-hidden transition-all duration-300 hover:shadow-lg";
+  let statusClass = "";
+  
+  if (isSelected) {
+    cardClass += " border-primary";
+  }
+  
+  // Modern color schemes
+  if (program.status === "Active") {
+    cardClass += " bg-green-50 dark:bg-green-900/10"; // Modern green for active programs
+    statusClass = "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
+  } else if (program.status === "Inactive" || program.status === "Full") {
+    cardClass += " bg-red-50 dark:bg-red-900/10"; // Modern red for closed/inactive programs
+    statusClass = "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
+  } else {
+    cardClass += " bg-amber-50 dark:bg-amber-900/10"; // Modern amber for other statuses
+    statusClass = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+  }
+  
   return isGridView ? (
-    <Card className={`h-full overflow-hidden transition-all duration-300 hover:shadow-lg ${isSelected ? 'border-primary' : ''} group`}>
+    <Card className={`${cardClass} group`}>
       <div className="relative">
         {/* Program image as background */}
         <div 
@@ -159,7 +176,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
             <CircleDollarSign className="h-3.5 w-3.5 text-violet-500 flex-shrink-0" />
             <span>
               {program.tuition_min 
-                ? formatCurrency(program.tuition_min, 'EUR', currency)
+                ? `€${program.tuition_min.toLocaleString()}`
                 : 'Not specified'
               }
             </span>
@@ -167,6 +184,10 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
         </div>
         
         <div className="flex gap-1.5 mt-3 flex-wrap">
+          <Badge variant="outline" className={statusClass}>
+            {program.status}
+          </Badge>
+          
           {(program.hasScholarship || program.scholarship_available) && (
             <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200">
               Scholarship
@@ -182,12 +203,6 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
           {(program.hasHalalFood || program.halal_food_availability) && (
             <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200">
               Halal Food
-            </Badge>
-          )}
-          
-          {deadlinePassed && (
-            <Badge variant="outline" className="bg-rose-50 text-rose-600 hover:bg-rose-100 border-rose-200">
-              Closed
             </Badge>
           )}
         </div>
@@ -210,7 +225,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
       </CardFooter>
     </Card>
   ) : (
-    <Card className={`w-full overflow-hidden transition-all duration-300 hover:shadow-lg ${isSelected ? 'border-primary' : ''} group`}>
+    <Card className={`${cardClass} w-full group`}>
       <div className="flex">
         <div 
           className="hidden md:block w-48 bg-cover bg-center relative"
@@ -230,6 +245,10 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
             </div>
             
             <div className="flex gap-2">
+              <Badge variant="outline" className={statusClass}>
+                {program.status}
+              </Badge>
+              
               {onCompare && (
                 <Button
                   variant="ghost"

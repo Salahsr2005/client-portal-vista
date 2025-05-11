@@ -20,13 +20,13 @@ export const StepOne: React.FC<StepOneProps> = ({ formData, updateForm, onNext }
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="space-y-4"
+      className="space-y-4 p-6"
     >
       <h2 className="text-xl font-semibold">What level of study are you interested in?</h2>
       <p className="text-muted-foreground">Select the academic level you want to pursue</p>
       
       <RadioGroup 
-        value={formData.level || formData.studyLevel} 
+        value={formData.level || ""} 
         onValueChange={(value: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma") => updateForm('level', value)}
         className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4"
       >
@@ -94,6 +94,16 @@ export const StepOne: React.FC<StepOneProps> = ({ formData, updateForm, onNext }
           </Label>
         </motion.div>
       </RadioGroup>
+
+      <div className="flex justify-end pt-6">
+        <button
+          type="button"
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+          onClick={onNext}
+        >
+          Next
+        </button>
+      </div>
     </motion.div>
   );
 };

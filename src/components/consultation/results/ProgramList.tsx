@@ -4,7 +4,7 @@ import { FileText, Euro } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import ProgramCard from '../ProgramCard';
-import { getMatchExplanation, getBudgetBreakdown } from "@/services/ProgramMatchingService";
+import { getBudgetBreakdown, getMatchExplanation } from "@/services/ProgramMatchingService";
 
 interface ProgramListProps {
   programs: any[];
@@ -186,21 +186,24 @@ export const ProgramList: React.FC<ProgramListProps> = ({
                             items.push(
                               <div key="living-val" className="flex items-start mb-1">
                                 <span className="mr-2">•</span>
-                                <span>€{breakdown.living.min.toLocaleString()} - €{breakdown.living.max.toLocaleString()}</span>
+                                <span>€{breakdown.livingCosts.min.toLocaleString()} - €{breakdown.livingCosts.max.toLocaleString()}</span>
                               </div>
                             );
                             
-                            // Housing
-                            items.push(<h4 key="housing" className="text-md font-medium mt-2 mb-1">Housing</h4>);
-                            items.push(
-                              <div key="housing-val" className="flex items-start mb-1">
-                                <span className="mr-2">•</span>
-                                <span>€{breakdown.housing.min.toLocaleString()} - €{breakdown.housing.max.toLocaleString()}</span>
-                              </div>
-                            );
+                            // Housing - only show if available in breakdown
+                            if (breakdown.housing) {
+                              items.push(<h4 key="housing" className="text-md font-medium mt-2 mb-1">Housing</h4>);
+                              items.push(
+                                <div key="housing-val" className="flex items-start mb-1">
+                                  <span className="mr-2">•</span>
+                                  <span>€{breakdown.housing.min.toLocaleString()} - €{breakdown.housing.max.toLocaleString()}</span>
+                                </div>
+                              );
+                            }
                             
                             // Other fees
                             items.push(<h4 key="fees" className="text-md font-medium mt-2 mb-1">Other Fees</h4>);
+                            
                             if (breakdown.applicationFee) {
                               items.push(
                                 <div key="app-fee" className="flex items-start mb-1">
@@ -209,6 +212,7 @@ export const ProgramList: React.FC<ProgramListProps> = ({
                                 </div>
                               );
                             }
+                            
                             if (breakdown.visaFee) {
                               items.push(
                                 <div key="visa-fee" className="flex items-start mb-1">

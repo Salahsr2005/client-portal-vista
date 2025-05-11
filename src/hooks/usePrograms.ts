@@ -23,7 +23,7 @@ export interface Program {
   living_cost_max: number;
   description: string;
   image_url: string;
-  status: "Active" | "Closed" | "Coming Soon";
+  status: "Active" | "Inactive" | "Full" | "Coming Soon";
   ranking: number;
   application_deadline: string;
   scholarship_available: boolean;
@@ -152,7 +152,7 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
         location: `${program.city}, ${program.country}`,
         duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
         bgColorClass: program.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
-                     program.status === 'Closed' ? 'bg-red-100 dark:bg-red-900/10' : 
+                     program.status === 'Inactive' || program.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
                      'bg-amber-100 dark:bg-amber-900/10'
       }));
       
@@ -204,7 +204,7 @@ export const useProgram = (id: string) => {
         location: `${data.city}, ${data.country}`,
         duration: data.duration_months ? `${data.duration_months} months` : 'Not specified',
         bgColorClass: data.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
-                     data.status === 'Closed' ? 'bg-red-100 dark:bg-red-900/10' : 
+                     data.status === 'Inactive' || data.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
                      'bg-amber-100 dark:bg-amber-900/10'
       };
       
