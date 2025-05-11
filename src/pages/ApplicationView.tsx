@@ -42,13 +42,6 @@ interface ApplicationDetailResponse {
   notes?: string;
   programs?: ProgramDetail;
   program_id?: string; // Added to access program ID
-  program?: {
-    id: string;
-    name: string;
-    university: string;
-    location: string;
-    image: string;
-  };
   timeline?: Array<{date: string; status: string; note?: string}>;
   documents?: Array<{name: string; status: string; uploaded_at: string}>;
   submittedAt?: string;
@@ -71,36 +64,6 @@ export default function ApplicationView() {
       if (error) throw error;
       return data;
     }
-  });
-  
-  // Additional query to fetch program details separately
-  const { data: programDetail, isLoading: programLoading } = useQuery({
-    queryKey: ['programDetail', id || ''],
-    queryFn: async () => {
-      if (!id || !applicationDetail) return null;
-      
-      try {
-        const { data, error } = await supabase
-          .from('programs')
-          .select('*')
-          .eq('id', applicationDetail.program_id)
-          .single();
-        
-        if (error) throw error;
-        
-        return {
-          id: data.id,
-          name: data.name,
-          university: data.university,
-          location: `${data.city || ''}, ${data.country || ''}`,
-          image: data.image_url || '/placeholder.svg',
-        };
-      } catch (error) {
-        console.error("Error fetching program:", error);
-        return null;
-      }
-    },
-    enabled: !!id && !!applicationDetail
   });
   
   // Update query to use proper format 
@@ -133,6 +96,36 @@ export default function ApplicationView() {
       }
     },
     enabled: !!id
+  });
+  
+  // Additional query to fetch program details separately
+  const { data: programDetail, isLoading: programLoading } = useQuery({
+    queryKey: ['programDetail', id || ''],
+    queryFn: async () => {
+      if (!id || !applicationDetail) return null;
+      
+      try {
+        const { data, error } = await supabase
+          .from('programs')
+          .select('*')
+          .eq('id', applicationDetail.program_id)
+          .single();
+        
+        if (error) throw error;
+        
+        return {
+          id: data.id,
+          name: data.name,
+          university: data.university,
+          location: `${data.city || ''}, ${data.country || ''}`,
+          image: data.image_url || '/placeholder.svg',
+        };
+      } catch (error) {
+        console.error("Error fetching program:", error);
+        return null;
+      }
+    },
+    enabled: !!id && !!applicationDetail
   });
   
   const [formData, setFormData] = useState({
