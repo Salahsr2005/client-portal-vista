@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from "@/components/ui/input";
@@ -84,7 +83,12 @@ export default function Programs() {
   const currentItems = programs;
 
   // Get programs for comparison
-  const programsToCompare = programs.filter(p => compareList.includes(p.id));
+  // We need to cast to the required type for ComparePrograms
+  const programsToCompare = programs.filter(p => compareList.includes(p.id)).map(p => ({
+    ...p,
+    location: p.location || `${p.city}, ${p.country}`,
+    duration: p.duration || `${p.duration_months} months`,
+  }));
 
   // Function to change page
   const paginate = (pageNumber: number) => {

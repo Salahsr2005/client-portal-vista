@@ -1,12 +1,84 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Info } from 'lucide-react';
+import { ArrowLeft, Info, Loader2 } from 'lucide-react';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Program } from "@/hooks/usePrograms";
+
+// Create a hook for application submission
+const useApplicationSubmit = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const submitApplication = async ({ 
+    programId, 
+    notes, 
+    priority 
+  }: { 
+    programId: string; 
+    notes: string; 
+    priority: 'High' | 'Medium' | 'Low' 
+  }) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to submit an application",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .insert({
+          client_id: user.id,
+          program_id: programId,
+          notes,
+          priority,
+          status: 'Draft',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select('application_id')
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Application submitted",
+        description: "Your application has been submitted successfully",
+      });
+
+      return { success: true, applicationId: data.application_id };
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit application",
+        variant: "destructive",
+      });
+      return { success: false };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return { submitApplication, isSubmitting };
+};
 
 export default function NewApplication() {
   const [searchParams] = useSearchParams();
@@ -20,9 +92,9 @@ export default function NewApplication() {
   const [priority, setPriority] = useState<'High' | 'Medium' | 'Low'>('Medium');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const { data: program, isLoading, error } = useQuery(
-    ['program', programId],
-    async () => {
+  const { data: program, isLoading, error } = useQuery({
+    queryKey: ['program', programId],
+    queryFn: async () => {
       if (!programId) throw new Error("Program ID is required");
       const { data, error } = await supabase
         .from('programs')
@@ -33,10 +105,8 @@ export default function NewApplication() {
       if (error) throw error;
       return data as Program;
     },
-    {
-      enabled: !!programId,
-    }
-  );
+    enabled: !!programId,
+  });
 
   useEffect(() => {
     if (!user) {
