@@ -80,6 +80,7 @@ export interface Program {
   religious_facilities?: boolean;
   halal_food_availability?: boolean;
   deadlinePassed?: boolean;
+  // Add these properties to support both naming conventions
   hasScholarship?: boolean;
   hasReligiousFacilities?: boolean;
   hasHalalFood?: boolean;

@@ -1,4 +1,3 @@
-
 // Update just the section with the type error in the usePrograms.ts file
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +33,10 @@ export interface Program {
   religious_facilities?: boolean;
   halal_food_availability?: boolean;
   bgColorClass?: string; // Added for status-based background color
+  deadlinePassed?: boolean;
+  hasScholarship?: boolean;
+  hasReligiousFacilities?: boolean;
+  hasHalalFood?: boolean;
 }
 
 export interface ProgramsQueryParams {
@@ -151,6 +154,10 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
         isFavorite: favorites.includes(program.id),
         location: `${program.city}, ${program.country}`,
         duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
+        deadlinePassed: false, // Default value
+        hasScholarship: program.scholarship_available,
+        hasReligiousFacilities: program.religious_facilities,
+        hasHalalFood: program.halal_food_availability,
         bgColorClass: program.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
                      program.status === 'Inactive' || program.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
                      'bg-amber-100 dark:bg-amber-900/10'
@@ -203,6 +210,10 @@ export const useProgram = (id: string) => {
         isFavorite,
         location: `${data.city}, ${data.country}`,
         duration: data.duration_months ? `${data.duration_months} months` : 'Not specified',
+        deadlinePassed: false, // Default value
+        hasScholarship: data.scholarship_available,
+        hasReligiousFacilities: data.religious_facilities,
+        hasHalalFood: data.halal_food_availability,
         bgColorClass: data.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
                      data.status === 'Inactive' || data.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
                      'bg-amber-100 dark:bg-amber-900/10'

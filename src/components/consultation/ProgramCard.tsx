@@ -10,7 +10,7 @@ import {
   GraduationCap, Heart, Star, MapPin, Building, Clock, Calendar, 
   CircleDollarSign, LayoutPanelLeft, Share2, ArrowRight
 } from 'lucide-react';
-import { Program } from '@/hooks/usePrograms';
+import { Program } from '@/components/consultation/types';
 import { useNavigate } from 'react-router-dom';
 
 interface ProgramCardProps {
@@ -48,7 +48,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
   // Default image if not available
   const backgroundImage = program.image_url || '/placeholder.svg';
   
-  // Check deadline
+  // Check deadline using either property name
   const deadlinePassed = program.deadlinePassed || false;
   
   // Apply modern color scheme based on status
@@ -151,7 +151,7 @@ const ProgramCard: React.FC<ProgramCardProps> = ({
               ></div>
             </div>
             <span className="text-xs text-muted-foreground ml-2 font-medium">
-              {Math.round(program.matchScore)}%
+              {Math.round(program.matchScore || 0)}%
             </span>
           </div>
         )}
