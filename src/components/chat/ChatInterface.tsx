@@ -7,12 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
+import useMessageAccess from "@/hooks/useMessageAccess";
 import {
   Send,
   Search,
@@ -27,7 +27,8 @@ import {
   CreditCard,
   Lock,
   FileText,
-  Clock
+  Clock,
+  User
 } from 'lucide-react';
 
 interface Message {
@@ -151,9 +152,9 @@ const ChatInterface: React.FC = () => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
-  const [hasApprovedApplication, setHasApprovedApplication] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { data: paymentStatus, isLoading: paymentLoading } = useUserPaymentStatus();
+  const messageAccess = useMessageAccess();
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -161,30 +162,6 @@ const ChatInterface: React.FC = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
-
-  // Check if user has approved applications
-  useEffect(() => {
-    const checkApplicationStatus = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('applications')
-          .select('*')
-          .eq('client_id', user.id)
-          .eq('status', 'Approved')
-          .limit(1);
-          
-        if (error) throw error;
-        
-        setHasApprovedApplication(data && data.length > 0);
-      } catch (error) {
-        console.error('Error checking application status:', error);
-      }
-    };
-    
-    checkApplicationStatus();
-  }, [user]);
 
   // Simulate real-time messaging
   useEffect(() => {
@@ -235,11 +212,7 @@ const ChatInterface: React.FC = () => {
   };
 
   // Check if user can access chat based on payment status and application approval
-  const canAccessChat = () => {
-    if (!paymentStatus) return false;
-    if (!hasApprovedApplication) return false;
-    return paymentStatus.isPaid;
-  };
+  const canAccessChat = messageAccess.canAccessMessages;
 
   // If no user is logged in
   if (!user) {
@@ -260,7 +233,7 @@ const ChatInterface: React.FC = () => {
   }
 
   // If payment or application status is loading
-  if (paymentLoading) {
+  if (paymentLoading || messageAccess.isLoading) {
     return (
       <div className="h-[600px] flex items-center justify-center">
         <div className="text-center">
@@ -274,7 +247,7 @@ const ChatInterface: React.FC = () => {
   }
 
   // If user doesn't have approved application
-  if (!hasApprovedApplication) {
+  if (messageAccess.status === 'noApplication') {
     return (
       <div className="h-[600px] flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -311,7 +284,7 @@ const ChatInterface: React.FC = () => {
   }
 
   // If user hasn't paid or payment isn't approved
-  if (!canAccessChat()) {
+  if (!canAccessChat) {
     return (
       <div className="h-[600px] flex items-center justify-center">
         <Card className="w-full max-w-md">
@@ -329,14 +302,12 @@ const ChatInterface: React.FC = () => {
                 Payment Status
               </h3>
               <p className="text-sm mt-2">
-                {paymentStatus?.hasPendingReceipt 
-                  ? "Your payment is pending verification. Access will be granted once approved."
-                  : "You need to make a payment to access the chat feature."}
+                {messageAccess.reason}
               </p>
             </div>
             
             <div className="flex flex-col space-y-2">
-              {!paymentStatus?.hasPendingReceipt && (
+              {messageAccess.requiresPayment && (
                 <Button asChild className="w-full">
                   <Link to="/payments">
                     <CreditCard className="mr-2 h-4 w-4" />
@@ -364,35 +335,45 @@ const ChatInterface: React.FC = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Search messages..." className="pl-8" />
             </div>
-            <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-              <TabsList className="w-full">
-                <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
-                <TabsTrigger value="unread" className="flex-1">
-                  Unread
-                  <Badge className="ml-1 bg-primary text-primary-foreground" variant="secondary">
-                    4
-                  </Badge>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium">Conversations</h2>
+              <Badge className="ml-1 bg-primary text-primary-foreground" variant="secondary">
+                4
+              </Badge>
+            </div>
           </div>
           
           <ScrollArea className="flex-grow">
             {sampleConversations.map(conversation => (
-              <div key={conversation.id} className="p-3 border-b last:border-b-0 cursor-pointer hover:bg-accent">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="font-medium">{conversation.name}</div>
-                    <div className="text-sm text-muted-foreground">{conversation.lastMessage}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-muted-foreground">{conversation.timestamp}</div>
-                    {conversation.unread > 0 && (
-                      <Badge className="ml-1 bg-primary text-primary-foreground" variant="secondary">
-                        {conversation.unread}
-                      </Badge>
+              <div 
+                key={conversation.id} 
+                className={`p-3 border-b last:border-b-0 cursor-pointer hover:bg-accent transition-colors ${
+                  selectedConversation.id === conversation.id ? 'bg-accent/50' : ''
+                }`}
+                onClick={() => setSelectedConversation(conversation)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="relative">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={conversation.avatar} alt={conversation.name} />
+                      <AvatarFallback>{conversation.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                    </Avatar>
+                    {conversation.online && (
+                      <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background"></span>
                     )}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium truncate">{conversation.name}</p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{conversation.timestamp}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">{conversation.lastMessage}</p>
+                  </div>
+                  {conversation.unread > 0 && (
+                    <Badge className="rounded-full h-5 min-w-5 p-0 flex items-center justify-center bg-primary text-primary-foreground">
+                      {conversation.unread}
+                    </Badge>
+                  )}
                 </div>
               </div>
             ))}
@@ -465,6 +446,12 @@ const ChatInterface: React.FC = () => {
                         )}
                       </div>
                     </div>
+                    {message.isMe && (
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src="/placeholder.svg" alt="Me" />
+                        <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
+                      </Avatar>
+                    )}
                   </div>
                 </div>
               ))}

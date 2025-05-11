@@ -32,6 +32,7 @@ export interface Program {
   isFavorite?: boolean;
   religious_facilities?: boolean;
   halal_food_availability?: boolean;
+  bgColorClass?: string; // Added for status-based background color
 }
 
 export interface ProgramsQueryParams {
@@ -148,7 +149,10 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
         ...program,
         isFavorite: favorites.includes(program.id),
         location: `${program.city}, ${program.country}`,
-        duration: program.duration_months ? `${program.duration_months} months` : 'Not specified'
+        duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
+        bgColorClass: program.status === 'Active' ? 'bg-green-50 dark:bg-green-900/10' : 
+                     program.status === 'Closed' ? 'bg-red-50 dark:bg-red-900/10' : 
+                     'bg-amber-50 dark:bg-amber-900/10'
       }));
       
       return {
@@ -197,7 +201,10 @@ export const useProgram = (id: string) => {
         ...data,
         isFavorite,
         location: `${data.city}, ${data.country}`,
-        duration: data.duration_months ? `${data.duration_months} months` : 'Not specified'
+        duration: data.duration_months ? `${data.duration_months} months` : 'Not specified',
+        bgColorClass: data.status === 'Active' ? 'bg-green-50 dark:bg-green-900/10' : 
+                     data.status === 'Closed' ? 'bg-red-50 dark:bg-red-900/10' : 
+                     'bg-amber-50 dark:bg-amber-900/10'
       };
       
       return programWithExtras as Program & { isFavorite: boolean };

@@ -1,134 +1,143 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { HeartIcon, Clock, GraduationCap, MapPin, CalendarIcon, Bookmark, BookmarkCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/utils/databaseHelpers';
+import { Button } from "@/components/ui/button";
+import { MapPin, Clock, GraduationCap, Languages, Heart, HeartOff, Star } from "lucide-react";
+import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { Program } from '@/hooks/usePrograms';
 
 interface ProgramCardProps {
   program: Program;
-  onFavoriteToggle?: (programId: string) => void;
-  isFavorite?: boolean;
+  onFavoriteToggle?: (programId: string, isFavorite: boolean) => void;
+  showFavoriteButton?: boolean;
 }
 
-const ProgramCard: React.FC<ProgramCardProps> = ({ program, onFavoriteToggle, isFavorite = false }) => {
+const ProgramCard = ({ 
+  program, 
+  onFavoriteToggle,
+  showFavoriteButton = true 
+}: ProgramCardProps) => {
+  
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (onFavoriteToggle) {
-      onFavoriteToggle(program.id);
+      onFavoriteToggle(program.id, !program.isFavorite);
     }
   };
-
-  // Set background color based on program status
-  const getBackgroundStyle = () => {
-    if (program.status === 'Closed') {
-      return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/30';
+  
+  // Format tuition range
+  const formatTuition = () => {
+    const formatter = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: 0,
+    });
+    
+    return `${formatter.format(program.tuition_min)} - ${formatter.format(program.tuition_max)}`;
+  };
+  
+  // Get status badge color
+  const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+      case 'Active':
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
+      case 'Closed':
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+      default:
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
     }
-    if (program.status === 'Active') {
-      return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900/30';
-    }
-    return '';
   };
 
   return (
-    <Card className={`overflow-hidden hover:shadow-md transition-shadow ${getBackgroundStyle()}`}>
-      <div className="relative h-48 overflow-hidden">
-        <img 
-          src={program.image_url || '/placeholder.svg?height=200&width=400&text=Program'} 
-          alt={program.name}
-          className="w-full h-full object-cover"
-        />
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="absolute top-2 right-2 bg-white/80 hover:bg-white dark:bg-gray-900/80 hover:dark:bg-gray-900 rounded-full"
-          onClick={handleFavoriteClick}
+    <Card className={cn(
+      "h-full overflow-hidden flex flex-col transition-all cursor-pointer hover:shadow-md",
+      program.bgColorClass || ""
+    )}>
+      <Link to={`/programs/${program.id}`} className="flex flex-col h-full">
+        <div 
+          className="h-36 bg-center bg-cover" 
+          style={{ 
+            backgroundImage: program.image_url ? 
+              `url(${program.image_url})` : 
+              'url(/placeholder.svg?height=144&width=384)' 
+          }}
         >
-          {isFavorite ? (
-            <BookmarkCheck className="h-5 w-5 text-primary" />
-          ) : (
-            <Bookmark className="h-5 w-5" />
-          )}
-        </Button>
-        
-        {program.status === 'Closed' && (
-          <div className="absolute top-0 left-0 right-0 bg-red-500 text-white py-1 px-2 text-center font-medium text-xs">
-            CLOSED
-          </div>
-        )}
-        
-        {program.status === 'Coming Soon' && (
-          <div className="absolute top-0 left-0 right-0 bg-amber-500 text-white py-1 px-2 text-center font-medium text-xs">
-            COMING SOON
-          </div>
-        )}
-      </div>
-      
-      <CardContent className="pt-4 pb-2">
-        <div className="flex items-start justify-between mb-2">
-          <h3 className="font-semibold text-lg line-clamp-2">{program.name}</h3>
-          {program.ranking && (
-            <Badge variant="outline" className="flex items-center gap-1 whitespace-nowrap">
-              <HeartIcon className="h-3 w-3" /> Rank #{program.ranking}
+          <div className="flex justify-between p-2">
+            <Badge className={getStatusBadgeStyle(program.status)}>
+              {program.status}
             </Badge>
-          )}
+            
+            {program.scholarship_available && (
+              <Badge variant="outline" className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                Scholarship
+              </Badge>
+            )}
+          </div>
         </div>
         
-        <div className="text-sm text-muted-foreground mb-3">{program.university}</div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1 mb-3">
-          <div className="flex items-center gap-1">
-            <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm truncate">{program.city}, {program.country}</span>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <GraduationCap className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm truncate">{program.study_level}</span>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm truncate">{program.duration_months} months</span>
-          </div>
-          
-          {program.application_deadline && (
-            <div className="flex items-center gap-1">
-              <CalendarIcon className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-              <span className="text-sm truncate">Deadline: {program.application_deadline}</span>
+        <CardHeader className="p-3 pb-1">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-semibold text-lg line-clamp-2">{program.name}</h3>
+              <p className="text-sm text-muted-foreground">{program.university}</p>
             </div>
-          )}
-        </div>
+            
+            {program.ranking && (
+              <Badge variant="outline" className="flex items-center gap-1 ml-2 shrink-0">
+                <Star className="h-3.5 w-3.5 fill-yellow-500 text-yellow-500" />
+                <span>{program.ranking}</span>
+              </Badge>
+            )}
+          </div>
+        </CardHeader>
         
-        <div className="flex items-baseline justify-between mt-2">
-          <div>
-            <div className="text-xs text-muted-foreground">Tuition fee</div>
-            <div className="font-medium">
-              {formatCurrency(program.tuition_min)}
-              {program.tuition_min !== program.tuition_max && '+'} 
+        <CardContent className="p-3 pt-1 flex-grow">
+          <div className="grid gap-1.5">
+            <div className="flex items-center text-sm">
+              <MapPin className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.location}</span>
+            </div>
+            
+            <div className="flex items-center text-sm">
+              <GraduationCap className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.study_level}</span>
+            </div>
+            
+            <div className="flex items-center text-sm">
+              <Languages className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.program_language}</span>
+            </div>
+            
+            <div className="flex items-center text-sm">
+              <Clock className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+              <span className="text-muted-foreground">{program.duration}</span>
             </div>
           </div>
+        </CardContent>
+        
+        <CardFooter className="p-3 pt-2 flex justify-between items-center border-t">
+          <div className="font-medium">{formatTuition()}</div>
           
-          {program.scholarship_available && (
-            <Badge variant="secondary" className="ml-auto">Scholarship</Badge>
+          {showFavoriteButton && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 rounded-full"
+              onClick={handleFavoriteClick}
+              aria-label={program.isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              {program.isFavorite ? (
+                <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+              ) : (
+                <HeartOff className="h-4 w-4" />
+              )}
+            </Button>
           )}
-        </div>
-      </CardContent>
-      
-      <CardFooter className="pt-2 pb-4">
-        <Link 
-          to={`/programs/${program.id}`} 
-          className="w-full"
-        >
-          <Button variant="default" className="w-full">
-            View Details
-          </Button>
-        </Link>
-      </CardFooter>
+        </CardFooter>
+      </Link>
     </Card>
   );
 };

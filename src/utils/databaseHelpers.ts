@@ -1,75 +1,103 @@
 
-export const handleSupabaseError = (error: any, toast: any) => {
-  console.error("Supabase error:", error);
-  toast({
-    title: "Database Error",
-    description: error.message || "An unexpected error occurred",
-    variant: "destructive",
-  });
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
+
+// Helper to format currency
+export const formatCurrency = (amount: number, currency: string = 'EUR') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
 };
 
-export const formatCurrency = (amount: number, fromCurrency = "EUR", toCurrency = "EUR") => {
-  // Simple currency formatter for now
-  // In a real app, you'd use exchange rates
-  return `€${amount.toLocaleString()}`;
-};
-
-// Add the missing initializeStorageBuckets function
-export const initializeStorageBuckets = async () => {
-  // This function is a placeholder for actual storage bucket initialization
-  // In a real implementation, you would actually create and configure storage buckets
-  console.log("Storage buckets initialization check");
-  return true;
-};
-
-// Other required functions that might be missing
-export const getReceiptUrl = async (filePath: string) => {
-  // Placeholder function to get receipt URL
-  if (!filePath) return null;
-  
+// Helper to upload payment receipt
+export const uploadPaymentReceipt = async (file: File, userId: string) => {
   try {
-    // In a real implementation, you would get a signed URL from Supabase storage
-    // const { data, error } = await supabase.storage
-    //   .from('receipts')
-    //   .createSignedUrl(filePath, 60);
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}/${uuidv4()}.${fileExt}`;
     
-    // if (error) throw error;
-    // return data.signedUrl;
+    const { data, error } = await supabase.storage
+      .from('payment_receipts')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
     
-    // For now, just return the path as if it were a URL
-    return filePath;
+    if (error) throw error;
+    
+    return {
+      success: true,
+      filePath: filePath,
+      fileUrl: data?.path
+    };
   } catch (error) {
-    console.error("Error getting receipt URL:", error);
+    console.error('Error uploading receipt:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};
+
+// Helper to upload document
+export const uploadDocument = async (file: File, userId: string, documentName: string) => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}/${documentName.replace(/\s+/g, '_')}_${uuidv4()}.${fileExt}`;
+    
+    const { data, error } = await supabase.storage
+      .from('user_documents')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (error) throw error;
+    
+    return {
+      success: true,
+      filePath: filePath,
+      fileUrl: data?.path
+    };
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};
+
+// Helper to get a receipt URL
+export const getReceiptUrl = async (receiptPath: string) => {
+  try {
+    const { data, error } = await supabase.storage
+      .from('payment_receipts')
+      .createSignedUrl(receiptPath, 60 * 5); // 5 minutes expiry
+    
+    if (error) throw error;
+    
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error getting receipt URL:', error);
     return null;
   }
 };
 
-export const uploadPaymentReceipt = async (file: File, userId: string) => {
-  // Placeholder for file upload functionality
-  console.log("Receipt upload initiated for user:", userId);
-  console.log("File to upload:", file.name);
-  
+// Helper to get a document URL
+export const getDocumentUrl = async (documentPath: string) => {
   try {
-    // In a real implementation, this would upload to Supabase storage
-    // const { data, error } = await supabase.storage
-    //   .from('receipts')
-    //   .upload(`${userId}/${file.name}`, file);
+    const { data, error } = await supabase.storage
+      .from('user_documents')
+      .createSignedUrl(documentPath, 60 * 5); // 5 minutes expiry
     
-    // if (error) throw error;
-    // return { success: true, filePath: data.path, error: null };
+    if (error) throw error;
     
-    // For now, return a simulated success response
-    return {
-      success: true,
-      filePath: `receipts/${userId}/${file.name}`,
-      error: null
-    };
-  } catch (error: any) {
-    console.error("Error uploading receipt:", error);
-    return {
-      success: false,
-      filePath: null,
-      error: error.message || "Failed to upload receipt"
-    };
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error getting document URL:', error);
+    return null;
   }
 };
