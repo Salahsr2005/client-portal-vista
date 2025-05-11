@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -271,7 +270,7 @@ export default function ApplicationView() {
     // Create a safe version of applicationDetail with proper type checking
     const safeAppDetail = applicationDetail as ApplicationDetailResponse;
     
-    // Combine program data from both queries
+    // Combine program data from both queries to ensure we have the complete information
     const programData = {
       id: safeAppDetail.programs?.id || programDetail?.id || '',
       name: safeAppDetail.programs?.name || programDetail?.name || "Unknown Program",
