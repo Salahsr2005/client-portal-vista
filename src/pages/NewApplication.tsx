@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Program } from "@/hooks/usePrograms";
+import { Program } from "@/types/Program";
 
 // Create a hook for application submission
 const useApplicationSubmit = () => {

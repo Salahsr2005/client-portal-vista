@@ -30,13 +30,14 @@ export default function Profile() {
       try {
         setIsLoading(true);
         
+        // Fix the table name to client_users instead of users
         const { data, error } = await supabase
-          .from('users')
+          .from('client_users')
           .select(`
             *,
             client_profiles(*)
           `)
-          .eq('id', user.id)
+          .eq('client_id', user.id)
           .single();
         
         if (error) throw error;
@@ -87,7 +88,7 @@ export default function Profile() {
         const { error } = await supabase
           .from('client_profiles')
           .update(editedData)
-          .eq('user_id', user.id);
+          .eq('client_id', user.id);
         
         if (error) throw error;
       } else {
@@ -102,14 +103,14 @@ export default function Profile() {
         if (error) throw error;
       }
       
-      // Refresh user data
+      // Refresh user data - fix table name here too
       const { data, error } = await supabase
-        .from('users')
+        .from('client_users')
         .select(`
           *,
           client_profiles(*)
         `)
-        .eq('id', user.id)
+        .eq('client_id', user.id)
         .single();
       
       if (error) throw error;
@@ -262,7 +263,7 @@ export default function Profile() {
                         <Label htmlFor="passport-number">Passport Number</Label>
                         <Input 
                           id="passport-number" 
-                          value={isEditing ? editedData.passport_number || '' : userData?.client_profiles?.[0]?.passport_number || "Not provided"} 
+                          value={isEditing ? editedData.passport_number || '' : (userData?.client_profiles?.[0]?.passport_number || "Not provided")} 
                           disabled={!isEditing} 
                           onChange={(e) => handleChange("passport_number", e.target.value)} 
                         />
@@ -275,7 +276,7 @@ export default function Profile() {
                       <Label htmlFor="current-address">Current Address</Label>
                       <Textarea 
                         id="current-address" 
-                        value={isEditing ? editedData.current_address || '' : userData?.client_profiles?.[0]?.current_address || "Not provided"} 
+                        value={isEditing ? editedData.current_address || '' : (userData?.client_profiles?.[0]?.current_address || "Not provided")} 
                         disabled={!isEditing} 
                         onChange={(e) => handleChange("current_address", e.target.value)} 
                       />
@@ -285,7 +286,7 @@ export default function Profile() {
                       <Label htmlFor="education-background">Education Background</Label>
                       <Textarea 
                         id="education-background" 
-                        value={isEditing ? editedData.education_background || '' : userData?.client_profiles?.[0]?.education_background || "Not provided"} 
+                        value={isEditing ? editedData.education_background || '' : (userData?.client_profiles?.[0]?.education_background || "Not provided")} 
                         disabled={!isEditing} 
                         onChange={(e) => handleChange("education_background", e.target.value)} 
                       />
@@ -295,7 +296,7 @@ export default function Profile() {
                       <Label htmlFor="work-experience">Work Experience</Label>
                       <Textarea 
                         id="work-experience" 
-                        value={isEditing ? editedData.work_experience || '' : userData?.client_profiles?.[0]?.work_experience || "Not provided"} 
+                        value={isEditing ? editedData.work_experience || '' : (userData?.client_profiles?.[0]?.work_experience || "Not provided")} 
                         disabled={!isEditing} 
                         onChange={(e) => handleChange("work_experience", e.target.value)} 
                       />
@@ -305,7 +306,7 @@ export default function Profile() {
                       <Label htmlFor="language-proficiency">Language Proficiency</Label>
                       <Textarea 
                         id="language-proficiency" 
-                        value={isEditing ? editedData.language_proficiency || '' : userData?.client_profiles?.[0]?.language_proficiency || "Not provided"} 
+                        value={isEditing ? editedData.language_proficiency || '' : (userData?.client_profiles?.[0]?.language_proficiency || "Not provided")} 
                         disabled={!isEditing} 
                         onChange={(e) => handleChange("language_proficiency", e.target.value)} 
                       />
@@ -322,7 +323,7 @@ export default function Profile() {
                       <Label htmlFor="emergency-contact-name">Emergency Contact Name</Label>
                       <Input 
                         id="emergency-contact-name" 
-                        value={isEditing ? editedData.emergency_contact_name || '' : userData?.client_profiles?.[0]?.emergency_contact_name || "Not provided"} 
+                        value={isEditing ? editedData.emergency_contact_name || '' : (userData?.client_profiles?.[0]?.emergency_contact_name || "Not provided")} 
                         disabled={!isEditing} 
                         onChange={(e) => handleChange("emergency_contact_name", e.target.value)} 
                       />
@@ -332,7 +333,7 @@ export default function Profile() {
                       <Label htmlFor="emergency-contact-phone">Emergency Contact Phone</Label>
                       <Input 
                         id="emergency-contact-phone" 
-                        value={isEditing ? editedData.emergency_contact_phone || '' : userData?.client_profiles?.[0]?.emergency_contact_phone || "Not provided"} 
+                        value={isEditing ? editedData.emergency_contact_phone || '' : (userData?.client_profiles?.[0]?.emergency_contact_phone || "Not provided")} 
                         disabled={!isEditing} 
                         onChange={(e) => handleChange("emergency_contact_phone", e.target.value)} 
                       />

@@ -27,7 +27,7 @@ export default function ApplicationView() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Update query to use proper format
+  // Update query to use proper format 
   const { data: applications, isLoading: applicationsLoading } = useQuery({
     queryKey: ['applications'],
     queryFn: async () => {
@@ -41,9 +41,28 @@ export default function ApplicationView() {
   const { data: applicationDetail, isLoading: detailLoading } = useQuery({
     queryKey: ['applicationDetail', id || ''],
     queryFn: async () => {
-      const { data, error } = await supabase.from('applications').select('*').eq('application_id', id || '').single();
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          programs(id, name, university, location, image_url)
+        `)
+        .eq('application_id', id || '')
+        .single();
+      
       if (error) throw error;
-      return data;
+      
+      // Transform the response to include program as a property
+      return {
+        ...data,
+        program: data.programs ? {
+          id: data.programs.id,
+          name: data.programs.name,
+          university: data.programs.university,
+          location: data.programs.location,
+          image: data.programs.image_url,
+        } : null
+      };
     },
     enabled: !!id
   });
@@ -196,6 +215,7 @@ export default function ApplicationView() {
       createdAt?: string;
       notes?: string;
       program?: {
+        id?: string;
         name?: string;
         university?: string;
         location?: string;

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,14 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, CreditCard, Building, ArrowLeft, ArrowRight } from 'lucide-react';
+import { AlertCircle, CreditCard, Building, ArrowLeft, ArrowRight, Upload as UploadIcon, FileUp, Check, FileCheck } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { uploadPaymentReceipt } from "@/utils/databaseHelpers";
+
+// Import Euro icon or create custom component for Euro symbol
+const Euro = () => {
+  return <span>€</span>;
+};
 
 const PaymentCheckout = () => {
   const location = useLocation();
@@ -347,7 +354,7 @@ const PaymentCheckout = () => {
                         onChange={handleFileChange}
                       />
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <Upload className="h-10 w-10 text-muted-foreground" />
+                        <UploadIcon className="h-10 w-10 text-muted-foreground" />
                         {receiptFile ? (
                           <div>
                             <p className="font-medium">{receiptFile.name}</p>
