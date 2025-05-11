@@ -1,506 +1,422 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, CreditCard, Building, ArrowLeft, ArrowRight, Upload as UploadIcon, FileUp, Check, FileCheck } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Check, Upload, FileUp } from "lucide-react";
 import { uploadPaymentReceipt } from "@/utils/databaseHelpers";
 
-// Import Euro icon or create custom component for Euro symbol
-const Euro = () => {
-  return <span>€</span>;
-};
+// Euro icon component
+const Euro = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className || "w-4 h-4"}
+  >
+    <path d="M4 10h12" />
+    <path d="M4 14h9" />
+    <path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2" />
+  </svg>
+);
 
-const PaymentCheckout = () => {
-  const location = useLocation();
+export default function PaymentCheckout() {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const location = useLocation();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("credit-card");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [paymentData, setPaymentData] = useState<any>(null);
-  const [step, setStep] = useState(1);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    amount: 350,
+    reference: `PAY-${Math.floor(100000 + Math.random() * 900000)}`,
+    method: 'bank_transfer',
+    completed: false,
+  });
+  const [paymentFile, setPaymentFile] = useState<File | null>(null);
+  const [notes, setNotes] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   useEffect(() => {
-    // Get payment data passed from previous page
-    if (location.state?.paymentData) {
-      setPaymentData(location.state.paymentData);
-      
-      // Set default payment method if specified
-      if (location.state.paymentData.method) {
-        setPaymentMethod(location.state.paymentData.method);
-      }
-    } else {
-      // If no payment data, redirect back to payments
-      navigate("/payments");
-    }
-  }, [location, navigate]);
-
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-    const matches = v.match(/\d{4,16}/g);
-    const match = (matches && matches[0]) || "";
-    const parts = [];
-
-    for (let i = 0; i < match.length; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-
-    if (parts.length) {
-      return parts.join(" ");
-    } else {
-      return value;
-    }
-  };
-
-  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCardNumber(e.target.value);
-    setCardNumber(formatted.substring(0, 19)); // Limit to 16 digits + 3 spaces
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setReceiptFile(e.target.files[0]);
-    }
-  };
-
-  const handleFileUpload = async () => {
-    if (!receiptFile || !user) return;
-    
-    setUploadingReceipt(true);
-    
-    try {
-      // Create a payment record first
-      const { data: paymentRecord, error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          client_id: user.id,
-          method: paymentMethod,
-          amount: parseFloat(paymentData.amount),
-          status: 'Pending',
-          date: new Date().toISOString(),
-          description: paymentData.description || `Payment for ${paymentData.title}`,
-          reference: paymentData.reference || paymentMethod,
-        })
-        .select();
-      
-      if (paymentError) {
-        throw paymentError;
-      }
-      
-      // Upload receipt with reference to the payment
-      const result = await uploadPaymentReceipt(
-        user.id,
-        paymentRecord[0].payment_id,
-        receiptFile
-      );
-      
-      if (!result.success) {
-        throw result.error;
-      }
-      
+    if (!user) {
       toast({
-        title: "Receipt uploaded successfully",
-        description: "Your payment is pending verification.",
-      });
-      
-      // Move to success step after upload
-      setStep(2);
-    } catch (error: any) {
-      toast({
-        title: "Upload failed",
-        description: error.message || "Failed to upload receipt. Please try again.",
+        title: "Authentication required",
+        description: "Please log in to access the payment page",
         variant: "destructive",
       });
-    } finally {
-      setUploadingReceipt(false);
+      navigate('/login', { state: { from: location } });
+      return;
     }
+  }, [user, navigate, location, toast]);
+  
+  const handleMethodChange = (value: string) => {
+    setPaymentData(prev => ({ ...prev, method: value }));
   };
-
-  const handleSubmitPayment = () => {
-    if (paymentMethod === "bank-transfer" || paymentMethod === "ccp") {
-      if (!receiptFile) {
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
         toast({
-          title: "Receipt required",
-          description: "Please upload your payment receipt to continue.",
+          title: "Invalid file type",
+          description: "Please upload a JPG, PNG, GIF, or PDF file.",
           variant: "destructive",
         });
         return;
       }
       
-      handleFileUpload();
-    } else {
-      setLoading(true);
-
-      // Simulate payment processing for card payments
-      setTimeout(async () => {
-        try {
-          // Create payment record for card payments
-          if (user) {
-            await supabase
-              .from('payments')
-              .insert({
-                client_id: user.id,
-                method: 'Credit Card',
-                amount: parseFloat(paymentData.amount),
-                status: 'Completed',
-                date: new Date().toISOString(),
-                description: paymentData.description || `Payment for ${paymentData.title}`,
-                reference: paymentData.reference || 'card',
-                transaction_id: `TXN-${Date.now().toString().substring(5)}`
-              });
-          }
-          
-          setStep(2); // Move to success step
-        } catch (error) {
-          console.error("Error recording payment:", error);
-        } finally {
-          setLoading(false);
-        }
-      }, 2000);
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please upload a file smaller than 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setPaymentFile(file);
     }
   };
-
-  const handleFinish = () => {
-    toast({
-      title: "Payment processed",
-      description: paymentMethod === "credit-card" 
-        ? "Your payment has been processed successfully." 
-        : "Your payment receipt has been submitted and is pending verification.",
-    });
-    navigate("/payments");
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to make a payment.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Create payment record
+      const { data: paymentRecord, error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          client_id: user.id,
+          amount: paymentData.amount,
+          method: paymentData.method,
+          reference: paymentData.reference,
+          date: new Date().toISOString(),
+          status: 'Pending',
+          description: 'Account activation payment',
+          notes: notes || null
+        })
+        .select()
+        .single();
+      
+      if (paymentError) throw paymentError;
+      
+      // If file is provided, upload it
+      if (paymentFile) {
+        const uploadResult = await uploadPaymentReceipt(paymentFile, user.id);
+        
+        if (!uploadResult.success) {
+          throw new Error(uploadResult.error || 'Failed to upload payment receipt');
+        }
+        
+        // Create receipt record
+        const { error: receiptError } = await supabase
+          .from('payment_receipts')
+          .insert({
+            client_id: user.id,
+            payment_id: paymentRecord.payment_id,
+            receipt_path: uploadResult.filePath,
+            notes: notes || null,
+          });
+        
+        if (receiptError) throw receiptError;
+      }
+      
+      // Show success notification
+      toast({
+        title: "Payment registered",
+        description: "Your payment has been registered successfully.",
+      });
+      
+      // Update state and redirect
+      setPaymentData(prev => ({ ...prev, completed: true }));
+      setTimeout(() => {
+        navigate('/profile');
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment failed",
+        description: error.message || "There was an error processing your payment.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  if (!paymentData) {
+  
+  if (paymentData.completed) {
     return (
-      <div className="container py-8">
+      <div className="container max-w-md py-16">
         <Card>
-          <CardContent className="py-10">
-            <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-lg font-medium">No payment data found</h2>
-              <p className="text-muted-foreground mt-2 mb-4">
-                Please return to the payments page and select an item to pay.
-              </p>
-              <Button onClick={() => navigate("/payments")}>Go to Payments</Button>
+          <CardHeader className="text-center">
+            <div className="mx-auto rounded-full bg-green-100 p-3 w-12 h-12 flex items-center justify-center mb-4">
+              <Check className="h-6 w-6 text-green-600" />
             </div>
+            <CardTitle>Payment Complete!</CardTitle>
+            <CardDescription>
+              Your payment has been registered and is awaiting confirmation.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-center">
+            <p>You will be redirected to your profile in a moment...</p>
           </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button asChild variant="outline">
+              <Link to="/profile">Go to Profile</Link>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     );
   }
-
+  
   return (
     <div className="container max-w-3xl py-8">
-      {step === 1 ? (
-        <Card className="border-border/50 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <CreditCard className="h-6 w-6" /> Payment Checkout
-            </CardTitle>
-            <CardDescription>Complete your payment securely</CardDescription>
-          </CardHeader>
-
-          <CardContent className="pt-6">
-            <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-              <div className="flex flex-col md:flex-row justify-between gap-4">
+      <div className="flex flex-col md:flex-row gap-8">
+        <div className="flex-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Details</CardTitle>
+              <CardDescription>
+                Complete your payment to access premium features
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between py-4 border-b">
                 <div>
-                  <h3 className="font-medium text-lg">{paymentData.title}</h3>
-                  <p className="text-muted-foreground">{paymentData.description}</p>
+                  <h3 className="font-medium">Account Activation</h3>
+                  <p className="text-sm text-muted-foreground">
+                    One-time activation fee
+                  </p>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary flex items-center gap-1 justify-end">
-                    <Euro className="h-5 w-5" /> {paymentData.amount}
-                  </div>
+                <div className="flex items-center">
+                  <Euro className="mr-1 h-4 w-4" />
+                  <span className="font-bold">{paymentData.amount}</span>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-6">
+              
               <div>
-                <h3 className="text-lg font-medium mb-4">Payment Method</h3>
-                <RadioGroup
-                  value={paymentMethod}
-                  onValueChange={setPaymentMethod}
-                  className="space-y-3"
-                >
-                  <div className={`flex items-center space-x-2 border p-4 rounded-md ${
-                    paymentMethod === "credit-card" ? "border-primary bg-primary/5" : ""
-                  }`}>
-                    <RadioGroupItem value="credit-card" id="credit-card" />
-                    <Label htmlFor="credit-card" className="flex-1 cursor-pointer">
-                      Credit/Debit Card
-                    </Label>
-                    <div className="flex gap-2">
-                      <div className="h-8 w-12 bg-[#1434CB] rounded-md flex items-center justify-center text-white text-xs font-bold">VISA</div>
-                      <div className="h-8 w-12 bg-[#FF5F00] rounded-md flex items-center justify-center text-white text-xs font-bold">MC</div>
-                    </div>
-                  </div>
-
-                  <div className={`flex items-center space-x-2 border p-4 rounded-md ${
-                    paymentMethod === "bank-transfer" ? "border-primary bg-primary/5" : ""
-                  }`}>
-                    <RadioGroupItem value="bank-transfer" id="bank-transfer" />
-                    <Label htmlFor="bank-transfer" className="flex-1 cursor-pointer">
-                      Bank Transfer
-                    </Label>
-                  </div>
-                  
-                  <div className={`flex items-center space-x-2 border p-4 rounded-md ${
-                    paymentMethod === "ccp" ? "border-primary bg-primary/5" : ""
-                  }`}>
-                    <RadioGroupItem value="ccp" id="ccp" />
-                    <Label htmlFor="ccp" className="flex-1 cursor-pointer">
-                      Algeria CCP
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {paymentMethod === "credit-card" && (
-                <div className="space-y-4 animate-in fade-in-50 duration-300">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="card-name">Cardholder Name</Label>
-                      <Input
-                        id="card-name"
-                        placeholder="As appears on your card"
-                        value={cardName}
-                        onChange={(e) => setCardName(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="card-number">Card Number</Label>
-                      <Input
-                        id="card-number"
-                        placeholder="1234 5678 9012 3456"
-                        value={cardNumber}
-                        onChange={handleCardNumberChange}
-                        maxLength={19}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="expiry">Expiry Date</Label>
-                        <Input
-                          id="expiry"
-                          placeholder="MM/YY"
-                          value={expiryDate}
-                          onChange={(e) => setExpiryDate(e.target.value.substring(0, 5))}
-                          maxLength={5}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvv">CVV</Label>
-                        <Input
-                          id="cvv"
-                          type="password"
-                          placeholder="123"
-                          value={cvv}
-                          onChange={(e) => setCvv(e.target.value.substring(0, 3))}
-                          maxLength={3}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-                    <AlertCircle className="h-4 w-4 text-amber-600" />
-                    <AlertTitle>This is a demo</AlertTitle>
-                    <AlertDescription>
-                      No real payment will be processed. You can use any card details for testing.
-                    </AlertDescription>
-                  </Alert>
-                </div>
-              )}
-
-              {paymentMethod === "bank-transfer" && (
-                <div className="space-y-4 animate-in fade-in-50 duration-300">
-                  <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-                    <AlertTitle>Bank Transfer Details</AlertTitle>
-                    <AlertDescription className="space-y-1">
-                      <p>Bank: Euro Education Bank</p>
-                      <p>IBAN: EU55 0000 0000 0000 0000 0000</p>
-                      <p>Reference: {paymentData.reference || "Your ID"}</p>
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="mt-4 space-y-2">
-                    <Label htmlFor="receipt">Upload Payment Receipt</Label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary/70 transition-colors" 
-                      onClick={() => fileInputRef.current?.click()}>
-                      <Input
-                        id="receipt"
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*,.pdf"
-                        onChange={handleFileChange}
-                      />
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <UploadIcon className="h-10 w-10 text-muted-foreground" />
-                        {receiptFile ? (
-                          <div>
-                            <p className="font-medium">{receiptFile.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {(receiptFile.size / (1024 * 1024)).toFixed(2)} MB
-                            </p>
+                <h3 className="font-medium mb-4">Payment Method</h3>
+                <form onSubmit={handleSubmit}>
+                  <Tabs defaultValue="bank_transfer" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger
+                        value="bank_transfer"
+                        onClick={() => handleMethodChange('bank_transfer')}
+                      >
+                        Bank Transfer
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="payment_receipt"
+                        onClick={() => handleMethodChange('payment_receipt')}
+                      >
+                        Upload Receipt
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="bank_transfer" className="space-y-4">
+                      <Alert className="my-4">
+                        <AlertTitle>Bank Transfer Information</AlertTitle>
+                        <AlertDescription>
+                          <p className="mb-2">
+                            Please transfer the amount to the following bank account:
+                          </p>
+                          <div className="bg-muted p-3 rounded-md text-sm mb-4">
+                            <p><strong>Bank:</strong> International Bank of Morocco</p>
+                            <p><strong>Account Name:</strong> Euro Visa Services</p>
+                            <p><strong>IBAN:</strong> MA82 1234 5678 9012 3456 7890</p>
+                            <p><strong>Reference:</strong> {paymentData.reference}</p>
                           </div>
-                        ) : (
-                          <>
-                            <p className="font-medium">Click to upload receipt</p>
-                            <p className="text-sm text-muted-foreground">
-                              or drag and drop your receipt file
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Supported formats: JPG, PNG, PDF (max 5MB)
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === "ccp" && (
-                <div className="space-y-4 animate-in fade-in-50 duration-300">
-                  <Alert className="bg-blue-50 border-blue-200 text-blue-800">
-                    <AlertTitle>Algeria CCP Details</AlertTitle>
-                    <AlertDescription className="space-y-1">
-                      <p>CCP Number: 00000000000000000000</p>
-                      <p>Key: 42</p>
-                      <p>Reference: {paymentData.reference || "Your ID"}</p>
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="mt-4 space-y-2">
-                    <Label htmlFor="receipt-ccp">Upload Payment Receipt</Label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary/70 transition-colors" 
-                      onClick={() => fileInputRef.current?.click()}>
-                      <Input
-                        id="receipt-ccp"
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*,.pdf"
-                        onChange={handleFileChange}
-                      />
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <FileUp className="h-10 w-10 text-muted-foreground" />
-                        {receiptFile ? (
-                          <div>
-                            <p className="font-medium">{receiptFile.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {(receiptFile.size / (1024 * 1024)).toFixed(2)} MB
-                            </p>
+                          <p className="text-sm">
+                            After completing the transfer, please upload your receipt.
+                          </p>
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-receipt">Upload Payment Receipt</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              id="payment-receipt" 
+                              type="file" 
+                              onChange={handleFileChange}
+                              ref={fileInputRef}
+                              accept=".jpg,.jpeg,.png,.pdf"
+                            />
+                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                              <Upload className="mr-2 h-4 w-4" /> Browse
+                            </Button>
                           </div>
-                        ) : (
-                          <>
-                            <p className="font-medium">Click to upload receipt</p>
-                            <p className="text-sm text-muted-foreground">
-                              Upload proof of your CCP payment
-                            </p>
-                          </>
-                        )}
+                          <p className="text-xs text-muted-foreground">
+                            Upload your payment receipt to verify your transfer (JPG, PNG, or PDF)
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="payment-notes">Payment Notes (Optional)</Label>
+                          <Input
+                            id="payment-notes"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="Add any notes about your payment"
+                          />
+                        </div>
                       </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="payment_receipt" className="space-y-4">
+                      <Alert className="my-4">
+                        <AlertTitle>Upload Payment Receipt</AlertTitle>
+                        <AlertDescription>
+                          <p className="mb-2">
+                            If you have already made the payment, please upload your receipt here.
+                          </p>
+                          <p className="text-sm">
+                            Your payment receipt will be verified by our team and your account will be
+                            activated once the payment is confirmed.
+                          </p>
+                        </AlertDescription>
+                      </Alert>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="receipt-upload">Upload Receipt</Label>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              id="receipt-upload" 
+                              type="file" 
+                              onChange={handleFileChange}
+                              ref={fileInputRef}
+                              accept=".jpg,.jpeg,.png,.pdf"
+                            />
+                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                              <FileUp className="mr-2 h-4 w-4" /> Browse
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Supported formats: JPG, PNG, PDF (Max 10MB)
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="receipt-reference">Payment Reference</Label>
+                          <Input
+                            id="receipt-reference"
+                            value={paymentData.reference}
+                            readOnly
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Use this reference in your bank transfer
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="receipt-notes">Additional Notes (Optional)</Label>
+                          <Input
+                            id="receipt-notes"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            placeholder="Add any notes about your payment"
+                          />
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <div className="mt-6">
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isSubmitting || !paymentFile}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                            Processing...
+                          </>
+                        ) : (
+                          'Submit Payment'
+                        )}
+                      </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Supported formats: JPG, PNG, PDF (max 5MB)
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-
-          <Separator />
-
-          <CardFooter className="flex flex-col md:flex-row gap-4 items-center justify-between py-4">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate("/payments")}
-              disabled={loading || uploadingReceipt}
-            >
-              Back to Payments
-            </Button>
-            <div className="flex flex-col items-end">
-              <p className="text-sm mb-2">
-                Total: <span className="font-bold">€{paymentData.amount}</span>
-              </p>
-              <Button 
-                onClick={handleSubmitPayment}
-                disabled={loading || uploadingReceipt || 
-                  (paymentMethod === "credit-card" && (!cardNumber || !cardName || !expiryDate || !cvv)) ||
-                  ((paymentMethod === "bank-transfer" || paymentMethod === "ccp") && !receiptFile)
-                }
-                className="min-w-[150px]"
-              >
-                {loading || uploadingReceipt ? (
-                  <>
-                    <div className="spinner mr-2" /> Processing...
-                  </>
-                ) : (
-                  <>Complete Payment</>
-                )}
-              </Button>
-            </div>
-          </CardFooter>
-        </Card>
-      ) : (
-        <Card className="border-border/50 shadow-md">
-          <CardContent className="pt-10 pb-6 text-center">
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-              <Check className="h-8 w-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold mb-2">Payment Submitted!</h2>
-            <p className="text-muted-foreground mb-6">
-              {paymentMethod === "credit-card" ? (
-                <>Your payment of <span className="font-medium">€{paymentData.amount}</span> has been processed successfully.</>
-              ) : (
-                <>Your receipt has been uploaded. Your payment of <span className="font-medium">€{paymentData.amount}</span> is pending verification.</>
-              )}
-            </p>
-            <div className="border rounded-lg p-4 bg-muted/30 mb-8 max-w-md mx-auto">
-              <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Reference:</span>
-                <span className="font-medium">{paymentData.reference || Math.random().toString(36).substr(2, 9).toUpperCase()}</span>
+                  </Tabs>
+                </form>
               </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-muted-foreground">Date:</span>
-                <span className="font-medium">{new Date().toLocaleDateString()}</span>
-              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="md:w-1/3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
-                <span className={`font-medium ${paymentMethod === "credit-card" ? "text-green-600" : "text-amber-600"}`}>
-                  {paymentMethod === "credit-card" ? "Completed" : "Pending Verification"}
-                </span>
+                <span>Account Activation</span>
+                <div className="flex items-center">
+                  <Check className="h-4 w-4 text-green-600 mr-1" />
+                  <span className="font-medium">€350</span>
+                </div>
               </div>
-            </div>
-            <Button onClick={handleFinish} className="w-full md:w-auto min-w-[200px]">
-              Return to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex justify-between font-medium">
+                  <span>Total</span>
+                  <span>€350</span>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t pt-6 flex-col items-start">
+              <h4 className="font-medium mb-2">What's included:</h4>
+              <ul className="text-sm space-y-2">
+                <li className="flex">
+                  <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                  <span>Full access to program applications</span>
+                </li>
+                <li className="flex">
+                  <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                  <span>Document upload and management</span>
+                </li>
+                <li className="flex">
+                  <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                  <span>Personalized program recommendations</span>
+                </li>
+                <li className="flex">
+                  <Check className="h-4 w-4 text-green-600 mr-2 mt-0.5" />
+                  <span>Support from our consultants</span>
+                </li>
+              </ul>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default PaymentCheckout;
+}

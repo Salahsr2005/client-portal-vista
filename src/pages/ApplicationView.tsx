@@ -41,28 +41,35 @@ export default function ApplicationView() {
   const { data: applicationDetail, isLoading: detailLoading } = useQuery({
     queryKey: ['applicationDetail', id || ''],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          programs(id, name, university, location, image_url)
-        `)
-        .eq('application_id', id || '')
-        .single();
+      if (!id) throw new Error("No application ID provided");
       
-      if (error) throw error;
-      
-      // Transform the response to include program as a property
-      return {
-        ...data,
-        program: data.programs ? {
-          id: data.programs.id,
-          name: data.programs.name,
-          university: data.programs.university,
-          location: data.programs.location,
-          image: data.programs.image_url,
-        } : null
-      };
+      try {
+        const { data, error } = await supabase
+          .from('applications')
+          .select(`
+            *,
+            programs:program_id(id, name, university, country, city, image_url)
+          `)
+          .eq('application_id', id)
+          .single();
+        
+        if (error) throw error;
+        
+        // Transform the response to include program as a property
+        return {
+          ...data,
+          program: data.programs ? {
+            id: data.programs.id,
+            name: data.programs.name,
+            university: data.programs.university,
+            location: `${data.programs.city}, ${data.programs.country}`,
+            image: data.programs.image_url,
+          } : null
+        };
+      } catch (error) {
+        console.error("Error fetching application:", error);
+        throw error;
+      }
     },
     enabled: !!id
   });

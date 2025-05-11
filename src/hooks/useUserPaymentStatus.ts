@@ -65,8 +65,8 @@ export const useUserPaymentStatus = () => {
         // Calculate payment status flags
         // Use string equality for comparisons instead of type equality
         const isPaid = paymentData.status === 'Completed' || 
-                      paymentData.status === 'Approved' || 
-                      paymentData.status === 'Verified';
+                      paymentData.status.includes('Approved') || 
+                      paymentData.status.includes('Verified');
         
         const hasPendingReceipt = receipts?.some(receipt => 
           receipt.status === 'Pending'
