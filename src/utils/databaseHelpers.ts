@@ -132,20 +132,26 @@ export const handleSupabaseError = (error: any, toast: any): void => {
 // Helper function to ensure storage buckets exist
 export const initializeStorageBuckets = async (): Promise<void> => {
   try {
-    // Check if payment_receipts bucket exists, create if not
-    const { data: buckets, error: bucketsError } = await supabase
-      .from('storage')
-      .select('name')
-      .eq('name', 'payment_receipts')
-      .maybeSingle();
+    // Due to Supabase limitations, we can't directly query the storage schema from client
+    // Instead, we'll check if operations on the buckets succeed
+    // Try to get a file from the buckets to see if they exist
+    const { data: paymentReceiptData, error: paymentReceiptError } = await supabase.storage
+      .from('payment_receipts')
+      .list('', { limit: 1 });
       
-    if (bucketsError) {
-      console.warn('Could not check if buckets exist:', bucketsError);
-    } else if (!buckets) {
-      // Bucket doesn't exist, but we can't create it from the client
-      console.log('Storage bucket needs to be created by an admin');
+    if (paymentReceiptError && paymentReceiptError.message.includes('does not exist')) {
+      console.warn('Payment receipts bucket needs to be created by an admin');
+    }
+    
+    // Check for client_documents bucket
+    const { data: clientDocumentsData, error: clientDocumentsError } = await supabase.storage
+      .from('client_documents')
+      .list('', { limit: 1 });
+      
+    if (clientDocumentsError && clientDocumentsError.message.includes('does not exist')) {
+      console.warn('Client documents bucket needs to be created by an admin');
     }
   } catch (error) {
-    console.error('Error initializing storage buckets:', error);
+    console.error('Error checking storage buckets:', error);
   }
 };

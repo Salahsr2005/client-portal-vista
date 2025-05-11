@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +21,39 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
+
+// Define a type for the detailed application response
+interface ProgramDetail {
+  id: string;
+  name: string;
+  university: string;
+  location?: string;
+  city?: string;
+  country?: string;
+  image_url?: string;
+}
+
+interface ApplicationDetailResponse {
+  application_id: string;
+  status: string;
+  createdAt?: string;
+  created_at?: string;
+  notes?: string;
+  programs?: ProgramDetail;
+  program?: {
+    id: string;
+    name: string;
+    university: string;
+    location: string;
+    image: string;
+  };
+  timeline?: Array<{date: string; status: string; note?: string}>;
+  documents?: Array<{name: string; status: string; uploaded_at: string}>;
+  submittedAt?: string;
+  updatedAt?: string;
+  priority?: string;
+  paymentStatus?: string;
+}
 
 export default function ApplicationView() {
   const { id } = useParams();
@@ -62,10 +96,10 @@ export default function ApplicationView() {
             id: data.programs.id,
             name: data.programs.name,
             university: data.programs.university,
-            location: `${data.programs.city}, ${data.programs.country}`,
-            image: data.programs.image_url,
+            location: `${data.programs.city || ''}, ${data.programs.country || ''}`,
+            image: data.programs.image_url || '/placeholder.svg',
           } : null
-        };
+        } as ApplicationDetailResponse;
       } catch (error) {
         console.error("Error fetching application:", error);
         throw error;
@@ -215,26 +249,7 @@ export default function ApplicationView() {
   // If we have application detail, show the detailed view
   if (applicationDetail) {
     // Create a safe version of applicationDetail with proper type checking
-    const safeAppDetail = applicationDetail as {
-      id?: string;
-      application_id?: string;
-      status?: string;
-      createdAt?: string;
-      notes?: string;
-      program?: {
-        id?: string;
-        name?: string;
-        university?: string;
-        location?: string;
-        image?: string;
-      };
-      timeline?: Array<{date: string; status: string; note?: string}>;
-      documents?: Array<{name: string; status: string; uploaded_at: string}>;
-      submittedAt?: string;
-      updatedAt?: string;
-      priority?: string;
-      paymentStatus?: string;
-    };
+    const safeAppDetail = applicationDetail as ApplicationDetailResponse;
 
     return (
       <div className="container mx-auto py-8 px-4">
@@ -257,10 +272,10 @@ export default function ApplicationView() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <CheckCircle className="mr-2 h-5 w-5 text-purple-500" />
-                  Application #{(safeAppDetail.application_id || safeAppDetail.id || "").substring(0, 8)}
+                  Application #{(safeAppDetail.application_id || "").substring(0, 8)}
                 </CardTitle>
                 <CardDescription>
-                  Submitted on {safeAppDetail.createdAt || new Date().toISOString()}
+                  Submitted on {safeAppDetail.createdAt || safeAppDetail.created_at || new Date().toISOString()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -364,7 +379,7 @@ export default function ApplicationView() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Submitted On</span>
-                    <span className="font-medium">{safeAppDetail.submittedAt || safeAppDetail.createdAt || "N/A"}</span>
+                    <span className="font-medium">{safeAppDetail.submittedAt || safeAppDetail.createdAt || safeAppDetail.created_at || "N/A"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Last Updated</span>
