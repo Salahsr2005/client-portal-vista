@@ -4,15 +4,15 @@ import { motion } from 'framer-motion';
 import { GraduationCap, BookOpen } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { FormData } from '../types';
+import { FormData, StepOneProps } from '../types';
 
-interface StepOneProps {
-  formData: FormData;
-  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
-  itemVariants: any;
-}
+// Animation variants
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
 
-export const StepOne: React.FC<StepOneProps> = ({ formData, setFormData, itemVariants }) => {
+export const StepOne: React.FC<StepOneProps> = ({ formData, updateForm, onNext }) => {
   return (
     <motion.div 
       key="step1"
@@ -26,8 +26,8 @@ export const StepOne: React.FC<StepOneProps> = ({ formData, setFormData, itemVar
       <p className="text-muted-foreground">Select the academic level you want to pursue</p>
       
       <RadioGroup 
-        value={formData.studyLevel} 
-        onValueChange={(value: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma") => setFormData({...formData, studyLevel: value})}
+        value={formData.level || formData.studyLevel} 
+        onValueChange={(value: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma") => updateForm('level', value)}
         className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4"
       >
         <motion.div variants={itemVariants} initial="hidden" animate="show">

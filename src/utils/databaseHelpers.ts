@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
+import { toast } from "sonner";
 
 // Helper to format currency
 export const formatCurrency = (amount: number, currency: string = 'EUR') => {
@@ -99,5 +100,47 @@ export const getDocumentUrl = async (documentPath: string) => {
   } catch (error) {
     console.error('Error getting document URL:', error);
     return null;
+  }
+};
+
+// Added missing function for handling Supabase errors
+export const handleSupabaseError = (error: any, toastFn: any) => {
+  console.error('Supabase error:', error);
+  toastFn({
+    title: "Error",
+    description: error.message || "An unexpected error occurred",
+    variant: "destructive",
+  });
+};
+
+// Added missing function for initializing storage buckets
+export const initializeStorageBuckets = async () => {
+  try {
+    // Check if buckets exist, create if they don't
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) throw error;
+    
+    const bucketNames = buckets.map(bucket => bucket.name);
+    
+    if (!bucketNames.includes('user_documents')) {
+      await supabase.storage.createBucket('user_documents', {
+        public: false,
+      });
+    }
+    
+    if (!bucketNames.includes('payment_receipts')) {
+      await supabase.storage.createBucket('payment_receipts', {
+        public: false,
+      });
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error initializing storage buckets:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 };

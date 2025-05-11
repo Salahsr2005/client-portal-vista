@@ -25,6 +25,9 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onSuccess, onCancel }) 
     type: "Passport",
     file: null as File | null,
   });
+  
+  // Create a ref for the file input
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleUpload = async () => {
     if (!user) {
@@ -152,6 +155,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onSuccess, onCancel }) 
           <Input
             id="doc-file"
             type="file"
+            ref={fileInputRef}
             accept=".pdf,.jpg,.jpeg,.png"
             onChange={handleFileChange}
             className={document.file ? "hidden" : ""}
@@ -177,7 +181,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ onSuccess, onCancel }) 
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => document.getElementById('doc-file')?.click()}
+              onClick={() => fileInputRef.current?.click()}
             >
               <Plus className="h-4 w-4 mr-1" /> Choose File
             </Button>

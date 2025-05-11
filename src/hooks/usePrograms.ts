@@ -1,4 +1,5 @@
 
+// Update just the section with the type error in the usePrograms.ts file
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
@@ -150,9 +151,9 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
         isFavorite: favorites.includes(program.id),
         location: `${program.city}, ${program.country}`,
         duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
-        bgColorClass: program.status === 'Active' ? 'bg-green-50 dark:bg-green-900/10' : 
-                     program.status === 'Closed' ? 'bg-red-50 dark:bg-red-900/10' : 
-                     'bg-amber-50 dark:bg-amber-900/10'
+        bgColorClass: program.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
+                     program.status === 'Closed' ? 'bg-red-100 dark:bg-red-900/10' : 
+                     'bg-amber-100 dark:bg-amber-900/10'
       }));
       
       return {
@@ -202,9 +203,9 @@ export const useProgram = (id: string) => {
         isFavorite,
         location: `${data.city}, ${data.country}`,
         duration: data.duration_months ? `${data.duration_months} months` : 'Not specified',
-        bgColorClass: data.status === 'Active' ? 'bg-green-50 dark:bg-green-900/10' : 
-                     data.status === 'Closed' ? 'bg-red-50 dark:bg-red-900/10' : 
-                     'bg-amber-50 dark:bg-amber-900/10'
+        bgColorClass: data.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
+                     data.status === 'Closed' ? 'bg-red-100 dark:bg-red-900/10' : 
+                     'bg-amber-100 dark:bg-amber-900/10'
       };
       
       return programWithExtras as Program & { isFavorite: boolean };

@@ -63,7 +63,8 @@ export const useUserPaymentStatus = () => {
         if (receiptsError) throw receiptsError;
         
         // Calculate payment status flags
-        const isPaid = paymentData.status === 'Completed' || paymentData.status === 'Approved';
+        const isPaid = paymentData.status === 'Completed' || paymentData.status === 'Approved' || 
+                       paymentData.status === 'Approved';
         
         const hasPendingReceipt = receipts?.some(receipt => 
           receipt.status === 'Pending'

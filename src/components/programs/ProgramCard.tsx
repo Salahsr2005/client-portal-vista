@@ -51,10 +51,22 @@ const ProgramCard = ({
     }
   };
 
+  // Use modern colors for card background based on program status
+  const getCardBgColor = (status: string) => {
+    switch (status) {
+      case 'Active':
+        return 'bg-green-50 dark:bg-green-900/10'; // Modern green
+      case 'Closed':
+        return 'bg-red-50 dark:bg-red-900/10'; // Modern red
+      default:
+        return 'bg-amber-50 dark:bg-amber-900/10'; // Default amber for other statuses
+    }
+  };
+
   return (
     <Card className={cn(
       "h-full overflow-hidden flex flex-col transition-all cursor-pointer hover:shadow-md",
-      program.bgColorClass || ""
+      getCardBgColor(program.status)
     )}>
       <Link to={`/programs/${program.id}`} className="flex flex-col h-full">
         <div 

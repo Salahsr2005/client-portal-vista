@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,16 +13,41 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   FileText, CheckCircle, Clock, AlertCircle, 
   Building, Globe, GraduationCap, User, CalendarRange,
-  CircleDollarSign, PenLine, ArrowLeft, AlertTriangle
+  CircleDollarSign, PenLine, ArrowLeft, AlertTriangle, Loader2
 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
 
 export default function ApplicationView() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { data: applications, isLoading: applicationsLoading } = useQuery(['applications'], () => supabase.from('applications').select('*'));
-  const { data: applicationDetail, isLoading: detailLoading } = useQuery(['applicationDetail', id || ''], () => supabase.from('applications').select('*').eq('application_id', id || ''));
+  
+  // Update query to use proper format
+  const { data: applications, isLoading: applicationsLoading } = useQuery({
+    queryKey: ['applications'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('applications').select('*');
+      if (error) throw error;
+      return data;
+    }
+  });
+  
+  // Update query to use proper format 
+  const { data: applicationDetail, isLoading: detailLoading } = useQuery({
+    queryKey: ['applicationDetail', id || ''],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('applications').select('*').eq('application_id', id || '').single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id
+  });
+  
   const [formData, setFormData] = useState({
     programId: '',
     personalStatement: '',
@@ -33,12 +58,11 @@ export default function ApplicationView() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Check if the application exists
-  const application = applications?.find(app => app.id === id);
+  const application = applications && Array.isArray(applications) ? applications.find((app: any) => app.id === id) : null;
   
   // Check if the user has an approved application
-  const hasApprovedOrReviewingApplication = applications?.some(app => 
-    app.status.toLowerCase() === 'approved' || app.status.toLowerCase() === 'in review'
-  );
+  const hasApprovedOrReviewingApplication = applications && Array.isArray(applications) ? 
+    applications.some((app: any) => app.status?.toLowerCase() === 'approved' || app.status?.toLowerCase() === 'in review') : false;
   
   useEffect(() => {
     if (application) {
@@ -164,6 +188,27 @@ export default function ApplicationView() {
 
   // If we have application detail, show the detailed view
   if (applicationDetail) {
+    // Create a safe version of applicationDetail with proper type checking
+    const safeAppDetail = applicationDetail as {
+      id?: string;
+      application_id?: string;
+      status?: string;
+      createdAt?: string;
+      notes?: string;
+      program?: {
+        name?: string;
+        university?: string;
+        location?: string;
+        image?: string;
+      };
+      timeline?: Array<{date: string; status: string; note?: string}>;
+      documents?: Array<{name: string; status: string; uploaded_at: string}>;
+      submittedAt?: string;
+      updatedAt?: string;
+      priority?: string;
+      paymentStatus?: string;
+    };
+
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center mb-6">
@@ -184,11 +229,11 @@ export default function ApplicationView() {
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <ClipboardCheck className="mr-2 h-5 w-5 text-purple-500" />
-                  Application #{applicationDetail.id.substring(0, 8)}
+                  <CheckCircle className="mr-2 h-5 w-5 text-purple-500" />
+                  Application #{(safeAppDetail.application_id || safeAppDetail.id || "").substring(0, 8)}
                 </CardTitle>
                 <CardDescription>
-                  Submitted on {applicationDetail.createdAt}
+                  Submitted on {safeAppDetail.createdAt || new Date().toISOString()}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -197,27 +242,27 @@ export default function ApplicationView() {
                   <div className="flex items-center space-x-4">
                     <div 
                       className="w-16 h-16 rounded-md bg-cover bg-center shrink-0"
-                      style={{ backgroundImage: `url(${applicationDetail.program.image || '/placeholder.svg'})` }}
+                      style={{ backgroundImage: `url(${safeAppDetail.program?.image || '/placeholder.svg'})` }}
                     />
                     <div>
-                      <h3 className="font-medium">{applicationDetail.program.name}</h3>
-                      <p className="text-sm text-muted-foreground">{applicationDetail.program.university}</p>
-                      <p className="text-sm text-muted-foreground">{applicationDetail.program.location}</p>
+                      <h3 className="font-medium">{safeAppDetail.program?.name || "Unknown Program"}</h3>
+                      <p className="text-sm text-muted-foreground">{safeAppDetail.program?.university || "Unknown University"}</p>
+                      <p className="text-sm text-muted-foreground">{safeAppDetail.program?.location || "Unknown Location"}</p>
                     </div>
                   </div>
                   
                   {/* Application Timeline */}
                   <ApplicationTimeline 
-                    events={applicationDetail.timeline || []}
-                    currentStatus={applicationDetail.status}
+                    events={safeAppDetail.timeline || []}
+                    currentStatus={safeAppDetail.status || "Draft"}
                   />
                   
                   {/* Application Notes */}
-                  {applicationDetail.notes && (
+                  {safeAppDetail.notes && (
                     <div className="mt-6">
                       <h3 className="font-medium mb-2">Notes</h3>
                       <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-4 text-sm">
-                        {applicationDetail.notes}
+                        {safeAppDetail.notes}
                       </div>
                     </div>
                   )}
@@ -235,8 +280,8 @@ export default function ApplicationView() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {applicationDetail.documents && applicationDetail.documents.length > 0 ? (
-                    applicationDetail.documents.map((doc, index) => (
+                  {safeAppDetail.documents && safeAppDetail.documents.length > 0 ? (
+                    safeAppDetail.documents.map((doc, index) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-md">
                         <div className="flex items-center">
                           <FileText className="h-5 w-5 text-purple-500 mr-3" />
@@ -281,31 +326,31 @@ export default function ApplicationView() {
                     <span className="text-muted-foreground">Status</span>
                     <Badge 
                       className={
-                        applicationDetail.status === 'Approved' ? 'bg-green-100 text-green-800 border-green-200' :
-                        applicationDetail.status === 'Rejected' ? 'bg-red-100 text-red-800 border-red-200' :
-                        applicationDetail.status === 'In Review' ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                        safeAppDetail.status === 'Approved' ? 'bg-green-100 text-green-800 border-green-200' :
+                        safeAppDetail.status === 'Rejected' ? 'bg-red-100 text-red-800 border-red-200' :
+                        safeAppDetail.status === 'In Review' ? 'bg-amber-100 text-amber-800 border-amber-200' :
                         'bg-blue-100 text-blue-800 border-blue-200'
                       }
                     >
-                      {applicationDetail.status}
+                      {safeAppDetail.status || "Draft"}
                     </Badge>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Submitted On</span>
-                    <span className="font-medium">{applicationDetail.submittedAt || applicationDetail.createdAt}</span>
+                    <span className="font-medium">{safeAppDetail.submittedAt || safeAppDetail.createdAt || "N/A"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Last Updated</span>
-                    <span className="font-medium">{applicationDetail.updatedAt}</span>
+                    <span className="font-medium">{safeAppDetail.updatedAt || "N/A"}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Priority</span>
                     <Badge variant="outline" className={
-                      applicationDetail.priority === 'High' ? 'border-orange-200 text-orange-700 bg-orange-50' :
-                      applicationDetail.priority === 'Medium' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                      safeAppDetail.priority === 'High' ? 'border-orange-200 text-orange-700 bg-orange-50' :
+                      safeAppDetail.priority === 'Medium' ? 'border-blue-200 text-blue-700 bg-blue-50' :
                       'border-green-200 text-green-700 bg-green-50'
                     }>
-                      {applicationDetail.priority}
+                      {safeAppDetail.priority || "Normal"}
                     </Badge>
                   </div>
                 </div>
@@ -315,25 +360,25 @@ export default function ApplicationView() {
                   <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">
-                        {applicationDetail.paymentStatus === 'Completed' ? 'Paid' : 
-                         applicationDetail.paymentStatus === 'Partial' ? 'Partially Paid' : 
+                        {safeAppDetail.paymentStatus === 'Completed' ? 'Paid' : 
+                         safeAppDetail.paymentStatus === 'Partial' ? 'Partially Paid' : 
                          'Payment Required'}
                       </span>
                       <Badge 
                         variant={
-                          applicationDetail.paymentStatus === 'Completed' ? 'default' : 
-                          applicationDetail.paymentStatus === 'Partial' ? 'outline' : 
+                          safeAppDetail.paymentStatus === 'Completed' ? 'default' : 
+                          safeAppDetail.paymentStatus === 'Partial' ? 'outline' : 
                           'destructive'
                         }
                         className={
-                          applicationDetail.paymentStatus === 'Completed' ? 'bg-green-100 text-green-800 border-green-200' : ''
+                          safeAppDetail.paymentStatus === 'Completed' ? 'bg-green-100 text-green-800 border-green-200' : ''
                         }
                       >
-                        {applicationDetail.paymentStatus}
+                        {safeAppDetail.paymentStatus || "Pending"}
                       </Badge>
                     </div>
                     
-                    {applicationDetail.paymentStatus !== 'Completed' && (
+                    {(!safeAppDetail.paymentStatus || safeAppDetail.paymentStatus !== 'Completed') && (
                       <Button variant="default" className="w-full mt-3 bg-gradient-to-r from-violet-600 to-purple-700">
                         Complete Payment
                       </Button>
