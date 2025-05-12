@@ -5,9 +5,9 @@ import { usePrograms } from '@/hooks/usePrograms';
 import { Program } from '@/hooks/usePrograms';
 import { FormData } from '../types';
 import { ResultsHeader } from './ResultsHeader';
-import ActiveFilters from './ActiveFilters';
-import ProgramList from './ProgramList';
-import EmptyState from './EmptyState';
+import { ActiveFilters } from './ActiveFilters';
+import { ProgramList } from './ProgramList';
+import { EmptyState } from './EmptyState';
 
 interface ResultsProps {
   formData: FormData;
@@ -26,6 +26,14 @@ const Results: React.FC<ResultsProps> = ({ formData }) => {
     budget: formData.budget || 0,
     language: formData.language || '',
   });
+  
+  // Set up state for program view and search functionality
+  const [isGridView, setIsGridView] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
+  const [favoritePrograms, setFavoritePrograms] = useState<string[]>([]);
+  const [showMatchDetails, setShowMatchDetails] = useState<{[key: string]: boolean}>({});
+  const [showBudgetBreakdown, setShowBudgetBreakdown] = useState<{[key: string]: boolean}>({});
 
   // Map form data to query params
   const queryParams = {
@@ -65,6 +73,53 @@ const Results: React.FC<ResultsProps> = ({ formData }) => {
     });
   };
 
+  // Animation variants for program list
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
+
+  // Program card interactions
+  const handleProgramSelect = (programId: string) => {
+    setSelectedPrograms(prev => 
+      prev.includes(programId)
+        ? prev.filter(id => id !== programId)
+        : [...prev, programId]
+    );
+  };
+
+  const toggleFavorite = (programId: string) => {
+    setFavoritePrograms(prev => 
+      prev.includes(programId)
+        ? prev.filter(id => id !== programId)
+        : [...prev, programId]
+    );
+  };
+
+  const toggleMatchDetails = (programId: string) => {
+    setShowMatchDetails(prev => ({
+      ...prev,
+      [programId]: !prev[programId]
+    }));
+  };
+
+  const toggleBudgetBreakdown = (programId: string) => {
+    setShowBudgetBreakdown(prev => ({
+      ...prev,
+      [programId]: !prev[programId]
+    }));
+  };
+
   useEffect(() => {
     console.log("Form data in Results:", formData);
     console.log("Programs with match scores:", programs);
@@ -73,15 +128,24 @@ const Results: React.FC<ResultsProps> = ({ formData }) => {
   return (
     <div className="p-6">
       <ResultsHeader 
-        userLoggedIn={!!user}
-        formData={formData} 
+        programCount={programs.length}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isGridView={isGridView}
+        setIsGridView={setIsGridView}
+        toggleFilter={handleFilterChange}
       />
       
       <div className="mt-6">
         <ActiveFilters 
-          activeFilters={activeFilters}
-          onClearFilter={clearFilter}
-          onClearAll={clearAllFilters}
+          activeFilters={{
+            level: !!activeFilters.level,
+            destination: !!activeFilters.destination,
+            budget: !!activeFilters.budget,
+            language: !!activeFilters.language
+          }}
+          toggleFilter={clearFilter}
+          clearAllFilters={clearAllFilters}
         />
       </div>
       
@@ -102,11 +166,24 @@ const Results: React.FC<ResultsProps> = ({ formData }) => {
         </div>
       ) : programs.length > 0 ? (
         <ProgramList 
-          programs={programs} 
-          preferences={formData}
+          programs={programs}
+          isGridView={isGridView}
+          selectedPrograms={selectedPrograms}
+          favoritePrograms={favoritePrograms}
+          showMatchDetails={showMatchDetails}
+          showBudgetBreakdown={showBudgetBreakdown}
+          handleProgramSelect={handleProgramSelect}
+          toggleFavorite={toggleFavorite}
+          toggleMatchDetails={toggleMatchDetails}
+          toggleBudgetBreakdown={toggleBudgetBreakdown}
+          containerVariants={containerVariants}
+          itemVariants={itemVariants}
         />
       ) : (
-        <EmptyState onClearFilters={clearAllFilters} />
+        <EmptyState 
+          type="default" 
+          handlePrevious={clearAllFilters} 
+        />
       )}
     </div>
   );

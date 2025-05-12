@@ -10,7 +10,7 @@ interface ResultsHeaderProps {
   setSearchQuery: (query: string) => void;
   isGridView: boolean;
   setIsGridView: (isGrid: boolean) => void;
-  toggleFilter: (filter: string) => void;
+  toggleFilter: (filter: string, value?: any) => void;
 }
 
 export const ResultsHeader: React.FC<ResultsHeaderProps> = ({

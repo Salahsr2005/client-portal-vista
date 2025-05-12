@@ -31,7 +31,7 @@ export const ActiveFilters: React.FC<ActiveFiltersProps> = ({
         active && (
           <Badge key={key} variant="secondary" className="px-3 py-1">
             {key === 'level' ? 'Study Level' : 
-              key === 'location' ? 'Location' : 
+              key === 'location' || key === 'destination' ? 'Location' : 
               key === 'duration' ? 'Duration' : 
               key === 'budget' ? 'Budget' : key}
             <X 
