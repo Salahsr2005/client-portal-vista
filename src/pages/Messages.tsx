@@ -12,9 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   MessageCircle, Send, Lock, ChevronRight, ArrowRight,
-  CreditCard, Clock, Check, FileCheck
+  CreditCard, Clock, Check, FileCheck, FileText, AlertTriangle
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useMessageAccess } from '@/hooks/useMessageAccess';
@@ -73,6 +73,43 @@ export default function Messages() {
     new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
   );
 
+  // If the user is not logged in
+  if (!user) {
+    return (
+      <div className="container max-w-5xl mx-auto py-12 px-4">
+        <h1 className="text-3xl font-bold mb-6">Messages</h1>
+        
+        <Card className="border-none shadow-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 p-8 text-center mb-8">
+          <div className="flex flex-col items-center">
+            <div className="p-4 rounded-full bg-slate-200 dark:bg-slate-800 mb-4">
+              <MessageCircle className="h-10 w-10 text-slate-500" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Sign in to View Messages</h2>
+            <p className="text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6">
+              Please log in to access your messages and communicate with our team
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+              <Button 
+                className="flex-1 bg-gradient-to-r from-violet-600 to-purple-700"
+                onClick={() => navigate('/login')}
+              >
+                Sign In
+              </Button>
+              <Button 
+                variant="outline"
+                className="flex-1"
+                onClick={() => navigate('/register')}
+              >
+                Create Account
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   // If the user doesn't have access to messages
   if (!messageAccess.isLoading && !messageAccess.canAccessMessages) {
     return (
@@ -89,21 +126,66 @@ export default function Messages() {
               {messageAccess.reason}
             </p>
             
-            {messageAccess.requiresPayment ? (
+            {messageAccess.status === 'noApplication' ? (
+              // No application submitted
               <div className="space-y-6 w-full max-w-md">
                 <div className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-4 border border-violet-200 dark:border-violet-800">
                   <h3 className="font-medium flex items-center text-violet-900 dark:text-violet-300 mb-2">
-                    <CreditCard className="h-5 w-5 mr-2 text-violet-600" />
-                    Complete Payment to Unlock
+                    <FileText className="h-5 w-5 mr-2 text-violet-600" />
+                    Application Required
                   </h3>
                   <p className="text-sm text-violet-700 dark:text-violet-400 mb-4">
-                    Once your payment is completed, you'll have full access to our messaging system and support team.
+                    You need to submit an application to a program before you can access our messaging system.
                   </p>
                   <Button 
                     className="w-full bg-gradient-to-r from-violet-600 to-purple-700"
-                    onClick={() => navigate('/applications')}
+                    onClick={() => navigate('/applications/new')}
                   >
-                    View My Applications
+                    Submit An Application
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center flex flex-col items-center">
+                    <FileText className="h-6 w-6 text-slate-500 mb-2" />
+                    <h4 className="font-medium">Apply</h4>
+                    <Badge variant="outline" className="mt-2 bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                      Required
+                    </Badge>
+                  </div>
+                  <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center flex flex-col items-center">
+                    <Clock className="h-6 w-6 text-slate-500 mb-2" />
+                    <h4 className="font-medium">Review</h4>
+                    <Badge variant="outline" className="mt-2">
+                      Waiting
+                    </Badge>
+                  </div>
+                  <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 text-center flex flex-col items-center">
+                    <MessageCircle className="h-6 w-6 text-slate-500 mb-2" />
+                    <h4 className="font-medium">Message</h4>
+                    <Badge variant="outline" className="mt-2">
+                      Locked
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            ) : messageAccess.requiresPayment ? (
+              // Payment required
+              <div className="space-y-6 w-full max-w-md">
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+                  <h3 className="font-medium flex items-center text-amber-900 dark:text-amber-300 mb-2">
+                    <CreditCard className="h-5 w-5 mr-2 text-amber-600" />
+                    Payment Required
+                  </h3>
+                  <p className="text-sm text-amber-700 dark:text-amber-400 mb-4">
+                    Once your payment is completed, you'll have full access to our messaging system and support team.
+                  </p>
+                  <Button 
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-600"
+                    onClick={() => navigate('/payments')}
+                  >
+                    Complete Payment
                     <ChevronRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
@@ -200,7 +282,7 @@ export default function Messages() {
     return (
       <div className="container max-w-5xl mx-auto py-12 px-4">
         <h1 className="text-3xl font-bold mb-6">Messages</h1>
-        <Card className="text-center py-12">
+        <Card className="text-center py-12 border-none shadow-lg">
           <CardContent>
             <div className="flex flex-col items-center">
               <MessageCircle className="h-16 w-16 text-slate-300 mb-4" />

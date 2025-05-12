@@ -146,7 +146,6 @@ const sampleMessages: Message[] = [
 const ChatInterface: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('all');
   const [selectedConversation, setSelectedConversation] = useState(sampleConversations[0]);
   const [messages, setMessages] = useState<Message[]>(sampleMessages);
   const [newMessage, setNewMessage] = useState('');
@@ -218,16 +217,23 @@ const ChatInterface: React.FC = () => {
   if (!user) {
     return (
       <div className="h-[600px] flex items-center justify-center">
-        <div className="text-center">
-          <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">Sign in to view your messages</h3>
-          <p className="text-muted-foreground mb-4">
-            You need to be logged in to access your messages
-          </p>
-          <Button asChild>
-            <Link to="/login">Sign In</Link>
-          </Button>
-        </div>
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+            <CardTitle>Sign in to access messages</CardTitle>
+            <CardDescription>
+              You need to be logged in to view and send messages
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button asChild className="w-full">
+              <Link to="/login">Sign In</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/register">Create an Account</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -250,33 +256,49 @@ const ChatInterface: React.FC = () => {
   if (messageAccess.status === 'noApplication') {
     return (
       <div className="h-[600px] flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md border-none shadow-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950">
           <CardHeader className="text-center">
-            <FileText className="h-12 w-12 mx-auto text-amber-500 mb-2" />
+            <FileText className="h-12 w-12 mx-auto text-violet-500 mb-2" />
             <CardTitle>Application Required</CardTitle>
             <CardDescription>
-              You need an approved application to access the chat feature
+              You need to submit an application to access the messaging system
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
-              <h3 className="font-semibold text-lg flex items-center">
-                <Clock className="h-5 w-5 mr-2 text-amber-500" />
+          <CardContent className="space-y-6">
+            <div className="bg-violet-50 dark:bg-violet-900/20 p-4 rounded-lg border border-violet-200 dark:border-violet-800">
+              <h3 className="font-medium text-violet-900 dark:text-violet-300 flex items-center mb-2">
+                <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
                 Application Status
               </h3>
-              <p className="text-sm mt-2">
-                Please submit an application and wait for approval to access the chat feature.
+              <p className="text-sm text-violet-700 dark:text-violet-400">
+                You haven't submitted any applications yet. Please submit an application to gain access to our messaging system.
               </p>
             </div>
             
-            <div className="flex flex-col space-y-2">
-              <Button asChild className="w-full">
-                <Link to="/applications/new">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Submit an Application
-                </Link>
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 flex flex-col items-center">
+                <FileText className="h-6 w-6 text-slate-500 mb-2" />
+                <h4 className="font-medium">Apply</h4>
+                <Badge variant="outline" className="mt-2">Step 1</Badge>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 flex flex-col items-center">
+                <Clock className="h-6 w-6 text-slate-500 mb-2" />
+                <h4 className="font-medium">Review</h4>
+                <Badge variant="outline" className="mt-2">Step 2</Badge>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 flex flex-col items-center">
+                <MessageSquare className="h-6 w-6 text-slate-500 mb-2" />
+                <h4 className="font-medium">Message</h4>
+                <Badge variant="outline" className="mt-2">Step 3</Badge>
+              </div>
             </div>
+            
+            <Button asChild className="w-full bg-gradient-to-r from-violet-600 to-purple-600">
+              <Link to="/applications/new">
+                <FileText className="mr-2 h-4 w-4" />
+                Submit an Application
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -287,35 +309,59 @@ const ChatInterface: React.FC = () => {
   if (!canAccessChat) {
     return (
       <div className="h-[600px] flex items-center justify-center">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md border-none shadow-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950">
           <CardHeader className="text-center">
             <Lock className="h-12 w-12 mx-auto text-amber-500 mb-2" />
             <CardTitle>Chat Access Restricted</CardTitle>
             <CardDescription>
-              Chat access is only available for users with approved payments
+              Complete your payment to unlock messaging
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
-              <h3 className="font-semibold text-lg flex items-center">
+          <CardContent className="space-y-6">
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+              <h3 className="font-medium text-amber-900 dark:text-amber-300 flex items-center mb-2">
                 <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
-                Payment Status
+                Payment Required
               </h3>
-              <p className="text-sm mt-2">
+              <p className="text-sm text-amber-700 dark:text-amber-400">
                 {messageAccess.reason}
               </p>
             </div>
             
-            <div className="flex flex-col space-y-2">
-              {messageAccess.requiresPayment && (
-                <Button asChild className="w-full">
-                  <Link to="/payments">
-                    <CreditCard className="mr-2 h-4 w-4" />
-                    Make a Payment
-                  </Link>
-                </Button>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 flex flex-col items-center">
+                <CreditCard className="h-6 w-6 text-slate-500 mb-2" />
+                <h4 className="font-medium">Payment</h4>
+                <Badge variant="outline" className="mt-2 bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                  Required
+                </Badge>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 flex flex-col items-center">
+                <Clock className="h-6 w-6 text-slate-500 mb-2" />
+                <h4 className="font-medium">Processing</h4>
+                <Badge variant="outline" className="mt-2">Pending</Badge>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 flex flex-col items-center">
+                <MessageSquare className="h-6 w-6 text-slate-500 mb-2" />
+                <h4 className="font-medium">Access</h4>
+                <Badge variant="outline" className="mt-2">Locked</Badge>
+              </div>
             </div>
+            
+            {messageAccess.requiresPayment && (
+              <Button asChild className="w-full bg-gradient-to-r from-violet-600 to-purple-600">
+                <Link to="/payments">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Make a Payment
+                </Link>
+              </Button>
+            )}
+            
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/applications">
+                View My Applications
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
