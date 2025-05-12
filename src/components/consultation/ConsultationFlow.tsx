@@ -50,6 +50,23 @@ const ConsultationFlow: React.FC = () => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
+  // Improved function to prepare field keywords from subjects
+  const prepareFieldKeywords = () => {
+    // If we have an array of subjects, use it directly
+    if (formData.subjects && formData.subjects.length > 0) {
+      return formData.subjects;
+    }
+    
+    // If we only have a single subject string, split it by commas or convert to array
+    if (formData.subject) {
+      return formData.subject.includes(',') 
+        ? formData.subject.split(',').map(s => s.trim()) 
+        : [formData.subject.trim()];
+    }
+    
+    return [];
+  };
+
   const finalizeAndSubmit = async () => {
     setIsSubmitting(true);
     
@@ -67,19 +84,26 @@ const ConsultationFlow: React.FC = () => {
       // Convert budget to number if it's a string
       const numericBudget = typeof formData.budget === 'string' 
         ? parseInt(formData.budget as string, 10) 
-        : formData.budget;
+        : formData.budget || 0;
+      
+      // Prepare field keywords in a more robust way
+      const fieldKeywords = prepareFieldKeywords();
+      
+      // Get study level in the format expected by the database
+      const studyLevel = formData.level || formData.studyLevel || 'Master';
       
       // Prepare consultation data
       const consultationData = {
         user_id: user.id,
-        study_level: formData.level as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma",
-        language_preference: formData.language,
+        study_level: studyLevel as "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma",
+        language_preference: formData.language || 'English',
         budget: numericBudget,
-        field_keywords: formData.subjects || [formData.subject] || [],
-        destination_preference: formData.destination || formData.location,
-        religious_facilities_required: formData.specialRequirements?.religiousFacilities || formData.religiousFacilities,
-        halal_food_required: formData.specialRequirements?.halalFood || formData.halalFood,
-        scholarship_required: formData.specialRequirements?.scholarshipRequired || formData.scholarshipRequired,
+        field_keywords: fieldKeywords,
+        destination_preference: formData.destination || formData.location || '',
+        religious_facilities_required: formData.specialRequirements?.religiousFacilities || formData.religiousFacilities || false,
+        halal_food_required: formData.specialRequirements?.halalFood || formData.halalFood || false,
+        scholarship_required: formData.specialRequirements?.scholarshipRequired || formData.scholarshipRequired || false,
+        duration_preference: formData.duration || 'year'
       };
 
       const { data, error } = await supabase

@@ -1,7 +1,8 @@
-// Update just the section with the type error in the usePrograms.ts file
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
+import { calculateMatchScore, getCountryFlagUrl } from '../services/ProgramMatchingService';
 
 // Define Program type
 export interface Program {
@@ -49,6 +50,8 @@ export interface ProgramsQueryParams {
   language?: string;
   maxBudget?: number;
   withScholarship?: boolean;
+  preferences?: any; // User preferences for matching
+  calculateMatchScores?: boolean; // Whether to calculate match scores
 }
 
 export interface ProgramsData {
@@ -78,11 +81,13 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
     level = '',
     language = '',
     maxBudget = 0,
-    withScholarship = false
+    withScholarship = false,
+    preferences = null,
+    calculateMatchScores = false
   } = params;
   
   return useQuery({
-    queryKey: ['programs', page, limit, search, country, field, level, language, maxBudget, withScholarship],
+    queryKey: ['programs', page, limit, search, country, field, level, language, maxBudget, withScholarship, preferences ? 'with-preferences' : 'no-preferences'],
     queryFn: async (): Promise<ProgramsData> => {
       let query = supabase
         .from('programs')
@@ -148,20 +153,44 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
         }
       }
       
-      // Add favorite flag to programs and additional fields for compatibility
-      const programsWithFavorites = (data || []).map((program) => ({
-        ...program,
-        isFavorite: favorites.includes(program.id),
-        location: `${program.city}, ${program.country}`,
-        duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
-        deadlinePassed: false, // Default value
-        hasScholarship: program.scholarship_available,
-        hasReligiousFacilities: program.religious_facilities,
-        hasHalalFood: program.halal_food_availability,
-        bgColorClass: program.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
+      // Process programs with additional information
+      const processedPrograms = (data || []).map((program) => {
+        // Check if application deadline has passed
+        let deadlinePassed = false;
+        if (program.application_deadline) {
+          const deadlineDate = new Date(program.application_deadline);
+          deadlinePassed = deadlineDate < new Date();
+        }
+        
+        // Calculate match score if preferences are provided
+        let matchScore = preferences && calculateMatchScores 
+          ? calculateMatchScore(program, preferences) 
+          : undefined;
+        
+        // Get country flag if image is missing
+        const imageUrl = program.image_url || getCountryFlagUrl(program.country);
+        
+        return {
+          ...program,
+          isFavorite: favorites.includes(program.id),
+          location: `${program.city}, ${program.country}`,
+          duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
+          deadlinePassed,
+          hasScholarship: program.scholarship_available,
+          hasReligiousFacilities: program.religious_facilities,
+          hasHalalFood: program.halal_food_availability,
+          matchScore,
+          image_url: imageUrl,
+          bgColorClass: program.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
                      program.status === 'Inactive' || program.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
                      'bg-amber-100 dark:bg-amber-900/10'
-      }));
+        };
+      });
+      
+      // If we have preferences and calculateMatchScores is true, sort by match score
+      const programsWithFavorites = calculateMatchScores && preferences
+        ? processedPrograms.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
+        : processedPrograms;
       
       return {
         programs: programsWithFavorites as Program[],
@@ -204,16 +233,27 @@ export const useProgram = (id: string) => {
         isFavorite = !!favoriteData;
       }
       
+      // Check if application deadline has passed
+      let deadlinePassed = false;
+      if (data.application_deadline) {
+        const deadlineDate = new Date(data.application_deadline);
+        deadlinePassed = deadlineDate < new Date();
+      }
+      
+      // Get country flag if image is missing
+      const imageUrl = data.image_url || getCountryFlagUrl(data.country);
+      
       // Add additional fields for compatibility
       const programWithExtras = {
         ...data,
         isFavorite,
         location: `${data.city}, ${data.country}`,
         duration: data.duration_months ? `${data.duration_months} months` : 'Not specified',
-        deadlinePassed: false, // Default value
+        deadlinePassed,
         hasScholarship: data.scholarship_available,
         hasReligiousFacilities: data.religious_facilities,
         hasHalalFood: data.halal_food_availability,
+        image_url: imageUrl,
         bgColorClass: data.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
                      data.status === 'Inactive' || data.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
                      'bg-amber-100 dark:bg-amber-900/10'

@@ -19,17 +19,17 @@ export default function Consultation() {
       className="container max-w-6xl mx-auto px-4 py-8 sm:px-6"
     >
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Education Consultation</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Personalized Program Matcher</h1>
         <p className="text-muted-foreground mt-2">
-          Tell us about your preferences and goals to get personalized program recommendations
+          Tell us about your academic goals and preferences to receive tailored program recommendations
         </p>
       </div>
 
       <Card className="border-0 shadow-md">
         <CardHeader className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-t-lg">
-          <CardTitle className="text-xl md:text-2xl">Find Your Perfect Program</CardTitle>
+          <CardTitle className="text-xl md:text-2xl">Find Your Perfect Academic Path</CardTitle>
           <CardDescription>
-            Complete the questionnaire below to get personalized recommendations
+            Our advanced matching algorithm will identify programs that best suit your needs and goals
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">

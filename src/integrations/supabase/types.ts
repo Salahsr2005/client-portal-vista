@@ -1917,6 +1917,151 @@ export type Database = {
         | "Agriculture"
         | "Tourism"
         | "Other"
+        | "Accounting"
+        | "Finance"
+        | "Marketing"
+        | "Management"
+        | "Economics"
+        | "International Business"
+        | "Entrepreneurship"
+        | "Human Resources"
+        | "Supply Chain Management"
+        | "Business Analytics"
+        | "Mechanical Engineering"
+        | "Electrical Engineering"
+        | "Civil Engineering"
+        | "Chemical Engineering"
+        | "Aerospace Engineering"
+        | "Biomedical Engineering"
+        | "Environmental Engineering"
+        | "Industrial Engineering"
+        | "Materials Engineering"
+        | "Petroleum Engineering"
+        | "Nuclear Engineering"
+        | "Automotive Engineering"
+        | "Information Technology"
+        | "Data Science"
+        | "Artificial Intelligence"
+        | "Cybersecurity"
+        | "Software Engineering"
+        | "Network Engineering"
+        | "Game Development"
+        | "Web Development"
+        | "Mobile Development"
+        | "Dentistry"
+        | "Pharmacy"
+        | "Nursing"
+        | "Public Health"
+        | "Veterinary Medicine"
+        | "Physical Therapy"
+        | "Occupational Therapy"
+        | "Nutrition"
+        | "Medical Technology"
+        | "Speech Therapy"
+        | "Optometry"
+        | "Radiology"
+        | "Physics"
+        | "Chemistry"
+        | "Biology"
+        | "Astronomy"
+        | "Geology"
+        | "Mathematics"
+        | "Statistics"
+        | "Environmental Science"
+        | "Oceanography"
+        | "Meteorology"
+        | "Neuroscience"
+        | "Biochemistry"
+        | "Biotechnology"
+        | "Genetics"
+        | "Psychology"
+        | "Sociology"
+        | "Anthropology"
+        | "Political Science"
+        | "International Relations"
+        | "Geography"
+        | "Urban Planning"
+        | "Archaeology"
+        | "Criminology"
+        | "Gender Studies"
+        | "Ethnic Studies"
+        | "Development Studies"
+        | "History"
+        | "Philosophy"
+        | "Literature"
+        | "Linguistics"
+        | "Religious Studies"
+        | "Cultural Studies"
+        | "Classical Studies"
+        | "Ethics"
+        | "Comparative Literature"
+        | "Fine Arts"
+        | "Graphic Design"
+        | "Industrial Design"
+        | "Fashion Design"
+        | "Interior Design"
+        | "Music"
+        | "Theater"
+        | "Dance"
+        | "Film Studies"
+        | "Photography"
+        | "Animation"
+        | "Digital Media"
+        | "Early Childhood Education"
+        | "Elementary Education"
+        | "Secondary Education"
+        | "Special Education"
+        | "Educational Leadership"
+        | "Curriculum Development"
+        | "Educational Psychology"
+        | "Language Education"
+        | "Agronomy"
+        | "Horticulture"
+        | "Forestry"
+        | "Fisheries"
+        | "Wildlife Management"
+        | "Sustainable Agriculture"
+        | "Food Science"
+        | "Soil Science"
+        | "Conservation"
+        | "Journalism"
+        | "Mass Communication"
+        | "Public Relations"
+        | "Advertising"
+        | "Digital Communication"
+        | "Media Studies"
+        | "Broadcasting"
+        | "Hospitality Management"
+        | "Event Management"
+        | "Culinary Arts"
+        | "Hotel Management"
+        | "Restaurant Management"
+        | "Travel Management"
+        | "Sports Management"
+        | "Physical Education"
+        | "Sports Science"
+        | "Recreation Management"
+        | "Athletic Training"
+        | "Cognitive Science"
+        | "Bioinformatics"
+        | "Environmental Studies"
+        | "Global Studies"
+        | "Science and Technology Studies"
+        | "Digital Humanities"
+        | "Library Science"
+        | "Information Science"
+        | "Public Administration"
+        | "Social Work"
+        | "Urban Studies"
+        | "Real Estate"
+        | "Paralegal Studies"
+        | "Nanotechnology"
+        | "Robotics"
+        | "Quantum Computing"
+        | "Renewable Energy"
+        | "Sustainable Development"
+        | "Blockchain Technology"
+        | "Virtual Reality"
       program_level:
         | "Undergraduate"
         | "Graduate"
@@ -2092,6 +2237,151 @@ export const Constants = {
         "Agriculture",
         "Tourism",
         "Other",
+        "Accounting",
+        "Finance",
+        "Marketing",
+        "Management",
+        "Economics",
+        "International Business",
+        "Entrepreneurship",
+        "Human Resources",
+        "Supply Chain Management",
+        "Business Analytics",
+        "Mechanical Engineering",
+        "Electrical Engineering",
+        "Civil Engineering",
+        "Chemical Engineering",
+        "Aerospace Engineering",
+        "Biomedical Engineering",
+        "Environmental Engineering",
+        "Industrial Engineering",
+        "Materials Engineering",
+        "Petroleum Engineering",
+        "Nuclear Engineering",
+        "Automotive Engineering",
+        "Information Technology",
+        "Data Science",
+        "Artificial Intelligence",
+        "Cybersecurity",
+        "Software Engineering",
+        "Network Engineering",
+        "Game Development",
+        "Web Development",
+        "Mobile Development",
+        "Dentistry",
+        "Pharmacy",
+        "Nursing",
+        "Public Health",
+        "Veterinary Medicine",
+        "Physical Therapy",
+        "Occupational Therapy",
+        "Nutrition",
+        "Medical Technology",
+        "Speech Therapy",
+        "Optometry",
+        "Radiology",
+        "Physics",
+        "Chemistry",
+        "Biology",
+        "Astronomy",
+        "Geology",
+        "Mathematics",
+        "Statistics",
+        "Environmental Science",
+        "Oceanography",
+        "Meteorology",
+        "Neuroscience",
+        "Biochemistry",
+        "Biotechnology",
+        "Genetics",
+        "Psychology",
+        "Sociology",
+        "Anthropology",
+        "Political Science",
+        "International Relations",
+        "Geography",
+        "Urban Planning",
+        "Archaeology",
+        "Criminology",
+        "Gender Studies",
+        "Ethnic Studies",
+        "Development Studies",
+        "History",
+        "Philosophy",
+        "Literature",
+        "Linguistics",
+        "Religious Studies",
+        "Cultural Studies",
+        "Classical Studies",
+        "Ethics",
+        "Comparative Literature",
+        "Fine Arts",
+        "Graphic Design",
+        "Industrial Design",
+        "Fashion Design",
+        "Interior Design",
+        "Music",
+        "Theater",
+        "Dance",
+        "Film Studies",
+        "Photography",
+        "Animation",
+        "Digital Media",
+        "Early Childhood Education",
+        "Elementary Education",
+        "Secondary Education",
+        "Special Education",
+        "Educational Leadership",
+        "Curriculum Development",
+        "Educational Psychology",
+        "Language Education",
+        "Agronomy",
+        "Horticulture",
+        "Forestry",
+        "Fisheries",
+        "Wildlife Management",
+        "Sustainable Agriculture",
+        "Food Science",
+        "Soil Science",
+        "Conservation",
+        "Journalism",
+        "Mass Communication",
+        "Public Relations",
+        "Advertising",
+        "Digital Communication",
+        "Media Studies",
+        "Broadcasting",
+        "Hospitality Management",
+        "Event Management",
+        "Culinary Arts",
+        "Hotel Management",
+        "Restaurant Management",
+        "Travel Management",
+        "Sports Management",
+        "Physical Education",
+        "Sports Science",
+        "Recreation Management",
+        "Athletic Training",
+        "Cognitive Science",
+        "Bioinformatics",
+        "Environmental Studies",
+        "Global Studies",
+        "Science and Technology Studies",
+        "Digital Humanities",
+        "Library Science",
+        "Information Science",
+        "Public Administration",
+        "Social Work",
+        "Urban Studies",
+        "Real Estate",
+        "Paralegal Studies",
+        "Nanotechnology",
+        "Robotics",
+        "Quantum Computing",
+        "Renewable Energy",
+        "Sustainable Development",
+        "Blockchain Technology",
+        "Virtual Reality",
       ],
       program_level: [
         "Undergraduate",
