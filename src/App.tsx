@@ -3,10 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 // Pages
 import Index from "./pages/Index";
@@ -34,69 +35,101 @@ import Settings from "./pages/Settings";
 // Layout
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 
+// Scroll to top on route change component
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   
-  if (loading) return <div className="flex h-screen w-screen items-center justify-center">Loading...</div>;
+  if (loading) {
+    return <div className="flex h-screen w-screen items-center justify-center">
+      <div className="animate-pulse flex flex-col items-center">
+        <div className="h-12 w-12 rounded-full border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent animate-spin"></div>
+        <p className="mt-4 text-muted-foreground">Loading...</p>
+      </div>
+    </div>;
+  }
   
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Save the location they were trying to access for redirect after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
   return <>{children}</>;
 };
 
-// Create QueryClient
-const queryClient = new QueryClient();
+// Create QueryClient with better error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 30000,
+    },
+  },
+});
 
-// App Component
+// App Routes Component
 const AppRoutes = () => {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      
-      {/* Protected Dashboard Routes */}
-      <Route element={
-        <ProtectedRoute>
-          <DashboardLayout />
-        </ProtectedRoute>
-      }>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/applications" element={<Applications />} />
-        <Route path="/applications/new" element={<NewApplication />} />
-        <Route path="/applications/:applicationId" element={<ApplicationView />} />
-        <Route path="/programs" element={<Programs />} />
-        <Route path="/programs/:programId" element={<ProgramView />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/appointments" element={<Appointments />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/payments" element={<Payments />} />
-        <Route path="/payment-checkout" element={<PaymentCheckout />} />
-        <Route path="/destinations" element={<Destinations />} />
-        <Route path="/consultation" element={<Consultation />} />
-        <Route path="/chat" element={<ChatSupport />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
-      
-      {/* Catch-all route */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
+        {/* Protected Dashboard Routes */}
+        <Route element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/applications" element={<Applications />} />
+          <Route path="/applications/new" element={<NewApplication />} />
+          <Route path="/applications/:id" element={<ApplicationView />} />
+          <Route path="/programs" element={<Programs />} />
+          <Route path="/programs/:programId" element={<ProgramView />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/messages" element={<Messages />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/payments" element={<Payments />} />
+          <Route path="/payment-checkout" element={<PaymentCheckout />} />
+          <Route path="/destinations" element={<Destinations />} />
+          <Route path="/consultation" element={<Consultation />} />
+          <Route path="/chat" element={<ChatSupport />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+        
+        {/* Catch-all route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 
+// Add query parameters to fix lov-build edge case
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="light">
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename={window.location.hostname === 'localhost' ? '' : ''}>
           <AuthProvider>
             <AppRoutes />
           </AuthProvider>

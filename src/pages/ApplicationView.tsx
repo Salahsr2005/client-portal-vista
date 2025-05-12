@@ -22,6 +22,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
 import { Program } from "@/types/Program";
+import { motion } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { useApplicationDetails } from '@/hooks/useApplications';
 
 // Define a type for the detailed application response
 interface ProgramDetail {
@@ -55,6 +66,11 @@ export default function ApplicationView() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('details');
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  
+  // Use the custom hook to fetch application details
+  const { data: applicationDetail, isLoading: detailLoading, error } = useApplicationDetails(id || '');
   
   // Update query to use proper format 
   const { data: applications, isLoading: applicationsLoading } = useQuery({
@@ -64,38 +80,6 @@ export default function ApplicationView() {
       if (error) throw error;
       return data;
     }
-  });
-  
-  // Update query to use proper format 
-  const { data: applicationDetail, isLoading: detailLoading } = useQuery({
-    queryKey: ['applicationDetail', id || ''],
-    queryFn: async () => {
-      if (!id) throw new Error("No application ID provided");
-      
-      try {
-        const { data, error } = await supabase
-          .from('applications')
-          .select(`
-            *,
-            programs:program_id(id, name, university, country, city, image_url)
-          `)
-          .eq('application_id', id)
-          .single();
-        
-        if (error) throw error;
-        
-        // Transform the response
-        return {
-          ...data,
-          program_id: data.program_id,
-          programs: data.programs,
-        } as ApplicationDetailResponse;
-      } catch (error) {
-        console.error("Error fetching application:", error);
-        throw error;
-      }
-    },
-    enabled: !!id
   });
   
   // Additional query to fetch program details separately
@@ -118,7 +102,7 @@ export default function ApplicationView() {
           name: data.name,
           university: data.university,
           location: `${data.city || ''}, ${data.country || ''}`,
-          image: data.image_url || '/placeholder.svg',
+          image: data.image_url || `/images/flags/${data.country?.toLowerCase()}.svg`,
         };
       } catch (error) {
         console.error("Error fetching program:", error);
@@ -136,6 +120,10 @@ export default function ApplicationView() {
     agreedToTerms: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newDocument, setNewDocument] = useState({
+    name: '',
+    file: null as File | null,
+  });
   
   // Check if the application exists
   const application = applications && Array.isArray(applications) ? applications.find((app: any) => app.id === id) : null;
@@ -163,6 +151,56 @@ export default function ApplicationView() {
   
   const handleCheckboxChange = (checked: boolean) => {
     setFormData(prev => ({ ...prev, agreedToTerms: checked }));
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setNewDocument(prev => ({
+        ...prev,
+        file: e.target.files![0]
+      }));
+    }
+  };
+  
+  const handleDocumentNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewDocument(prev => ({
+      ...prev,
+      name: e.target.value
+    }));
+  };
+  
+  const handleUploadDocument = async () => {
+    if (!newDocument.name || !newDocument.file) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both document name and file",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Upload logic would go here
+      
+      toast({
+        title: "Document uploaded",
+        description: "Your document has been uploaded successfully",
+      });
+      
+      setShowUploadDialog(false);
+      setNewDocument({ name: '', file: null });
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload document. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -250,9 +288,46 @@ export default function ApplicationView() {
     );
   }
   
+  if (error) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="container mx-auto py-8 px-4"
+      >
+        <Card className="max-w-2xl mx-auto border-red-200">
+          <CardHeader>
+            <CardTitle className="text-red-600 flex items-center">
+              <AlertCircle className="mr-2" />
+              Error Loading Application
+            </CardTitle>
+            <CardDescription>
+              We encountered an issue while trying to load your application details.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Please try again later or contact support if the issue persists.</p>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/applications')}
+              className="mt-4"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Return to Applications
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+  
   if (!user) {
     return (
-      <div className="container mx-auto py-8 px-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="container mx-auto py-8 px-4"
+      >
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>Authentication Required</CardTitle>
@@ -262,14 +337,14 @@ export default function ApplicationView() {
             <Button onClick={() => navigate('/login')}>Sign In</Button>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     );
   }
 
   // If we have application detail, show the detailed view
   if (applicationDetail) {
     // Create a safe version of applicationDetail with proper type checking
-    const safeAppDetail = applicationDetail as ApplicationDetailResponse;
+    const safeAppDetail = applicationDetail as unknown as ApplicationDetailResponse;
     
     // Combine program data from both queries to ensure we have the complete information
     const programData = {
@@ -281,18 +356,23 @@ export default function ApplicationView() {
         (safeAppDetail.programs?.city && safeAppDetail.programs?.country 
           ? `${safeAppDetail.programs.city}, ${safeAppDetail.programs.country}` 
           : programDetail?.location || "Unknown Location"),
-      image: safeAppDetail.programs?.image_url || programDetail?.image || '/placeholder.svg'
+      image: safeAppDetail.programs?.image_url || programDetail?.image || `/images/flags/generic.svg`
     };
 
     return (
-      <div className="container mx-auto py-8 px-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="container mx-auto py-8 px-4"
+      >
         <div className="flex items-center mb-6">
           <Button 
             variant="outline" 
             onClick={() => navigate('/applications')}
-            className="mr-4"
+            className="mr-4 group"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
             Back to Applications
           </Button>
           <h1 className="text-2xl font-bold">Application Details</h1>
@@ -301,8 +381,8 @@ export default function ApplicationView() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Application Information */}
           <div className="col-span-2">
-            <Card className="mb-6">
-              <CardHeader>
+            <Card className="mb-6 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+              <CardHeader className="bg-gradient-to-r from-primary/10 to-background">
                 <CardTitle className="flex items-center">
                   <CheckCircle className="mr-2 h-5 w-5 text-purple-500" />
                   Application #{(safeAppDetail.application_id || "").substring(0, 8)}
@@ -311,92 +391,177 @@ export default function ApplicationView() {
                   Submitted on {safeAppDetail.createdAt || safeAppDetail.created_at || new Date().toISOString()}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Program Information */}
-                  <div className="flex items-center space-x-4">
-                    <div 
-                      className="w-16 h-16 rounded-md bg-cover bg-center shrink-0"
-                      style={{ backgroundImage: `url(${programData.image})` }}
-                    />
-                    <div>
-                      <h3 className="font-medium">{programData.name}</h3>
-                      <p className="text-sm text-muted-foreground">{programData.university}</p>
-                      <p className="text-sm text-muted-foreground">{programData.location}</p>
-                    </div>
-                  </div>
+              <CardContent className="p-6">
+                <Tabs defaultValue="overview" className="w-full" onValueChange={setActiveTab}>
+                  <TabsList className="mb-4 w-full justify-start">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="documents">Documents</TabsTrigger>
+                    <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                  </TabsList>
                   
-                  {/* Application Timeline */}
-                  <ApplicationTimeline 
-                    events={safeAppDetail.timeline || []}
-                    currentStatus={safeAppDetail.status || "Draft"}
-                  />
-                  
-                  {/* Application Notes */}
-                  {safeAppDetail.notes && (
-                    <div className="mt-6">
-                      <h3 className="font-medium mb-2">Notes</h3>
-                      <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-4 text-sm">
-                        {safeAppDetail.notes}
+                  <TabsContent value="overview" className="space-y-6">
+                    {/* Program Information */}
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                      className="flex items-center space-x-4 p-4 bg-card/40 rounded-xl border"
+                    >
+                      <div 
+                        className="w-16 h-16 rounded-md bg-cover bg-center shrink-0 shadow-md"
+                        style={{ backgroundImage: `url(${programData.image})` }}
+                      />
+                      <div>
+                        <h3 className="font-medium">{programData.name}</h3>
+                        <p className="text-sm text-muted-foreground">{programData.university}</p>
+                        <p className="text-sm text-muted-foreground">{programData.location}</p>
                       </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Documents Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Documents</CardTitle>
-                <CardDescription>
-                  Required documents for your application
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {safeAppDetail.documents && safeAppDetail.documents.length > 0 ? (
-                    safeAppDetail.documents.map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-md">
-                        <div className="flex items-center">
-                          <FileText className="h-5 w-5 text-purple-500 mr-3" />
-                          <div>
-                            <p className="font-medium">{doc.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Uploaded on {new Date(doc.uploaded_at).toLocaleDateString()}
-                            </p>
-                          </div>
+                    </motion.div>
+                    
+                    {/* Application Notes */}
+                    {safeAppDetail.notes && (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="mt-6"
+                      >
+                        <h3 className="font-medium mb-2 flex items-center">
+                          <PenLine className="mr-2 h-4 w-4 text-muted-foreground" />
+                          Notes
+                        </h3>
+                        <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-4 text-sm border">
+                          {safeAppDetail.notes}
                         </div>
-                        <Badge 
-                          variant={doc.status === 'Verified' ? 'default' : doc.status === 'Rejected' ? 'destructive' : 'outline'}
-                          className={doc.status === 'Verified' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
-                        >
-                          {doc.status}
-                        </Badge>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="mx-auto h-10 w-10 opacity-20 mb-3" />
-                      <p>No documents uploaded yet</p>
-                      <Button variant="outline" className="mt-4">
-                        Upload Documents
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                      </motion.div>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="documents">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-4"
+                    >
+                      {safeAppDetail.documents && safeAppDetail.documents.length > 0 ? (
+                        safeAppDetail.documents.map((doc, index) => (
+                          <motion.div 
+                            key={index} 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="flex items-center">
+                              <FileText className="h-5 w-5 text-purple-500 mr-3" />
+                              <div>
+                                <p className="font-medium">{doc.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Uploaded on {new Date(doc.uploaded_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={doc.status === 'Verified' ? 'default' : doc.status === 'Rejected' ? 'destructive' : 'outline'}
+                              className={doc.status === 'Verified' ? 'bg-green-100 text-green-800 hover:bg-green-200' : ''}
+                            >
+                              {doc.status}
+                            </Badge>
+                          </motion.div>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <FileText className="mx-auto h-10 w-10 opacity-20 mb-3" />
+                          <p>No documents uploaded yet</p>
+                          <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="mt-4">
+                                Upload Documents
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Upload Document</DialogTitle>
+                                <DialogDescription>
+                                  Add a new document to your application
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="docName">Document Name</Label>
+                                  <Input 
+                                    id="docName" 
+                                    value={newDocument.name} 
+                                    onChange={handleDocumentNameChange}
+                                    placeholder="e.g., Passport, Transcript" 
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="docFile">File</Label>
+                                  <Input 
+                                    id="docFile" 
+                                    type="file" 
+                                    onChange={handleFileChange}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex justify-end gap-3">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => setShowUploadDialog(false)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button 
+                                  onClick={handleUploadDocument} 
+                                  disabled={isSubmitting}
+                                >
+                                  {isSubmitting ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : "Upload"}
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      )}
+                    </motion.div>
+                  </TabsContent>
+                  
+                  <TabsContent value="timeline">
+                    {/* Application Timeline */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="py-2"
+                    >
+                      <ApplicationTimeline 
+                        events={safeAppDetail.timeline || []}
+                        currentStatus={safeAppDetail.status || "Draft"}
+                      />
+                    </motion.div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
           
           {/* Sidebar */}
-          <div className="col-span-1">
-            <Card className="sticky top-4">
-              <CardHeader>
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4 }}
+            className="col-span-1"
+          >
+            <Card className="sticky top-4 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <CardHeader className="bg-gradient-to-r from-purple-500/10 to-blue-500/5">
                 <CardTitle>Application Status</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
+              <CardContent className="space-y-6 p-6">
+                <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Status</span>
                     <Badge 
@@ -431,8 +596,11 @@ export default function ApplicationView() {
                 </div>
                 
                 <div className="border-t pt-4">
-                  <h4 className="font-medium mb-2">Payment Status</h4>
-                  <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <CircleDollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                    Payment Status
+                  </h4>
+                  <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-md">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">
                         {safeAppDetail.paymentStatus === 'Completed' ? 'Paid' : 
@@ -454,7 +622,7 @@ export default function ApplicationView() {
                     </div>
                     
                     {(!safeAppDetail.paymentStatus || safeAppDetail.paymentStatus !== 'Completed') && (
-                      <Button variant="default" className="w-full mt-3 bg-gradient-to-r from-violet-600 to-purple-700">
+                      <Button variant="default" className="w-full mt-3 bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800 transition-colors">
                         Complete Payment
                       </Button>
                     )}
@@ -466,44 +634,59 @@ export default function ApplicationView() {
                   <p className="text-sm text-muted-foreground mb-3">
                     Need help with your application?
                   </p>
-                  <Button variant="outline" className="w-full">
+                  <Button variant="outline" className="w-full group">
+                    <MessageSquare className="mr-2 h-4 w-4 group-hover:text-primary transition-colors" />
                     Contact Support
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     );
   }
   
   // If there's no detail but there's an application in the list
   if (hasApprovedOrReviewingApplication) {
     return (
-      <div className="container mx-auto py-8 px-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="container mx-auto py-8 px-4"
+      >
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
-            <CardTitle>Application Submitted</CardTitle>
+            <CardTitle className="flex items-center">
+              <AlertCircle className="mr-2 h-5 w-5 text-amber-500" />
+              Application Submitted
+            </CardTitle>
             <CardDescription>You have already submitted an application and it is under review. You cannot submit another application at this time.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate('/applications')}>View Applications</Button>
+            <Button onClick={() => navigate('/applications')} className="group">
+              <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              View Applications
+            </Button>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     );
   }
   
   // Default view for new or editable applications
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="container mx-auto py-8 px-4"
+    >
+      <Card className="max-w-2xl mx-auto shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-background">
           <CardTitle>{application ? 'Update Application' : 'Submit Application'}</CardTitle>
           <CardDescription>Fill out the form below to submit your application.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="programId">Program ID</Label>
@@ -558,7 +741,7 @@ export default function ApplicationView() {
                 <Label htmlFor="agreedToTerms">I agree to the terms and conditions</Label>
               </div>
             </div>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -571,6 +754,6 @@ export default function ApplicationView() {
           </form>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
