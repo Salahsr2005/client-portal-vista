@@ -115,21 +115,21 @@ const AppRoutes = () => {
           <Route path="/settings" element={<Settings />} />
         </Route>
         
-        {/* Catch-all route */}
+        {/* Catch-all route for 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
 };
 
-// Add query parameters to fix lov-build edge case
+// App with proper basename handling for deployment
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="light">
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename={window.location.hostname === 'localhost' ? '' : ''}>
+        <BrowserRouter basename="">
           <AuthProvider>
             <AppRoutes />
           </AuthProvider>

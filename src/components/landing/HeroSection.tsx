@@ -68,19 +68,37 @@ export function HeroSection({
     }
   };
   
-  // Filter and prepare the program data for display
+  // Filter and prepare the program data for display with consistent properties
   const displayPrograms = programsData && programsData.length > 0 
     ? programsData.slice(0, 3).map(program => ({
         id: program.id,
         name: program.name || "Study Program",
         location: program.location || program.country || "Global",
         duration: program.duration || "Flexible Duration",
-        image: program.image || `/images/flags/${program.country?.toLowerCase() || 'generic'}.svg`
+        image: program.image_url || program.image || `/images/flags/${program.country?.toLowerCase() || 'generic'}.svg`
       }))
     : [
-        { id: 1, name: "Study Abroad Programs", location: "Multiple Destinations" },
-        { id: 2, name: "Visa Consultation", duration: "Expert Support" },
-        { id: 3, name: "Immigration Pathways", location: "Global Opportunities" }
+        { 
+          id: 1, 
+          name: "Study Abroad Programs", 
+          location: "Multiple Destinations",
+          duration: "Flexible Duration",
+          image: "/images/flags/generic.svg"
+        },
+        { 
+          id: 2, 
+          name: "Visa Consultation", 
+          location: "Global Support",
+          duration: "Expert Support",
+          image: "/images/flags/generic.svg"
+        },
+        { 
+          id: 3, 
+          name: "Immigration Pathways", 
+          location: "Global Opportunities",
+          duration: "Comprehensive Guide",
+          image: "/images/flags/generic.svg"
+        }
       ];
 
   return (
@@ -189,15 +207,13 @@ export function HeroSection({
                     animate={{ y: [0, -10, 0], transition: { repeat: Infinity, duration: 5, ease: "easeInOut" } }}
                   >
                     <Card className="p-3 bg-background/90 backdrop-blur-md border border-primary/10 shadow-lg hover:shadow-primary/10 transition-shadow duration-300 rounded-xl overflow-hidden transform hover:scale-105">
-                      {displayPrograms[0]?.image && (
-                        <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
-                             style={{backgroundImage: `url(${displayPrograms[0].image})`}} />
-                      )}
+                      <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
+                           style={{backgroundImage: `url(${displayPrograms[0].image})`}} />
                       <p className="font-medium text-sm line-clamp-1">
-                        {displayPrograms[0]?.name || "Study Abroad Programs"}
+                        {displayPrograms[0].name}
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1">
-                        {displayPrograms[0]?.location || "Multiple Destinations"}
+                        {displayPrograms[0].location}
                       </p>
                     </Card>
                   </motion.div>
@@ -209,15 +225,13 @@ export function HeroSection({
                     animate={{ y: [0, 10, 0], transition: { repeat: Infinity, duration: 6, ease: "easeInOut", delay: 0.5 } }}
                   >
                     <Card className="p-3 bg-background/90 backdrop-blur-md border border-blue-200/20 shadow-lg hover:shadow-blue-200/30 transition-shadow duration-300 rounded-xl overflow-hidden transform hover:scale-105">
-                      {displayPrograms[1]?.image && (
-                        <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
-                             style={{backgroundImage: `url(${displayPrograms[1].image})`}} />
-                      )}
+                      <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
+                           style={{backgroundImage: `url(${displayPrograms[1].image})`}} />
                       <p className="font-medium text-sm line-clamp-1">
-                        {displayPrograms[1]?.name || "Visa Consultation"}
+                        {displayPrograms[1].name}
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1">
-                        {displayPrograms[1]?.duration || "Expert Support"}
+                        {displayPrograms[1].duration}
                       </p>
                     </Card>
                   </motion.div>
@@ -229,15 +243,13 @@ export function HeroSection({
                     animate={{ y: [0, -15, 0], transition: { repeat: Infinity, duration: 7, ease: "easeInOut", delay: 1 } }}
                   >
                     <Card className="p-3 bg-background/90 backdrop-blur-md border border-purple-200/20 shadow-lg hover:shadow-purple-200/30 transition-shadow duration-300 rounded-xl overflow-hidden transform hover:scale-105">
-                      {displayPrograms[2]?.image && (
-                        <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
-                             style={{backgroundImage: `url(${displayPrograms[2].image})`}} />
-                      )}
+                      <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
+                           style={{backgroundImage: `url(${displayPrograms[2].image})`}} />
                       <p className="font-medium text-sm line-clamp-1">
-                        {displayPrograms[2]?.name || "Immigration Pathways"}
+                        {displayPrograms[2].name}
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1">
-                        {displayPrograms[2]?.location || "Global Opportunities"}
+                        {displayPrograms[2].location}
                       </p>
                     </Card>
                   </motion.div>

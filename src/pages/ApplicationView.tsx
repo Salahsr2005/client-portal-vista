@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -14,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   FileText, CheckCircle, Clock, AlertCircle, 
   Building, Globe, GraduationCap, User, CalendarRange,
-  CircleDollarSign, PenLine, ArrowLeft, AlertTriangle, Loader2
+  CircleDollarSign, PenLine, ArrowLeft, AlertTriangle, Loader2, MessageSquare
 } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -52,7 +51,7 @@ interface ApplicationDetailResponse {
   created_at?: string;
   notes?: string;
   programs?: ProgramDetail;
-  program_id?: string; // Added to access program ID
+  program?: ProgramDetail; // Added alternative property name
   timeline?: Array<{date: string; status: string; note?: string}>;
   documents?: Array<{name: string; status: string; uploaded_at: string}>;
   submittedAt?: string;
@@ -89,10 +88,14 @@ export default function ApplicationView() {
       if (!id || !applicationDetail) return null;
       
       try {
+        // Use the correct property name - either programs or program
+        const programId = applicationDetail.programs?.id || applicationDetail.program?.id;
+        if (!programId) return null;
+        
         const { data, error } = await supabase
           .from('programs')
           .select('*')
-          .eq('id', applicationDetail.program_id)
+          .eq('id', programId)
           .single();
         
         if (error) throw error;
@@ -348,15 +351,17 @@ export default function ApplicationView() {
     
     // Combine program data from both queries to ensure we have the complete information
     const programData = {
-      id: safeAppDetail.programs?.id || programDetail?.id || '',
-      name: safeAppDetail.programs?.name || programDetail?.name || "Unknown Program",
-      university: safeAppDetail.programs?.university || programDetail?.university || "Unknown University",
+      id: safeAppDetail.programs?.id || safeAppDetail.program?.id || programDetail?.id || '',
+      name: safeAppDetail.programs?.name || safeAppDetail.program?.name || programDetail?.name || "Unknown Program",
+      university: safeAppDetail.programs?.university || safeAppDetail.program?.university || programDetail?.university || "Unknown University",
       location: 
-        safeAppDetail.programs?.location || 
+        safeAppDetail.programs?.location || safeAppDetail.program?.location ||
         (safeAppDetail.programs?.city && safeAppDetail.programs?.country 
           ? `${safeAppDetail.programs.city}, ${safeAppDetail.programs.country}` 
-          : programDetail?.location || "Unknown Location"),
-      image: safeAppDetail.programs?.image_url || programDetail?.image || `/images/flags/generic.svg`
+          : (safeAppDetail.program?.city && safeAppDetail.program?.country 
+            ? `${safeAppDetail.program.city}, ${safeAppDetail.program.country}`
+            : programDetail?.location || "Unknown Location")),
+      image: safeAppDetail.programs?.image_url || safeAppDetail.program?.image_url || programDetail?.image || `/images/flags/generic.svg`
     };
 
     return (
