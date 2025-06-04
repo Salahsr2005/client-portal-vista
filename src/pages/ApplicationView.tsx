@@ -50,8 +50,7 @@ interface ApplicationDetailResponse {
   createdAt?: string;
   created_at?: string;
   notes?: string;
-  programs?: ProgramDetail;
-  program?: ProgramDetail; // Added alternative property name
+  program?: ProgramDetail; // Fixed: using only program property
   timeline?: Array<{date: string; status: string; note?: string}>;
   documents?: Array<{name: string; status: string; uploaded_at: string}>;
   submittedAt?: string;
@@ -88,8 +87,8 @@ export default function ApplicationView() {
       if (!id || !applicationDetail) return null;
       
       try {
-        // Use the correct property name - either programs or program
-        const programId = applicationDetail.programs?.id || applicationDetail.program?.id;
+        // Fixed: using only program property
+        const programId = applicationDetail.program?.id;
         if (!programId) return null;
         
         const { data, error } = await supabase
@@ -349,19 +348,17 @@ export default function ApplicationView() {
     // Create a safe version of applicationDetail with proper type checking
     const safeAppDetail = applicationDetail as unknown as ApplicationDetailResponse;
     
-    // Combine program data from both queries to ensure we have the complete information
+    // Fixed: using only program property
     const programData = {
-      id: safeAppDetail.programs?.id || safeAppDetail.program?.id || programDetail?.id || '',
-      name: safeAppDetail.programs?.name || safeAppDetail.program?.name || programDetail?.name || "Unknown Program",
-      university: safeAppDetail.programs?.university || safeAppDetail.program?.university || programDetail?.university || "Unknown University",
+      id: safeAppDetail.program?.id || programDetail?.id || '',
+      name: safeAppDetail.program?.name || programDetail?.name || "Unknown Program",
+      university: safeAppDetail.program?.university || programDetail?.university || "Unknown University",
       location: 
-        safeAppDetail.programs?.location || safeAppDetail.program?.location ||
-        (safeAppDetail.programs?.city && safeAppDetail.programs?.country 
-          ? `${safeAppDetail.programs.city}, ${safeAppDetail.programs.country}` 
-          : (safeAppDetail.program?.city && safeAppDetail.program?.country 
-            ? `${safeAppDetail.program.city}, ${safeAppDetail.program.country}`
-            : programDetail?.location || "Unknown Location")),
-      image: safeAppDetail.programs?.image_url || safeAppDetail.program?.image_url || programDetail?.image || `/images/flags/generic.svg`
+        safeAppDetail.program?.location ||
+        (safeAppDetail.program?.city && safeAppDetail.program?.country 
+          ? `${safeAppDetail.program.city}, ${safeAppDetail.program.country}` 
+          : programDetail?.location || "Unknown Location"),
+      image: safeAppDetail.program?.image_url || programDetail?.image || `/images/flags/generic.svg`
     };
 
     return (

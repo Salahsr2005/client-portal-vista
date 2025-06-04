@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Card, 
   CardContent, 
@@ -41,18 +42,20 @@ import {
   MapPin, 
   Calendar, 
   GraduationCap, 
-  Languages, 
-  Info,
-  Flag
+  Clock,
+  DollarSign,
+  TrendingUp,
+  Eye,
+  Star,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
-import AOS from "aos";
+import { useDestinations } from "@/hooks/useDestinations";
 
-// Flag SVG mapping
+// Flag mapping for countries
 const countryFlags: Record<string, string> = {
   "United Kingdom": "https://flagcdn.com/gb.svg",
-  "Japan": "https://flagcdn.com/jp.svg",
+  "Japan": "https://flagcdn.com/jp.svg", 
   "France": "https://flagcdn.com/fr.svg",
   "Germany": "https://flagcdn.com/de.svg",
   "Australia": "https://flagcdn.com/au.svg",
@@ -67,119 +70,34 @@ const countryFlags: Record<string, string> = {
   "Switzerland": "https://flagcdn.com/ch.svg",
 };
 
-// Mock data for destinations
-const destinations = [
-  {
-    id: "DST-001",
-    name: "University of London",
-    country: "United Kingdom",
-    city: "London",
-    image: "https://images.unsplash.com/photo-1518770660439-4636190af475",
-    programs: 12,
-    partnered: true,
-    tuitionRange: "$15,000 - $25,000",
-    languages: ["English"],
-    popular: true,
-    description: "One of the largest, most diverse universities in the UK with over 120,000 students in London, and a further 50,000 studying across 180 countries.",
-    admissionRequirements: "High school diploma or equivalent with minimum GPA of 3.0. IELTS score of 6.5 or equivalent. Personal statement and two letters of recommendation.",
-    applicationDeadline: "January 15 for fall semester, October 1 for spring semester"
-  },
-  {
-    id: "DST-002",
-    name: "University of Tokyo",
-    country: "Japan",
-    city: "Tokyo",
-    image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b",
-    programs: 8,
-    partnered: true,
-    tuitionRange: "$8,000 - $12,000",
-    languages: ["Japanese", "English"],
-    popular: true,
-    description: "Japan's top university and one of Asia's best. Known for research excellence and innovation across disciplines.",
-    admissionRequirements: "Bachelor's degree with minimum GPA of 3.3. JLPT N2 for Japanese-taught programs or TOEFL score of 90+ for English programs. Research proposal for graduate studies.",
-    applicationDeadline: "December 1 for spring enrollment, May 15 for fall enrollment"
-  },
-  {
-    id: "DST-003",
-    name: "Sorbonne University",
-    country: "France",
-    city: "Paris",
-    image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
-    programs: 15,
-    partnered: false,
-    tuitionRange: "$2,000 - $10,000",
-    languages: ["French", "English"],
-    popular: false,
-    description: "A world-renowned university located in the heart of Paris, offering programs in arts, sciences, medicine, and engineering.",
-    admissionRequirements: "Baccalauréat or equivalent. Minimum French language proficiency at B2 level (DELF/DALF). Entrance examination for some programs. CV and motivation letter.",
-    applicationDeadline: "March 31 for fall semester, November 30 for spring semester"
-  },
-  {
-    id: "DST-004",
-    name: "Technical University of Munich",
-    country: "Germany",
-    city: "Munich",
-    image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d",
-    programs: 10,
-    partnered: true,
-    tuitionRange: "$0 - $5,000",
-    languages: ["German", "English"],
-    popular: true,
-    description: "One of Europe's top technical universities, offering tuition-free education and known for engineering and natural sciences.",
-    admissionRequirements: "Higher education entrance qualification. German language proficiency at B2 level for German-taught programs or English B2 for English programs. Specific subject requirements vary by program.",
-    applicationDeadline: "January 15 for summer semester, July 15 for winter semester"
-  },
-  {
-    id: "DST-005",
-    name: "University of Melbourne",
-    country: "Australia",
-    city: "Melbourne",
-    image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7",
-    programs: 20,
-    partnered: false,
-    tuitionRange: "$20,000 - $35,000",
-    languages: ["English"],
-    popular: false,
-    description: "Australia's leading university, recognized globally for teaching and research excellence across a range of disciplines.",
-    admissionRequirements: "Completion of Australian Year 12 or international equivalent. IELTS score of 6.5 overall (minimum 6.0 in each component). Supporting statement and relevant prerequisites for specific courses.",
-    applicationDeadline: "October 31 for Semester 1, April 30 for Semester 2"
-  }
-];
-
-// Country options for filter
-const countries = [...new Set(destinations.map(d => d.country))];
-
 export default function Destinations() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
-  const [partnerFilter, setPartnerFilter] = useState<string>("all");
+  const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [selectedDestination, setSelectedDestination] = useState<any>(null);
   
-  // Initialize AOS
-  useEffect(() => {
-    AOS.init({
-      duration: 800,
-      easing: 'ease-out-cubic',
-      once: true,
-      offset: 50,
-      disable: 'mobile'
-    });
-  }, []);
+  // Fetch real data from Supabase
+  const { data: destinations = [], isLoading, error } = useDestinations();
+  
+  // Get unique regions from destinations
+  const regions = [...new Set(destinations.map(d => d.region).filter(Boolean))];
   
   // Filter destinations based on search and filters
   const filteredDestinations = destinations.filter(destination => {
-    const matchesSearch = destination.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         destination.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         destination.country.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = 
+      destination.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      destination.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      destination.region.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCountry = selectedCountries.length === 0 || 
-                          selectedCountries.includes(destination.country);
+    const matchesRegion = selectedRegions.length === 0 || 
+                         selectedRegions.includes(destination.region);
     
-    const matchesPartner = partnerFilter === "all" || 
-                          (partnerFilter === "partnered" && destination.partnered) ||
-                          (partnerFilter === "non-partnered" && !destination.partnered);
+    const matchesStatus = statusFilter === "all" || 
+                         (statusFilter === "active" && destination.isActive) ||
+                         (statusFilter === "inactive" && !destination.isActive);
     
-    return matchesSearch && matchesCountry && matchesPartner;
+    return matchesSearch && matchesRegion && matchesStatus;
   });
 
   const toggleFavorite = (id: string) => {
@@ -190,416 +108,566 @@ export default function Destinations() {
     }
   };
 
-  const toggleCountryFilter = (country: string) => {
-    if (selectedCountries.includes(country)) {
-      setSelectedCountries(selectedCountries.filter(c => c !== country));
+  const toggleRegionFilter = (region: string) => {
+    if (selectedRegions.includes(region)) {
+      setSelectedRegions(selectedRegions.filter(r => r !== region));
     } else {
-      setSelectedCountries([...selectedCountries, country]);
+      setSelectedRegions([...selectedRegions, region]);
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 24
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Destinations</h1>
+        </div>
+        
+        <Card>
+          <CardContent className="flex justify-center items-center h-[400px]">
+            <div className="flex flex-col items-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-muted-foreground">Loading destinations...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Destinations</h1>
+        </div>
+        
+        <Card className="border-red-200">
+          <CardContent className="flex justify-center items-center h-[400px]">
+            <div className="flex flex-col items-center space-y-4 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Globe className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-900">Failed to load destinations</h3>
+                <p className="text-red-600 text-sm mt-1">Please try again later or contact support.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6" data-aos="fade-up">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Destinations</h1>
-        <Button>
+    <motion.div 
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      className="space-y-6"
+    >
+      {/* Header */}
+      <motion.div variants={itemVariants} className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            Study Destinations
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Discover amazing educational opportunities around the world
+          </p>
+        </div>
+        <Button className="bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90">
           <Globe className="mr-2 h-4 w-4" />
           Explore All Destinations
         </Button>
-      </div>
+      </motion.div>
       
-      <Card data-aos="fade-up" data-aos-delay="100">
-        <CardHeader>
-          <CardTitle>Study Destinations</CardTitle>
-          <CardDescription>
-            Explore universities and educational institutions around the world
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
-            <div className="relative w-full sm:w-[350px]">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search destinations, cities, or countries..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <Filter className="mr-2 h-4 w-4" />
-                    Filters
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[220px]">
-                  <DropdownMenuLabel>Filter By Country</DropdownMenuLabel>
-                  {countries.map(country => (
-                    <DropdownMenuItem 
-                      key={country} 
-                      onClick={() => toggleCountryFilter(country)}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        <img 
-                          src={countryFlags[country] || `https://flagcdn.com/16x12/${country.substring(0, 2).toLowerCase()}.png`} 
-                          alt={country} 
-                          className="w-4 h-3 object-cover"
-                        />
-                        {country}
-                      </div>
-                      {selectedCountries.includes(country) && (
-                        <span className="ml-auto">✓</span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Partnership Status</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => setPartnerFilter("all")}>
-                    All
-                    {partnerFilter === "all" && <span className="ml-auto">✓</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setPartnerFilter("partnered")}>
-                    Partner Institutions
-                    {partnerFilter === "partnered" && <span className="ml-auto">✓</span>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setPartnerFilter("non-partnered")}>
-                    Non-Partner Institutions
-                    {partnerFilter === "non-partnered" && <span className="ml-auto">✓</span>}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
+      {/* Main Content Card */}
+      <motion.div variants={itemVariants}>
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-background via-background to-primary/5">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              Educational Destinations
+            </CardTitle>
+            <CardDescription>
+              Explore universities and educational institutions around the world with our comprehensive destination guide
+            </CardDescription>
+          </CardHeader>
           
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="all">All Destinations</TabsTrigger>
-              <TabsTrigger value="popular">Popular</TabsTrigger>
-              <TabsTrigger value="partnered">Partner Institutions</TabsTrigger>
-              <TabsTrigger value="favorites">Favorites</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="m-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredDestinations.length === 0 ? (
-                  <div className="col-span-full h-[200px] flex items-center justify-center text-muted-foreground">
-                    No destinations found matching your criteria.
-                  </div>
-                ) : (
-                  filteredDestinations.map((destination, index) => (
-                    <motion.div
-                      key={destination.id}
-                      data-aos="fade-up"
-                      data-aos-delay={index * 100}
-                      whileHover={{ 
-                        scale: 1.03, 
-                        rotateY: 5, 
-                        rotateX: -5,
-                        z: 50
-                      }}
-                      className="transform-gpu perspective-1000"
-                      style={{
-                        transformStyle: "preserve-3d",
-                      }}
-                    >
-                      <DestinationCard 
-                        destination={destination} 
-                        isFavorite={favorites.includes(destination.id)}
-                        onToggleFavorite={toggleFavorite}
-                      />
-                    </motion.div>
-                  ))
-                )}
+          <CardContent className="space-y-6">
+            {/* Search and Filter Bar */}
+            <motion.div 
+              variants={itemVariants}
+              className="flex flex-col sm:flex-row gap-4 p-4 bg-card/50 rounded-xl border"
+            >
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search destinations, countries, or regions..."
+                  className="pl-10 border-0 bg-background/80 focus:bg-background transition-colors"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-            </TabsContent>
-            
-            <TabsContent value="popular" className="m-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredDestinations.filter(d => d.popular).length === 0 ? (
-                  <div className="col-span-full h-[200px] flex items-center justify-center text-muted-foreground">
-                    No popular destinations found matching your criteria.
-                  </div>
-                ) : (
-                  filteredDestinations.filter(d => d.popular).map((destination, index) => (
-                    <motion.div
-                      key={destination.id}
-                      data-aos="fade-up"
-                      data-aos-delay={index * 100}
-                      whileHover={{ 
-                        scale: 1.03, 
-                        rotateY: 5, 
-                        rotateX: -5,
-                        z: 50
-                      }}
-                      className="transform-gpu perspective-1000"
-                      style={{
-                        transformStyle: "preserve-3d",
-                      }}
-                    >
-                      <DestinationCard 
-                        destination={destination} 
-                        isFavorite={favorites.includes(destination.id)}
-                        onToggleFavorite={toggleFavorite}
-                      />
-                    </motion.div>
-                  ))
-                )}
+              
+              <div className="flex gap-2">
+                {/* Region Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Filter className="h-4 w-4" />
+                      Regions
+                      {selectedRegions.length > 0 && (
+                        <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                          {selectedRegions.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[220px]">
+                    <DropdownMenuLabel>Filter by Region</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {regions.map(region => (
+                      <DropdownMenuItem 
+                        key={region} 
+                        onClick={() => toggleRegionFilter(region)}
+                        className="flex items-center justify-between cursor-pointer"
+                      >
+                        <span>{region}</span>
+                        {selectedRegions.includes(region) && (
+                          <span className="text-primary">✓</span>
+                        )}
+                      </DropdownMenuItem>
+                    ))}
+                    {selectedRegions.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => setSelectedRegions([])}
+                          className="text-muted-foreground"
+                        >
+                          Clear filters
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Status Filter */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Status
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setStatusFilter("all")}>
+                      All Destinations
+                      {statusFilter === "all" && <span className="ml-auto text-primary">✓</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter("active")}>
+                      Active Programs
+                      {statusFilter === "active" && <span className="ml-auto text-primary">✓</span>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setStatusFilter("inactive")}>
+                      Coming Soon
+                      {statusFilter === "inactive" && <span className="ml-auto text-primary">✓</span>}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            </TabsContent>
+            </motion.div>
             
-            <TabsContent value="partnered" className="m-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredDestinations.filter(d => d.partnered).length === 0 ? (
-                  <div className="col-span-full h-[200px] flex items-center justify-center text-muted-foreground">
-                    No partner institutions found matching your criteria.
-                  </div>
-                ) : (
-                  filteredDestinations.filter(d => d.partnered).map((destination, index) => (
-                    <motion.div
-                      key={destination.id}
-                      data-aos="fade-up"
-                      data-aos-delay={index * 100}
-                      whileHover={{ 
-                        scale: 1.03, 
-                        rotateY: 5, 
-                        rotateX: -5,
-                        z: 50
-                      }}
-                      className="transform-gpu perspective-1000"
-                      style={{
-                        transformStyle: "preserve-3d",
-                      }}
-                    >
-                      <DestinationCard 
-                        destination={destination} 
-                        isFavorite={favorites.includes(destination.id)}
-                        onToggleFavorite={toggleFavorite}
-                      />
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="favorites" className="m-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredDestinations.filter(d => favorites.includes(d.id)).length === 0 ? (
-                  <div className="col-span-full h-[200px] flex items-center justify-center text-muted-foreground">
-                    No favorites added yet. Click the heart icon to add destinations to your favorites.
-                  </div>
-                ) : (
-                  filteredDestinations.filter(d => favorites.includes(d.id)).map((destination, index) => (
-                    <motion.div
-                      key={destination.id}
-                      data-aos="fade-up"
-                      data-aos-delay={index * 100}
-                      whileHover={{ 
-                        scale: 1.03, 
-                        rotateY: 5, 
-                        rotateX: -5,
-                        z: 50
-                      }}
-                      className="transform-gpu perspective-1000"
-                      style={{
-                        transformStyle: "preserve-3d",
-                      }}
-                    >
-                      <DestinationCard 
-                        destination={destination}  
-                        isFavorite={true}
-                        onToggleFavorite={toggleFavorite}
-                      />
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="text-sm text-muted-foreground">
-            Showing {filteredDestinations.length} of {destinations.length} destinations
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled>
-              Previous
-            </Button>
-            <Button variant="outline" size="sm" disabled>
-              Next
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
-    </div>
+            {/* Tabs */}
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="grid w-full grid-cols-4 bg-muted/50">
+                <TabsTrigger value="all" className="data-[state=active]:bg-background">
+                  All ({filteredDestinations.length})
+                </TabsTrigger>
+                <TabsTrigger value="popular" className="data-[state=active]:bg-background">
+                  Popular
+                </TabsTrigger>
+                <TabsTrigger value="favorites" className="data-[state=active]:bg-background">
+                  Favorites ({favorites.length})
+                </TabsTrigger>
+                <TabsTrigger value="active" className="data-[state=active]:bg-background">
+                  Active
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all" className="mt-6">
+                <DestinationGrid 
+                  destinations={filteredDestinations}
+                  favorites={favorites}
+                  onToggleFavorite={toggleFavorite}
+                  onSelectDestination={setSelectedDestination}
+                />
+              </TabsContent>
+              
+              <TabsContent value="popular" className="mt-6">
+                <DestinationGrid 
+                  destinations={filteredDestinations.filter(d => d.successRate >= 90)}
+                  favorites={favorites}
+                  onToggleFavorite={toggleFavorite}
+                  onSelectDestination={setSelectedDestination}
+                />
+              </TabsContent>
+              
+              <TabsContent value="favorites" className="mt-6">
+                <DestinationGrid 
+                  destinations={filteredDestinations.filter(d => favorites.includes(d.id))}
+                  favorites={favorites}
+                  onToggleFavorite={toggleFavorite}
+                  onSelectDestination={setSelectedDestination}
+                />
+              </TabsContent>
+              
+              <TabsContent value="active" className="mt-6">
+                <DestinationGrid 
+                  destinations={filteredDestinations.filter(d => d.isActive)}
+                  favorites={favorites}
+                  onToggleFavorite={toggleFavorite}
+                  onSelectDestination={setSelectedDestination}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+          
+          <CardFooter className="flex justify-between items-center pt-6 border-t">
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredDestinations.length} of {destinations.length} destinations
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                High Success Rate
+              </Badge>
+              <Badge variant="outline" className="text-blue-700 border-blue-200 bg-blue-50">
+                <Clock className="h-3 w-3 mr-1" />
+                Fast Processing
+              </Badge>
+            </div>
+          </CardFooter>
+        </Card>
+      </motion.div>
+
+      {/* Destination Detail Dialog */}
+      <DestinationDetailDialog 
+        destination={selectedDestination}
+        onClose={() => setSelectedDestination(null)}
+      />
+    </motion.div>
+  );
+}
+
+interface DestinationGridProps {
+  destinations: any[];
+  favorites: string[];
+  onToggleFavorite: (id: string) => void;
+  onSelectDestination: (destination: any) => void;
+}
+
+function DestinationGrid({ destinations, favorites, onToggleFavorite, onSelectDestination }: DestinationGridProps) {
+  if (destinations.length === 0) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex flex-col items-center justify-center h-[300px] text-center"
+      >
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <Globe className="h-8 w-8 text-muted-foreground" />
+        </div>
+        <h3 className="font-semibold text-lg mb-2">No destinations found</h3>
+        <p className="text-muted-foreground">Try adjusting your search criteria or filters</p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div 
+      layout
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    >
+      <AnimatePresence>
+        {destinations.map((destination, index) => (
+          <DestinationCard 
+            key={destination.id}
+            destination={destination}
+            isFavorite={favorites.includes(destination.id)}
+            onToggleFavorite={onToggleFavorite}
+            onSelect={onSelectDestination}
+            index={index}
+          />
+        ))}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
 interface DestinationCardProps {
-  destination: typeof destinations[0];
+  destination: any;
   isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
+  onSelect: (destination: any) => void;
+  index: number;
 }
 
-function DestinationCard({ destination, isFavorite, onToggleFavorite }: DestinationCardProps) {
+function DestinationCard({ destination, isFavorite, onToggleFavorite, onSelect, index }: DestinationCardProps) {
   return (
-    <Card className="overflow-hidden h-full flex flex-col relative group">
-      {/* 3D Effect Elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-blue-300/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-      <div className="absolute inset-0 shadow-[0_0_15px_rgba(59,130,246,0.3)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-lg"></div>
-      
-      <div className="relative h-48">
-        <img 
-          src={destination.image} 
-          alt={destination.name} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-        
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="absolute top-2 right-2 bg-background/80 hover:bg-background/90 rounded-full z-10"
-          onClick={() => onToggleFavorite(destination.id)}
-        >
-          <Heart 
-            className={cn("h-5 w-5", isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground")} 
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ 
+        duration: 0.4, 
+        delay: index * 0.1,
+        type: "spring",
+        stiffness: 300,
+        damping: 24
+      }}
+      whileHover={{ 
+        y: -5,
+        transition: { duration: 0.2 }
+      }}
+    >
+      <Card className="overflow-hidden h-full bg-gradient-to-br from-background to-primary/5 border-0 shadow-md hover:shadow-xl transition-all duration-300 group">
+        {/* Image Header */}
+        <div className="relative h-48 overflow-hidden">
+          <div 
+            className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+            style={{ 
+              backgroundImage: `url(${destination.image})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
           />
-        </Button>
-        
-        {destination.partnered && (
-          <Badge className="absolute top-2 left-2 bg-primary/90 z-10">Partner Institution</Badge>
-        )}
-        
-        {/* Country flag */}
-        <div className="absolute bottom-2 right-2 h-8 w-10 overflow-hidden rounded-md shadow-lg border border-white/10 z-10">
-          <img 
-            src={countryFlags[destination.country] || `https://flagcdn.com/${destination.country.substring(0, 2).toLowerCase()}.svg`} 
-            alt={destination.country} 
-            className="w-full h-full object-cover"
-          />
-        </div>
-      </div>
-      
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl line-clamp-1">{destination.name}</CardTitle>
-            <div className="flex items-center mt-1 text-muted-foreground text-sm">
-              <MapPin className="h-3.5 w-3.5 mr-1" />
-              {destination.city}, {destination.country}
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pb-4 flex-grow">
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-          {destination.description}
-        </p>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div className="flex items-start">
-            <GraduationCap className="h-4 w-4 text-muted-foreground mr-2 mt-0.5" />
-            <div>
-              <div className="font-medium">Programs</div>
-              <div className="text-muted-foreground">{destination.programs} available</div>
-            </div>
-          </div>
-          <div className="flex items-start">
-            <Calendar className="h-4 w-4 text-muted-foreground mr-2 mt-0.5" />
-            <div>
-              <div className="font-medium">Tuition</div>
-              <div className="text-muted-foreground">{destination.tuitionRange}</div>
-            </div>
-          </div>
-          <div className="flex items-start col-span-2">
-            <Languages className="h-4 w-4 text-muted-foreground mr-2 mt-0.5" />
-            <div>
-              <div className="font-medium">Languages</div>
-              <div className="text-muted-foreground">{destination.languages.join(", ")}</div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter className="pt-0 flex justify-between">
-        <Button variant="outline">
-          <Info className="mr-2 h-4 w-4" />
-          More Info
-        </Button>
-        
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <GraduationCap className="mr-2 h-4 w-4" />
-              Admission Details
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          
+          {/* Actions */}
+          <div className="absolute top-3 right-3 flex gap-2">
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="w-8 h-8 bg-background/90 hover:bg-background border-0 shadow-sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(destination.id);
+              }}
+            >
+              <Heart 
+                className={cn(
+                  "h-4 w-4 transition-colors",
+                  isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"
+                )} 
+              />
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[625px]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-3">
-                <img 
-                  src={countryFlags[destination.country] || `https://flagcdn.com/${destination.country.substring(0, 2).toLowerCase()}.svg`} 
-                  alt={destination.country} 
-                  className="w-6 h-4"
-                />
+          </div>
+
+          {/* Status Badge */}
+          {destination.isActive && (
+            <Badge className="absolute top-3 left-3 bg-green-500/90 hover:bg-green-500 text-white border-0">
+              Active Programs
+            </Badge>
+          )}
+          
+          {/* Country Flag */}
+          <div className="absolute bottom-3 right-3">
+            <div className="w-8 h-6 rounded-sm overflow-hidden border border-white/20 shadow-sm">
+              <img 
+                src={countryFlags[destination.country] || destination.image} 
+                alt={destination.country} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        </div>
+        
+        {/* Content */}
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">
                 {destination.name}
-              </DialogTitle>
-              <DialogDescription>
-                Admission requirements and application information
+              </CardTitle>
+              <div className="flex items-center mt-1 text-sm text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1" />
+                {destination.country}
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="pt-0 pb-4">
+          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+            {destination.description}
+          </p>
+          
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <div>
+                <div className="text-xs text-muted-foreground">Success Rate</div>
+                <div className="font-semibold text-sm">{destination.successRate}%</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+              <DollarSign className="h-4 w-4 text-blue-600" />
+              <div>
+                <div className="text-xs text-muted-foreground">Processing Fee</div>
+                <div className="font-semibold text-sm">${destination.fees}</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Processing Time */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>{destination.processingTime}</span>
+          </div>
+        </CardContent>
+        
+        <CardFooter className="pt-0 flex gap-2">
+          <Button 
+            variant="outline" 
+            className="flex-1 group-hover:border-primary transition-colors"
+            onClick={() => onSelect(destination)}
+          >
+            <Eye className="mr-2 h-4 w-4" />
+            View Details
+          </Button>
+          <Button className="flex-1 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90">
+            <GraduationCap className="mr-2 h-4 w-4" />
+            Explore Programs
+          </Button>
+        </CardFooter>
+      </Card>
+    </motion.div>
+  );
+}
+
+interface DestinationDetailDialogProps {
+  destination: any;
+  onClose: () => void;
+}
+
+function DestinationDetailDialog({ destination, onClose }: DestinationDetailDialogProps) {
+  if (!destination) return null;
+
+  return (
+    <Dialog open={!!destination} onOpenChange={() => onClose()}>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-6 rounded overflow-hidden">
+              <img 
+                src={countryFlags[destination.country] || destination.image} 
+                alt={destination.country} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <DialogTitle className="text-xl">{destination.name}</DialogTitle>
+              <DialogDescription className="text-base">
+                {destination.country} • {destination.region}
               </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4 mt-4">
-              <div className="p-4 bg-secondary/50 rounded-lg">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-primary" />
-                  Admission Requirements
-                </h4>
-                <p className="text-sm text-muted-foreground">{destination.admissionRequirements}</p>
-              </div>
-              
-              <div className="p-4 bg-secondary/50 rounded-lg">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-primary" />
-                  Application Deadlines
-                </h4>
-                <p className="text-sm text-muted-foreground">{destination.applicationDeadline}</p>
-              </div>
-              
-              <div className="p-4 bg-secondary/50 rounded-lg">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Languages className="h-4 w-4 text-primary" />
-                  Language Requirements
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {destination.languages.includes("English") ? 
-                    "IELTS 6.5+ or TOEFL iBT 90+ required for English-taught programs." : ""}
-                  {destination.languages.includes("French") ? 
-                    " DELF B2 or higher required for French-taught programs." : ""}
-                  {destination.languages.includes("German") ? 
-                    " TestDaF level 4 or DSH-2 required for German-taught programs." : ""}
-                  {destination.languages.includes("Japanese") ? 
-                    " JLPT N2 or higher required for Japanese-taught programs." : ""}
-                </p>
-              </div>
             </div>
-            
-            <div className="mt-4 flex justify-between">
-              <Button variant="outline">Download Brochure</Button>
-              <Button>Apply Now</Button>
+          </div>
+        </DialogHeader>
+        
+        <div className="space-y-6 mt-6">
+          {/* Hero Image */}
+          <div className="w-full h-48 rounded-lg overflow-hidden">
+            <img 
+              src={destination.image} 
+              alt={destination.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          {/* Description */}
+          <div>
+            <h3 className="font-semibold mb-2">About this Destination</h3>
+            <p className="text-muted-foreground">{destination.description}</p>
+          </div>
+          
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-muted/50 rounded-lg text-center">
+              <TrendingUp className="h-6 w-6 text-green-600 mx-auto mb-2" />
+              <div className="font-semibold">{destination.successRate}%</div>
+              <div className="text-xs text-muted-foreground">Success Rate</div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </CardFooter>
-      
-      {/* Decorative 3D elements */}
-      <div className="absolute -bottom-2 -right-2 w-20 h-20 bg-blue-500/5 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-      <div className="absolute -top-2 -left-2 w-10 h-10 bg-blue-300/10 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-    </Card>
+            <div className="p-4 bg-muted/50 rounded-lg text-center">
+              <DollarSign className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+              <div className="font-semibold">${destination.fees}</div>
+              <div className="text-xs text-muted-foreground">Processing Fee</div>
+            </div>
+            <div className="p-4 bg-muted/50 rounded-lg text-center">
+              <Clock className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+              <div className="font-semibold">{destination.processingTime}</div>
+              <div className="text-xs text-muted-foreground">Processing Time</div>
+            </div>
+            <div className="p-4 bg-muted/50 rounded-lg text-center">
+              <Star className="h-6 w-6 text-yellow-600 mx-auto mb-2" />
+              <div className="font-semibold">4.8/5</div>
+              <div className="text-xs text-muted-foreground">Student Rating</div>
+            </div>
+          </div>
+          
+          {/* Visa Requirements */}
+          <div>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
+              Visa Requirements
+            </h3>
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm">{destination.visaRequirements}</p>
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4 border-t">
+            <Button variant="outline" className="flex-1">
+              Download Brochure
+            </Button>
+            <Button className="flex-1 bg-gradient-to-r from-primary to-blue-600">
+              Start Application
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

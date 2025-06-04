@@ -115,7 +115,7 @@ const AppRoutes = () => {
           <Route path="/settings" element={<Settings />} />
         </Route>
         
-        {/* Catch-all route for 404 */}
+        {/* Catch-all route for 404 - this must be last */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
@@ -129,7 +129,8 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter basename="">
+        {/* Removed basename to fix deployment routing issues */}
+        <BrowserRouter>
           <AuthProvider>
             <AppRoutes />
           </AuthProvider>
