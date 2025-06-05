@@ -52,8 +52,8 @@ export const uploadPaymentReceipt = async (
   }
 };
 
-// Function to upload a document
-export const uploadDocument = async (
+// Function to upload an application document
+export const uploadApplicationDocument = async (
   file: File,
   userId: string,
   documentName: string
@@ -64,7 +64,7 @@ export const uploadDocument = async (
     
     // Upload file to Supabase storage
     const { data, error } = await supabase.storage
-      .from('client_documents')
+      .from('application_documents')
       .upload(fileName, file);
     
     if (error) throw error;
@@ -74,7 +74,7 @@ export const uploadDocument = async (
       filePath: data?.path || fileName
     };
   } catch (error: any) {
-    console.error('Error uploading document:', error);
+    console.error('Error uploading application document:', error);
     return {
       success: false,
       error: error.message || 'Failed to upload document'
@@ -82,19 +82,33 @@ export const uploadDocument = async (
   }
 };
 
-// Function to get the URL for a document
-export const getDocumentUrl = async (documentPath: string): Promise<string | null> => {
+// Function to get the URL for an application document
+export const getApplicationDocumentUrl = async (documentPath: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase.storage
-      .from('client_documents')
+      .from('application_documents')
       .createSignedUrl(documentPath, 60); // URL valid for 60 seconds
     
     if (error) throw error;
     return data?.signedUrl || null;
   } catch (error) {
-    console.error('Error getting document URL:', error);
+    console.error('Error getting application document URL:', error);
     return null;
   }
+};
+
+// Legacy function for backward compatibility - now uses application_documents bucket
+export const uploadDocument = async (
+  file: File,
+  userId: string,
+  documentName: string
+): Promise<{ success: boolean; filePath?: string; error?: string }> => {
+  return uploadApplicationDocument(file, userId, documentName);
+};
+
+// Legacy function for backward compatibility - now uses application_documents bucket
+export const getDocumentUrl = async (documentPath: string): Promise<string | null> => {
+  return getApplicationDocumentUrl(documentPath);
 };
 
 // Function to handle Supabase errors
@@ -132,9 +146,7 @@ export const handleSupabaseError = (error: any, toast: any): void => {
 // Helper function to ensure storage buckets exist
 export const initializeStorageBuckets = async (): Promise<void> => {
   try {
-    // Due to Supabase limitations, we can't directly query the storage schema from client
-    // Instead, we'll check if operations on the buckets succeed
-    // Try to get a file from the buckets to see if they exist
+    // Check if buckets exist by trying to list files
     const { data: paymentReceiptData, error: paymentReceiptError } = await supabase.storage
       .from('payment_receipts')
       .list('', { limit: 1 });
@@ -143,13 +155,13 @@ export const initializeStorageBuckets = async (): Promise<void> => {
       console.warn('Payment receipts bucket needs to be created by an admin');
     }
     
-    // Check for client_documents bucket
-    const { data: clientDocumentsData, error: clientDocumentsError } = await supabase.storage
-      .from('client_documents')
+    // Check for application_documents bucket
+    const { data: applicationDocumentsData, error: applicationDocumentsError } = await supabase.storage
+      .from('application_documents')
       .list('', { limit: 1 });
       
-    if (clientDocumentsError && clientDocumentsError.message.includes('does not exist')) {
-      console.warn('Client documents bucket needs to be created by an admin');
+    if (applicationDocumentsError && applicationDocumentsError.message.includes('does not exist')) {
+      console.warn('Application documents bucket needs to be created by an admin');
     }
   } catch (error) {
     console.error('Error checking storage buckets:', error);
