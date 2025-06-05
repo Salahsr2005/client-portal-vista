@@ -1801,6 +1801,18 @@ export type Database = {
           reactions: Json
         }[]
       }
+      get_destination_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          country: string
+          total_programs: number
+          avg_tuition: number
+          avg_success_rate: number
+          popularity_score: number
+          trending_score: number
+          total_applications: number
+        }[]
+      }
       get_match_explanation: {
         Args: {
           program_id: string

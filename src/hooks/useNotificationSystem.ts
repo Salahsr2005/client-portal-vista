@@ -21,30 +21,40 @@ export const useNotificationSystem = () => {
   const queryClient = useQueryClient();
   const [subscription, setSubscription] = useState<any>(null);
 
-  // Fetch notifications
+  // Fetch notifications with proper user context
   const { data: notifications = [], isLoading, refetch } = useQuery({
     queryKey: ['notifications', user?.id],
     enabled: !!user,
     queryFn: async () => {
       try {
+        console.log("Fetching notifications for user:", user?.id);
+        
         const { data, error } = await supabase
           .from('user_notifications')
           .select('*')
           .eq('user_id', user?.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(50);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching notifications:', error);
+          throw error;
+        }
+        
+        console.log("Fetched notifications:", data);
         return data as Notification[];
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        console.error('Error in notification query:', error);
         return [];
       }
     },
   });
 
-  // Set up real-time subscription to listen for new notifications
+  // Set up real-time subscription for new notifications
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
+
+    console.log("Setting up notification subscription for user:", user.id);
 
     const channel = supabase
       .channel('user_notifications_changes')
@@ -56,40 +66,51 @@ export const useNotificationSystem = () => {
           filter: `user_id=eq.${user.id}` 
         }, 
         (payload) => {
-          // Show a toast notification
+          console.log("New notification received:", payload);
+          
+          // Show toast notification with enhanced styling
           toast({
             title: payload.new.title,
             description: payload.new.content,
-            variant: "default",
-            className: "bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0",
+            className: "bg-gradient-to-r from-violet-600 to-purple-700 text-white border-0 shadow-xl",
+            duration: 5000,
           });
           
-          // Refetch notifications
+          // Invalidate and refetch notifications
           queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Subscription status:", status);
+      });
 
     setSubscription(channel);
 
     return () => {
+      console.log("Cleaning up notification subscription");
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-  }, [user, toast, queryClient]);
+  }, [user?.id, toast, queryClient]);
 
   // Mark notification as read
   const markAsRead = async (notificationId: string) => {
     try {
+      console.log("Marking notification as read:", notificationId);
+      
       const { error } = await supabase
         .from('user_notifications')
         .update({ is_read: true })
-        .eq('id', notificationId);
+        .eq('id', notificationId)
+        .eq('user_id', user?.id); // Ensure user can only modify their notifications
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error marking notification as read:', error);
+        throw error;
+      }
       
-      // Refetch notifications
+      // Refetch notifications to update the UI
       refetch();
       
       return true;
@@ -102,13 +123,25 @@ export const useNotificationSystem = () => {
   // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
+      console.log("Marking all notifications as read for user:", user?.id);
+      
       const { error } = await supabase
         .from('user_notifications')
         .update({ is_read: true })
         .eq('user_id', user?.id)
         .eq('is_read', false);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error marking all notifications as read:', error);
+        throw error;
+      }
+      
+      // Show success toast
+      toast({
+        title: "All notifications marked as read",
+        description: "Your notification list has been cleared.",
+        className: "bg-gradient-to-r from-green-600 to-emerald-700 text-white border-0",
+      });
       
       // Refetch notifications
       refetch();
@@ -120,9 +153,11 @@ export const useNotificationSystem = () => {
     }
   };
 
-  // Create a notification (usually called from the backend, but can be used for testing)
+  // Create a notification (for testing or manual creation)
   const createNotification = async (title: string, content: string, type: string, metadata?: any) => {
     try {
+      console.log("Creating notification:", { title, content, type, metadata });
+      
       const { error } = await supabase
         .from('user_notifications')
         .insert({
@@ -134,7 +169,10 @@ export const useNotificationSystem = () => {
           is_read: false
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating notification:', error);
+        throw error;
+      }
       
       return true;
     } catch (error) {
@@ -143,10 +181,13 @@ export const useNotificationSystem = () => {
     }
   };
 
+  // Calculate unread count
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   return {
     notifications,
     isLoading,
-    unreadCount: notifications.filter(n => !n.is_read).length,
+    unreadCount,
     markAsRead,
     markAllAsRead,
     createNotification,
