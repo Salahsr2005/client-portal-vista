@@ -1,9 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
+import SidebarBackground from './SidebarBackground';
+import NotificationBell from '../NotificationBell';
 import {
   ChevronRight,
   Home,
@@ -77,22 +78,25 @@ export function DashboardLayout() {
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-64 transform ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 glass-light dark:glass-dark`}
+        } transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 overflow-hidden`}
       >
-        <div className="flex flex-col h-full p-4">
+        {/* Background */}
+        <SidebarBackground />
+        
+        <div className="relative z-10 flex flex-col h-full p-4">
           {/* Logo */}
           <div className="flex items-center justify-between mb-8 mt-2">
             <Link
               to="/dashboard"
-              className="text-2xl font-semibold tracking-tight text-gradient"
+              className="text-2xl font-bold tracking-tight text-white drop-shadow-lg"
             >
-              Euro Visa
+              Euro Visa ✨
             </Link>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden"
+              className="lg:hidden text-white hover:bg-white/20"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -104,10 +108,10 @@ export function DashboardLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+                className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 ${
                   location.pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
+                    ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
+                    : "hover:bg-white/10 text-white/90 hover:text-white"
                 }`}
               >
                 <item.icon className="h-5 w-5 mr-3 shrink-0" />
@@ -119,14 +123,14 @@ export function DashboardLayout() {
           {/* Bottom Actions */}
           <div className="mt-auto space-y-2">
             <Link to="/settings">
-              <Button variant="outline" className="w-full justify-start">
+              <Button variant="ghost" className="w-full justify-start text-white hover:bg-white/10 border-white/20">
                 <Settings className="h-5 w-5 mr-3" />
                 Settings
               </Button>
             </Link>
             <Button 
               variant="ghost" 
-              className="w-full justify-start text-destructive"
+              className="w-full justify-start text-red-200 hover:bg-red-500/20 hover:text-red-100"
               onClick={handleLogout}
             >
               <LogOut className="h-5 w-5 mr-3" />
@@ -139,36 +143,50 @@ export function DashboardLayout() {
       {/* Main Content */}
       <main className="flex-1">
         {/* Header */}
-        <header className="sticky top-0 z-40 glass-light dark:glass-dark px-4 py-3 flex items-center justify-between shadow-sm">
+        <header className="sticky top-0 z-40 glass-light dark:glass-dark px-4 py-3 flex items-center justify-between shadow-sm border-b border-violet-100/50">
           <div className="flex items-center">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="mr-2"
+              className="mr-2 hover:bg-violet-100"
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl font-semibold">
-              {sidebarItems.find((item) => item.path === location.pathname)?.label || "Dashboard"}
-            </h1>
+            <div>
+              <h1 className="text-xl font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                {sidebarItems.find((item) => item.path === location.pathname)?.label || "Dashboard"}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {new Date().toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </p>
+            </div>
           </div>
           <div className="flex items-center space-x-2">
             {/* Search Button */}
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" className="hover:bg-violet-100">
               <Search className="h-5 w-5" />
             </Button>
+            
+            {/* Notification Bell */}
+            <NotificationBell />
+            
             <ThemeToggle />
             <Link to="/profile">
-              <Button variant="ghost" size="icon" className="rounded-full bg-muted">
-                <User className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className="rounded-full bg-gradient-to-r from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200">
+                <User className="h-5 w-5 text-violet-600" />
               </Button>
             </Link>
           </div>
         </header>
 
-        {/* Page Content - This is where the Outlet renders our page content */}
-        <div className="p-6 h-[calc(100vh-4rem)] overflow-auto">
+        {/* Page Content */}
+        <div className="p-6 h-[calc(100vh-4rem)] overflow-auto bg-gradient-to-br from-violet-50/30 to-purple-50/30">
           <Outlet />
         </div>
       </main>
@@ -176,7 +194,7 @@ export function DashboardLayout() {
       {/* Backdrop for mobile */}
       {isSidebarOpen && isMobile && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
