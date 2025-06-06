@@ -24,11 +24,17 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { formatCurrency } from '@/utils/databaseHelpers';
 
 export default function EnhancedDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+    }).format(amount);
+  };
 
   // Fetch user data
   const { data: userData } = useQuery({
@@ -99,7 +105,7 @@ export default function EnhancedDashboard() {
     applications: applications.length,
     submitted: applications.filter(app => app.status === 'Submitted').length,
     approved: applications.filter(app => app.status === 'Approved').length,
-    totalPaid: payments.filter(p => p.status === 'Completed').reduce((sum, p) => sum + parseFloat(p.amount), 0),
+    totalPaid: payments.filter(p => p.status === 'Completed').reduce((sum, p) => sum + parseFloat(String(p.amount)), 0),
     upcomingAppointments: appointments.filter(app => app.status === 'Reserved').length,
   };
 
