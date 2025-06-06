@@ -2,7 +2,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
-import { calculateMatchScore, getCountryFlagUrl } from '../services/ProgramMatchingService';
+import { getCountryFlagUrl } from '../services/ProgramMatchingService';
+import { ProgramFilterService } from '../services/ProgramFilterService';
+import { ProgramDataProcessor } from '../services/ProgramDataProcessor';
 
 // Define Program type
 export interface Program {
@@ -75,61 +77,18 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
   const {
     page = 1,
     limit = 10,
-    search = '',
-    country = '',
-    field = '',
-    level = '',
-    language = '',
-    maxBudget = 0,
-    withScholarship = false,
     preferences = null,
     calculateMatchScores = false
   } = params;
   
   return useQuery({
-    queryKey: ['programs', page, limit, search, country, field, level, language, maxBudget, withScholarship, preferences ? 'with-preferences' : 'no-preferences'],
+    queryKey: ['programs', page, limit, params.search, params.country, params.field, params.level, params.language, params.maxBudget, params.withScholarship, preferences ? 'with-preferences' : 'no-preferences'],
     queryFn: async (): Promise<ProgramsData> => {
-      let query = supabase
-        .from('programs')
-        .select('*', { count: 'exact' });
+      // Build and execute query using the filter service
+      let query = ProgramFilterService.buildQuery(params);
+      query = ProgramFilterService.applyPagination(query, page, limit);
       
-      // Apply filters if they are provided
-      if (search) {
-        query = query.or(`name.ilike.%${search}%,university.ilike.%${search}%,description.ilike.%${search}%`);
-      }
-      
-      if (country) {
-        query = query.eq('country', country);
-      }
-      
-      if (field) {
-        query = query.or(`field.eq.${field},field_keywords.cs.{${field}}`);
-      }
-      
-      if (level) {
-        query = query.eq('study_level', level);
-      }
-      
-      if (language) {
-        query = query.or(`program_language.ilike.%${language}%,secondary_language.ilike.%${language}%`);
-      }
-      
-      if (maxBudget > 0) {
-        query = query.lte('tuition_min', maxBudget);
-      }
-      
-      if (withScholarship) {
-        query = query.eq('scholarship_available', true);
-      }
-      
-      // Pagination
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      
-      const { data, error, count } = await query
-        .range(from, to)
-        .order('ranking', { ascending: true })
-        .order('name', { ascending: true });
+      const { data, error, count } = await query;
       
       if (error) {
         console.error('Error fetching programs:', error);
@@ -140,60 +99,26 @@ export const usePrograms = (params: ProgramsQueryParams = {}) => {
       const totalCount = count || 0;
       const totalPages = Math.ceil(totalCount / limit);
       
-      // For user favorites, we'll query the user's favorites if logged in
+      // Get user favorites if logged in
       let favorites: string[] = [];
       if (user) {
-        const { data: favoritesData } = await supabase
-          .from('favorite_programs')
-          .select('program_id')
-          .eq('user_id', user.id);
-        
-        if (favoritesData) {
-          favorites = favoritesData.map((fav) => fav.program_id);
-        }
+        favorites = await ProgramDataProcessor.getFavorites(user.id);
       }
       
       // Process programs with additional information
-      const processedPrograms = (data || []).map((program) => {
-        // Check if application deadline has passed
-        let deadlinePassed = false;
-        if (program.application_deadline) {
-          const deadlineDate = new Date(program.application_deadline);
-          deadlinePassed = deadlineDate < new Date();
-        }
-        
-        // Calculate match score if preferences are provided
-        let matchScore = preferences && calculateMatchScores 
-          ? calculateMatchScore(program, preferences) 
-          : undefined;
-        
-        // Get country flag if image is missing
-        const imageUrl = program.image_url || getCountryFlagUrl(program.country);
-        
-        return {
-          ...program,
-          isFavorite: favorites.includes(program.id),
-          location: `${program.city}, ${program.country}`,
-          duration: program.duration_months ? `${program.duration_months} months` : 'Not specified',
-          deadlinePassed,
-          hasScholarship: program.scholarship_available,
-          hasReligiousFacilities: program.religious_facilities,
-          hasHalalFood: program.halal_food_availability,
-          matchScore,
-          image_url: imageUrl,
-          bgColorClass: program.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
-                     program.status === 'Inactive' || program.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
-                     'bg-amber-100 dark:bg-amber-900/10'
-        };
-      });
+      const processedPrograms = (data || []).map((program) => 
+        ProgramDataProcessor.processProgram(program, favorites, preferences, calculateMatchScores)
+      );
       
-      // If we have preferences and calculateMatchScores is true, sort by match score
-      const programsWithFavorites = calculateMatchScores && preferences
-        ? processedPrograms.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
-        : processedPrograms;
+      // Sort programs if needed
+      const sortedPrograms = ProgramDataProcessor.sortPrograms(
+        processedPrograms, 
+        calculateMatchScores, 
+        preferences
+      );
       
       return {
-        programs: programsWithFavorites as Program[],
+        programs: sortedPrograms as Program[],
         totalCount,
         currentPage: page,
         totalPages
@@ -233,33 +158,11 @@ export const useProgram = (id: string) => {
         isFavorite = !!favoriteData;
       }
       
-      // Check if application deadline has passed
-      let deadlinePassed = false;
-      if (data.application_deadline) {
-        const deadlineDate = new Date(data.application_deadline);
-        deadlinePassed = deadlineDate < new Date();
-      }
+      // Process single program using the data processor
+      const favorites = isFavorite ? [id] : [];
+      const processedProgram = ProgramDataProcessor.processProgram(data, favorites);
       
-      // Get country flag if image is missing
-      const imageUrl = data.image_url || getCountryFlagUrl(data.country);
-      
-      // Add additional fields for compatibility
-      const programWithExtras = {
-        ...data,
-        isFavorite,
-        location: `${data.city}, ${data.country}`,
-        duration: data.duration_months ? `${data.duration_months} months` : 'Not specified',
-        deadlinePassed,
-        hasScholarship: data.scholarship_available,
-        hasReligiousFacilities: data.religious_facilities,
-        hasHalalFood: data.halal_food_availability,
-        image_url: imageUrl,
-        bgColorClass: data.status === 'Active' ? 'bg-green-100 dark:bg-green-900/10' : 
-                     data.status === 'Inactive' || data.status === 'Full' ? 'bg-red-100 dark:bg-red-900/10' : 
-                     'bg-amber-100 dark:bg-amber-900/10'
-      };
-      
-      return programWithExtras as Program & { isFavorite: boolean };
+      return { ...processedProgram, isFavorite } as Program & { isFavorite: boolean };
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 5 // 5 minutes
