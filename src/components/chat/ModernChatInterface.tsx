@@ -1,699 +1,577 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
-import useMessageAccess from "@/hooks/useMessageAccess";
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 import {
   Send,
-  Phone,
-  Video,
-  MoreVertical,
-  Paperclip,
-  Smile,
-  Search,
-  MessageSquare,
   Bot,
-  Users,
-  Circle,
-  CheckCheck,
+  User,
+  MessageSquare,
   Clock,
-  Mic,
-  Image as ImageIcon,
-  File,
-  Plus,
-  ArrowLeft
+  Check,
+  CheckCheck,
+  Loader2,
+  Sparkles
 } from 'lucide-react';
-import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Message {
   id: string;
   text: string;
   sender: {
     id: string;
+    type: 'client' | 'admin' | 'ai';
     name: string;
     avatar?: string;
-    type: 'client' | 'admin' | 'ai';
   };
   timestamp: Date;
-  status: 'sending' | 'sent' | 'delivered' | 'read';
-  type: 'text' | 'image' | 'file';
-  replyTo?: string;
+  status?: 'sending' | 'sent' | 'delivered' | 'read';
+  isTyping?: boolean;
 }
 
 interface Chat {
   id: string;
-  name: string;
-  avatar?: string;
-  lastMessage: string;
-  lastMessageTime: Date;
+  title: string;
+  lastMessage?: string;
+  lastMessageTime?: Date;
   unreadCount: number;
-  isOnline: boolean;
-  type: 'admin' | 'ai';
-  participants?: any[];
+  isGroup: boolean;
+  participants: Array<{
+    id: string;
+    name: string;
+    type: 'client' | 'admin';
+    avatar?: string;
+  }>;
 }
 
 export default function ModernChatInterface() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const messageAccess = useMessageAccess();
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+  const [activeTab, setActiveTab] = useState('admin');
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showChatList, setShowChatList] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [aiMessages, setAiMessages] = useState<Message[]>([]);
+  const [aiMessage, setAiMessage] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const aiMessagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (ref: React.RefObject<HTMLDivElement>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    scrollToBottom(messagesEndRef);
   }, [messages]);
 
-  // Initialize chats
   useEffect(() => {
-    if (!user || !messageAccess.canAccessMessages) return;
+    scrollToBottom(aiMessagesEndRef);
+  }, [aiMessages]);
 
-    initializeChats();
-  }, [user, messageAccess]);
-
-  const initializeChats = async () => {
-    // Sample chats - in real implementation, fetch from Supabase
-    const initialChats: Chat[] = [
-      {
-        id: 'ai-assistant',
-        name: 'AI Assistant',
-        avatar: '',
-        lastMessage: 'How can I help you today?',
-        lastMessageTime: new Date(),
-        unreadCount: 0,
-        isOnline: true,
-        type: 'ai'
-      }
-    ];
-
-    // Fetch admin chats from Supabase
-    try {
-      const { data: adminUsers } = await supabase
-        .from('admin_users')
-        .select('admin_id, first_name, last_name, photo_url, status')
-        .eq('status', 'Active')
-        .limit(5);
-
-      if (adminUsers) {
-        const adminChats: Chat[] = adminUsers.map(admin => ({
-          id: admin.admin_id,
-          name: `${admin.first_name} ${admin.last_name}`,
-          avatar: admin.photo_url,
-          lastMessage: 'Hello! How can I assist you?',
-          lastMessageTime: new Date(Date.now() - Math.random() * 86400000),
-          unreadCount: 0,
-          isOnline: Math.random() > 0.5,
-          type: 'admin' as const
-        }));
-
-        setChats([...initialChats, ...adminChats]);
-      } else {
-        setChats(initialChats);
-      }
-    } catch (error) {
-      console.error('Error fetching admin users:', error);
-      setChats(initialChats);
-    }
-  };
-
-  // Realtime subscription for messages
+  // Load chats and set up realtime subscription
   useEffect(() => {
-    if (!selectedChat || !user) return;
+    if (!user) return;
 
-    let channel: any;
-    
-    if (selectedChat.type === 'admin') {
-      // Subscribe to realtime messages for admin chats
-      channel = supabase
-        .channel(`chat-${selectedChat.id}-${user.id}`)
-        .on('postgres_changes', {
-          event: 'INSERT',
+    const loadChats = async () => {
+      try {
+        const { data: userChats, error } = await supabase
+          .rpc('get_user_chats', {
+            p_user_id: user.id,
+            p_user_type: 'Client'
+          });
+
+        if (error) throw error;
+
+        setChats(userChats?.map((chat: any) => ({
+          id: chat.chat_id,
+          title: chat.title,
+          lastMessage: chat.last_message_text,
+          lastMessageTime: chat.last_message_time ? new Date(chat.last_message_time) : undefined,
+          unreadCount: chat.unread_count || 0,
+          isGroup: chat.is_group_chat,
+          participants: chat.participants || []
+        })) || []);
+      } catch (error) {
+        console.error('Error loading chats:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load chats',
+          variant: 'destructive'
+        });
+      }
+    };
+
+    loadChats();
+
+    // Set up realtime subscription for new messages
+    const channel = supabase
+      .channel('chat_messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
           schema: 'public',
           table: 'chat_messages',
-          filter: `chat_id=eq.${selectedChat.id}`
-        }, (payload) => {
-          const newMsg = payload.new as any;
-          if (newMsg.sender_id !== user.id) {
-            const message: Message = {
-              id: newMsg.message_id,
-              text: newMsg.message_text,
-              sender: {
-                id: newMsg.sender_id,
-                name: selectedChat.name,
-                avatar: selectedChat.avatar,
-                type: 'admin'
-              },
-              timestamp: new Date(newMsg.sent_at),
-              status: 'delivered',
-              type: 'text'
-            };
-            setMessages(prev => [...prev, message]);
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as any;
+            if (selectedChat === newMessage.chat_id) {
+              setMessages(prev => [...prev, {
+                id: newMessage.message_id,
+                text: newMessage.message_text,
+                sender: {
+                  id: newMessage.sender_id,
+                  type: newMessage.sender_type.toLowerCase(),
+                  name: newMessage.sender_type === 'Admin' ? 'Support Team' : 'You'
+                },
+                timestamp: new Date(newMessage.sent_at),
+                status: 'delivered'
+              }]);
+            }
           }
-        })
-        .subscribe();
-    }
+        }
+      )
+      .subscribe();
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedChat, toast]);
+
+  // Load messages for selected chat
+  useEffect(() => {
+    if (!selectedChat) return;
+
+    const loadMessages = async () => {
+      try {
+        const { data: chatMessages, error } = await supabase
+          .rpc('get_chat_messages', {
+            p_chat_id: selectedChat,
+            p_limit: 50
+          });
+
+        if (error) throw error;
+
+        const formattedMessages = chatMessages?.reverse().map((msg: any) => ({
+          id: msg.message_id,
+          text: msg.message_text,
+          sender: {
+            id: msg.sender_id,
+            type: msg.sender_type.toLowerCase(),
+            name: msg.sender_type === 'Admin' ? 'Support Team' : 'You'
+          },
+          timestamp: new Date(msg.sent_at),
+          status: 'delivered'
+        })) || [];
+
+        setMessages(formattedMessages);
+      } catch (error) {
+        console.error('Error loading messages:', error);
       }
     };
-  }, [selectedChat, user]);
+
+    loadMessages();
+  }, [selectedChat]);
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedChat || !user) return;
+    if (!message.trim() || !selectedChat || !user) return;
 
-    const messageId = `msg-${Date.now()}`;
-    const message: Message = {
-      id: messageId,
-      text: newMessage,
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: message,
       sender: {
         id: user.id,
-        name: 'You',
-        type: 'client'
+        type: 'client',
+        name: 'You'
       },
       timestamp: new Date(),
-      status: 'sending',
-      type: 'text'
+      status: 'sending'
     };
 
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
+    setMessages(prev => [...prev, newMessage]);
+    setMessage('');
 
     try {
-      if (selectedChat.type === 'ai') {
-        // Handle AI chat
-        await handleAIMessage(message);
-      } else {
-        // Handle admin chat
-        await handleAdminMessage(message);
-      }
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          chat_id: selectedChat,
+          sender_id: user.id,
+          sender_type: 'Client',
+          message_text: message
+        });
+
+      if (error) throw error;
 
       // Update message status
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, status: 'sent' as const }
-            : msg
-        )
-      );
+      setMessages(prev => prev.map(msg => 
+        msg.id === newMessage.id 
+          ? { ...msg, status: 'sent' }
+          : msg
+      ));
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive'
       });
     }
   };
 
-  const handleAIMessage = async (userMessage: Message) => {
-    // Show typing indicator
-    setIsTyping(true);
+  const handleSendAiMessage = async () => {
+    if (!aiMessage.trim() || !user) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      text: aiMessage,
+      sender: {
+        id: user.id,
+        type: 'client',
+        name: 'You'
+      },
+      timestamp: new Date()
+    };
+
+    setAiMessages(prev => [...prev, userMessage]);
+    setAiMessage('');
+    setIsAiLoading(true);
 
     try {
-      // Call Groq API
-      const response = await fetch('/api/ai-chat', {
+      // Use the correct Supabase edge function URL
+      const response = await fetch('https://nzdmouebmzugmadypibz.supabase.co/functions/v1/ai-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`
         },
         body: JSON.stringify({
-          message: userMessage.text,
-          history: messages.slice(-10) // Send last 10 messages for context
-        }),
+          message: aiMessage,
+          history: aiMessages.slice(-10)
+        })
       });
 
       if (!response.ok) {
-        throw new Error('AI service unavailable');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      
-      // Simulate typing delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const aiMessage: Message = {
-        id: `ai-${Date.now()}`,
-        text: data.response || "I'm here to help you with your study abroad journey!",
+
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        text: data.response || "I'm sorry, I couldn't process your request at the moment.",
         sender: {
-          id: 'ai-assistant',
-          name: 'AI Assistant',
-          type: 'ai'
+          id: 'ai',
+          type: 'ai',
+          name: 'AI Assistant'
         },
-        timestamp: new Date(),
-        status: 'delivered',
-        type: 'text'
+        timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, aiMessage]);
+      setAiMessages(prev => [...prev, aiResponse]);
     } catch (error) {
-      console.error('Error with AI chat:', error);
-      
-      // Fallback response
-      const fallbackMessage: Message = {
-        id: `ai-${Date.now()}`,
-        text: "I'm sorry, I'm having trouble connecting right now. Please try again later or contact our support team for assistance.",
+      console.error('Error sending AI message:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "I'm sorry, I'm having trouble connecting right now. Please try again later.",
         sender: {
-          id: 'ai-assistant',
-          name: 'AI Assistant',
-          type: 'ai'
+          id: 'ai',
+          type: 'ai',
+          name: 'AI Assistant'
         },
-        timestamp: new Date(),
-        status: 'delivered',
-        type: 'text'
+        timestamp: new Date()
       };
-
-      setMessages(prev => [...prev, fallbackMessage]);
+      setAiMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsTyping(false);
+      setIsAiLoading(false);
     }
   };
 
-  const handleAdminMessage = async (message: Message) => {
+  const createNewChat = async () => {
     if (!user) return;
 
     try {
-      // Get or create chat with admin
-      let chatId = selectedChat.id;
-      
-      // Check if chat exists
-      const { data: existingChat } = await supabase
-        .from('chats')
-        .select('chat_id')
-        .eq('chat_id', chatId)
-        .single();
-
-      if (!existingChat) {
-        // Create new chat
-        const { data: newChatData } = await supabase
-          .rpc('create_client_admin_chat', {
-            p_client_id: user.id,
-            p_admin_id: selectedChat.id,
-            p_title: `Chat with ${selectedChat.name}`
-          });
-
-        chatId = newChatData;
-      }
-
-      // Send message
-      await supabase
-        .from('chat_messages')
-        .insert({
-          chat_id: chatId,
-          sender_id: user.id,
-          sender_type: 'Client',
-          message_text: message.text,
-          message_type: 'Text'
-        });
-
+      setIsLoading(true);
+      // In a real app, you'd select an admin to chat with
+      // For now, we'll create a placeholder
+      toast({
+        title: 'Feature Coming Soon',
+        description: 'Direct admin chat will be available soon',
+      });
     } catch (error) {
-      console.error('Error sending admin message:', error);
-      throw error;
+      console.error('Error creating chat:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const filteredChats = chats.filter(chat =>
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const MessageBubble = ({ message, isOwn }: { message: Message; isOwn: boolean }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}
+    >
+      <div className={`flex items-end space-x-2 max-w-[80%] ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
+        <Avatar className="w-8 h-8">
+          <AvatarFallback className={`text-xs ${
+            message.sender.type === 'ai' 
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
+              : isOwn 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-500 text-white'
+          }`}>
+            {message.sender.type === 'ai' ? <Bot className="w-4 h-4" /> : 
+             message.sender.name.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <div className={`rounded-2xl px-4 py-3 shadow-sm ${
+          isOwn 
+            ? 'bg-blue-500 text-white rounded-br-md' 
+            : message.sender.type === 'ai'
+              ? 'bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 text-gray-800 dark:text-gray-200 rounded-bl-md'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-md'
+        }`}>
+          <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+          <div className={`flex items-center justify-end space-x-1 mt-1 ${
+            isOwn ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+          }`}>
+            <span className="text-xs">
+              {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            {isOwn && message.status && (
+              <div className="text-xs">
+                {message.status === 'sending' && <Clock className="w-3 h-3" />}
+                {message.status === 'sent' && <Check className="w-3 h-3" />}
+                {message.status === 'delivered' && <CheckCheck className="w-3 h-3" />}
+                {message.status === 'read' && <CheckCheck className="w-3 h-3 text-blue-300" />}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 
-  const formatTime = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'now';
-    if (minutes < 60) return `${minutes}m`;
-    if (hours < 24) return `${hours}h`;
-    if (days < 7) return `${days}d`;
-    return date.toLocaleDateString();
-  };
-
-  const MessageStatus = ({ status }: { status: Message['status'] }) => {
-    switch (status) {
-      case 'sending':
-        return <Clock className="h-3 w-3 text-gray-400" />;
-      case 'sent':
-        return <CheckCheck className="h-3 w-3 text-gray-400" />;
-      case 'delivered':
-        return <CheckCheck className="h-3 w-3 text-blue-500" />;
-      case 'read':
-        return <CheckCheck className="h-3 w-3 text-blue-600" />;
-      default:
-        return null;
-    }
-  };
-
-  if (!messageAccess.canAccessMessages) {
-    return (
-      <div className="flex items-center justify-center h-[600px]">
-        <Card className="p-8 text-center max-w-md">
-          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold mb-2">Chat Access Required</h3>
-          <p className="text-muted-foreground">
-            Please complete your payment to access the chat feature.
-          </p>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-[calc(100vh-12rem)] bg-background rounded-lg border overflow-hidden">
-      {/* Chat List Sidebar */}
-      <AnimatePresence mode="wait">
-        {(showChatList || !selectedChat) && (
-          <motion.div
-            initial={{ x: -320, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -320, opacity: 0 }}
-            className={cn(
-              "w-80 border-r bg-card flex flex-col",
-              "md:relative md:translate-x-0",
-              !showChatList && selectedChat && "absolute md:relative z-10"
-            )}
-          >
-            {/* Header */}
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Messages</h2>
-                <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 h-9"
-                />
-              </div>
-            </div>
+    <div className="h-[calc(100vh-12rem)] bg-background">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="admin" className="flex items-center space-x-2">
+            <MessageSquare className="w-4 h-4" />
+            <span>Admin Chat</span>
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4" />
+            <span>AI Assistant</span>
+          </TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="admin" className="h-[calc(100%-4rem)]">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
             {/* Chat List */}
-            <ScrollArea className="flex-1">
-              <div className="p-2">
-                {filteredChats.map((chat) => (
-                  <motion.button
-                    key={chat.id}
-                    onClick={() => {
-                      setSelectedChat(chat);
-                      setShowChatList(false);
-                      // Load messages for this chat
-                      setMessages([]);
-                    }}
-                    className={cn(
-                      "w-full p-3 rounded-lg text-left hover:bg-accent transition-colors",
-                      selectedChat?.id === chat.id && "bg-accent"
-                    )}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={chat.avatar} />
-                          <AvatarFallback>
-                            {chat.type === 'ai' ? (
-                              <Bot className="h-5 w-5" />
-                            ) : (
-                              chat.name.split(' ').map(n => n[0]).join('')
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-                        {chat.isOnline && (
-                          <Circle className="absolute -bottom-0.5 -right-0.5 h-3 w-3 fill-green-500 text-green-500" />
-                        )}
-                        {chat.type === 'ai' && (
-                          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-purple-500 rounded-full flex items-center justify-center">
-                            <Bot className="h-2 w-2 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-medium truncate">{chat.name}</h3>
-                          <span className="text-xs text-muted-foreground">
-                            {formatTime(chat.lastMessageTime)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {chat.lastMessage}
-                        </p>
-                      </div>
-                      
-                      {chat.unreadCount > 0 && (
-                        <Badge variant="default" className="h-5 min-w-5 text-xs">
-                          {chat.unreadCount}
-                        </Badge>
-                      )}
+            <Card className="lg:col-span-1">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Conversations</CardTitle>
+                  <Button size="sm" onClick={createNewChat} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[400px]">
+                  {chats.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No conversations yet</p>
+                      <p className="text-sm">Start a chat with our support team</p>
                     </div>
-                  </motion.button>
-                ))}
-              </div>
-            </ScrollArea>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedChat ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-4 border-b bg-card">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="md:hidden"
-                    onClick={() => setShowChatList(true)}
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  
-                  <div className="relative">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={selectedChat.avatar} />
-                      <AvatarFallback>
-                        {selectedChat.type === 'ai' ? (
-                          <Bot className="h-5 w-5" />
-                        ) : (
-                          selectedChat.name.split(' ').map(n => n[0]).join('')
-                        )}
-                      </AvatarFallback>
-                    </Avatar>
-                    {selectedChat.isOnline && selectedChat.type !== 'ai' && (
-                      <Circle className="absolute -bottom-0.5 -right-0.5 h-3 w-3 fill-green-500 text-green-500" />
-                    )}
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-medium">{selectedChat.name}</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {selectedChat.type === 'ai' ? (
-                        'AI Assistant • Always online'
-                      ) : selectedChat.isOnline ? (
-                        'Online now'
-                      ) : (
-                        'Last seen recently'
-                      )}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {selectedChat.type === 'admin' && (
-                    <>
-                      <Button variant="ghost" size="sm">
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Video className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
-                <AnimatePresence initial={false}>
-                  {messages.map((message, index) => (
-                    <motion.div
-                      key={message.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className={cn(
-                        "flex gap-3",
-                        message.sender.type === 'client' && "justify-end"
-                      )}
-                    >
-                      {message.sender.type !== 'client' && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={message.sender.avatar} />
-                          <AvatarFallback>
-                            {message.sender.type === 'ai' ? (
-                              <Bot className="h-4 w-4" />
-                            ) : (
-                              message.sender.name.split(' ').map(n => n[0]).join('')
+                  ) : (
+                    chats.map((chat) => (
+                      <div
+                        key={chat.id}
+                        className={`p-4 cursor-pointer border-b hover:bg-muted/50 transition-colors ${
+                          selectedChat === chat.id ? 'bg-muted' : ''
+                        }`}
+                        onClick={() => setSelectedChat(chat.id)}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Avatar>
+                            <AvatarFallback>ST</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium truncate">{chat.title}</p>
+                              {chat.unreadCount > 0 && (
+                                <Badge variant="destructive" className="text-xs">
+                                  {chat.unreadCount}
+                                </Badge>
+                              )}
+                            </div>
+                            {chat.lastMessage && (
+                              <p className="text-sm text-muted-foreground truncate">
+                                {chat.lastMessage}
+                              </p>
                             )}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      
-                      <div className={cn(
-                        "max-w-[70%] space-y-1",
-                        message.sender.type === 'client' && "items-end"
-                      )}>
-                        <div className={cn(
-                          "rounded-2xl px-4 py-2",
-                          message.sender.type === 'client' 
-                            ? "bg-primary text-primary-foreground ml-auto" 
-                            : message.sender.type === 'ai'
-                            ? "bg-purple-100 text-purple-900 dark:bg-purple-900 dark:text-purple-100"
-                            : "bg-muted"
-                        )}>
-                          <p className="text-sm whitespace-pre-wrap">{message.text}</p>
-                        </div>
-                        
-                        <div className={cn(
-                          "flex items-center gap-1 text-xs text-muted-foreground",
-                          message.sender.type === 'client' && "justify-end"
-                        )}>
-                          <span>{formatTime(message.timestamp)}</span>
-                          {message.sender.type === 'client' && (
-                            <MessageStatus status={message.status} />
-                          )}
+                            {chat.lastMessageTime && (
+                              <p className="text-xs text-muted-foreground">
+                                {chat.lastMessageTime.toLocaleTimeString([], { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      
-                      {message.sender.type === 'client' && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback>You</AvatarFallback>
-                        </Avatar>
+                    ))
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Chat Messages */}
+            <Card className="lg:col-span-2 flex flex-col">
+              {selectedChat ? (
+                <>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">Support Chat</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col p-0">
+                    <ScrollArea className="flex-1 p-4">
+                      <AnimatePresence>
+                        {messages.map((msg) => (
+                          <MessageBubble
+                            key={msg.id}
+                            message={msg}
+                            isOwn={msg.sender.type === 'client'}
+                          />
+                        ))}
+                      </AnimatePresence>
+                      {isTyping && (
+                        <div className="flex justify-start mb-4">
+                          <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3">
+                            <div className="flex space-x-1">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                          </div>
+                        </div>
                       )}
-                    </motion.div>
+                      <div ref={messagesEndRef} />
+                    </ScrollArea>
+                    <Separator />
+                    <div className="p-4">
+                      <div className="flex space-x-2">
+                        <Input
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          placeholder="Type your message..."
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                          className="flex-1"
+                        />
+                        <Button onClick={handleSendMessage} disabled={!message.trim()}>
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </>
+              ) : (
+                <CardContent className="flex-1 flex items-center justify-center">
+                  <div className="text-center text-muted-foreground">
+                    <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
+                    <p>Choose a chat from the sidebar to start messaging</p>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ai" className="h-[calc(100%-4rem)]">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">AI Study Abroad Assistant</CardTitle>
+                  <p className="text-sm text-muted-foreground">Get instant help with your study abroad questions</p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col p-0">
+              <ScrollArea className="flex-1 p-4">
+                {aiMessages.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Bot className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium mb-2">Welcome to AI Assistant</h3>
+                    <p>Ask me anything about studying abroad, visas, programs, or applications!</p>
+                  </div>
+                )}
+                <AnimatePresence>
+                  {aiMessages.map((msg) => (
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      isOwn={msg.sender.type === 'client'}
+                    />
                   ))}
                 </AnimatePresence>
-                
-                {/* Typing Indicator */}
-                {isTyping && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex gap-3"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        <Bot className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="bg-muted rounded-2xl px-4 py-2">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-100" />
-                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce delay-200" />
+                {isAiLoading && (
+                  <div className="flex justify-start mb-4">
+                    <div className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl px-4 py-3">
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">AI is thinking...</span>
                       </div>
                     </div>
-                  </motion.div>
-                )}
-                
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Message Input */}
-            <div className="p-4 border-t bg-card">
-              <div className="flex items-end gap-2">
-                <div className="flex-1 relative">
-                  <Input
-                    ref={inputRef}
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder={`Message ${selectedChat.name}...`}
-                    className="pr-12 min-h-[44px] resize-none"
-                  />
-                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                      <Smile className="h-4 w-4" />
-                    </Button>
                   </div>
+                )}
+                <div ref={aiMessagesEndRef} />
+              </ScrollArea>
+              <Separator />
+              <div className="p-4">
+                <div className="flex space-x-2">
+                  <Input
+                    value={aiMessage}
+                    onChange={(e) => setAiMessage(e.target.value)}
+                    placeholder="Ask me about studying abroad..."
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendAiMessage()}
+                    className="flex-1"
+                    disabled={isAiLoading}
+                  />
+                  <Button 
+                    onClick={handleSendAiMessage} 
+                    disabled={!aiMessage.trim() || isAiLoading}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  >
+                    {isAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  </Button>
                 </div>
-                
-                <Button
-                  onClick={handleSendMessage}
-                  disabled={!newMessage.trim()}
-                  size="sm"
-                  className="h-[44px] w-[44px] p-0"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
               </div>
-            </div>
-          </>
-        ) : (
-          /* No Chat Selected */
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                <MessageSquare className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium">Select a conversation</h3>
-                <p className="text-muted-foreground">
-                  Choose from your existing conversations or start a new one
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
