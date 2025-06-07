@@ -51,11 +51,11 @@ export default function AIChatBot() {
     setIsAiLoading(true);
 
     try {
-      const response = await fetch('https://nzdmouebmzugmadypibz.supabase.co/functions/v1/ai-chat', {
+      const response = await fetch('/functions/v1/ai-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56ZG1vdWVibXp1Z21hZHlwaWJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQzNjYzMDMsImV4cCI6MjA1OTk0MjMwM30.wmEwqIoAwDSsfulWommJ60bijyszwYFRghkN7955hq0`
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
           message: userMessage.text,

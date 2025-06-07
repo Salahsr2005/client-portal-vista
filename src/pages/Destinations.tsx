@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useDestinations } from '@/hooks/useDestinations';
 import { useDestinationStats } from '@/hooks/useDestinationStats';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -136,8 +136,21 @@ export default function Destinations() {
 
   // Using mock data instead of hooks for now
   const destinations = mockDestinations;
-  const { stats, isLoading: statsLoading } = useDestinationStats();
-  const { favorites, toggleFavorite, isLoading: favoritesLoading } = useFavorites();
+  const { data: stats, isLoading: statsLoading } = useDestinationStats();
+  const { addToFavorites, removeFromFavorites } = useFavorites();
+
+  // Mock favorites for now
+  const favorites: any[] = [];
+  const favoritesLoading = false;
+
+  const toggleFavorite = (destinationId: string, type: string) => {
+    const isFavorite = favorites.some(fav => fav.program_id === destinationId);
+    if (isFavorite) {
+      removeFromFavorites.mutate(destinationId);
+    } else {
+      addToFavorites.mutate(destinationId);
+    }
+  };
 
   // Filter and sort destinations
   const filteredDestinations = destinations
