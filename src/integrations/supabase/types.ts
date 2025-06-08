@@ -1825,6 +1825,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_available_admins: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          admin_id: string
+          first_name: string
+          last_name: string
+          full_name: string
+          photo_url: string
+          status: Database["public"]["Enums"]["user_status"]
+          last_active: string
+        }[]
+      }
       get_chat_messages: {
         Args: {
           p_chat_id: string
@@ -1963,6 +1975,10 @@ export type Database = {
           scholarship_score: number
           cultural_score: number
         }[]
+      }
+      user_can_access_chat: {
+        Args: { chat_id_param: string }
+        Returns: boolean
       }
     }
     Enums: {
