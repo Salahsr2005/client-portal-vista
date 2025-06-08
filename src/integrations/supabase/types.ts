@@ -706,6 +706,7 @@ export type Database = {
       }
       consultation_results: {
         Row: {
+          accommodation_preference: string | null
           budget: number
           consultation_date: string | null
           conversion_status: string | null
@@ -718,15 +719,25 @@ export type Database = {
           housing_preference: string | null
           id: string
           language_preference: string | null
+          language_test_required: boolean | null
+          language_test_score: string | null
+          living_costs_preference: number | null
+          match_percentage: number | null
+          matched_programs: Json | null
           notes: string | null
+          preferences_data: Json | null
           recommended_programs: Json | null
           religious_facilities_required: boolean | null
           scholarship_required: boolean | null
+          start_date_preference: string | null
+          step_completed: number | null
           study_level: Database["public"]["Enums"]["study_level"] | null
           updated_at: string | null
           user_id: string | null
+          work_while_studying: boolean | null
         }
         Insert: {
+          accommodation_preference?: string | null
           budget: number
           consultation_date?: string | null
           conversion_status?: string | null
@@ -739,15 +750,25 @@ export type Database = {
           housing_preference?: string | null
           id?: string
           language_preference?: string | null
+          language_test_required?: boolean | null
+          language_test_score?: string | null
+          living_costs_preference?: number | null
+          match_percentage?: number | null
+          matched_programs?: Json | null
           notes?: string | null
+          preferences_data?: Json | null
           recommended_programs?: Json | null
           religious_facilities_required?: boolean | null
           scholarship_required?: boolean | null
+          start_date_preference?: string | null
+          step_completed?: number | null
           study_level?: Database["public"]["Enums"]["study_level"] | null
           updated_at?: string | null
           user_id?: string | null
+          work_while_studying?: boolean | null
         }
         Update: {
+          accommodation_preference?: string | null
           budget?: number
           consultation_date?: string | null
           conversion_status?: string | null
@@ -760,13 +781,22 @@ export type Database = {
           housing_preference?: string | null
           id?: string
           language_preference?: string | null
+          language_test_required?: boolean | null
+          language_test_score?: string | null
+          living_costs_preference?: number | null
+          match_percentage?: number | null
+          matched_programs?: Json | null
           notes?: string | null
+          preferences_data?: Json | null
           recommended_programs?: Json | null
           religious_facilities_required?: boolean | null
           scholarship_required?: boolean | null
+          start_date_preference?: string | null
+          step_completed?: number | null
           study_level?: Database["public"]["Enums"]["study_level"] | null
           updated_at?: string | null
           user_id?: string | null
+          work_while_studying?: boolean | null
         }
         Relationships: []
       }
@@ -1760,6 +1790,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_program_match: {
+        Args: {
+          p_program_id: string
+          p_study_level: Database["public"]["Enums"]["study_level"]
+          p_field: string
+          p_language: string
+          p_budget: number
+          p_living_costs?: number
+          p_language_test_required?: boolean
+          p_religious_facilities?: boolean
+          p_halal_food?: boolean
+          p_scholarship_required?: boolean
+        }
+        Returns: number
+      }
       create_chat_history_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1827,6 +1872,43 @@ export type Database = {
         }
         Returns: string
       }
+      get_matched_programs: {
+        Args: {
+          p_study_level: Database["public"]["Enums"]["study_level"]
+          p_field: string
+          p_language?: string
+          p_budget?: number
+          p_living_costs?: number
+          p_language_test_required?: boolean
+          p_religious_facilities?: boolean
+          p_halal_food?: boolean
+          p_scholarship_required?: boolean
+          p_limit?: number
+        }
+        Returns: {
+          program_id: string
+          program_name: string
+          university: string
+          country: string
+          city: string
+          match_percentage: number
+          tuition_min: number
+          tuition_max: number
+          living_cost_min: number
+          living_cost_max: number
+          program_language: string
+          scholarship_available: boolean
+          religious_facilities: boolean
+          halal_food_availability: boolean
+        }[]
+      }
+      get_study_fields: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          field: string
+          field_keywords: string[]
+        }[]
+      }
       get_user_chats: {
         Args: {
           p_user_id: string
@@ -1840,6 +1922,13 @@ export type Database = {
           last_message_time: string
           unread_count: number
           participants: Json
+        }[]
+      }
+      handle_ai_chat_request: {
+        Args: { message_text: string; chat_history?: Json }
+        Returns: {
+          response: string
+          error: string
         }[]
       }
       mark_messages_as_read: {

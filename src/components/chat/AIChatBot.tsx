@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from '@/types/Chat';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AIChatBot() {
   const { user } = useAuth();
@@ -51,23 +51,16 @@ export default function AIChatBot() {
     setIsAiLoading(true);
 
     try {
-      const response = await fetch('/functions/v1/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: {
           message: userMessage.text,
           history: aiMessages.slice(-10)
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (error) {
+        throw error;
       }
-
-      const data = await response.json();
 
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
