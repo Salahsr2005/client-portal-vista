@@ -21,14 +21,16 @@ export default function EnhancedConsultationFlow() {
   const { isLoading, matchedPrograms, findMatchingPrograms, saveConsultationResult } = useConsultationResults();
 
   const handleNext = async () => {
-    if (currentStep < 4) {
+    if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else if (currentStep === 3) {
-      // Find matching programs
+      // Find matching programs when moving to results step
       const fullPreferences = preferences as ConsultationPreferences;
-      const programs = await findMatchingPrograms(fullPreferences);
-      await saveConsultationResult(fullPreferences, programs);
-      setCurrentStep(4);
+      if (isStepComplete()) {
+        const programs = await findMatchingPrograms(fullPreferences);
+        await saveConsultationResult(fullPreferences, programs);
+        setCurrentStep(4);
+      }
     }
   };
 
@@ -135,7 +137,7 @@ export default function EnhancedConsultationFlow() {
             disabled={!isStepComplete() || isLoading}
             className="flex items-center"
           >
-            {currentStep === 3 ? 'Find Programs' : 'Next'}
+            {isLoading ? 'Finding Programs...' : (currentStep === 3 ? 'Find Programs' : 'Next')}
             <ChevronRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -155,7 +157,7 @@ const Step1 = ({ preferences, onUpdate }: any) => (
       <div>
         <label className="block text-sm font-medium mb-3">Study Level</label>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {['Bachelor', 'Master', 'PhD'].map((level) => (
+          {(['Bachelor', 'Master', 'PhD'] as const).map((level) => (
             <Button
               key={level}
               variant={preferences.studyLevel === level ? 'default' : 'outline'}
@@ -202,10 +204,10 @@ const Step2 = ({ preferences, onUpdate }: any) => (
         <label className="block text-sm font-medium mb-3">Total Budget (EUR/year)</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
-            { label: '€5,000 - €15,000', value: 10000 },
-            { label: '€15,000 - €25,000', value: 20000 },
-            { label: '€25,000 - €35,000', value: 30000 },
-            { label: '€35,000+', value: 40000 }
+            { label: '€5,000 - €15,000', value: 15000 },
+            { label: '€15,000 - €25,000', value: 25000 },
+            { label: '€25,000 - €35,000', value: 35000 },
+            { label: '€35,000+', value: 50000 }
           ].map((budget) => (
             <Button
               key={budget.value}

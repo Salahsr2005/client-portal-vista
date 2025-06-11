@@ -68,14 +68,14 @@ export function HeroSection({
     }
   };
   
-  // Filter and prepare the program data for display with consistent properties
-  const displayPrograms = programsData && programsData.length > 0 
+  // Safe fallback for program data with proper null checks
+  const displayPrograms = programsData && Array.isArray(programsData) && programsData.length > 0 
     ? programsData.slice(0, 3).map(program => ({
-        id: program.id,
-        name: program.name || "Study Program",
-        location: program.location || program.country || "Global",
-        duration: program.duration || "Flexible Duration",
-        image: program.image_url || program.image || `/images/flags/${program.country?.toLowerCase() || 'generic'}.svg`
+        id: program?.id || Math.random().toString(),
+        name: program?.name || "Study Program",
+        location: program?.location || program?.country || "Global",
+        duration: program?.duration || "Flexible Duration",
+        image: program?.image_url || program?.image || `/images/flags/generic.svg`
       }))
     : [
         { 
@@ -208,12 +208,12 @@ export function HeroSection({
                   >
                     <Card className="p-3 bg-background/90 backdrop-blur-md border border-primary/10 shadow-lg hover:shadow-primary/10 transition-shadow duration-300 rounded-xl overflow-hidden transform hover:scale-105">
                       <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
-                           style={{backgroundImage: `url(${displayPrograms[0].image})`}} />
+                           style={{backgroundImage: `url(${displayPrograms[0]?.image || '/placeholder.svg'})`}} />
                       <p className="font-medium text-sm line-clamp-1">
-                        {displayPrograms[0].name}
+                        {displayPrograms[0]?.name || "Study Program"}
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1">
-                        {displayPrograms[0].location}
+                        {displayPrograms[0]?.location || "Global"}
                       </p>
                     </Card>
                   </motion.div>
@@ -226,12 +226,12 @@ export function HeroSection({
                   >
                     <Card className="p-3 bg-background/90 backdrop-blur-md border border-blue-200/20 shadow-lg hover:shadow-blue-200/30 transition-shadow duration-300 rounded-xl overflow-hidden transform hover:scale-105">
                       <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
-                           style={{backgroundImage: `url(${displayPrograms[1].image})`}} />
+                           style={{backgroundImage: `url(${displayPrograms[1]?.image || '/placeholder.svg'})`}} />
                       <p className="font-medium text-sm line-clamp-1">
-                        {displayPrograms[1].name}
+                        {displayPrograms[1]?.name || "Study Program"}
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1">
-                        {displayPrograms[1].duration}
+                        {displayPrograms[1]?.duration || "Flexible Duration"}
                       </p>
                     </Card>
                   </motion.div>
@@ -244,12 +244,12 @@ export function HeroSection({
                   >
                     <Card className="p-3 bg-background/90 backdrop-blur-md border border-purple-200/20 shadow-lg hover:shadow-purple-200/30 transition-shadow duration-300 rounded-xl overflow-hidden transform hover:scale-105">
                       <div className="h-20 bg-cover bg-center mb-2 rounded-md" 
-                           style={{backgroundImage: `url(${displayPrograms[2].image})`}} />
+                           style={{backgroundImage: `url(${displayPrograms[2]?.image || '/placeholder.svg'})`}} />
                       <p className="font-medium text-sm line-clamp-1">
-                        {displayPrograms[2].name}
+                        {displayPrograms[2]?.name || "Study Program"}
                       </p>
                       <p className="text-xs text-muted-foreground line-clamp-1">
-                        {displayPrograms[2].location}
+                        {displayPrograms[2]?.location || "Global"}
                       </p>
                     </Card>
                   </motion.div>

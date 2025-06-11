@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface ConsultationPreferences {
   budget: number;
-  studyLevel: string;
+  studyLevel: 'Bachelor' | 'Master' | 'PhD' | 'Certificate' | 'Diploma';
   field: string;
   language: string;
   destination: string;
@@ -42,40 +42,99 @@ export const useConsultationResults = () => {
   const findMatchingPrograms = useCallback(async (preferences: ConsultationPreferences) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_matched_programs', {
-        p_study_level: preferences.studyLevel,
-        p_field: preferences.field,
-        p_language: preferences.language,
-        p_budget: preferences.budget,
-        p_living_costs: preferences.livingCosts,
-        p_language_test_required: preferences.languageTestRequired,
-        p_religious_facilities: preferences.religiousFacilities,
-        p_halal_food: preferences.halalFood,
-        p_scholarship_required: preferences.scholarshipRequired,
-        p_limit: 10
-      });
+      // Query programs directly with filters
+      let query = supabase
+        .from('programs')
+        .select(`
+          id,
+          name,
+          university,
+          country,
+          city,
+          tuition_min,
+          tuition_max,
+          living_cost_min,
+          living_cost_max,
+          program_language,
+          scholarship_available,
+          religious_facilities,
+          halal_food_availability,
+          study_level,
+          field
+        `)
+        .eq('status', 'Active');
+
+      // Apply filters based on preferences
+      if (preferences.studyLevel && preferences.studyLevel !== 'Any') {
+        query = query.eq('study_level', preferences.studyLevel);
+      }
+
+      if (preferences.field && preferences.field !== 'Any') {
+        query = query.eq('field', preferences.field);
+      }
+
+      if (preferences.language && preferences.language !== 'Any') {
+        query = query.eq('program_language', preferences.language);
+      }
+
+      if (preferences.budget > 0) {
+        query = query.lte('tuition_min', preferences.budget);
+      }
+
+      if (preferences.scholarshipRequired) {
+        query = query.eq('scholarship_available', true);
+      }
+
+      if (preferences.religiousFacilities) {
+        query = query.eq('religious_facilities', true);
+      }
+
+      if (preferences.halalFood) {
+        query = query.eq('halal_food_availability', true);
+      }
+
+      const { data, error } = await query.limit(10);
 
       if (error) throw error;
 
-      const formattedPrograms: MatchedProgram[] = data?.map((program: any) => ({
-        program_id: program.program_id,
-        program_name: program.program_name,
-        university: program.university,
-        country: program.country,
-        city: program.city,
-        match_percentage: program.match_percentage,
-        tuition_min: program.tuition_min,
-        tuition_max: program.tuition_max,
-        living_cost_min: program.living_cost_min,
-        living_cost_max: program.living_cost_max,
-        program_language: program.program_language,
-        scholarship_available: program.scholarship_available,
-        religious_facilities: program.religious_facilities,
-        halal_food_availability: program.halal_food_availability
-      })) || [];
+      // Calculate match percentage and format data
+      const formattedPrograms: MatchedProgram[] = (data || []).map((program: any) => {
+        let matchScore = 0;
+        let totalCriteria = 7;
 
-      setMatchedPrograms(formattedPrograms);
+        // Calculate match score based on preferences
+        if (preferences.studyLevel === program.study_level) matchScore++;
+        if (preferences.field === program.field) matchScore++;
+        if (preferences.language === program.program_language) matchScore++;
+        if (preferences.budget >= program.tuition_min) matchScore++;
+        if (!preferences.scholarshipRequired || program.scholarship_available) matchScore++;
+        if (!preferences.religiousFacilities || program.religious_facilities) matchScore++;
+        if (!preferences.halalFood || program.halal_food_availability) matchScore++;
+
+        const matchPercentage = Math.round((matchScore / totalCriteria) * 100);
+
+        return {
+          program_id: program.id,
+          program_name: program.name,
+          university: program.university,
+          country: program.country,
+          city: program.city,
+          match_percentage: matchPercentage,
+          tuition_min: program.tuition_min || 0,
+          tuition_max: program.tuition_max || 0,
+          living_cost_min: program.living_cost_min || 0,
+          living_cost_max: program.living_cost_max || 0,
+          program_language: program.program_language,
+          scholarship_available: program.scholarship_available || false,
+          religious_facilities: program.religious_facilities || false,
+          halal_food_availability: program.halal_food_availability || false
+        };
+      });
+
+      // Sort by match percentage
+      formattedPrograms.sort((a, b) => b.match_percentage - a.match_percentage);
       
+      setMatchedPrograms(formattedPrograms);
       return formattedPrograms;
     } catch (error) {
       console.error('Error finding matching programs:', error);
@@ -113,7 +172,9 @@ export const useConsultationResults = () => {
         conversion_status: 'Completed'
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving consultation result:', error);
+      }
     } catch (error) {
       console.error('Error saving consultation result:', error);
     }
