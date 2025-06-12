@@ -66,18 +66,21 @@ const PaymentUploader = ({ paymentId, onSuccess }: PaymentUploaderProps) => {
       if (uploadResult.error) {
         throw new Error(uploadResult.error);
       }
-      
-      // Create receipt record in the database
+
+      // Create receipt record in the database - ensure user.id is properly set
       const { error } = await supabase
         .from('payment_receipts')
         .insert({
-          receipt_path: uploadResult.filePath,
+          receipt_path: uploadResult.filePath!,
           payment_id: paymentId,
-          client_id: user.id,
+          client_id: user.id, // This must match the authenticated user
           notes: notes,
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Database insert error:', error);
+        throw error;
+      }
       
       toast({
         title: "Receipt uploaded",
@@ -94,11 +97,21 @@ const PaymentUploader = ({ paymentId, onSuccess }: PaymentUploaderProps) => {
       
     } catch (error: any) {
       console.error("Error uploading receipt:", error);
-      toast({
-        title: "Upload failed",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Provide more specific error messages
+      if (error.message?.includes('row-level security')) {
+        toast({
+          title: "Permission denied",
+          description: "You can only upload receipts for your own account. Please make sure you're logged in correctly.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: error.message || "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +166,7 @@ const PaymentUploader = ({ paymentId, onSuccess }: PaymentUploaderProps) => {
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Upload JPG, PNG, GIF or PDF (max 10MB)
+          Upload JPG, PNG, GIF or PDF (max 10MB). Large images will be automatically compressed.
         </p>
       </div>
       

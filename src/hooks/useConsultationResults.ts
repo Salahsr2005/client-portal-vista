@@ -70,7 +70,7 @@ export const useConsultationResults = () => {
       }
 
       if (preferences.field && preferences.field !== 'Any') {
-        query = query.eq('field', preferences.field);
+        query = query.ilike('field', `%${preferences.field}%`);
       }
 
       if (preferences.language && preferences.language !== 'Any') {
@@ -104,7 +104,7 @@ export const useConsultationResults = () => {
 
         // Calculate match score based on preferences
         if (preferences.studyLevel === program.study_level) matchScore++;
-        if (preferences.field === program.field) matchScore++;
+        if (preferences.field && program.field && program.field.toLowerCase().includes(preferences.field.toLowerCase())) matchScore++;
         if (preferences.language === program.program_language) matchScore++;
         if (preferences.budget >= program.tuition_min) matchScore++;
         if (!preferences.scholarshipRequired || program.scholarship_available) matchScore++;
@@ -154,6 +154,24 @@ export const useConsultationResults = () => {
     programs: MatchedProgram[]
   ) => {
     try {
+      // Convert programs to plain JSON objects
+      const programsData = programs.map(program => ({
+        program_id: program.program_id,
+        program_name: program.program_name,
+        university: program.university,
+        country: program.country,
+        city: program.city,
+        match_percentage: program.match_percentage,
+        tuition_min: program.tuition_min,
+        tuition_max: program.tuition_max,
+        living_cost_min: program.living_cost_min,
+        living_cost_max: program.living_cost_max,
+        program_language: program.program_language,
+        scholarship_available: program.scholarship_available,
+        religious_facilities: program.religious_facilities,
+        halal_food_availability: program.halal_food_availability
+      }));
+
       const { error } = await supabase.from('consultation_results').insert({
         budget: preferences.budget,
         study_level: preferences.studyLevel,
@@ -166,7 +184,7 @@ export const useConsultationResults = () => {
         halal_food_required: preferences.halalFood,
         language_test_required: preferences.languageTestRequired,
         living_costs_preference: preferences.livingCosts,
-        matched_programs: programs,
+        matched_programs: programsData,
         match_percentage: programs.length > 0 ? programs[0].match_percentage : 0,
         step_completed: 4,
         conversion_status: 'Completed'

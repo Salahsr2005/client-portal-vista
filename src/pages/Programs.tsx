@@ -18,12 +18,13 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import ComparePrograms from "@/components/programs/ComparePrograms";
+import MobileFilters from "@/components/programs/MobileFilters";
+import MobileProgramCard from "@/components/programs/MobileProgramCard";
 
 import { 
   Search, 
@@ -37,7 +38,9 @@ import {
   Heart, 
   DollarSign,
   LayoutPanelLeft,
-  Share2
+  Share2,
+  Grid3X3,
+  List
 } from "lucide-react";
 import { formatCurrency } from "@/utils/currencyConverter";
 import ProgramCard from '@/components/consultation/ProgramCard';
@@ -52,6 +55,7 @@ export default function Programs() {
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [showFilters, setShowFilters] = useState(false);
   const [language, setLanguage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // State for favorites and comparison
   const [favorites, setFavorites] = useLocalStorage<string[]>("favorite-programs", []);
@@ -83,7 +87,6 @@ export default function Programs() {
   const currentItems = programs;
 
   // Get programs for comparison
-  // We need to cast to the required type for ComparePrograms
   const programsToCompare = programs.filter(p => compareList.includes(p.id)).map(p => ({
     ...p,
     location: p.location || `${p.city}, ${p.country}`,
@@ -240,38 +243,76 @@ export default function Programs() {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-10 px-4 sm:px-6">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Programs</h1>
-          <p className="text-muted-foreground mt-2">
-            Browse educational programs across Europe
-          </p>
-        </div>
-        <div className="mt-4 md:mt-0 flex items-center gap-2">
-          <div className="flex rounded-md overflow-hidden border">
-            <Button 
-              variant={viewMode === "grid" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="rounded-none"
-            >
-              Grid
-            </Button>
-            <Button 
-              variant={viewMode === "list" ? "default" : "ghost"} 
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="rounded-none"
-            >
-              List
-            </Button>
+    <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Programs</h1>
+            <p className="text-muted-foreground mt-2">
+              Browse educational programs across Europe
+            </p>
           </div>
           
+          {/* Desktop View Mode Toggle */}
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="flex rounded-md overflow-hidden border">
+              <Button 
+                variant={viewMode === "grid" ? "default" : "ghost"} 
+                size="sm"
+                onClick={() => setViewMode("grid")}
+                className="rounded-none"
+              >
+                <Grid3X3 className="h-4 w-4 mr-1" />
+                Grid
+              </Button>
+              <Button 
+                variant={viewMode === "list" ? "default" : "ghost"} 
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="rounded-none"
+              >
+                <List className="h-4 w-4 mr-1" />
+                List
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Search and Filters */}
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search programs..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          {/* Mobile Filters */}
+          <div className="sm:hidden">
+            <MobileFilters
+              studyLevel={studyLevel}
+              setStudyLevel={setStudyLevel}
+              country={country}
+              setCountry={setCountry}
+              field={field}
+              setField={setField}
+              language={language}
+              setLanguage={setLanguage}
+              budget={budget}
+              setBudget={setBudget}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+          
+          {/* Desktop Filters Toggle */}
           <Button 
             variant="outline" 
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center"
+            className="hidden sm:flex items-center"
           >
             <Filter className="mr-2 h-4 w-4" />
             {showFilters ? 'Hide Filters' : 'Show Filters'}
@@ -293,16 +334,16 @@ export default function Programs() {
       {/* Compare button */}
       {compareList.length > 0 && !showCompare && (
         <div className="mb-4">
-          <Button onClick={() => setShowCompare(true)}>
+          <Button onClick={() => setShowCompare(true)} className="w-full sm:w-auto">
             <LayoutPanelLeft className="mr-2 h-4 w-4" />
             Compare ({compareList.length}) Programs
           </Button>
         </div>
       )}
       
-      {/* Filters */}
+      {/* Desktop Filters */}
       {showFilters && (
-        <Card className="mb-6">
+        <Card className="mb-6 hidden sm:block">
           <CardHeader>
             <CardTitle className="text-xl">Filters</CardTitle>
             <CardDescription>Refine your search</CardDescription>
@@ -443,7 +484,7 @@ export default function Programs() {
       )}
       
       {/* Results & Pagination Info */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
         <p className="text-sm text-muted-foreground">
           {isLoading ? (
             "Loading programs..."
@@ -458,7 +499,7 @@ export default function Programs() {
             setCurrentPage(1);
           }}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Items per page" />
           </SelectTrigger>
           <SelectContent>
@@ -485,7 +526,7 @@ export default function Programs() {
       
       {/* Program Cards */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i} className="overflow-hidden">
               <div className="aspect-video w-full">
@@ -527,24 +568,46 @@ export default function Programs() {
           </Button>
         </div>
       ) : (
-        <div className={viewMode === "grid" 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
-          : "flex flex-col gap-4"
-        }>
-          {currentItems.map((program) => (
-            <ProgramCard 
-              key={program.id}
-              program={program}
-              isGridView={viewMode === "grid"}
-              showScore={true}
-              isFavorite={favorites.includes(program.id)}
-              isCompare={compareList.includes(program.id)}
-              onFavorite={handleToggleFavorite}
-              onCompare={handleToggleCompare}
-              onShare={handleShareProgram}
-            />
-          ))}
-        </div>
+        <>
+          {/* Mobile View (always single column with mobile cards) */}
+          <div className="block sm:hidden">
+            <div className="grid grid-cols-1 gap-4">
+              {currentItems.map((program) => (
+                <MobileProgramCard
+                  key={program.id}
+                  program={program}
+                  isFavorite={favorites.includes(program.id)}
+                  isCompare={compareList.includes(program.id)}
+                  onFavorite={handleToggleFavorite}
+                  onCompare={handleToggleCompare}
+                  onShare={handleShareProgram}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop View */}
+          <div className="hidden sm:block">
+            <div className={viewMode === "grid" 
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+              : "flex flex-col gap-4"
+            }>
+              {currentItems.map((program) => (
+                <ProgramCard 
+                  key={program.id}
+                  program={program}
+                  isGridView={viewMode === "grid"}
+                  showScore={true}
+                  isFavorite={favorites.includes(program.id)}
+                  isCompare={compareList.includes(program.id)}
+                  onFavorite={handleToggleFavorite}
+                  onCompare={handleToggleCompare}
+                  onShare={handleShareProgram}
+                />
+              ))}
+            </div>
+          </div>
+        </>
       )}
       
       {/* Pagination */}

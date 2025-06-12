@@ -8,12 +8,45 @@ export const formatCurrency = (amount: number): string => {
   return `€${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
+// Function to compress image before upload
+const compressImage = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Calculate new dimensions
+      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now(),
+          });
+          resolve(compressedFile);
+        } else {
+          resolve(file);
+        }
+      }, file.type, quality);
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+
 // Function to get the URL for a payment receipt
 export const getReceiptUrl = async (receiptPath: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase.storage
       .from('payment_receipts')
-      .createSignedUrl(receiptPath, 60); // URL valid for 60 seconds
+      .createSignedUrl(receiptPath, 60);
     
     if (error) throw error;
     return data?.signedUrl || null;
@@ -23,19 +56,29 @@ export const getReceiptUrl = async (receiptPath: string): Promise<string | null>
   }
 };
 
-// Function to upload a payment receipt
+// Function to upload a payment receipt with compression
 export const uploadPaymentReceipt = async (
   file: File,
   userId: string
 ): Promise<{ success: boolean; filePath?: string; error?: string }> => {
   try {
-    // Generate unique file name
-    const fileName = `${userId}/${uuidv4()}-${file.name}`;
+    // Compress file if it's an image and larger than 2MB
+    let fileToUpload = file;
+    if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+      fileToUpload = await compressImage(file);
+    }
+    
+    // Generate unique file name with timestamp
+    const timestamp = Date.now();
+    const fileName = `${userId}/${timestamp}-${file.name}`;
     
     // Upload file to Supabase storage
     const { data, error } = await supabase.storage
       .from('payment_receipts')
-      .upload(fileName, file);
+      .upload(fileName, fileToUpload, {
+        cacheControl: '3600',
+        upsert: false
+      });
     
     if (error) throw error;
     
@@ -52,20 +95,30 @@ export const uploadPaymentReceipt = async (
   }
 };
 
-// Function to upload an application document
+// Function to upload an application document with compression
 export const uploadApplicationDocument = async (
   file: File,
   userId: string,
   documentName: string
 ): Promise<{ success: boolean; filePath?: string; error?: string }> => {
   try {
-    // Generate unique file name
-    const fileName = `${userId}/${uuidv4()}-${file.name}`;
+    // Compress file if it's an image and larger than 2MB
+    let fileToUpload = file;
+    if (file.type.startsWith('image/') && file.size > 2 * 1024 * 1024) {
+      fileToUpload = await compressImage(file);
+    }
+    
+    // Generate unique file name with timestamp
+    const timestamp = Date.now();
+    const fileName = `${userId}/${timestamp}-${file.name}`;
     
     // Upload file to Supabase storage
     const { data, error } = await supabase.storage
-      .from('application_documents')
-      .upload(fileName, file);
+      .from('user_documents')
+      .upload(fileName, fileToUpload, {
+        cacheControl: '3600',
+        upsert: false
+      });
     
     if (error) throw error;
     
@@ -86,8 +139,8 @@ export const uploadApplicationDocument = async (
 export const getApplicationDocumentUrl = async (documentPath: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase.storage
-      .from('application_documents')
-      .createSignedUrl(documentPath, 60); // URL valid for 60 seconds
+      .from('user_documents')
+      .createSignedUrl(documentPath, 60);
     
     if (error) throw error;
     return data?.signedUrl || null;
@@ -97,7 +150,7 @@ export const getApplicationDocumentUrl = async (documentPath: string): Promise<s
   }
 };
 
-// Legacy function for backward compatibility - now uses application_documents bucket
+// Legacy function for backward compatibility
 export const uploadDocument = async (
   file: File,
   userId: string,
@@ -106,7 +159,7 @@ export const uploadDocument = async (
   return uploadApplicationDocument(file, userId, documentName);
 };
 
-// Legacy function for backward compatibility - now uses application_documents bucket
+// Legacy function for backward compatibility
 export const getDocumentUrl = async (documentPath: string): Promise<string | null> => {
   return getApplicationDocumentUrl(documentPath);
 };
@@ -115,7 +168,6 @@ export const getDocumentUrl = async (documentPath: string): Promise<string | nul
 export const handleSupabaseError = (error: any, toast: any): void => {
   console.error('Supabase error:', error);
   
-  // Check if it's a duplicate key error
   if (error.code === '23505') {
     toast({
       title: "Duplicate entry",
@@ -125,7 +177,6 @@ export const handleSupabaseError = (error: any, toast: any): void => {
     return;
   }
   
-  // Check if it's a foreign key violation
   if (error.code === '23503') {
     toast({
       title: "Reference error",
@@ -135,7 +186,6 @@ export const handleSupabaseError = (error: any, toast: any): void => {
     return;
   }
   
-  // Default error message
   toast({
     title: "Database error",
     description: error.message || "An unexpected error occurred.",
@@ -146,7 +196,6 @@ export const handleSupabaseError = (error: any, toast: any): void => {
 // Helper function to ensure storage buckets exist
 export const initializeStorageBuckets = async (): Promise<void> => {
   try {
-    // Check if buckets exist by trying to list files
     const { data: paymentReceiptData, error: paymentReceiptError } = await supabase.storage
       .from('payment_receipts')
       .list('', { limit: 1 });
@@ -155,13 +204,12 @@ export const initializeStorageBuckets = async (): Promise<void> => {
       console.warn('Payment receipts bucket needs to be created by an admin');
     }
     
-    // Check for application_documents bucket
-    const { data: applicationDocumentsData, error: applicationDocumentsError } = await supabase.storage
-      .from('application_documents')
+    const { data: userDocumentsData, error: userDocumentsError } = await supabase.storage
+      .from('user_documents')
       .list('', { limit: 1 });
       
-    if (applicationDocumentsError && applicationDocumentsError.message.includes('does not exist')) {
-      console.warn('Application documents bucket needs to be created by an admin');
+    if (userDocumentsError && userDocumentsError.message.includes('does not exist')) {
+      console.warn('User documents bucket needs to be created by an admin');
     }
   } catch (error) {
     console.error('Error checking storage buckets:', error);
