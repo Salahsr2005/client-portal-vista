@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import SidebarBackground from './SidebarBackground';
 import NotificationBell from '../NotificationBell';
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   ChevronRight,
   Home,
@@ -40,13 +42,12 @@ const sidebarItems = [
 
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const location = useLocation();
   const { signOut } = useAuth();
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
       if (window.innerWidth < 1024) {
         setIsSidebarOpen(false);
       } else {
@@ -143,7 +144,7 @@ export function DashboardLayout() {
       {/* Main Content */}
       <main className="flex-1">
         {/* Header */}
-        <header className="sticky top-0 z-40 glass-light dark:glass-dark px-4 py-3 flex items-center justify-between shadow-sm border-b border-violet-100/50">
+        <header className={`sticky top-0 z-40 glass-light dark:glass-dark ${isMobile ? 'px-2 py-2' : 'px-4 py-3'} flex items-center justify-between shadow-sm border-b border-violet-100/50`}>
           <div className="flex items-center">
             <Button
               variant="ghost"
@@ -154,24 +155,28 @@ export function DashboardLayout() {
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent`}>
                 {sidebarItems.find((item) => item.path === location.pathname)?.label || "Dashboard"}
               </h1>
-              <p className="text-xs text-muted-foreground">
-                {new Date().toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </p>
+              {!isMobile && (
+                <p className="text-xs text-muted-foreground">
+                  {new Date().toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
+              )}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
             {/* Search Button */}
-            <Button variant="ghost" size="icon" className="hover:bg-violet-100">
-              <Search className="h-5 w-5" />
-            </Button>
+            {!isMobile && (
+              <Button variant="ghost" size="icon" className="hover:bg-violet-100">
+                <Search className="h-5 w-5" />
+              </Button>
+            )}
             
             {/* Notification Bell */}
             <NotificationBell />
@@ -179,14 +184,14 @@ export function DashboardLayout() {
             <ThemeToggle />
             <Link to="/profile">
               <Button variant="ghost" size="icon" className="rounded-full bg-gradient-to-r from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200">
-                <User className="h-5 w-5 text-violet-600" />
+                <User className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-violet-600`} />
               </Button>
             </Link>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="p-6 h-[calc(100vh-4rem)] overflow-auto bg-gradient-to-br from-violet-50/30 to-purple-50/30">
+        <div className={`${isMobile ? 'p-2' : 'p-6'} h-[calc(100vh-4rem)] overflow-auto bg-gradient-to-br from-violet-50/30 to-purple-50/30`}>
           <Outlet />
         </div>
       </main>

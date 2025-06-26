@@ -64,16 +64,16 @@ export const useConsultationResults = () => {
         `)
         .eq('status', 'Active');
 
-      // Apply filters based on preferences
-      if (preferences.studyLevel && preferences.studyLevel !== 'Any') {
+      // Apply filters based on preferences - fix the type comparison
+      if (preferences.studyLevel && preferences.studyLevel !== '' as any) {
         query = query.eq('study_level', preferences.studyLevel);
       }
 
-      if (preferences.field && preferences.field !== 'Any') {
+      if (preferences.field && preferences.field !== '' && preferences.field !== 'Any') {
         query = query.ilike('field', `%${preferences.field}%`);
       }
 
-      if (preferences.language && preferences.language !== 'Any') {
+      if (preferences.language && preferences.language !== '' && preferences.language !== 'Any') {
         query = query.eq('program_language', preferences.language);
       }
 

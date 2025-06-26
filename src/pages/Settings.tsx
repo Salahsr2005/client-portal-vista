@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,16 +9,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, CheckCircle2, Mail, Bell, Lock, Shield, User, Moon, Sun } from "lucide-react";
+import { Loader2, Save, CheckCircle2, Sun, Moon } from "lucide-react";
 import { useTheme } from '@/components/ThemeProvider';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsMobile } from '@/hooks/use-mobile';
+import SettingsSelector from '@/components/settings/SettingsSelector';
+import AccountStatusCard from '@/components/settings/AccountStatusCard';
 import type { Theme } from "@/components/ThemeProvider";
 
 const AppearancePage = () => {
   const { setTheme, theme } = useTheme();
   const [selectedTheme, setSelectedTheme] = useState<string>(theme || 'light');
+  const isMobile = useIsMobile();
 
   const handleThemeChange = (newTheme: string) => {
     setSelectedTheme(newTheme);
@@ -28,7 +29,7 @@ const AppearancePage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h3 className="text-lg font-medium">Appearance</h3>
         <p className="text-sm text-muted-foreground">
@@ -38,16 +39,16 @@ const AppearancePage = () => {
       <Separator />
       <div className="space-y-4">
         <div>
-          <h4 className="text-sm font-medium mb-4">Theme</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <h4 className="text-sm font-medium mb-3">Theme</h4>
+          <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-3'}`}>
             <div className="cursor-pointer" onClick={() => handleThemeChange('light')}>
               <div 
-                className={`border-2 rounded-md p-2 aspect-video flex items-center justify-center overflow-hidden ${
+                className={`border-2 rounded-md p-3 aspect-video flex items-center justify-center overflow-hidden ${
                   selectedTheme === 'light' ? 'border-primary' : 'border-border'
                 }`}
               >
                 <div className="w-full h-full bg-white rounded-md flex items-center justify-center">
-                  <Sun className="h-8 w-8 text-amber-500" />
+                  <Sun className="h-6 w-6 text-amber-500" />
                 </div>
               </div>
               <div className="flex items-center mt-2">
@@ -62,12 +63,12 @@ const AppearancePage = () => {
             
             <div className="cursor-pointer" onClick={() => handleThemeChange('dark')}>
               <div 
-                className={`border-2 rounded-md p-2 aspect-video flex items-center justify-center overflow-hidden ${
+                className={`border-2 rounded-md p-3 aspect-video flex items-center justify-center overflow-hidden ${
                   selectedTheme === 'dark' ? 'border-primary' : 'border-border'
                 }`}
               >
                 <div className="w-full h-full bg-zinc-900 rounded-md flex items-center justify-center">
-                  <Moon className="h-8 w-8 text-blue-400" />
+                  <Moon className="h-6 w-6 text-blue-400" />
                 </div>
               </div>
               <div className="flex items-center mt-2">
@@ -82,14 +83,14 @@ const AppearancePage = () => {
             
             <div className="cursor-pointer" onClick={() => handleThemeChange('system')}>
               <div 
-                className={`border-2 rounded-md p-2 aspect-video flex items-center justify-center overflow-hidden ${
+                className={`border-2 rounded-md p-3 aspect-video flex items-center justify-center overflow-hidden ${
                   selectedTheme === 'system' ? 'border-primary' : 'border-border'
                 }`}
               >
                 <div className="w-full h-full bg-gradient-to-r from-white to-zinc-900 rounded-md flex items-center justify-center">
                   <div className="flex items-center space-x-2">
-                    <Sun className="h-6 w-6 text-amber-500" />
-                    <Moon className="h-6 w-6 text-blue-400" />
+                    <Sun className="h-5 w-5 text-amber-500" />
+                    <Moon className="h-5 w-5 text-blue-400" />
                   </div>
                 </div>
               </div>
@@ -105,24 +106,28 @@ const AppearancePage = () => {
           </div>
         </div>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h4 className="text-sm font-medium">Display Options</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="animations" className="text-base">Animations</Label>
-                <p className="text-sm text-muted-foreground">Enable interface animations</p>
+          <div className="space-y-3">
+            <Card className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="animations" className="text-sm font-medium">Animations</Label>
+                  <p className="text-xs text-muted-foreground">Enable interface animations</p>
+                </div>
+                <Switch id="animations" defaultChecked />
               </div>
-              <Switch id="animations" defaultChecked />
-            </div>
+            </Card>
             
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="condensed-view" className="text-base">Condensed View</Label>
-                <p className="text-sm text-muted-foreground">Display more content with less spacing</p>
+            <Card className="p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="condensed-view" className="text-sm font-medium">Condensed View</Label>
+                  <p className="text-xs text-muted-foreground">Display more content with less spacing</p>
+                </div>
+                <Switch id="condensed-view" />
               </div>
-              <Switch id="condensed-view" />
-            </div>
+            </Card>
           </div>
         </div>
       </div>
@@ -131,8 +136,29 @@ const AppearancePage = () => {
 };
 
 const NotificationPage = () => {
+  const isMobile = useIsMobile();
+  
+  const notificationSettings = [
+    {
+      category: 'Email Notifications',
+      items: [
+        { id: 'app-updates', label: 'Application Updates', description: 'Receive updates about your applications', defaultChecked: true },
+        { id: 'message-notif', label: 'New Messages', description: 'Receive email notifications for new messages', defaultChecked: true },
+        { id: 'payment-notif', label: 'Payment Confirmations', description: 'Receive confirmations for payments', defaultChecked: true },
+        { id: 'marketing-emails', label: 'Marketing Emails', description: 'Receive promotional emails and offers', defaultChecked: false }
+      ]
+    },
+    {
+      category: 'System Notifications',
+      items: [
+        { id: 'browser-notif', label: 'Browser Notifications', description: 'Show notifications in your browser', defaultChecked: true },
+        { id: 'sound-notif', label: 'Sound Notifications', description: 'Play sounds for important alerts', defaultChecked: false }
+      ]
+    }
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h3 className="text-lg font-medium">Notifications</h3>
         <p className="text-sm text-muted-foreground">
@@ -141,69 +167,30 @@ const NotificationPage = () => {
       </div>
       <Separator />
       
-      <div className="space-y-6">
-        <div>
-          <h4 className="text-sm font-medium mb-4">Email Notifications</h4>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="app-updates" className="text-base">Application Updates</Label>
-                <p className="text-sm text-muted-foreground">Receive updates about your applications</p>
-              </div>
-              <Switch id="app-updates" defaultChecked />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="message-notif" className="text-base">New Messages</Label>
-                <p className="text-sm text-muted-foreground">Receive email notifications for new messages</p>
-              </div>
-              <Switch id="message-notif" defaultChecked />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="payment-notif" className="text-base">Payment Confirmations</Label>
-                <p className="text-sm text-muted-foreground">Receive confirmations for payments</p>
-              </div>
-              <Switch id="payment-notif" defaultChecked />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="marketing-emails" className="text-base">Marketing Emails</Label>
-                <p className="text-sm text-muted-foreground">Receive promotional emails and offers</p>
-              </div>
-              <Switch id="marketing-emails" />
+      <div className="space-y-4">
+        {notificationSettings.map((section) => (
+          <div key={section.category}>
+            <h4 className="text-sm font-medium mb-3">{section.category}</h4>
+            <div className="space-y-2">
+              {section.items.map((item) => (
+                <Card key={item.id} className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <Label htmlFor={item.id} className="text-sm font-medium">{item.label}</Label>
+                      <p className="text-xs text-muted-foreground mt-1">{item.description}</p>
+                    </div>
+                    <Switch id={item.id} defaultChecked={item.defaultChecked} className="ml-3" />
+                  </div>
+                </Card>
+              ))}
             </div>
           </div>
-        </div>
-        
-        <div>
-          <h4 className="text-sm font-medium mb-4">System Notifications</h4>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="browser-notif" className="text-base">Browser Notifications</Label>
-                <p className="text-sm text-muted-foreground">Show notifications in your browser</p>
-              </div>
-              <Switch id="browser-notif" defaultChecked />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="sound-notif" className="text-base">Sound Notifications</Label>
-                <p className="text-sm text-muted-foreground">Play sounds for important alerts</p>
-              </div>
-              <Switch id="sound-notif" />
-            </div>
-          </div>
-        </div>
+        ))}
         
         <div>
           <h4 className="text-sm font-medium mb-3">Notification Frequency</h4>
           <Select defaultValue="immediate">
-            <SelectTrigger className="w-full sm:w-[250px]">
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Select Frequency" />
             </SelectTrigger>
             <SelectContent>
@@ -226,6 +213,7 @@ const AccountPage = () => {
   const [username, setUsername] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (profile) {
@@ -263,7 +251,7 @@ const AccountPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h3 className="text-lg font-medium">Account</h3>
         <p className="text-sm text-muted-foreground">
@@ -277,9 +265,9 @@ const AccountPage = () => {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -303,33 +291,9 @@ const AccountPage = () => {
             </div>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             <h4 className="text-sm font-medium">Account Status</h4>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between py-2 border-b">
-                <div className="flex items-center">
-                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span>Account Type</span>
-                </div>
-                <Badge>{profile?.profileStatus || 'Incomplete'}</Badge>
-              </div>
-              
-              <div className="flex items-center justify-between py-2 border-b">
-                <div className="flex items-center">
-                  <Shield className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span>Account Security</span>
-                </div>
-                <Badge variant="outline">Standard</Badge>
-              </div>
-              
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center">
-                  <Bell className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span>2FA Authentication</span>
-                </div>
-                <Badge variant="destructive">Not Enabled</Badge>
-              </div>
-            </div>
+            <AccountStatusCard profileStatus={profile?.profileStatus} />
           </div>
           
           <div className="flex justify-end">
@@ -408,7 +372,7 @@ const SecurityPage = () => {
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h3 className="text-lg font-medium">Security</h3>
         <p className="text-sm text-muted-foreground">
@@ -417,10 +381,10 @@ const SecurityPage = () => {
       </div>
       <Separator />
       
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
-          <h4 className="text-sm font-medium mb-4">Change Password</h4>
-          <div className="space-y-4">
+          <h4 className="text-sm font-medium mb-3">Change Password</h4>
+          <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="current-password">Current Password</Label>
               <Input 
@@ -451,60 +415,17 @@ const SecurityPage = () => {
               />
             </div>
             
-            <Button onClick={handlePasswordChange} disabled={isChanging} className="mt-2">
+            <Button onClick={handlePasswordChange} disabled={isChanging} className="w-full sm:w-auto">
               {isChanging ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Updating...
                 </>
               ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" />
-                  Update Password
-                </>
+                'Update Password'
               )}
             </Button>
           </div>
-        </div>
-        
-        <div>
-          <h4 className="text-sm font-medium mb-4">Two-Factor Authentication</h4>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h5 className="font-medium">Enable 2FA</h5>
-                  <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security to your account
-                  </p>
-                </div>
-                <Button>Setup 2FA</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div>
-          <h4 className="text-sm font-medium mb-4">Sessions</h4>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center">
-                      <h5 className="font-medium">Current Session</h5>
-                      <Badge variant="outline" className="ml-2">Active</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Windows • Chrome • Last active now
-                    </p>
-                  </div>
-                </div>
-                <Separator />
-                <Button variant="outline" className="w-full">Sign Out All Other Sessions</Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
@@ -516,7 +437,7 @@ const EmailPage = () => {
   const [emailFormat, setEmailFormat] = useState('html');
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h3 className="text-lg font-medium">Email Preferences</h3>
         <p className="text-sm text-muted-foreground">
@@ -525,10 +446,10 @@ const EmailPage = () => {
       </div>
       <Separator />
       
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
-          <h4 className="text-sm font-medium mb-4">Email Settings</h4>
-          <div className="space-y-4">
+          <h4 className="text-sm font-medium mb-3">Email Settings</h4>
+          <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="email-frequency">Summary Email Frequency</Label>
               <Select value={emailFrequency} onValueChange={setEmailFrequency}>
@@ -558,131 +479,61 @@ const EmailPage = () => {
             </div>
           </div>
         </div>
-        
-        <div>
-          <h4 className="text-sm font-medium mb-4">Unsubscribe from</h4>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="app-emails" className="text-base">Application Updates</Label>
-                <p className="text-sm text-muted-foreground">Updates about your application status</p>
-              </div>
-              <Switch id="app-emails" defaultChecked />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="newsletter" className="text-base">Newsletter</Label>
-                <p className="text-sm text-muted-foreground">Our weekly newsletter and updates</p>
-              </div>
-              <Switch id="newsletter" defaultChecked />
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="promotions" className="text-base">Promotional Emails</Label>
-                <p className="text-sm text-muted-foreground">Discounts and promotional offers</p>
-              </div>
-              <Switch id="promotions" />
-            </div>
-          </div>
-        </div>
-        
-        <div>
-          <h4 className="text-sm font-medium mb-4">Contact Preferences</h4>
-          <div className="space-y-4">
-            <Textarea 
-              placeholder="Additional instructions for how we should contact you"
-              className="min-h-[100px]"
-            />
-            <p className="text-sm text-muted-foreground">
-              Let us know if you have any specific preferences when we contact you
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex justify-end">
-          <Button>
-            <Save className="mr-2 h-4 w-4" />
-            Save Preferences
-          </Button>
-        </div>
       </div>
     </div>
   );
 };
 
 const Settings = () => {
+  const [activeSection, setActiveSection] = useState('account');
+  const isMobile = useIsMobile();
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'account':
+        return <AccountPage />;
+      case 'appearance':
+        return <AppearancePage />;
+      case 'notifications':
+        return <NotificationPage />;
+      case 'security':
+        return <SecurityPage />;
+      case 'email':
+        return <EmailPage />;
+      default:
+        return <AccountPage />;
+    }
+  };
+
   return (
-    <div className="container mx-auto py-10 px-4 md:px-6">
-      <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between mb-6">
+    <div className={`container mx-auto py-6 ${isMobile ? 'px-2' : 'px-4 md:px-6'}`}>
+      <div className="flex flex-col space-y-3 mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-sm text-muted-foreground">Manage your account settings and preferences</p>
         </div>
       </div>
       
-      <div className="border rounded-lg overflow-hidden">
-        <Tabs defaultValue="account" className="w-full">
-          <div className="sm:flex">
-            <div className="sm:w-64 sm:shrink-0">
-              <TabsList className="h-auto flex flex-col justify-start items-stretch p-0 bg-muted/40 sm:h-full rounded-none">
-                <TabsTrigger
-                  value="account"
-                  className="justify-start px-6 py-3 data-[state=active]:bg-background border-r-2 border-transparent data-[state=active]:border-primary rounded-none"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  <span>Account</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="appearance"
-                  className="justify-start px-6 py-3 data-[state=active]:bg-background border-r-2 border-transparent data-[state=active]:border-primary rounded-none"
-                >
-                  <Sun className="h-4 w-4 mr-2" />
-                  <span>Appearance</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="notifications"
-                  className="justify-start px-6 py-3 data-[state=active]:bg-background border-r-2 border-transparent data-[state=active]:border-primary rounded-none"
-                >
-                  <Bell className="h-4 w-4 mr-2" />
-                  <span>Notifications</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="security"
-                  className="justify-start px-6 py-3 data-[state=active]:bg-background border-r-2 border-transparent data-[state=active]:border-primary rounded-none"
-                >
-                  <Lock className="h-4 w-4 mr-2" />
-                  <span>Security</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="email"
-                  className="justify-start px-6 py-3 data-[state=active]:bg-background border-r-2 border-transparent data-[state=active]:border-primary rounded-none"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  <span>Email</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
-            <div className="p-6 w-full">
-              <TabsContent value="account" className="mt-0">
-                <AccountPage />
-              </TabsContent>
-              <TabsContent value="appearance" className="mt-0">
-                <AppearancePage />
-              </TabsContent>
-              <TabsContent value="notifications" className="mt-0">
-                <NotificationPage />
-              </TabsContent>
-              <TabsContent value="security" className="mt-0">
-                <SecurityPage />
-              </TabsContent>
-              <TabsContent value="email" className="mt-0">
-                <EmailPage />
-              </TabsContent>
-            </div>
+      <div className={`${isMobile ? 'space-y-4' : 'flex space-x-6'}`}>
+        {isMobile ? (
+          <SettingsSelector activeSection={activeSection} onSectionChange={setActiveSection} />
+        ) : (
+          <div className="w-64 shrink-0">
+            <Card>
+              <CardContent className="p-3">
+                <SettingsSelector activeSection={activeSection} onSectionChange={setActiveSection} />
+              </CardContent>
+            </Card>
           </div>
-        </Tabs>
+        )}
+        
+        <div className="flex-1">
+          <Card>
+            <CardContent className={`${isMobile ? 'p-3' : 'p-6'}`}>
+              {renderContent()}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
