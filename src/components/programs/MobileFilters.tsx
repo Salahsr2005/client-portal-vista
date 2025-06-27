@@ -6,51 +6,61 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Filter, X } from "lucide-react";
 
 interface MobileFiltersProps {
-  studyLevel: string;
-  setStudyLevel: (value: string) => void;
-  country: string;
-  setCountry: (value: string) => void;
-  field: string;
-  setField: (value: string) => void;
-  language: string;
-  setLanguage: (value: string) => void;
-  budget: number[];
-  setBudget: (value: number[]) => void;
-  onFilterChange: () => void;
+  selectedCountry: string;
+  selectedLevel: string;
+  selectedField: string;
+  selectedLanguage: string;
+  maxBudget?: number;
+  withScholarship: boolean;
+  onCountryChange: (value: string) => void;
+  onLevelChange: (value: string) => void;
+  onFieldChange: (value: string) => void;
+  onLanguageChange: (value: string) => void;
+  onBudgetChange: (value: number) => void;
+  onScholarshipChange: (value: boolean) => void;
+  onClose: () => void;
 }
 
 export default function MobileFilters({
-  studyLevel,
-  setStudyLevel,
-  country,
-  setCountry,
-  field,
-  setField,
-  language,
-  setLanguage,
-  budget,
-  setBudget,
-  onFilterChange
+  selectedCountry,
+  selectedLevel,
+  selectedField,
+  selectedLanguage,
+  maxBudget = 50000,
+  withScholarship,
+  onCountryChange,
+  onLevelChange,
+  onFieldChange,
+  onLanguageChange,
+  onBudgetChange,
+  onScholarshipChange,
+  onClose
 }: MobileFiltersProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [budget, setBudget] = useState([0, maxBudget]);
 
-  const activeFiltersCount = [studyLevel, country, field, language].filter(f => f && f !== "").length + (budget[1] < 50000 ? 1 : 0);
+  const activeFiltersCount = [selectedCountry, selectedLevel, selectedField, selectedLanguage].filter(f => f && f !== "").length + (withScholarship ? 1 : 0) + (budget[1] < 50000 ? 1 : 0);
 
   const clearAllFilters = () => {
-    setStudyLevel("");
-    setCountry("");
-    setField("");
-    setLanguage("");
+    onCountryChange("");
+    onLevelChange("");
+    onFieldChange("");
+    onLanguageChange("");
+    onBudgetChange(50000);
+    onScholarshipChange(false);
     setBudget([0, 50000]);
-    onFilterChange();
+    onClose();
     setIsOpen(false);
   };
 
   const applyFilters = () => {
-    onFilterChange();
+    onBudgetChange(budget[1]);
+    onClose();
     setIsOpen(false);
   };
 
@@ -78,8 +88,8 @@ export default function MobileFilters({
         <div className="grid gap-4 py-4">
           {/* Study Level */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Study Level</label>
-            <Select value={studyLevel} onValueChange={setStudyLevel}>
+            <Label className="text-sm font-medium">Study Level</Label>
+            <Select value={selectedLevel} onValueChange={onLevelChange}>
               <SelectTrigger>
                 <SelectValue placeholder="All Levels" />
               </SelectTrigger>
@@ -96,8 +106,8 @@ export default function MobileFilters({
 
           {/* Country */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Country</label>
-            <Select value={country} onValueChange={setCountry}>
+            <Label className="text-sm font-medium">Country</Label>
+            <Select value={selectedCountry} onValueChange={onCountryChange}>
               <SelectTrigger>
                 <SelectValue placeholder="All Countries" />
               </SelectTrigger>
@@ -115,8 +125,8 @@ export default function MobileFilters({
 
           {/* Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Field of Study</label>
-            <Select value={field} onValueChange={setField}>
+            <Label className="text-sm font-medium">Field of Study</Label>
+            <Select value={selectedField} onValueChange={onFieldChange}>
               <SelectTrigger>
                 <SelectValue placeholder="All Fields" />
               </SelectTrigger>
@@ -135,8 +145,8 @@ export default function MobileFilters({
 
           {/* Language */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Language</label>
-            <Select value={language} onValueChange={setLanguage}>
+            <Label className="text-sm font-medium">Language</Label>
+            <Select value={selectedLanguage} onValueChange={onLanguageChange}>
               <SelectTrigger>
                 <SelectValue placeholder="All Languages" />
               </SelectTrigger>
@@ -153,9 +163,9 @@ export default function MobileFilters({
 
           {/* Budget */}
           <div className="space-y-3">
-            <label className="text-sm font-medium">
+            <Label className="text-sm font-medium">
               Budget Range (€): {budget[0].toLocaleString()} - {budget[1].toLocaleString()}
-            </label>
+            </Label>
             <Slider
               value={budget}
               onValueChange={setBudget}
@@ -164,6 +174,18 @@ export default function MobileFilters({
               step={1000}
               className="w-full"
             />
+          </div>
+
+          {/* Scholarship */}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="scholarship"
+              checked={withScholarship}
+              onCheckedChange={onScholarshipChange}
+            />
+            <Label htmlFor="scholarship" className="text-sm font-medium">
+              Scholarship Available
+            </Label>
           </div>
         </div>
 
