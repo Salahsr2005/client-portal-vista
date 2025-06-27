@@ -1,477 +1,349 @@
-
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
-  Loader2, 
+  ResponsiveTabs, 
+  ResponsiveTabsContent, 
+  ResponsiveTabsList, 
+  ResponsiveTabsTrigger 
+} from "@/components/ui/responsive-tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import DocumentsList from '@/components/profile/DocumentsList';
+import DocumentUpload from '@/components/profile/DocumentUpload';
+import PaymentStatus from '@/components/profile/PaymentStatus';
+import PaymentUploader from '@/components/profile/PaymentUploader';
+import { 
   User, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  MapPin, 
   FileText, 
-  Pencil, 
-  Save, 
-  X,
+  CreditCard, 
+  Settings, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Calendar,
+  Globe,
+  GraduationCap,
   Shield,
-  Star,
-  Upload,
-  Eye,
-  CheckCircle,
-  AlertCircle,
   Camera
 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import PaymentStatus from '@/components/profile/PaymentStatus';
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 export default function EnhancedProfile() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [userData, setUserData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const isMobile = useIsMobile();
+  const { profile, updateProfile, isLoading } = useUserProfile();
+  const [activeTab, setActiveTab] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState<any>({});
-  const [isSaving, setIsSaving] = useState(false);
-  const [profileCompletion, setProfileCompletion] = useState(0);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user) return;
-      
-      try {
-        setIsLoading(true);
-        
-        const { data, error } = await supabase
-          .from('client_users')
-          .select(`
-            *,
-            client_profiles(*)
-          `)
-          .eq('client_id', user.id)
-          .single();
-        
-        if (error) throw error;
-        
-        setUserData(data);
-        
-        if (data.client_profiles && data.client_profiles.length > 0) {
-          setEditedData({
-            ...data.client_profiles[0]
-          });
-        } else {
-          setEditedData({});
-        }
-        
-        // Calculate profile completion
-        calculateProfileCompletion(data);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load profile data',
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchUserData();
-  }, [user, toast]);
+  const [formData, setFormData] = useState({
+    firstName: profile?.first_name || '',
+    lastName: profile?.last_name || '',
+    phone: profile?.phone || '',
+    address: profile?.address || '',
+    city: profile?.city || '',
+    country: profile?.country || '',
+    nationality: profile?.nationality || '',
+    birthDate: profile?.birth_date || '',
+    bio: profile?.bio || '',
+  });
 
-  const calculateProfileCompletion = (data: any) => {
-    const fields = [
-      data?.first_name,
-      data?.last_name,
-      data?.email,
-      data?.phone,
-      data?.date_of_birth,
-      data?.nationality,
-      data?.client_profiles?.[0]?.current_address,
-      data?.client_profiles?.[0]?.passport_number,
-      data?.client_profiles?.[0]?.education_background,
-      data?.client_profiles?.[0]?.emergency_contact_name,
-      data?.client_profiles?.[0]?.emergency_contact_phone
-    ];
-    
-    const filledFields = fields.filter(field => field && field.trim() !== '').length;
-    const completion = Math.round((filledFields / fields.length) * 100);
-    setProfileCompletion(completion);
-  };
-  
-  const handleChange = (field: string, value: string) => {
-    setEditedData(prev => ({
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [field]: value
+      [name]: value,
     }));
   };
-  
-  const handleSave = async () => {
-    if (!user) return;
-    
-    try {
-      setIsSaving(true);
-      
-      const hasProfile = userData.client_profiles && userData.client_profiles.length > 0;
-      
-      if (hasProfile) {
-        const { error } = await supabase
-          .from('client_profiles')
-          .update(editedData)
-          .eq('client_id', user.id);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('client_profiles')
-          .insert({
-            client_id: user.id,
-            ...editedData
-          });
-        
-        if (error) throw error;
-      }
-      
-      const { data, error } = await supabase
-        .from('client_users')
-        .select(`
-          *,
-          client_profiles(*)
-        `)
-        .eq('client_id', user.id)
-        .single();
-      
-      if (error) throw error;
-      
-      setUserData(data);
-      setIsEditing(false);
-      calculateProfileCompletion(data);
-      
-      toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully',
-      });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update profile',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  
-  const handleCancel = () => {
-    if (userData.client_profiles && userData.client_profiles.length > 0) {
-      setEditedData({
-        ...userData.client_profiles[0]
-      });
-    } else {
-      setEditedData({});
-    }
-    
-    setIsEditing(false);
-  };
-  
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto mb-4" />
-          <p className="text-lg font-medium text-muted-foreground">Loading your profile...</p>
-        </motion.div>
-      </div>
-    );
-  }
-  
-  return (
-    <div className="container max-w-6xl py-8 space-y-8">
-      {/* Header Section */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-            My Profile
-          </h1>
-          <p className="text-muted-foreground mt-2">Manage your personal information and preferences</p>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm font-medium">Profile Completion</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Progress value={profileCompletion} className="w-24" />
-              <span className="text-sm font-bold text-violet-600">{profileCompletion}%</span>
-            </div>
-          </div>
-          <Badge variant={profileCompletion >= 80 ? "default" : "secondary"} className="bg-gradient-to-r from-violet-600 to-purple-600">
-            {profileCompletion >= 80 ? "Complete" : "Incomplete"}
-          </Badge>
-        </div>
-      </motion.div>
 
-      <Tabs defaultValue="personal" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20">
-          <TabsTrigger value="personal" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-            <User className="mr-2 h-4 w-4" />
-            Personal Information
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-            <FileText className="mr-2 h-4 w-4" />
-            Documents
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-            <Shield className="mr-2 h-4 w-4" />
-            Payments
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="personal">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="grid gap-8"
-          >
-            <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-white to-violet-50/30 dark:from-gray-900 dark:to-violet-950/30">
-              <CardHeader className="bg-gradient-to-r from-violet-600 to-purple-600 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-2xl">Personal Information</CardTitle>
-                    <CardDescription className="text-violet-100">
-                      Your personal details and contact information
-                    </CardDescription>
-                  </div>
-                  {!isEditing ? (
-                    <Button variant="secondary" onClick={() => setIsEditing(true)} className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit Profile
-                    </Button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button variant="secondary" onClick={handleCancel} disabled={isSaving} className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-                        <X className="mr-2 h-4 w-4" />
-                        Cancel
-                      </Button>
-                      <Button onClick={handleSave} disabled={isSaving} className="bg-white hover:bg-gray-100 text-violet-600">
-                        {isSaving ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Changes
-                          </>
-                        )}
-                      </Button>
+  const handleSubmit = async () => {
+    setIsEditing(false);
+    await updateProfile({
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      country: formData.country,
+      nationality: formData.nationality,
+      birth_date: formData.birthDate,
+      bio: formData.bio,
+    });
+  };
+
+  return (
+    <div className={cn("min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800", isMobile ? "p-2" : "p-4")}>
+      <div className="max-w-6xl mx-auto space-y-4">
+        {/* Header Section */}
+        <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+          <CardContent className={cn("flex flex-col sm:flex-row items-center gap-6", isMobile ? "p-4" : "p-8")}>
+            {/* Profile Picture */}
+            <div className="relative">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl sm:text-4xl font-bold shadow-xl">
+                {user?.email?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              <Button
+                size="sm"
+                className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0 bg-white dark:bg-gray-800 shadow-lg"
+                variant="outline"
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* User Info */}
+            <div className="flex-1 text-center sm:text-left">
+              <h1 className={cn("font-bold text-gray-900 dark:text-white", isMobile ? "text-xl" : "text-3xl")}>
+                {profile?.first_name || 'Your'} {profile?.last_name || 'Profile'}
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1 flex items-center justify-center sm:justify-start gap-2">
+                <Mail className="h-4 w-4" />
+                {user?.email}
+              </p>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-3">
+                <Badge 
+                  variant={profile?.profile_status === 'Complete' ? 'default' : 'secondary'}
+                  className="text-xs"
+                >
+                  <Shield className="h-3 w-3 mr-1" />
+                  {profile?.profile_status || 'Incomplete'}
+                </Badge>
+                {profile?.nationality && (
+                  <Badge variant="outline" className="text-xs">
+                    <Globe className="h-3 w-3 mr-1" />
+                    {profile.nationality}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            {/* Quick Actions */}
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setIsEditing(!isEditing)}
+                variant={isEditing ? "default" : "outline"}
+                size={isMobile ? "sm" : "default"}
+              >
+                <Settings className={cn("mr-2", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+                {isEditing ? 'Save' : 'Edit'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Content */}
+        <ResponsiveTabs defaultValue="personal" onValueChange={setActiveTab}>
+          <ResponsiveTabsList>
+            <ResponsiveTabsTrigger value="personal">
+              <User className={cn("mr-2", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+              {!isMobile && "Personal"}
+            </ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="documents">
+              <FileText className={cn("mr-2", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+              {!isMobile && "Documents"}
+            </ResponsiveTabsTrigger>
+            <ResponsiveTabsTrigger value="payments">
+              <CreditCard className={cn("mr-2", isMobile ? "h-3 w-3" : "h-4 w-4")} />
+              {!isMobile && "Payments"}
+            </ResponsiveTabsTrigger>
+          </ResponsiveTabsList>
+
+          {/* Personal Information Tab */}
+          <ResponsiveTabsContent value="personal">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Basic Information Card */}
+              <Card className="shadow-sm border-0 bg-white dark:bg-gray-900">
+                <CardHeader className={isMobile ? "p-4" : "p-6"}>
+                  <CardTitle className={cn("flex items-center gap-2", isMobile ? "text-lg" : "text-xl")}>
+                    <User className="h-5 w-5 text-blue-500" />
+                    Basic Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className={cn("space-y-4", isMobile ? "p-4 pt-0" : "p-6 pt-0")}>
+                  <div className="grid gap-4">
+                    <div>
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        type="text"
+                        id="firstName"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
                     </div>
-                  )}
-                </div>
-              </CardHeader>
+                    <div>
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        type="text"
+                        id="lastName"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="birthDate">Birth Date</Label>
+                      <Input
+                        type="date"
+                        id="birthDate"
+                        name="birthDate"
+                        value={formData.birthDate}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="nationality">Nationality</Label>
+                      <Input
+                        type="text"
+                        id="nationality"
+                        name="nationality"
+                        value={formData.nationality}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contact Information Card */}
+              <Card className="shadow-sm border-0 bg-white dark:bg-gray-900">
+                <CardHeader className={isMobile ? "p-4" : "p-6"}>
+                  <CardTitle className={cn("flex items-center gap-2", isMobile ? "text-lg" : "text-xl")}>
+                    <Phone className="h-5 w-5 text-green-500" />
+                    Contact Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className={cn("space-y-4", isMobile ? "p-4 pt-0" : "p-6 pt-0")}>
+                  <div className="grid gap-4">
+                    <div>
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="address">Address</Label>
+                      <Input
+                        type="text"
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="country">Country</Label>
+                      <Input
+                        type="text"
+                        id="country"
+                        name="country"
+                        value={formData.country}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="bio">Bio</Label>
+                      <Textarea
+                        id="bio"
+                        name="bio"
+                        value={formData.bio}
+                        onChange={handleChange}
+                        disabled={!isEditing}
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </ResponsiveTabsContent>
+
+          {/* Documents Tab */}
+          <ResponsiveTabsContent value="documents">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card className="shadow-sm border-0">
+                <CardHeader className={isMobile ? "p-4" : "p-6"}>
+                  <CardTitle className={isMobile ? "text-lg" : "text-xl"}>Upload Documents</CardTitle>
+                  <CardDescription>
+                    Upload your required documents for verification
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className={isMobile ? "p-2" : "p-6 pt-0"}>
+                  <DocumentUpload />
+                </CardContent>
+              </Card>
               
-              <CardContent className="p-8 space-y-8">
-                <div className="flex flex-col md:flex-row gap-8">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="relative">
-                      <Avatar className="h-32 w-32 border-4 border-violet-200 shadow-lg">
-                        <AvatarImage src={userData?.photo_url} alt={userData?.first_name} />
-                        <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-violet-600 to-purple-600 text-white">
-                          {userData?.first_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <Button size="icon" variant="secondary" className="absolute -bottom-2 -right-2 rounded-full shadow-lg">
-                        <Camera className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="text-center">
-                      <h3 className="text-xl font-bold">{userData?.first_name} {userData?.last_name}</h3>
-                      <p className="text-muted-foreground">{user?.email}</p>
-                      <Badge className="mt-2 bg-gradient-to-r from-violet-600 to-purple-600">
-                        {userData?.client_tier || 'Basic'} Member
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="first-name" className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-violet-600" />
-                          First Name
-                        </Label>
-                        <Input 
-                          id="first-name" 
-                          value={isEditing ? editedData.first_name || '' : userData?.first_name || ''} 
-                          disabled={!isEditing} 
-                          onChange={(e) => handleChange("first_name", e.target.value)}
-                          className="border-violet-200 focus:border-violet-400"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="last-name" className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-violet-600" />
-                          Last Name
-                        </Label>
-                        <Input 
-                          id="last-name" 
-                          value={isEditing ? editedData.last_name || '' : userData?.last_name || ''} 
-                          disabled={!isEditing} 
-                          onChange={(e) => handleChange("last_name", e.target.value)}
-                          className="border-violet-200 focus:border-violet-400"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="flex items-center gap-2">
-                          <Mail className="h-4 w-4 text-violet-600" />
-                          Email
-                        </Label>
-                        <Input id="email" value={user?.email || ''} disabled className="bg-gray-50" />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="phone" className="flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-violet-600" />
-                          Phone Number
-                        </Label>
-                        <Input 
-                          id="phone" 
-                          value={isEditing ? editedData.phone || '' : userData?.phone || ''} 
-                          disabled={!isEditing} 
-                          onChange={(e) => handleChange("phone", e.target.value)}
-                          className="border-violet-200 focus:border-violet-400"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="date-of-birth" className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-violet-600" />
-                          Date of Birth
-                        </Label>
-                        <Input 
-                          id="date-of-birth" 
-                          type="date" 
-                          value={isEditing ? editedData.date_of_birth || '' : userData?.date_of_birth || ''} 
-                          disabled={!isEditing} 
-                          onChange={(e) => handleChange("date_of_birth", e.target.value)}
-                          className="border-violet-200 focus:border-violet-400"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="nationality" className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-violet-600" />
-                          Nationality
-                        </Label>
-                        <Input 
-                          id="nationality" 
-                          value={isEditing ? editedData.nationality || '' : userData?.nationality || ''} 
-                          disabled={!isEditing} 
-                          onChange={(e) => handleChange("nationality", e.target.value)}
-                          className="border-violet-200 focus:border-violet-400"
-                        />
-                      </div>
-                    </div>
-                    
-                    <Separator className="bg-gradient-to-r from-violet-200 to-purple-200" />
-                    
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="current-address" className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4 text-violet-600" />
-                          Current Address
-                        </Label>
-                        <Textarea 
-                          id="current-address" 
-                          value={isEditing ? editedData.current_address || '' : (userData?.client_profiles?.[0]?.current_address || "")} 
-                          disabled={!isEditing} 
-                          onChange={(e) => handleChange("current_address", e.target.value)}
-                          className="border-violet-200 focus:border-violet-400 min-h-[80px]"
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="education-background" className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-violet-600" />
-                          Education Background
-                        </Label>
-                        <Textarea 
-                          id="education-background" 
-                          value={isEditing ? editedData.education_background || '' : (userData?.client_profiles?.[0]?.education_background || "")} 
-                          disabled={!isEditing} 
-                          onChange={(e) => handleChange("education_background", e.target.value)}
-                          className="border-violet-200 focus:border-violet-400 min-h-[80px]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </TabsContent>
-        
-        <TabsContent value="documents">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="border-0 shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Documents & Uploads
-                </CardTitle>
-                <CardDescription className="text-blue-100">
-                  Manage your documents and file uploads
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8">
-                <div className="text-center py-12">
-                  <Upload className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-medium mb-2">No documents uploaded yet</h3>
-                  <p className="text-muted-foreground mb-6">Upload your documents to complete your profile</p>
-                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Documents
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </TabsContent>
-        
-        <TabsContent value="payments">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <PaymentStatus />
-          </motion.div>
-        </TabsContent>
-      </Tabs>
+              <Card className="shadow-sm border-0">
+                <CardHeader className={isMobile ? "p-4" : "p-6"}>
+                  <CardTitle className={isMobile ? "text-lg" : "text-xl"}>Your Documents</CardTitle>
+                  <CardDescription>
+                    View and manage your uploaded documents
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className={isMobile ? "p-2" : "p-6 pt-0"}>
+                  <DocumentsList />
+                </CardContent>
+              </Card>
+            </div>
+          </ResponsiveTabsContent>
+
+          {/* Payments Tab */}
+          <ResponsiveTabsContent value="payments">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card className="shadow-sm border-0">
+                <CardHeader className={isMobile ? "p-4" : "p-6"}>
+                  <CardTitle className={isMobile ? "text-lg" : "text-xl"}>Payment Status</CardTitle>
+                  <CardDescription>
+                    View your payment history and status
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className={isMobile ? "p-2" : "p-6 pt-0"}>
+                  <PaymentStatus />
+                </CardContent>
+              </Card>
+              
+              <Card className="shadow-sm border-0">
+                <CardHeader className={isMobile ? "p-4" : "p-6"}>
+                  <CardTitle className={isMobile ? "text-lg" : "text-xl"}>Upload Receipt</CardTitle>
+                  <CardDescription>
+                    Upload payment receipts for verification
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className={isMobile ? "p-2" : "p-6 pt-0"}>
+                  <PaymentUploader />
+                </CardContent>
+              </Card>
+            </div>
+          </ResponsiveTabsContent>
+        </ResponsiveTabs>
+      </div>
     </div>
   );
 }

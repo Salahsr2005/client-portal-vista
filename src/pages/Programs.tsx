@@ -1,637 +1,361 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Input } from "@/components/ui/input";
+import React, { useState, useMemo } from 'react';
+import { usePrograms, ProgramsQueryParams } from '@/hooks/usePrograms';
+import ModernProgramCard from '@/components/programs/ModernProgramCard';
+import MobileProgramCard from '@/components/programs/MobileProgramCard';
+import MobileFilters from '@/components/programs/MobileFilters';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { usePrograms, ProgramsQueryParams } from "@/hooks/usePrograms";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import ComparePrograms from "@/components/programs/ComparePrograms";
-import MobileFilters from "@/components/programs/MobileFilters";
-import MobileProgramCard from "@/components/programs/MobileProgramCard";
-
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useFavorites } from '@/hooks/useFavorites';
 import { 
   Search, 
   Filter, 
-  ChevronRight, 
-  GraduationCap, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  Star, 
-  Heart, 
-  DollarSign,
-  LayoutPanelLeft,
+  Grid3X3, 
+  List, 
+  SlidersHorizontal,
+  MapPin,
+  GraduationCap,
+  Languages,
+  Euro,
+  Heart,
   Share2,
-  Grid3X3,
-  List
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
-import { formatCurrency } from "@/utils/currencyConverter";
-import ProgramCard from '@/components/consultation/ProgramCard';
+import { cn } from "@/lib/utils";
 
 export default function Programs() {
-  // State for filters and pagination
-  const [studyLevel, setStudyLevel] = useState("");
-  const [country, setCountry] = useState("");
-  const [field, setField] = useState("");
-  const [budget, setBudget] = useState([0, 50000]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const isMobile = useIsMobile();
+  const [viewMode, setViewMode<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [language, setLanguage] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [compareList, setCompareList<string[]>([])
 
-  // State for favorites and comparison
-  const [favorites, setFavorites] = useLocalStorage<string[]>("favorite-programs", []);
-  const [compareList, setCompareList] = useLocalStorage<string[]>("compare-programs", []);
-  const [showCompare, setShowCompare] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  
-  // Create query params object
-  const queryParams: ProgramsQueryParams = {
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCountry, setSelectedCountry<string>('')
+  const [selectedLevel, setSelectedLevel<string>('')
+  const [selectedField, setSelectedField<string>('')
+  const [selectedLanguage, setSelectedLanguage<string>('')
+  const [maxBudget, setMaxBudget<number | undefined>(undefined)
+  const [withScholarship, setWithScholarship] = useState(false)
+
+  const { favorites, toggleFavorite } = useFavorites();
+
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    setCurrentPage(1);
+  };
+
+  const handleLevelChange = (level: string) => {
+    setSelectedLevel(level);
+    setCurrentPage(1);
+  };
+
+  const handleFieldChange = (field: string) => {
+    setSelectedField(field);
+    setCurrentPage(1);
+  };
+
+  const handleLanguageChange = (language: string) => {
+    setSelectedLanguage(language);
+    setCurrentPage(1);
+  };
+
+  const handleBudgetChange = (budget: number) => {
+    setMaxBudget(budget);
+    setCurrentPage(1);
+  };
+
+  const handleScholarshipChange = (scholarship: boolean) => {
+    setWithScholarship(scholarship);
+    setCurrentPage(1);
+  };
+
+  // Build query parameters
+  const queryParams: ProgramsQueryParams = useMemo(() => ({
     page: currentPage,
-    limit: itemsPerPage,
-    country: country || undefined,
-    level: studyLevel as any || undefined,
-    field: field || undefined,
-    maxBudget: budget[1],
-    language: language || undefined,
-    withScholarship: false
-  };
-  
-  // Get programs data with filters
-  const { data: programsData, isLoading } = usePrograms(queryParams);
-  
-  // Calculate pagination values - make sure we're working with arrays
-  const programs = programsData?.programs || [];
-  const totalItems = programsData?.totalCount || 0;
-  const totalPages = programsData?.totalPages || 1;
-  
-  // We don't need to slice here since the API already handles pagination
-  const currentItems = programs;
+    limit: isMobile ? 6 : 12,
+    search: searchQuery || undefined,
+    country: selectedCountry || undefined,
+    level: selectedLevel as any || undefined,
+    field: selectedField || undefined,
+    language: selectedLanguage || undefined,
+    maxBudget: maxBudget || undefined,
+    withScholarship: withScholarship || undefined,
+  }), [currentPage, searchQuery, selectedCountry, selectedLevel, selectedField, selectedLanguage, maxBudget, withScholarship, isMobile]);
 
-  // Get programs for comparison
-  const programsToCompare = programs.filter(p => compareList.includes(p.id)).map(p => ({
-    ...p,
-    location: p.location || `${p.city}, ${p.country}`,
-    duration: p.duration || `${p.duration_months} months`,
-  }));
+  const { data, isLoading, error } = usePrograms(queryParams);
 
-  // Function to change page
-  const paginate = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Function to handle filter changes
-  const handleFilterChange = () => {
-    setCurrentPage(1); // Reset to first page on filter change
-  };
-  
-  // Function to handle favorite toggle
-  const handleToggleFavorite = (programId: string) => {
-    setFavorites(prev => {
-      if (prev.includes(programId)) {
-        toast.info("Removed from favorites");
-        return prev.filter(id => id !== programId);
-      } else {
-        toast.success("Added to favorites");
-        return [...prev, programId];
-      }
-    });
-  };
-  
-  // Function to handle compare toggle
-  const handleToggleCompare = (programId: string) => {
-    setCompareList(prev => {
-      if (prev.includes(programId)) {
-        return prev.filter(id => id !== programId);
-      } else {
-        if (prev.length >= 3) {
-          toast.warning("You can compare up to 3 programs at once");
-          return prev;
-        }
-        setShowCompare(true);
-        return [...prev, programId];
-      }
-    });
-  };
-
-  // Function to handle sharing
-  const handleShareProgram = (programId: string) => {
-    const url = `${window.location.origin}/programs/${programId}`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: 'Check out this program',
-        url: url,
-      }).catch(() => {
-        copyToClipboard(url);
-      });
-    } else {
-      copyToClipboard(url);
-    }
-  };
-  
-  // Helper function to copy to clipboard
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Link copied to clipboard");
-  };
-
-  // Reset compare when unmounting
-  useEffect(() => {
-    return () => {
-      if (compareList.length > 0) {
-        setCompareList([]);
-      }
-    };
-  }, []);
-
-  // Function to render pagination numbers
-  const renderPaginationNumbers = () => {
-    const pages = [];
-    
-    // Always show first page
-    pages.push(
-      <PaginationItem key={1}>
-        <PaginationLink 
-          isActive={currentPage === 1}
-          onClick={() => paginate(1)}
-        >
-          1
-        </PaginationLink>
-      </PaginationItem>
-    );
-    
-    // If we have more than 5 pages, show ellipsis
-    if (totalPages > 5) {
-      if (currentPage > 3) {
-        pages.push(<PaginationEllipsis key="ellipsis-start" />);
-      }
-      
-      // Calculate start and end pages to show
-      const startPage = Math.max(2, currentPage - 1);
-      const endPage = Math.min(totalPages - 1, currentPage + 1);
-      
-      // Show pages around current page
-      for (let i = startPage; i <= endPage; i++) {
-        if (i !== 1 && i !== totalPages) {
-          pages.push(
-            <PaginationItem key={i}>
-              <PaginationLink 
-                isActive={currentPage === i}
-                onClick={() => paginate(i)}
-              >
-                {i}
-              </PaginationLink>
-            </PaginationItem>
-          );
-        }
-      }
-      
-      if (currentPage < totalPages - 2) {
-        pages.push(<PaginationEllipsis key="ellipsis-end" />);
-      }
-    } else {
-      // Show all pages if we have 5 or fewer
-      for (let i = 2; i < totalPages; i++) {
-        pages.push(
-          <PaginationItem key={i}>
-            <PaginationLink 
-              isActive={currentPage === i}
-              onClick={() => paginate(i)}
-            >
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
-    }
-    
-    // Always show last page if we have more than 1 page
-    if (totalPages > 1) {
-      pages.push(
-        <PaginationItem key={totalPages}>
-          <PaginationLink 
-            isActive={currentPage === totalPages}
-            onClick={() => paginate(totalPages)}
-          >
-            {totalPages}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-    
-    return pages;
-  };
+  const ProgramCardComponent = isMobile ? MobileProgramCard : ModernProgramCard;
 
   return (
-    <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+    <div className={cn("min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900", isMobile ? "p-2" : "p-6")}>
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Programs</h1>
-            <p className="text-muted-foreground mt-2">
-              Browse educational programs across Europe
+            <h1 className={cn("font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent", isMobile ? "text-2xl" : "text-4xl")}>
+              Study Programs
+            </h1>
+            <p className={cn("text-muted-foreground mt-1", isMobile ? "text-sm" : "text-lg")}>
+              Discover your perfect educational journey
             </p>
           </div>
           
-          {/* Desktop View Mode Toggle */}
-          <div className="hidden sm:flex items-center gap-2">
-            <div className="flex rounded-md overflow-hidden border">
-              <Button 
-                variant={viewMode === "grid" ? "default" : "ghost"} 
+          {!isMobile && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setViewMode("grid")}
-                className="rounded-none"
+                onClick={() => setViewMode('grid')}
               >
-                <Grid3X3 className="h-4 w-4 mr-1" />
-                Grid
+                <Grid3X3 className="h-4 w-4" />
               </Button>
-              <Button 
-                variant={viewMode === "list" ? "default" : "ghost"} 
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setViewMode("list")}
-                className="rounded-none"
+                onClick={() => setViewMode('list')}
               >
-                <List className="h-4 w-4 mr-1" />
-                List
+                <List className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-        </div>
-
-        {/* Mobile Search and Filters */}
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Search programs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          {/* Mobile Filters */}
-          <div className="sm:hidden">
-            <MobileFilters
-              studyLevel={studyLevel}
-              setStudyLevel={setStudyLevel}
-              country={country}
-              setCountry={setCountry}
-              field={field}
-              setField={setField}
-              language={language}
-              setLanguage={setLanguage}
-              budget={budget}
-              setBudget={setBudget}
-              onFilterChange={handleFilterChange}
-            />
-          </div>
-          
-          {/* Desktop Filters Toggle */}
-          <Button 
-            variant="outline" 
-            onClick={() => setShowFilters(!showFilters)}
-            className="hidden sm:flex items-center"
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </Button>
-        </div>
-      </div>
-      
-      {/* Comparison panel */}
-      {compareList.length > 0 && showCompare && (
-        <ComparePrograms 
-          programs={programsToCompare}
-          onClose={() => setShowCompare(false)}
-          onRemoveProgram={(id) => {
-            setCompareList(prev => prev.filter(programId => programId !== id));
-          }}
-        />
-      )}
-      
-      {/* Compare button */}
-      {compareList.length > 0 && !showCompare && (
-        <div className="mb-4">
-          <Button onClick={() => setShowCompare(true)} className="w-full sm:w-auto">
-            <LayoutPanelLeft className="mr-2 h-4 w-4" />
-            Compare ({compareList.length}) Programs
-          </Button>
-        </div>
-      )}
-      
-      {/* Desktop Filters */}
-      {showFilters && (
-        <Card className="mb-6 hidden sm:block">
-          <CardHeader>
-            <CardTitle className="text-xl">Filters</CardTitle>
-            <CardDescription>Refine your search</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Study Level</label>
-                <Select
-                  value={studyLevel}
-                  onValueChange={(value) => {
-                    setStudyLevel(value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Levels" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Levels</SelectItem>
-                    <SelectItem value="Bachelor">Bachelor</SelectItem>
-                    <SelectItem value="Master">Master</SelectItem>
-                    <SelectItem value="PhD">PhD</SelectItem>
-                    <SelectItem value="Certificate">Certificate</SelectItem>
-                    <SelectItem value="Diploma">Diploma</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Country</label>
-                <Select
-                  value={country}
-                  onValueChange={(value) => {
-                    setCountry(value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Countries" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Countries</SelectItem>
-                    <SelectItem value="France">France</SelectItem>
-                    <SelectItem value="Spain">Spain</SelectItem>
-                    <SelectItem value="Germany">Germany</SelectItem>
-                    <SelectItem value="Italy">Italy</SelectItem>
-                    <SelectItem value="Belgium">Belgium</SelectItem>
-                    <SelectItem value="Portugal">Portugal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Field of Study</label>
-                <Select
-                  value={field}
-                  onValueChange={(value) => {
-                    setField(value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Fields" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Fields</SelectItem>
-                    <SelectItem value="Business">Business & Management</SelectItem>
-                    <SelectItem value="Engineering">Engineering</SelectItem>
-                    <SelectItem value="Computer Science">Computer Science</SelectItem>
-                    <SelectItem value="Medicine">Medicine & Health</SelectItem>
-                    <SelectItem value="Arts">Arts & Humanities</SelectItem>
-                    <SelectItem value="Law">Law</SelectItem>
-                    <SelectItem value="Sciences">Sciences</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Language</label>
-                <Select
-                  value={language}
-                  onValueChange={(value) => {
-                    setLanguage(value);
-                    handleFilterChange();
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Languages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Languages</SelectItem>
-                    <SelectItem value="English">English</SelectItem>
-                    <SelectItem value="French">French</SelectItem>
-                    <SelectItem value="Spanish">Spanish</SelectItem>
-                    <SelectItem value="German">German</SelectItem>
-                    <SelectItem value="Italian">Italian</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="md:col-span-2 lg:col-span-4">
-                <label className="block text-sm font-medium mb-1">
-                  Budget Range (€): {budget[0]} - {budget[1]}
-                </label>
-                <Slider
-                  defaultValue={[0, 50000]}
-                  min={0}
-                  max={50000}
-                  step={1000}
-                  value={budget}
-                  onValueChange={(value) => {
-                    setBudget(value);
-                    handleFilterChange();
-                  }}
-                  className="my-4"
-                />
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setStudyLevel("");
-                setCountry("");
-                setField("");
-                setBudget([0, 50000]);
-                setLanguage("");
-                handleFilterChange();
-              }}
-            >
-              Clear Filters
-            </Button>
-            <Button onClick={handleFilterChange}>Apply Filters</Button>
-          </CardFooter>
-        </Card>
-      )}
-      
-      {/* Results & Pagination Info */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-        <p className="text-sm text-muted-foreground">
-          {isLoading ? (
-            "Loading programs..."
-          ) : (
-            `Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalItems)} of ${totalItems} programs`
           )}
-        </p>
-        <Select 
-          value={itemsPerPage.toString()}
-          onValueChange={(value) => {
-            setItemsPerPage(Number(value));
-            setCurrentPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Items per page" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="12">12 per page</SelectItem>
-            <SelectItem value="24">24 per page</SelectItem>
-            <SelectItem value="36">36 per page</SelectItem>
-            <SelectItem value="48">48 per page</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      {/* Display favorites count if any */}
-      {favorites.length > 0 && (
-        <Alert className="mb-4 bg-pink-50 border-pink-200">
-          <Heart className="h-4 w-4 text-pink-500" />
-          <AlertDescription>
-            You have {favorites.length} favorite programs. 
-            <Button variant="link" className="p-0 h-auto text-pink-600" onClick={() => setShowFilters(true)}>
-              Find more programs matching your interests
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {/* Program Cards */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
-              <div className="aspect-video w-full">
-                <Skeleton className="h-full w-full" />
-              </div>
-              <CardHeader>
-                <Skeleton className="h-6 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                  <Skeleton className="h-4 w-3/5" />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Skeleton className="h-10 w-full" />
-              </CardFooter>
-            </Card>
-          ))}
         </div>
-      ) : programs.length === 0 ? (
-        <div className="text-center py-12">
-          <GraduationCap className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-xl font-medium mb-2">No programs found</h3>
-          <p className="text-muted-foreground mb-6">
-            Try adjusting your filters or search criteria
-          </p>
-          <Button onClick={() => {
-            setStudyLevel("");
-            setCountry("");
-            setField("");
-            setBudget([0, 50000]);
-            setLanguage("");
-            handleFilterChange();
-          }}>
-            Clear All Filters
-          </Button>
-        </div>
-      ) : (
-        <>
-          {/* Mobile View (always single column with mobile cards) */}
-          <div className="block sm:hidden">
-            <div className="grid grid-cols-1 gap-4">
-              {currentItems.map((program) => (
-                <MobileProgramCard
-                  key={program.id}
-                  program={program}
-                  isFavorite={favorites.includes(program.id)}
-                  isCompare={compareList.includes(program.id)}
-                  onFavorite={handleToggleFavorite}
-                  onCompare={handleToggleCompare}
-                  onShare={handleShareProgram}
-                />
-              ))}
-            </div>
-          </div>
 
-          {/* Desktop View */}
-          <div className="hidden sm:block">
-            <div className={viewMode === "grid" 
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
-              : "flex flex-col gap-4"
-            }>
-              {currentItems.map((program) => (
-                <ProgramCard 
+        {/* Search and Filters */}
+        <Card className="border-0 shadow-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+          <CardContent className={isMobile ? "p-4" : "p-6"}>
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    placeholder="Search programs, universities, or fields..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-white dark:bg-gray-800 border-2 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              
+              {/* Quick Filters - Desktop */}
+              {!isMobile && (
+                <div className="flex gap-2">
+                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Countries</SelectItem>
+                      {/* Add more countries */}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="Level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Levels</SelectItem>
+                      <SelectItem value="Bachelor">Bachelor</SelectItem>
+                      <SelectItem value="Master">Master</SelectItem>
+                      <SelectItem value="PhD">PhD</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="gap-2"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    More Filters
+                  </Button>
+                </div>
+              )}
+              
+              {/* Mobile Filter Button */}
+              {isMobile && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="w-full gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  Filters & Sort
+                </Button>
+              )}
+            </div>
+            
+            {/* Active Filters */}
+            {(selectedCountry || selectedLevel || selectedField || withScholarship) && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {selectedCountry && (
+                  <Badge variant="secondary" className="gap-1">
+                    <MapPin className="h-3 w-3" />
+                    {selectedCountry}
+                  </Badge>
+                )}
+                {selectedLevel && (
+                  <Badge variant="secondary" className="gap-1">
+                    <GraduationCap className="h-3 w-3" />
+                    {selectedLevel}
+                  </Badge>
+                )}
+                {withScholarship && (
+                  <Badge variant="secondary">
+                    Scholarship Available
+                  </Badge>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Mobile Filters */}
+        {isMobile && showFilters && (
+          <MobileFilters
+            selectedCountry={selectedCountry}
+            selectedLevel={selectedLevel}
+            selectedField={selectedField}
+            selectedLanguage={selectedLanguage}
+            maxBudget={maxBudget}
+            withScholarship={withScholarship}
+            onCountryChange={handleCountryChange}
+            onLevelChange={handleLevelChange}
+            onFieldChange={handleFieldChange}
+            onLanguageChange={handleLanguageChange}
+            onBudgetChange={handleBudgetChange}
+            onScholarshipChange={handleScholarshipChange}
+            onClose={() => setShowFilters(false)}
+          />
+        )}
+
+        {/* Results Header */}
+        <div className="flex justify-between items-center">
+          <div className="text-sm text-muted-foreground">
+            {data ? `${data.totalCount} programs found` : 'Loading...'}
+          </div>
+          {compareList.length > 0 && (
+            <Button size="sm" className="gap-2">
+              Compare ({compareList.length})
+            </Button>
+          )}
+        </div>
+
+        {/* Programs Grid */}
+        {isLoading ? (
+          <div className={cn("grid gap-6", 
+            isMobile ? "grid-cols-1" : 
+            viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+          )}>
+            {Array.from({ length: isMobile ? 3 : 6 }).map((_, i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <CardContent className="p-6">
+                  <Skeleton className="h-6 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2 mb-4" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : error ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-muted-foreground">Error loading programs. Please try again.</p>
+            </CardContent>
+          </Card>
+        ) : data?.programs.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-muted-foreground">No programs found matching your criteria.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className={cn("grid gap-6", 
+              isMobile ? "grid-cols-1" : 
+              viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" : "grid-cols-1"
+            )}>
+              {data?.programs.map((program) => (
+                <ProgramCardComponent
                   key={program.id}
                   program={program}
-                  isGridView={viewMode === "grid"}
-                  showScore={true}
-                  isFavorite={favorites.includes(program.id)}
+                  isFavorite={favorites.has(program.id)}
                   isCompare={compareList.includes(program.id)}
-                  onFavorite={handleToggleFavorite}
-                  onCompare={handleToggleCompare}
-                  onShare={handleShareProgram}
+                  onFavorite={() => toggleFavorite(program.id)}
+                  onCompare={() => {
+                    if (compareList.includes(program.id)) {
+                      setCompareList(compareList.filter(id => id !== program.id));
+                    } else if (compareList.length < 3) {
+                      setCompareList([...compareList, program.id]);
+                    }
+                  }}
+                  onShare={() => {
+                    // Implement share functionality
+                    navigator.share?.({
+                      title: program.name,
+                      text: `Check out this program: ${program.name} at ${program.university}`,
+                      url: window.location.href
+                    });
+                  }}
                 />
               ))}
             </div>
-          </div>
-        </>
-      )}
-      
-      {/* Pagination */}
-      {totalPages > 1 && !isLoading && (
-        <Pagination className="mt-8">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => currentPage > 1 && paginate(currentPage - 1)}
-                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-            
-            {renderPaginationNumbers()}
-            
-            <PaginationItem>
-              <PaginationNext 
-                onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
-                className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
+
+            {/* Pagination */}
+            {data && data.totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  {!isMobile && "Previous"}
+                </Button>
+                
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+                    const page = i + 1;
+                    return (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.min(data.totalPages, currentPage + 1))}
+                  disabled={currentPage === data.totalPages}
+                >
+                  {!isMobile && "Next"}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

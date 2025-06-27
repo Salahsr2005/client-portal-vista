@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -21,11 +20,11 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  ResponsiveTabs,
+  ResponsiveTabsContent,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "@/components/ui/responsive-tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
@@ -68,10 +67,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Separator } from "@/components/ui/separator";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Notifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const {
     notifications,
     unreadCount,
@@ -210,10 +211,12 @@ export default function Notifications() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className={cn("space-y-4", isMobile ? "p-2" : "p-6")}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center">
-          <h1 className="text-3xl font-bold tracking-tight mr-3">Notifications</h1>
+          <h1 className={cn("font-bold tracking-tight mr-3", isMobile ? "text-2xl" : "text-3xl")}>
+            Notifications
+          </h1>
           {unreadCount > 0 && (
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -229,8 +232,8 @@ export default function Notifications() {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              <Settings className="mr-2 h-4 w-4" />
+            <Button variant="outline" size={isMobile ? "sm" : "default"}>
+              <Settings className={cn("mr-2", isMobile ? "h-3 w-3" : "h-4 w-4")} />
               Settings
             </Button>
           </DropdownMenuTrigger>
@@ -305,48 +308,33 @@ export default function Notifications() {
         </DropdownMenu>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Notifications</CardTitle>
-          <CardDescription>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className={cn(isMobile ? "p-4" : "p-6")}>
+          <CardTitle className={cn(isMobile ? "text-lg" : "text-xl")}>Your Notifications</CardTitle>
+          <CardDescription className={cn(isMobile ? "text-sm" : "")}>
             Stay updated with application status, messages, and other important alerts
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-            <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
-              <TabsList className="mb-4 sm:mb-0">
-                <TabsTrigger value="all" className="relative">
+        <CardContent className={cn(isMobile ? "p-2" : "p-6", isMobile ? "pt-0" : "pt-0")}>
+          <ResponsiveTabs defaultValue="all" onValueChange={setActiveTab}>
+            <div className="flex flex-col lg:flex-row justify-between mb-4 gap-4">
+              <ResponsiveTabsList>
+                <ResponsiveTabsTrigger value="all" badge={notificationCounts.all}>
                   All
-                  {notificationCounts.all > 0 && (
-                    <span className="ml-1 text-xs bg-muted rounded-full px-1">{notificationCounts.all}</span>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="unread" className="relative">
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="unread" badge={notificationCounts.unread}>
                   Unread
-                  {notificationCounts.unread > 0 && (
-                    <span className="ml-1 text-xs bg-primary/10 text-primary rounded-full px-1">{notificationCounts.unread}</span>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="application" className="relative">
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="application" badge={notificationCounts.application}>
                   Applications
-                  {notificationCounts.application > 0 && (
-                    <span className="ml-1 text-xs bg-blue-100 text-blue-700 rounded-full px-1">{notificationCounts.application}</span>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="appointment" className="relative">
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="appointment" badge={notificationCounts.appointment}>
                   Appointments
-                  {notificationCounts.appointment > 0 && (
-                    <span className="ml-1 text-xs bg-purple-100 text-purple-700 rounded-full px-1">{notificationCounts.appointment}</span>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="message" className="relative">
+                </ResponsiveTabsTrigger>
+                <ResponsiveTabsTrigger value="message" badge={notificationCounts.message}>
                   Messages
-                  {notificationCounts.message > 0 && (
-                    <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 rounded-full px-1">{notificationCounts.message}</span>
-                  )}
-                </TabsTrigger>
-              </TabsList>
+                </ResponsiveTabsTrigger>
+              </ResponsiveTabsList>
               
               <div className="flex gap-2">
                 <Button 
@@ -356,7 +344,7 @@ export default function Notifications() {
                   onClick={() => handleMarkAsRead(selectedNotifications)}
                 >
                   <Check className="h-4 w-4 mr-1" />
-                  Mark as Read
+                  {isMobile ? "Read" : "Mark as Read"}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -371,7 +359,7 @@ export default function Notifications() {
               </div>
             </div>
             
-            <TabsContent value={activeTab} className="m-0">
+            <ResponsiveTabsContent value={activeTab}>
               <div className="rounded-md border">
                 <div className="p-4 border-b">
                   <div className="flex items-center justify-between">
@@ -500,8 +488,8 @@ export default function Notifications() {
                   </div>
                 )}
               </div>
-            </TabsContent>
-          </Tabs>
+            </ResponsiveTabsContent>
+          </ResponsiveTabs>
         </CardContent>
         <CardFooter className="flex justify-between">
           <div className="text-sm text-muted-foreground">

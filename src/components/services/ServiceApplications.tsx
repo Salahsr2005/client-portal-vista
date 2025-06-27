@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Card,
@@ -9,11 +8,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  ResponsiveTabs,
+  ResponsiveTabsContent,
+  ResponsiveTabsList,
+  ResponsiveTabsTrigger,
+} from "@/components/ui/responsive-tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -24,10 +23,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ServiceApplications = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { data: applications = [], isLoading, error } = useServiceApplications();
   const [detailService, setDetailService] = useState<any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -148,35 +149,36 @@ const ServiceApplications = () => {
   return (
     <>
       <Card className="border-0 shadow-md bg-white dark:bg-gray-950">
-        <CardHeader className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-gray-900/40 dark:to-gray-800/40">
-          <div className="flex items-center justify-between">
+        <CardHeader className={`bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-gray-900/40 dark:to-gray-800/40 ${isMobile ? 'p-4' : 'p-6'}`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <CardTitle className="text-2xl font-bold">Service Applications</CardTitle>
-              <CardDescription className="text-base">
+              <CardTitle className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Service Applications</CardTitle>
+              <CardDescription className={`${isMobile ? 'text-sm' : 'text-base'}`}>
                 Track the status of your service applications
               </CardDescription>
             </div>
             <Button 
               className="bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600" 
               asChild
+              size={isMobile ? "sm" : "default"}
             >
               <Link to="/services">Browse Services</Link>
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-6">
-          <Tabs defaultValue="all">
-            <TabsList className="mb-6 bg-slate-100 dark:bg-slate-800/40">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-            </TabsList>
+        <CardContent className={isMobile ? "p-2" : "p-6"}>
+          <ResponsiveTabs defaultValue="all">
+            <ResponsiveTabsList className="mb-6 bg-slate-100 dark:bg-slate-800/40">
+              <ResponsiveTabsTrigger value="all">All</ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="pending">Pending</ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="in-progress">In Progress</ResponsiveTabsTrigger>
+              <ResponsiveTabsTrigger value="completed">Completed</ResponsiveTabsTrigger>
+            </ResponsiveTabsList>
             
-            <TabsContent value="all">
-              <div className="space-y-5">
+            <ResponsiveTabsContent value="all">
+              <div className="space-y-4">
                 {applications.map((app: any) => (
-                  <div key={app.id} className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+                  <div key={app.id} className={`${isMobile ? 'p-3' : 'p-4'} rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all`}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2">
@@ -236,10 +238,10 @@ const ServiceApplications = () => {
                   </div>
                 ))}
               </div>
-            </TabsContent>
+            </ResponsiveTabsContent>
             
-            <TabsContent value="pending">
-              <div className="space-y-5">
+            <ResponsiveTabsContent value="pending">
+              <div className="space-y-4">
                 {applications.filter((app: any) => app.status.toLowerCase() === 'pending').length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No pending applications</p>
@@ -248,7 +250,7 @@ const ServiceApplications = () => {
                   applications
                     .filter((app: any) => app.status.toLowerCase() === 'pending')
                     .map((app: any) => (
-                      <div key={app.id} className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+                      <div key={app.id} className={`${isMobile ? 'p-3' : 'p-4'} rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div>
                             <div className="flex items-center gap-2">
@@ -309,10 +311,10 @@ const ServiceApplications = () => {
                     ))
                 )}
               </div>
-            </TabsContent>
+            </ResponsiveTabsContent>
             
-            <TabsContent value="in-progress">
-              <div className="space-y-5">
+            <ResponsiveTabsContent value="in-progress">
+              <div className="space-y-4">
                 {applications.filter((app: any) => app.status.toLowerCase() === 'in progress').length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No in-progress applications</p>
@@ -321,7 +323,7 @@ const ServiceApplications = () => {
                   applications
                     .filter((app: any) => app.status.toLowerCase() === 'in progress')
                     .map((app: any) => (
-                      <div key={app.id} className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+                      <div key={app.id} className={`${isMobile ? 'p-3' : 'p-4'} rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div>
                             <div className="flex items-center gap-2">
@@ -373,10 +375,10 @@ const ServiceApplications = () => {
                     ))
                 )}
               </div>
-            </TabsContent>
+            </ResponsiveTabsContent>
             
-            <TabsContent value="completed">
-              <div className="space-y-5">
+            <ResponsiveTabsContent value="completed">
+              <div className="space-y-4">
                 {applications.filter((app: any) => app.status.toLowerCase() === 'completed').length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">No completed applications</p>
@@ -385,7 +387,7 @@ const ServiceApplications = () => {
                   applications
                     .filter((app: any) => app.status.toLowerCase() === 'completed')
                     .map((app: any) => (
-                      <div key={app.id} className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all">
+                      <div key={app.id} className={`${isMobile ? 'p-3' : 'p-4'} rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-gray-950 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all`}>
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                           <div>
                             <div className="flex items-center gap-2">
@@ -437,8 +439,8 @@ const ServiceApplications = () => {
                     ))
                 )}
               </div>
-            </TabsContent>
-          </Tabs>
+            </ResponsiveTabsContent>
+          </ResponsiveTabs>
         </CardContent>
       </Card>
 
