@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { usePrograms, ProgramsQueryParams } from '@/hooks/usePrograms';
 import ModernProgramCard from '@/components/programs/ModernProgramCard';
@@ -30,19 +31,19 @@ import { cn } from "@/lib/utils";
 
 export default function Programs() {
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [compareList, setCompareList<string[]>([])
+  const [compareList, setCompareList] = useState<string[]>([]);
 
   // Search and filter state
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCountry, setSelectedCountry<string>('')
-  const [selectedLevel, setSelectedLevel<string>('')
-  const [selectedField, setSelectedField<string>('')
-  const [selectedLanguage, setSelectedLanguage<string>('')
-  const [maxBudget, setMaxBudget<number | undefined>(undefined)
-  const [withScholarship, setWithScholarship] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState<string>('');
+  const [selectedLevel, setSelectedLevel] = useState<string>('');
+  const [selectedField, setSelectedField] = useState<string>('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('');
+  const [maxBudget, setMaxBudget] = useState<number | undefined>(undefined);
+  const [withScholarship, setWithScholarship] = useState(false);
 
   const { favorites, toggleFavorite } = useFavorites();
 
