@@ -2,6 +2,61 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface Destination {
+  id: string;
+  name: string;
+  country: string;
+  procedure_type: string;
+  description: string;
+  logo_url?: string;
+  cover_image_url?: string;
+  
+  // Tuition information
+  bachelor_tuition_min?: number;
+  bachelor_tuition_max?: number;
+  master_tuition_min?: number;
+  master_tuition_max?: number;
+  phd_tuition_min?: number;
+  phd_tuition_max?: number;
+  
+  // Academic requirements
+  bachelor_academic_level?: 'High' | 'Medium' | 'Any';
+  master_academic_level?: 'High' | 'Medium' | 'Any';
+  phd_academic_level?: 'High' | 'Medium' | 'Any';
+  
+  // General requirements
+  bachelor_requirements?: string;
+  master_requirements?: string;
+  phd_requirements?: string;
+  
+  // Required documents
+  bachelor_documents?: string[];
+  master_documents?: string[];
+  phd_documents?: string[];
+  
+  // Success rates
+  admission_success_rate?: number;
+  visa_success_rate?: number;
+  
+  // Programs available
+  available_programs?: string[];
+  
+  // Agency services and fees
+  agency_services?: string[];
+  application_fee?: number;
+  service_fee?: number;
+  visa_processing_fee?: number;
+  
+  // Additional info
+  processing_time?: string;
+  language_requirements?: string;
+  intake_periods?: string[];
+  
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const useDestinations = () => {
   return useQuery({
     queryKey: ["destinations"],
@@ -11,7 +66,8 @@ export const useDestinations = () => {
       const { data, error } = await supabase
         .from("destinations")
         .select("*")
-        .order("country", { ascending: true });
+        .eq('status', 'Active')
+        .order("name", { ascending: true });
       
       if (error) {
         console.error("Error fetching destinations:", error);
@@ -19,22 +75,7 @@ export const useDestinations = () => {
       }
       
       console.log("Fetched destinations:", data);
-      
-      return data.map(destination => ({
-        id: destination.destination_id,
-        name: destination.name || destination.country,
-        country: destination.country,
-        region: destination.region || "Global",
-        description: destination.description || "Explore educational opportunities in this destination.",
-        image: destination.image_url || `/images/flags/${destination.country?.toLowerCase().replace(/\s+/g, '-')}.svg`,
-        visaRequirements: destination.visa_requirements || "Visa requirements vary by nationality.",
-        processingTime: destination.processing_time || "Processing time varies",
-        fees: destination.fees || 0,
-        successRate: destination.success_rate || 85,
-        status: destination.status || "Active",
-        isActive: destination.status === "Active",
-        popularPrograms: [], // This would need a separate query to programs table
-      }));
+      return data as Destination[];
     },
   });
 };
