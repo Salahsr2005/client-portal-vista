@@ -53,7 +53,7 @@ export const useLandingPageData = () => {
         }
         
         return data?.map(destination => ({
-          id: destination.destination_id,
+          id: destination.id, // Updated from destination_id to id
           name: destination.country || destination.name,
           description: destination.description || "",
           image: destination.image_url || `/images/flags/${destination.country?.toLowerCase() || 'generic'}.svg`,
