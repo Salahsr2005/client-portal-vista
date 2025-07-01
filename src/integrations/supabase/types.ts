@@ -819,55 +819,136 @@ export type Database = {
             columns: ["destination_id"]
             isOneToOne: false
             referencedRelation: "destinations"
-            referencedColumns: ["destination_id"]
+            referencedColumns: ["id"]
           },
         ]
       }
       destinations: {
         Row: {
+          admission_success_rate: number | null
+          agency_services: Json | null
+          application_fee: number | null
+          available_programs: Json | null
+          bachelor_academic_level: string | null
+          bachelor_documents: Json | null
+          bachelor_requirements: string | null
+          bachelor_tuition_max: number | null
+          bachelor_tuition_min: number | null
           country: string
+          cover_image_url: string | null
           created_at: string | null
           description: string | null
-          destination_id: string
           fees: number
+          id: string
           image_url: string | null
+          intake_periods: Json | null
+          language_requirements: string | null
+          logo_url: string | null
+          master_academic_level: string | null
+          master_documents: Json | null
+          master_requirements: string | null
+          master_tuition_max: number | null
+          master_tuition_min: number | null
           name: string
+          phd_academic_level: string | null
+          phd_documents: Json | null
+          phd_requirements: string | null
+          phd_tuition_max: number | null
+          phd_tuition_min: number | null
+          procedure_type: string
           processing_time: string | null
           region: string | null
+          service_fee: number | null
           status: string | null
           success_rate: number | null
           updated_at: string | null
+          visa_processing_fee: number | null
           visa_requirements: string | null
+          visa_success_rate: number | null
         }
         Insert: {
+          admission_success_rate?: number | null
+          agency_services?: Json | null
+          application_fee?: number | null
+          available_programs?: Json | null
+          bachelor_academic_level?: string | null
+          bachelor_documents?: Json | null
+          bachelor_requirements?: string | null
+          bachelor_tuition_max?: number | null
+          bachelor_tuition_min?: number | null
           country: string
+          cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
-          destination_id?: string
           fees: number
+          id?: string
           image_url?: string | null
+          intake_periods?: Json | null
+          language_requirements?: string | null
+          logo_url?: string | null
+          master_academic_level?: string | null
+          master_documents?: Json | null
+          master_requirements?: string | null
+          master_tuition_max?: number | null
+          master_tuition_min?: number | null
           name: string
+          phd_academic_level?: string | null
+          phd_documents?: Json | null
+          phd_requirements?: string | null
+          phd_tuition_max?: number | null
+          phd_tuition_min?: number | null
+          procedure_type?: string
           processing_time?: string | null
           region?: string | null
+          service_fee?: number | null
           status?: string | null
           success_rate?: number | null
           updated_at?: string | null
+          visa_processing_fee?: number | null
           visa_requirements?: string | null
+          visa_success_rate?: number | null
         }
         Update: {
+          admission_success_rate?: number | null
+          agency_services?: Json | null
+          application_fee?: number | null
+          available_programs?: Json | null
+          bachelor_academic_level?: string | null
+          bachelor_documents?: Json | null
+          bachelor_requirements?: string | null
+          bachelor_tuition_max?: number | null
+          bachelor_tuition_min?: number | null
           country?: string
+          cover_image_url?: string | null
           created_at?: string | null
           description?: string | null
-          destination_id?: string
           fees?: number
+          id?: string
           image_url?: string | null
+          intake_periods?: Json | null
+          language_requirements?: string | null
+          logo_url?: string | null
+          master_academic_level?: string | null
+          master_documents?: Json | null
+          master_requirements?: string | null
+          master_tuition_max?: number | null
+          master_tuition_min?: number | null
           name?: string
+          phd_academic_level?: string | null
+          phd_documents?: Json | null
+          phd_requirements?: string | null
+          phd_tuition_max?: number | null
+          phd_tuition_min?: number | null
+          procedure_type?: string
           processing_time?: string | null
           region?: string | null
+          service_fee?: number | null
           status?: string | null
           success_rate?: number | null
           updated_at?: string | null
+          visa_processing_fee?: number | null
           visa_requirements?: string | null
+          visa_success_rate?: number | null
         }
         Relationships: []
       }
