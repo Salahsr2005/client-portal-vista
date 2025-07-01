@@ -99,7 +99,9 @@ export default function ModernDestinations() {
             { icon: Globe, label: 'Destinations', value: destinations?.length || 0, color: 'from-blue-500 to-cyan-500' },
             { icon: GraduationCap, label: 'Programs', value: '500+', color: 'from-purple-500 to-pink-500' },
             { icon: Users, label: 'Students Placed', value: '1,200+', color: 'from-green-500 to-emerald-500' },
-            { icon: TrendingUp, label: 'Success Rate', value: '87%', color: 'from-orange-500 to-red-500' }
+            { icon: TrendingUp, label: 'Success Rate', value: destinations?.length > 0 
+              ? Math.round(destinations.reduce((acc, dest) => acc + (dest.admission_success_rate || 0), 0) / destinations.length) + '%'
+              : '87%', color: 'from-orange-500 to-red-500' }
           ].map((stat, index) => (
             <motion.div
               key={stat.label}

@@ -30,116 +30,19 @@ import {
   Award
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Mock data interface matching the expected structure
-interface Destination {
-  destination_id: string;
-  name: string;
-  country: string;
-  region: string;
-  description: string;
-  image_url: string;
-  visa_requirements: string;
-  processing_time: string;
-  fees: number;
-  success_rate: number;
-  status: string;
-}
-
-// Mock destinations data
-const mockDestinations: Destination[] = [
-  {
-    destination_id: '1',
-    name: 'Paris',
-    country: 'France',
-    region: 'Western Europe',
-    description: 'The City of Light offers world-class education in arts, culture, and sciences.',
-    image_url: '/placeholder.svg?height=200&width=300&text=Paris',
-    visa_requirements: 'Student visa required for stays over 90 days',
-    processing_time: '4-8 weeks',
-    fees: 2500,
-    success_rate: 85,
-    status: 'Active'
-  },
-  {
-    destination_id: '2',
-    name: 'Berlin',
-    country: 'Germany',
-    region: 'Central Europe',
-    description: 'A hub for innovation and technology with excellent universities.',
-    image_url: '/placeholder.svg?height=200&width=300&text=Berlin',
-    visa_requirements: 'EU citizens need no visa, others require student visa',
-    processing_time: '6-12 weeks',
-    fees: 1800,
-    success_rate: 92,
-    status: 'Active'
-  },
-  {
-    destination_id: '3',
-    name: 'Barcelona',
-    country: 'Spain',
-    region: 'Southern Europe',
-    description: 'Mediterranean culture meets academic excellence.',
-    image_url: '/placeholder.svg?height=200&width=300&text=Barcelona',
-    visa_requirements: 'Student visa for non-EU citizens',
-    processing_time: '3-6 weeks',
-    fees: 2000,
-    success_rate: 88,
-    status: 'Active'
-  },
-  {
-    destination_id: '4',
-    name: 'Amsterdam',
-    country: 'Netherlands',
-    region: 'Western Europe',
-    description: 'Progressive education system with English-taught programs.',
-    image_url: '/placeholder.svg?height=200&width=300&text=Amsterdam',
-    visa_requirements: 'Residence permit for studies',
-    processing_time: '4-10 weeks',
-    fees: 3200,
-    success_rate: 90,
-    status: 'Active'
-  },
-  {
-    destination_id: '5',
-    name: 'Vienna',
-    country: 'Austria',
-    region: 'Central Europe',
-    description: 'Rich cultural heritage with top-tier universities.',
-    image_url: '/placeholder.svg?height=200&width=300&text=Vienna',
-    visa_requirements: 'Student visa required',
-    processing_time: '5-8 weeks',
-    fees: 2800,
-    success_rate: 87,
-    status: 'Active'
-  },
-  {
-    destination_id: '6',
-    name: 'Prague',
-    country: 'Czech Republic',
-    region: 'Central Europe',
-    description: 'Historic charm with affordable, quality education.',
-    image_url: '/placeholder.svg?height=200&width=300&text=Prague',
-    visa_requirements: 'Long-term visa for studies',
-    processing_time: '4-12 weeks',
-    fees: 1500,
-    success_rate: 83,
-    status: 'Active'
-  }
-];
+import { Destination } from '@/hooks/useDestinations';
 
 export default function Destinations() {
+  const { data: destinations, isLoading, error } = useDestinations();
+  const { data: stats, isLoading: statsLoading } = useDestinationStats();
+  const { addToFavorites, removeFromFavorites } = useFavorites();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('popularity');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Using mock data instead of hooks for now
-  const destinations = mockDestinations;
-  const { data: stats, isLoading: statsLoading } = useDestinationStats();
-  const { addToFavorites, removeFromFavorites } = useFavorites();
-
-  // Mock favorites for now
+  // Mock favorites for now - replace with actual favorites logic
   const favorites: any[] = [];
   const favoritesLoading = false;
 
@@ -153,30 +56,29 @@ export default function Destinations() {
   };
 
   // Filter and sort destinations
-  const filteredDestinations = destinations
-    .filter(dest => {
-      const matchesSearch = dest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           dest.country.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRegion = selectedRegion === 'all' || dest.region === selectedRegion;
-      return matchesSearch && matchesRegion;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'success_rate':
-          return b.success_rate - a.success_rate;
-        case 'fees':
-          return a.fees - b.fees;
-        case 'name':
-          return a.name.localeCompare(b.name);
-        default:
-          return b.success_rate - a.success_rate; // Default to success rate
-      }
-    });
+  const filteredDestinations = destinations?.filter(dest => {
+    const matchesSearch = dest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         dest.country.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRegion = selectedRegion === 'all' || (dest as any).region === selectedRegion;
+    return matchesSearch && matchesRegion;
+  })
+  .sort((a, b) => {
+    switch (sortBy) {
+      case 'success_rate':
+        return (b.admission_success_rate || 0) - (a.admission_success_rate || 0);
+      case 'fees':
+        return (a.bachelor_tuition_min || 0) - (b.bachelor_tuition_min || 0);
+      case 'name':
+        return a.name.localeCompare(b.name);
+      default:
+        return (b.admission_success_rate || 0) - (a.admission_success_rate || 0);
+    }
+  }) || [];
 
-  const regions = Array.from(new Set(destinations.map(d => d.region)));
+  const regions = Array.from(new Set(destinations?.map(d => (d as any).region).filter(Boolean) || []));
 
   const DestinationCard = ({ destination }: { destination: Destination }) => {
-    const isFavorite = favorites.some(fav => fav.program_id === destination.destination_id);
+    const isFavorite = favorites.some(fav => fav.program_id === destination.id);
     
     return (
       <motion.div
@@ -188,7 +90,7 @@ export default function Destinations() {
         <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 group">
           <div className="relative">
             <img
-              src={destination.image_url}
+              src={destination.cover_image_url || '/placeholder.svg?height=200&width=300&text=' + destination.name}
               alt={destination.name}
               className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
             />
@@ -197,7 +99,7 @@ export default function Destinations() {
                 size="sm"
                 variant="secondary"
                 className="bg-white/90 hover:bg-white"
-                onClick={() => toggleFavorite(destination.destination_id, 'destination')}
+                onClick={() => toggleFavorite(destination.id, 'destination')}
                 disabled={favoritesLoading}
               >
                 <Heart 
@@ -207,7 +109,7 @@ export default function Destinations() {
             </div>
             <div className="absolute bottom-3 left-3">
               <Badge className="bg-green-500 text-white">
-                {destination.success_rate}% Success Rate
+                {destination.admission_success_rate || 0}% Success Rate
               </Badge>
             </div>
           </div>
@@ -221,7 +123,7 @@ export default function Destinations() {
             </div>
             <div className="flex items-center text-sm text-muted-foreground">
               <MapPin className="w-4 h-4 mr-1" />
-              {destination.region}
+              {destination.procedure_type}
             </div>
           </CardHeader>
           
@@ -233,11 +135,11 @@ export default function Destinations() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center">
                 <DollarSign className="w-4 h-4 mr-1 text-green-500" />
-                <span>€{destination.fees.toLocaleString()}</span>
+                <span>€{destination.bachelor_tuition_min?.toLocaleString() || 'N/A'}</span>
               </div>
               <div className="flex items-center">
                 <Clock className="w-4 h-4 mr-1 text-blue-500" />
-                <span>{destination.processing_time}</span>
+                <span>{destination.processing_time || 'N/A'}</span>
               </div>
             </div>
             
@@ -251,6 +153,33 @@ export default function Destinations() {
       </motion.div>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-7xl py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-white dark:bg-gray-800 rounded-xl h-96 shadow-lg"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container max-w-7xl py-8">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-xl font-semibold mb-2">Unable to load destinations</h2>
+            <p className="text-gray-600 dark:text-gray-400">Please try again later.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-7xl py-8">
@@ -282,7 +211,7 @@ export default function Destinations() {
                   <Globe className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{destinations.length}</p>
+                  <p className="text-2xl font-bold">{destinations?.length || 0}</p>
                   <p className="text-sm text-muted-foreground">Destinations</p>
                 </div>
               </CardContent>
@@ -336,7 +265,11 @@ export default function Destinations() {
                   <Award className="w-6 h-6 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">87%</p>
+                  <p className="text-2xl font-bold">
+                    {destinations?.length > 0 
+                      ? Math.round(destinations.reduce((acc, dest) => acc + (dest.admission_success_rate || 0), 0) / destinations.length)
+                      : 87}%
+                  </p>
                   <p className="text-sm text-muted-foreground">Avg Success</p>
                 </div>
               </CardContent>
@@ -415,7 +348,7 @@ export default function Destinations() {
         <AnimatePresence>
           {filteredDestinations.map((destination, index) => (
             <motion.div
-              key={destination.destination_id}
+              key={destination.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
