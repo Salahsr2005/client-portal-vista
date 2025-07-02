@@ -28,6 +28,8 @@ import Notifications from "./pages/Notifications";
 import Payments from "./pages/Payments";
 import PaymentCheckout from "./pages/PaymentCheckout";
 import Destinations from "./pages/Destinations";
+import ModernDestinations from "./pages/ModernDestinations";
+import DestinationDetails from "./pages/DestinationDetails";
 import Consultation from "./pages/Consultation";
 import ChatSupport from "./pages/ChatSupport";
 import Settings from "./pages/Settings";
@@ -109,7 +111,8 @@ const AppRoutes = () => {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/payment-checkout" element={<PaymentCheckout />} />
-          <Route path="/destinations" element={<Destinations />} />
+          <Route path="/destinations" element={<ModernDestinations />} />
+          <Route path="/destinations/:id" element={<DestinationDetails />} />
           <Route path="/consultation" element={<Consultation />} />
           <Route path="/chat" element={<ChatSupport />} />
           <Route path="/settings" element={<Settings />} />
