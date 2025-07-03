@@ -1,201 +1,231 @@
 
-import React from 'react';
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   MapPin, 
-  Clock, 
+  Calendar, 
+  DollarSign, 
   GraduationCap, 
-  Languages, 
-  Heart, 
-  HeartOff, 
-  Star,
-  Euro,
-  Calendar,
-  Award
-} from "lucide-react";
-import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Program } from '@/hooks/usePrograms';
+  Globe, 
+  Heart,
+  Users,
+  Award,
+  Download,
+  ExternalLink,
+  Star
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { generateProgramPDF } from '@/utils/pdfGenerator';
+import { useToast } from '@/hooks/use-toast';
+
+interface Program {
+  id: string;
+  name: string;
+  university: string;
+  country: string;
+  city: string;
+  study_level: string;
+  field: string;
+  duration_months: number;
+  tuition_min: number;
+  tuition_max: number;
+  living_cost_min: number;
+  living_cost_max: number;
+  program_language: string;
+  description?: string;
+  ranking?: number;
+  success_rate?: number;
+  scholarship_available: boolean;
+  scholarship_amount?: number;
+  scholarship_details?: string;
+  admission_requirements?: string;
+  gpa_requirement?: number;
+  language_test?: string;
+  language_test_score?: string;
+  application_fee?: number;
+  advantages?: string;
+  image_url?: string;
+}
 
 interface ModernProgramCardProps {
   program: Program;
-  onFavoriteToggle?: (programId: string, isFavorite: boolean) => void;
-  showFavoriteButton?: boolean;
+  onViewDetails: (program: Program) => void;
+  onApply: (program: Program) => void;
 }
 
-const ModernProgramCard = ({ 
+export const ModernProgramCard: React.FC<ModernProgramCardProps> = ({ 
   program, 
-  onFavoriteToggle,
-  showFavoriteButton = true 
-}: ModernProgramCardProps) => {
-  
-  const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (onFavoriteToggle) {
-      onFavoriteToggle(program.id, !program.isFavorite);
+  onViewDetails, 
+  onApply 
+}) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownloadBrochure = async () => {
+    try {
+      await generateProgramPDF(program);
+      toast({
+        title: "Brochure Generated",
+        description: "Your program brochure is being prepared for download.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate brochure. Please try again.",
+        variant: "destructive",
+      });
     }
   };
-  
-  const formatTuition = () => {
-    const formatter = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    });
-    return `${formatter.format(program.tuition_min)} - ${formatter.format(program.tuition_max)}`;
-  };
-  
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-emerald-500/90 text-white';
-      case 'Closed':
-        return 'bg-red-500/90 text-white';
-      default:
-        return 'bg-amber-500/90 text-white';
-    }
-  };
+
+  const totalCostMin = program.tuition_min + (program.living_cost_min * 12);
+  const totalCostMax = program.tuition_max + (program.living_cost_max * 12);
 
   return (
-    <Card className="group relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-      <Link to={`/programs/${program.id}`} className="block h-full">
-        {/* Background Image with Gradient Overlay */}
-        <div 
-          className="relative h-48 bg-cover bg-center overflow-hidden"
-          style={{ 
-            backgroundImage: program.image_url ? 
-              `url(${program.image_url})` : 
-              `linear-gradient(135deg, #667eea 0%, #764ba2 100%)` 
-          }}
-        >
-          {/* Wave SVG Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent">
-            <svg 
-              className="absolute bottom-0 w-full h-16 text-white/10" 
-              viewBox="0 0 1200 120" 
-              preserveAspectRatio="none"
-            >
-              <path 
-                d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" 
-                fill="currentColor"
-              />
-            </svg>
+    <Card className="group border-0 shadow-xl bg-card/90 backdrop-blur-lg hover:shadow-2xl transition-all duration-500 overflow-hidden">
+      {/* Header */}
+      <div className="relative h-48 overflow-hidden">
+        {program.image_url ? (
+          <img
+            src={program.image_url}
+            alt={program.name}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-background flex items-center justify-center">
+            <GraduationCap className="w-16 h-16 text-primary/40" />
           </div>
-          
-          {/* Status and Badges */}
-          <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-            <div className="flex gap-2">
-              <Badge className={cn("text-xs font-medium shadow-lg", getStatusColor(program.status))}>
-                {program.status}
-              </Badge>
-              {program.scholarship_available && (
-                <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-medium shadow-lg">
-                  <Award className="h-3 w-3 mr-1" />
-                  Scholarship
-                </Badge>
-              )}
-            </div>
-            
-            {program.ranking && (
-              <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs font-medium">
-                <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
-                #{program.ranking}
-              </Badge>
-            )}
-          </div>
-
-          {/* Favorite Button */}
-          {showFavoriteButton && (
-            <div className="absolute top-4 right-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all"
-                onClick={handleFavoriteClick}
-              >
-                {program.isFavorite ? (
-                  <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-                ) : (
-                  <HeartOff className="h-4 w-4 text-white" />
-                )}
-              </Button>
+        )}
+        
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        
+        {/* Top Actions */}
+        <div className="absolute top-4 right-4 flex gap-2">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsLiked(!isLiked)}
+            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors"
+          >
+            <Heart className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+          </motion.button>
+          {program.ranking && (
+            <div className="flex items-center gap-1 bg-yellow-500/90 backdrop-blur-sm px-2 py-1 rounded-full">
+              <Star className="w-4 h-4 text-white fill-white" />
+              <span className="text-white text-sm font-medium">#{program.ranking}</span>
             </div>
           )}
         </div>
-        
-        {/* Content */}
-        <CardContent className="p-6 flex-grow">
-          <div className="space-y-4">
-            {/* Title and University */}
-            <div>
-              <h3 className="font-bold text-lg leading-tight line-clamp-2 text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                {program.name}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mt-1">
-                {program.university}
-              </p>
-            </div>
-            
-            {/* Info Grid */}
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <MapPin className="h-4 w-4 text-blue-500" />
-                <span className="truncate">{program.city}, {program.country}</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <GraduationCap className="h-4 w-4 text-purple-500" />
-                <span className="truncate">{program.study_level}</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Clock className="h-4 w-4 text-green-500" />
-                <span className="truncate">{program.duration_months} months</span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Languages className="h-4 w-4 text-orange-500" />
-                <span className="truncate">{program.program_language}</span>
-              </div>
-            </div>
 
-            {/* Field Badge */}
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-xs bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                {program.field}
-              </Badge>
-              {program.application_deadline && (
-                <Badge variant="outline" className="text-xs text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Deadline: {program.application_deadline}
-                </Badge>
-              )}
-            </div>
+        {/* Country Badge */}
+        <div className="absolute top-4 left-4">
+          <Badge className="bg-white/90 text-gray-800 backdrop-blur-sm border-0">
+            <MapPin className="w-3 h-3 mr-1" />
+            {program.country}
+          </Badge>
+        </div>
+
+        {/* Title */}
+        <div className="absolute bottom-4 left-4 right-4">
+          <h3 className="text-xl font-bold text-white mb-2 drop-shadow-lg line-clamp-2">
+            {program.name}
+          </h3>
+          <p className="text-gray-200 text-sm drop-shadow">
+            {program.university} • {program.city}
+          </p>
+        </div>
+      </div>
+
+      <CardContent className="p-6 space-y-4">
+        {/* Program Info */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              <GraduationCap className="w-3 h-3 mr-1" />
+              {program.study_level}
+            </Badge>
+            <Badge variant="outline" className="text-xs">
+              {program.field}
+            </Badge>
           </div>
-        </CardContent>
-        
-        {/* Footer */}
-        <CardFooter className="p-6 pt-0 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 border-t border-gray-100 dark:border-gray-700">
-          <div className="flex justify-between items-center w-full">
-            <div className="flex items-center gap-1 text-lg font-bold text-gray-900 dark:text-white">
-              <Euro className="h-5 w-5 text-green-500" />
-              <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                {formatTuition()}
-              </span>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
-              <span className="text-xs text-gray-500 dark:text-gray-400">Available</span>
-            </div>
+          <div className="flex items-center text-sm text-muted-foreground">
+            <Calendar className="w-4 h-4 mr-1" />
+            {program.duration_months} months
           </div>
-        </CardFooter>
-      </Link>
+        </div>
+
+        {/* Description */}
+        {program.description && (
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {program.description}
+          </p>
+        )}
+
+        {/* Costs */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Annual Tuition</span>
+            <span className="text-sm font-bold text-green-600">
+              €{program.tuition_min.toLocaleString()} - €{program.tuition_max.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Total Cost (with living)</span>
+            <span className="text-xs text-muted-foreground">
+              €{totalCostMin.toLocaleString()} - €{totalCostMax.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* Features */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Globe className="w-3 h-3" />
+            {program.program_language}
+          </div>
+          {program.success_rate && (
+            <div className="flex items-center gap-1">
+              <Award className="w-3 h-3" />
+              {program.success_rate}% Success
+            </div>
+          )}
+          {program.scholarship_available && (
+            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+              Scholarship
+            </Badge>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="space-y-3 pt-2">
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => onViewDetails(program)}
+              variant="outline"
+              className="flex-1 border-border/50 hover:border-primary hover:text-primary transition-colors"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              View Details
+            </Button>
+            <Button 
+              onClick={handleDownloadBrochure}
+              variant="outline"
+              size="sm"
+              className="border-border/50 hover:border-primary hover:text-primary transition-colors"
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+          </div>
+          <Button 
+            onClick={() => onApply(program)}
+            className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground border-0 shadow-lg hover:shadow-xl transition-all"
+          >
+            Apply Now
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   );
 };
-
-export default ModernProgramCard;

@@ -1,131 +1,178 @@
 
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   MapPin, 
+  Calendar, 
+  DollarSign, 
   GraduationCap, 
-  Clock, 
-  DollarSign,
+  Globe,
   Heart,
-  Share2,
-  ChevronRight,
-  Star
-} from "lucide-react";
+  Award,
+  Download,
+  ExternalLink
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { generateProgramPDF } from '@/utils/pdfGenerator';
+import { useToast } from '@/hooks/use-toast';
 
-interface MobileProgramCardProps {
-  program: any;
-  isFavorite: boolean;
-  isCompare: boolean;
-  onFavorite: (id: string) => void;
-  onCompare: (id: string) => void;
-  onShare: (id: string) => void;
+interface Program {
+  id: string;
+  name: string;
+  university: string;
+  country: string;
+  city: string;
+  study_level: string;
+  field: string;
+  duration_months: number;
+  tuition_min: number;
+  tuition_max: number;
+  living_cost_min: number;
+  living_cost_max: number;
+  program_language: string;
+  description?: string;
+  ranking?: number;
+  success_rate?: number;
+  scholarship_available: boolean;
+  scholarship_amount?: number;
+  scholarship_details?: string;
+  admission_requirements?: string;
+  gpa_requirement?: number;
+  language_test?: string;
+  language_test_score?: string;
+  application_fee?: number;
+  advantages?: string;
+  image_url?: string;
 }
 
-export default function MobileProgramCard({
-  program,
-  isFavorite,
-  isCompare,
-  onFavorite,
-  onCompare,
-  onShare
-}: MobileProgramCardProps) {
+interface MobileProgramCardProps {
+  program: Program;
+  onViewDetails: (program: Program) => void;
+  onApply: (program: Program) => void;
+}
+
+export const MobileProgramCard: React.FC<MobileProgramCardProps> = ({ 
+  program, 
+  onViewDetails, 
+  onApply 
+}) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownloadBrochure = async () => {
+    try {
+      await generateProgramPDF(program);
+      toast({
+        title: "Brochure Generated",
+        description: "Your program brochure is being prepared for download.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate brochure. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
+    <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+      <CardContent className="p-4 space-y-4">
+        {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base line-clamp-2 mb-1">
-              {program.name}
-            </h3>
-            <p className="text-sm text-muted-foreground line-clamp-1">
-              {program.university}
-            </p>
+            <h3 className="font-bold text-base line-clamp-2 mb-1">{program.name}</h3>
+            <p className="text-sm text-muted-foreground">{program.university}</p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+              <MapPin className="w-3 h-3" />
+              {program.city}, {program.country}
+            </div>
           </div>
-          <div className="flex gap-1 ml-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onFavorite(program.id)}
-              className="h-8 w-8 p-0"
-            >
-              <Heart 
-                className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} 
-              />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onShare(program.id)}
-              className="h-8 w-8 p-0"
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="py-3">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-            <span className="truncate">{program.city}, {program.country}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-            <span className="truncate">{program.study_level}</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="truncate">{program.duration_months} months</span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-            <span className="truncate">€{program.tuition_min?.toLocaleString()}</span>
-          </div>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => setIsLiked(!isLiked)}
+            className="p-2 rounded-full hover:bg-muted transition-colors"
+          >
+            <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+          </motion.button>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-3">
+        {/* Badges */}
+        <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="text-xs">
-            {program.program_language}
+            <GraduationCap className="w-3 h-3 mr-1" />
+            {program.study_level}
+          </Badge>
+          <Badge variant="outline" className="text-xs">
+            {program.field}
+          </Badge>
+          <Badge variant="outline" className="text-xs">
+            <Calendar className="w-3 h-3 mr-1" />
+            {program.duration_months}m
           </Badge>
           {program.scholarship_available && (
-            <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+            <Badge className="text-xs bg-green-100 text-green-800 hover:bg-green-100">
               Scholarship
             </Badge>
           )}
-          {program.ranking && (
-            <Badge variant="outline" className="text-xs flex items-center gap-1">
-              <Star className="h-3 w-3" />
-              #{program.ranking}
-            </Badge>
+        </div>
+
+        {/* Costs */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Annual Tuition</span>
+            <span className="text-sm font-bold text-green-600">
+              €{program.tuition_min.toLocaleString()}-{program.tuition_max.toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        {/* Language & Success Rate */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-1">
+            <Globe className="w-3 h-3" />
+            {program.program_language}
+          </div>
+          {program.success_rate && (
+            <div className="flex items-center gap-1">
+              <Award className="w-3 h-3" />
+              {program.success_rate}% Success
+            </div>
           )}
         </div>
-      </CardContent>
 
-      <CardFooter className="pt-3">
-        <div className="flex gap-2 w-full">
-          <Button
-            variant="outline"
-            onClick={() => onCompare(program.id)}
-            className="flex-1 text-xs"
-            disabled={isCompare}
-          >
-            {isCompare ? 'Added' : 'Compare'}
-          </Button>
-          <Link to={`/programs/${program.id}`} className="flex-1">
-            <Button className="w-full text-xs">
-              View Details
-              <ChevronRight className="h-3 w-3 ml-1" />
+        {/* Actions */}
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => onViewDetails(program)}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+            >
+              <ExternalLink className="w-3 h-3 mr-1" />
+              Details
             </Button>
-          </Link>
+            <Button 
+              onClick={handleDownloadBrochure}
+              variant="outline"
+              size="sm"
+            >
+              <Download className="w-3 h-3" />
+            </Button>
+          </div>
+          <Button 
+            onClick={() => onApply(program)}
+            className="w-full bg-gradient-to-r from-primary to-primary/80"
+            size="sm"
+          >
+            Apply Now
+          </Button>
         </div>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
-}
+};
