@@ -15,10 +15,13 @@ import {
   MapPin,
   Heart,
   Star,
-  Sparkles
+  Sparkles,
+  Download
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Destination } from '@/hooks/useDestinations';
+import { generateDestinationPDF } from '@/utils/pdfGenerator';
+import { useToast } from '@/hooks/use-toast';
 
 interface EnhancedDestinationCardProps {
   destination: Destination;
@@ -33,6 +36,23 @@ export const EnhancedDestinationCard: React.FC<EnhancedDestinationCardProps> = (
 }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { toast } = useToast();
+
+  const handleDownloadBrochure = async () => {
+    try {
+      await generateDestinationPDF(destination);
+      toast({
+        title: "Brochure Generated",
+        description: "Your destination brochure is being prepared for download.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed", 
+        description: "Failed to generate brochure. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getAcademicLevelColor = (level?: string) => {
     switch (level) {
@@ -184,17 +204,27 @@ export const EnhancedDestinationCard: React.FC<EnhancedDestinationCardProps> = (
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
-          <Button 
-            onClick={() => onViewDetails(destination)}
-            variant="outline"
-            className="flex-1 border-border/50 hover:border-primary hover:text-primary transition-colors"
-          >
-            View Details
-          </Button>
+        <div className="space-y-3 pt-2">
+          <div className="flex gap-3">
+            <Button 
+              onClick={() => onViewDetails(destination)}
+              variant="outline"
+              className="flex-1 border-border/50 hover:border-primary hover:text-primary transition-colors"
+            >
+              View Details
+            </Button>
+            <Button 
+              onClick={handleDownloadBrochure}
+              variant="outline"
+              size="sm"
+              className="border-border/50 hover:border-primary hover:text-primary transition-colors"
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+          </div>
           <Button 
             onClick={() => onApply(destination)}
-            className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground border-0 group shadow-lg hover:shadow-xl transition-all"
+            className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground border-0 group shadow-lg hover:shadow-xl transition-all"
           >
             <span>Apply Now</span>
             <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />

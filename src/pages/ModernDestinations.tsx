@@ -5,6 +5,7 @@ import { useDestinations, Destination } from '@/hooks/useDestinations';
 import { DestinationFilters } from '@/components/destinations/DestinationFilters';
 import { DestinationStats } from '@/components/destinations/DestinationStats';
 import { DestinationGrid } from '@/components/destinations/DestinationGrid';
+import { DestinationApplicationModal } from '@/components/destinations/DestinationApplicationModal';
 import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -16,6 +17,8 @@ export default function ModernDestinations() {
     country: 'all',
     procedure: 'all'
   });
+  const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
 
   const filteredDestinations = destinations?.filter(dest => {
     const matchesSearch = dest.name.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -35,8 +38,8 @@ export default function ModernDestinations() {
   };
 
   const handleApply = (destination: Destination) => {
-    // TODO: Implement application flow
-    console.log('Apply to destination:', destination.name);
+    setSelectedDestination(destination);
+    setIsApplicationModalOpen(true);
   };
 
   const handleFiltersReset = () => {
@@ -101,6 +104,18 @@ export default function ModernDestinations() {
             isLoading={isLoading}
           />
         </div>
+
+        {/* Application Modal */}
+        {selectedDestination && (
+          <DestinationApplicationModal
+            destination={selectedDestination}
+            isOpen={isApplicationModalOpen}
+            onClose={() => {
+              setIsApplicationModalOpen(false);
+              setSelectedDestination(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDestinations } from '@/hooks/useDestinations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DestinationApplicationModal } from '@/components/destinations/DestinationApplicationModal';
+import { generateDestinationPDF } from '@/utils/pdfGenerator';
+import { useToast } from '@/hooks/use-toast';
 import {
   ArrowLeft,
   Globe,
@@ -21,7 +24,8 @@ import {
   Star,
   Heart,
   Share2,
-  Download
+  Download,
+  Send
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -29,8 +33,28 @@ export default function DestinationDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: destinations, isLoading } = useDestinations();
+  const { toast } = useToast();
+  const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
   
   const destination = destinations?.find(d => d.id === id);
+
+  const handleDownloadBrochure = async () => {
+    if (!destination) return;
+    
+    try {
+      await generateDestinationPDF(destination);
+      toast({
+        title: "Brochure Generated",
+        description: "Your destination brochure is being prepared for download.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate brochure. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -175,7 +199,12 @@ export default function DestinationDetails() {
                 <Button size="sm" variant="outline" className="bg-white/20 border-white/30 text-white backdrop-blur-sm hover:bg-white/30">
                   <Share2 className="w-4 h-4" />
                 </Button>
-                <Button size="sm" variant="outline" className="bg-white/20 border-white/30 text-white backdrop-blur-sm hover:bg-white/30">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="bg-white/20 border-white/30 text-white backdrop-blur-sm hover:bg-white/30"
+                  onClick={handleDownloadBrochure}
+                >
                   <Download className="w-4 h-4" />
                 </Button>
               </div>
@@ -433,7 +462,9 @@ export default function DestinationDetails() {
                 <Button 
                   className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
                   size="lg"
+                  onClick={() => setIsApplicationModalOpen(true)}
                 >
+                  <Send className="w-4 h-4 mr-2" />
                   Apply Now
                 </Button>
                 <p className="text-xs text-muted-foreground text-center mt-3">
@@ -454,13 +485,27 @@ export default function DestinationDetails() {
                 <Button variant="outline" className="w-full">
                   Schedule Call
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={handleDownloadBrochure}
+                >
+                  <Download className="w-4 h-4 mr-2" />
                   Download Brochure
                 </Button>
               </CardContent>
             </Card>
           </motion.div>
         </div>
+
+        {/* Application Modal */}
+        {destination && (
+          <DestinationApplicationModal
+            destination={destination}
+            isOpen={isApplicationModalOpen}
+            onClose={() => setIsApplicationModalOpen(false)}
+          />
+        )}
       </div>
     </div>
   );

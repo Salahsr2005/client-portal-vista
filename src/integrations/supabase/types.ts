@@ -800,6 +800,97 @@ export type Database = {
         }
         Relationships: []
       }
+      destination_application_timeline: {
+        Row: {
+          admin_id: string | null
+          created_at: string
+          date: string
+          destination_application_id: string
+          id: string
+          note: string | null
+          status: string
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string
+          date?: string
+          destination_application_id: string
+          id?: string
+          note?: string | null
+          status: string
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string
+          date?: string
+          destination_application_id?: string
+          id?: string
+          note?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "destination_application_timelin_destination_application_id_fkey"
+            columns: ["destination_application_id"]
+            isOneToOne: false
+            referencedRelation: "destination_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      destination_applications: {
+        Row: {
+          application_data: Json | null
+          client_id: string
+          created_at: string
+          destination_id: string
+          id: string
+          notes: string | null
+          payment_status: string
+          priority: string
+          program_level: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_data?: Json | null
+          client_id: string
+          created_at?: string
+          destination_id: string
+          id?: string
+          notes?: string | null
+          payment_status?: string
+          priority?: string
+          program_level: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_data?: Json | null
+          client_id?: string
+          created_at?: string
+          destination_id?: string
+          id?: string
+          notes?: string | null
+          payment_status?: string
+          priority?: string
+          program_level?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "destination_applications_destination_id_fkey"
+            columns: ["destination_id"]
+            isOneToOne: false
+            referencedRelation: "destinations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       destination_levels: {
         Row: {
           destination_id: string
