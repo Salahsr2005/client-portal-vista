@@ -23,22 +23,65 @@ import {
   Settings,
   Package,
   Search,
-  Sparkles
+  Sparkles,
+  Users,
+  BarChart3,
+  UserCog,
+  GraduationCap,
+  MapPin
 } from "lucide-react";
 
-const sidebarItems = [
-  { label: "Dashboard", icon: Home, path: "/dashboard" },
-  { label: "Profile", icon: User, path: "/profile" },
-  { label: "Applications", icon: FileText, path: "/applications" },
-  { label: "Programs", icon: Package, path: "/programs" },
-  { label: "Services", icon: Settings, path: "/services" },
-  { label: "Appointments", icon: Calendar, path: "/appointments" },
-  { label: "Messages", icon: MessageSquare, path: "/chat" },
-  { label: "Notifications", icon: Bell, path: "/notifications" },
-  { label: "Payments", icon: CreditCard, path: "/payments" },
-  { label: "Destinations", icon: Globe, path: "/destinations" },
-  { label: "Consultation", icon: Sparkles, path: "/consultation" },
+const sidebarSections = [
+  {
+    title: "OVERVIEW",
+    items: [
+      { label: "Dashboard", icon: Home, path: "/dashboard" }
+    ]
+  },
+  {
+    title: "ACADEMIC MANAGEMENT", 
+    items: [
+      { label: "Programs", icon: GraduationCap, path: "/programs" },
+      { label: "Destinations", icon: MapPin, path: "/destinations", badge: "New", badgeColor: "bg-green-500" }
+    ]
+  },
+  {
+    title: "CLIENT MANAGEMENT",
+    items: [
+      { label: "Clients", icon: Users, path: "/clients" },
+      { label: "Applications", icon: FileText, path: "/applications", badge: "24", badgeColor: "bg-orange-500" }
+    ]
+  },
+  {
+    title: "OPERATIONS",
+    items: [
+      { label: "Appointments", icon: Calendar, path: "/appointments" },
+      { label: "Payments", icon: CreditCard, path: "/payments" }
+    ]
+  },
+  {
+    title: "COMMUNICATION",
+    items: [
+      { label: "Messages", icon: MessageSquare, path: "/chat", badge: "12", badgeColor: "bg-pink-500" },
+      { label: "Notifications", icon: Bell, path: "/notifications", badge: "5", badgeColor: "bg-yellow-500" }
+    ]
+  },
+  {
+    title: "ANALYTICS & REPORTS",
+    items: [
+      { label: "Reports", icon: BarChart3, path: "/reports" }
+    ]
+  },
+  {
+    title: "ADMINISTRATION", 
+    items: [
+      { label: "Admin Users", icon: UserCog, path: "/admin-users" }
+    ]
+  }
 ];
+
+// Legacy items for backwards compatibility
+const sidebarItems = sidebarSections.flatMap(section => section.items);
 
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -86,13 +129,16 @@ export function DashboardLayout() {
         
         <div className="relative z-10 flex flex-col h-full p-4">
           {/* Logo */}
-          <div className="flex items-center justify-between mb-8 mt-2">
-            <Link
-              to="/dashboard"
-              className="text-2xl font-bold tracking-tight text-white drop-shadow-lg"
-            >
-              Euro Visa ✨
-            </Link>
+          <div className="flex items-center justify-between mb-6 mt-2">
+            <div className="flex flex-col">
+              <Link
+                to="/dashboard"  
+                className="text-xl font-bold tracking-tight text-white drop-shadow-lg"
+              >
+                EuroVisa
+              </Link>
+              <span className="text-xs text-white/70 font-medium">Admin Panel</span>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -104,20 +150,36 @@ export function DashboardLayout() {
           </div>
 
           {/* Navigation Items */}
-          <nav className="space-y-1 flex-1 overflow-y-auto scrollbar-hide">
-            {sidebarItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center px-3 py-3 rounded-xl transition-all duration-200 ${
-                  location.pathname === item.path
-                    ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30"
-                    : "hover:bg-white/10 text-white/90 hover:text-white"
-                }`}
-              >
-                <item.icon className="h-5 w-5 mr-3 shrink-0" />
-                <span className="text-sm font-medium">{item.label}</span>
-              </Link>
+          <nav className="space-y-4 flex-1 overflow-y-auto scrollbar-hide">
+            {sidebarSections.map((section) => (
+              <div key={section.title} className="space-y-1">
+                <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider px-3 mb-2">
+                  {section.title}
+                </h3>
+                <div className="space-y-1">
+                  {section.items.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                        location.pathname === item.path
+                          ? "bg-white/20 text-white shadow-sm backdrop-blur-sm border border-white/20"
+                          : "hover:bg-white/10 text-white/90 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <item.icon className="h-4 w-4 mr-3 shrink-0" />
+                        <span className="text-sm font-medium">{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className={`px-1.5 py-0.5 text-xs font-medium text-white rounded-full ${item.badgeColor}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
 

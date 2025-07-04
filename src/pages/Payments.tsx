@@ -12,10 +12,13 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { SecurePaymentForm } from "@/components/payments/SecurePaymentForm";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSecurePayments } from "@/hooks/useSecurePayments";
+import PaymentUploader from "@/components/profile/PaymentUploader";
 
 const Payments = () => {
   const { data: payments = [], isLoading, error } = usePayments();
   const { data: pendingApplications = [], isLoading: isLoadingPending } = usePendingApplications();
+  const { securePayments, isLoading: isLoadingSecure } = useSecurePayments();
   const [pendingItem, setPendingItem] = useState<any>(null);
   const [pendingType, setPendingType] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -104,7 +107,62 @@ const Payments = () => {
         <h1 className="text-3xl font-bold">Payments</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Secure Payments Card */}
+        <Card className="shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/5">
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" /> Secure Payments
+            </CardTitle>
+            <CardDescription>Your secure payment transactions</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            {securePayments.length > 0 ? (
+              <div className="space-y-4">
+                {securePayments.map((payment) => (
+                  <div 
+                    key={payment.id} 
+                    className="p-4 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium">{payment.item_name}</p>
+                        <p className="text-xs text-muted-foreground">Ref: {payment.payment_reference}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{payment.amount} {payment.currency}</p>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          payment.status === 'verified' ? 'bg-green-100 text-green-800' :
+                          payment.status === 'payment_uploaded' ? 'bg-blue-100 text-blue-800' :
+                          payment.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {payment.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground capitalize">{payment.payment_method} payment</p>
+                    
+                    {payment.status === 'pending_payment' && (
+                      <div className="mt-3 p-3 bg-yellow-50 rounded-lg border">
+                        <p className="text-sm font-medium text-yellow-800 mb-2">Upload Payment Receipt</p>
+                        <PaymentUploader 
+                          paymentId={payment.id} 
+                          onSuccess={() => window.location.reload()} 
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No secure payments found.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Payment History Card */}
         <Card className="shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
