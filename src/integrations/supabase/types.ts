@@ -1283,6 +1283,47 @@ export type Database = {
           },
         ]
       }
+      payment_verification_log: {
+        Row: {
+          action: string
+          admin_id: string | null
+          created_at: string | null
+          id: string
+          new_status: string | null
+          notes: string | null
+          previous_status: string | null
+          secure_payment_id: string
+        }
+        Insert: {
+          action: string
+          admin_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_status?: string | null
+          notes?: string | null
+          previous_status?: string | null
+          secure_payment_id: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          created_at?: string | null
+          id?: string
+          new_status?: string | null
+          notes?: string | null
+          previous_status?: string | null
+          secure_payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_verification_log_secure_payment_id_fkey"
+            columns: ["secure_payment_id"]
+            isOneToOne: false
+            referencedRelation: "secure_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -1773,6 +1814,66 @@ export type Database = {
         }
         Relationships: []
       }
+      secure_payments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string | null
+          currency: string
+          id: string
+          item_id: string | null
+          item_name: string
+          item_type: string
+          payment_instructions_generated: boolean | null
+          payment_method: string
+          payment_reference: string
+          receipt_upload_path: string | null
+          status: string
+          updated_at: string | null
+          verification_notes: string | null
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string | null
+          currency?: string
+          id?: string
+          item_id?: string | null
+          item_name: string
+          item_type: string
+          payment_instructions_generated?: boolean | null
+          payment_method: string
+          payment_reference: string
+          receipt_upload_path?: string | null
+          status?: string
+          updated_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string | null
+          currency?: string
+          id?: string
+          item_id?: string | null
+          item_name?: string
+          item_type?: string
+          payment_instructions_generated?: boolean | null
+          payment_method?: string
+          payment_reference?: string
+          receipt_upload_path?: string | null
+          status?: string
+          updated_at?: string | null
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       service_applications: {
         Row: {
           created_at: string | null
@@ -1992,6 +2093,18 @@ export type Database = {
       create_scholarships_table: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      create_secure_payment: {
+        Args: {
+          p_client_id: string
+          p_payment_method: string
+          p_amount: number
+          p_currency: string
+          p_item_type: string
+          p_item_id: string
+          p_item_name: string
+        }
+        Returns: string
       }
       create_universities_table: {
         Args: Record<PropertyKey, never>
