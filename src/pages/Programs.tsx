@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { usePrograms, ProgramsQueryParams } from '@/hooks/usePrograms';
 import { ModernProgramCard } from '@/components/programs/ModernProgramCard';
@@ -93,6 +92,16 @@ export default function Programs() {
   const { data, isLoading, error } = usePrograms(queryParams);
 
   const ProgramCardComponent = isMobile ? MobileProgramCard : ModernProgramCard;
+
+  const handleViewDetails = (program: any) => {
+    // Navigate to program details page or open modal
+    window.open(`/programs/${program.id}`, '_blank');
+  };
+
+  const handleApply = (program: any) => {
+    // Navigate to application page
+    window.open(`/apply/${program.id}`, '_blank');
+  };
 
   return (
     <div className={cn("min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900", isMobile ? "p-2" : "p-6")}>
@@ -292,24 +301,8 @@ export default function Programs() {
                 <ProgramCardComponent
                   key={program.id}
                   program={program}
-                  isFavorite={favorites.has(program.id)}
-                  isCompare={compareList.includes(program.id)}
-                  onFavorite={() => toggleFavorite(program.id)}
-                  onCompare={() => {
-                    if (compareList.includes(program.id)) {
-                      setCompareList(compareList.filter(id => id !== program.id));
-                    } else if (compareList.length < 3) {
-                      setCompareList([...compareList, program.id]);
-                    }
-                  }}
-                  onShare={() => {
-                    // Implement share functionality
-                    navigator.share?.({
-                      title: program.name,
-                      text: `Check out this program: ${program.name} at ${program.university}`,
-                      url: window.location.href
-                    });
-                  }}
+                  onViewDetails={handleViewDetails}
+                  onApply={handleApply}
                 />
               ))}
             </div>
