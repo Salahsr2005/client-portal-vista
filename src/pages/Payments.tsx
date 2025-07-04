@@ -7,9 +7,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { usePayments } from "@/hooks/usePayments";
 import { usePendingApplications } from "@/hooks/usePayments";
-import { CreditCard, BanknoteIcon, ArrowRight, CheckCircle } from "lucide-react";
+import { CreditCard, BanknoteIcon, ArrowRight, CheckCircle, Shield, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { SecurePaymentForm } from "@/components/payments/SecurePaymentForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Payments = () => {
   const { data: payments = [], isLoading, error } = usePayments();
@@ -18,8 +20,10 @@ const Payments = () => {
   const [pendingType, setPendingType] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [showSecurePayment, setShowSecurePayment] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("card");
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const handlePendingItemClick = (item: any, type: string) => {
@@ -36,34 +40,63 @@ const Payments = () => {
     };
   };
 
-  const handlePayment = () => {
+  const handlePaymentInitiated = (paymentMethod: string, reference: string) => {
+    setShowSecurePayment(false);
+    setIsDetailsOpen(false);
+    setIsDialogOpen(false);
+    
+    toast({
+      title: "Instructions de paiement générées",
+      description: `Suivez les instructions dans le PDF téléchargé pour effectuer votre paiement via ${paymentMethod}.`,
+    });
+    
+    // Here you would typically create a payment record in the database
+    // with status "pending" waiting for receipt upload
+  };
+
+  const handleStartSecurePayment = () => {
     setIsDialogOpen(false);
     setIsDetailsOpen(false);
-    
-    // Navigate to checkout page with payment data
-    navigate("/payment-checkout", {
-      state: {
-        paymentData: {
-          title: getProgramDetails(pendingItem).programName,
-          description: getProgramDetails(pendingItem).university,
-          amount: getProgramDetails(pendingItem).applicationFee.toFixed(2),
-          reference: `APP-${Date.now().toString().substring(8)}`,
-          method: selectedPaymentMethod
-        }
-      }
-    });
+    setShowSecurePayment(true);
   };
 
   if (isLoading || isLoadingPending) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your payments...</p>
+      return (
+        <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your payments...</p>
+          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
+
+    // Show secure payment form when user is making a payment
+    if (showSecurePayment && pendingItem && user) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSecurePayment(false)}
+            >
+              ← Retour
+            </Button>
+            <h1 className="text-3xl font-bold">Paiement Sécurisé</h1>
+          </div>
+          
+          <SecurePaymentForm
+            amount={getProgramDetails(pendingItem).applicationFee}
+            currency="DZD"
+            itemType={pendingType as 'program' | 'destination' | 'service'}
+            itemName={getProgramDetails(pendingItem).programName}
+            clientName={`${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email || 'Client'}
+            clientId={user.id}
+            onPaymentInitiated={handlePaymentInitiated}
+          />
+        </div>
+      );
+    }
 
   return (
     <div className="space-y-6">
@@ -174,10 +207,12 @@ const Payments = () => {
                 </div>
               </div>
               
-              <Button className="w-full mt-6" onClick={() => {
-                setIsDialogOpen(true);
-              }}>
-                Pay Now
+              <Button 
+                className="w-full mt-6 gap-2" 
+                onClick={handleStartSecurePayment}
+              >
+                <Shield className="h-4 w-4" />
+                Procéder au Paiement Sécurisé
               </Button>
             </div>
           )}
@@ -233,8 +268,9 @@ const Payments = () => {
             <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handlePayment} className="w-full sm:w-auto">
-              Proceed to Payment
+            <Button onClick={handleStartSecurePayment} className="w-full sm:w-auto gap-2">
+              <Shield className="h-4 w-4" />
+              Paiement Sécurisé
             </Button>
           </DialogFooter>
         </DialogContent>

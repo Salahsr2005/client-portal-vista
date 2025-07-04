@@ -157,22 +157,26 @@ export default function Programs() {
               {/* Quick Filters - Desktop */}
               {!isMobile && (
                 <div className="flex gap-2">
-                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                  <Select value={selectedCountry || "all"} onValueChange={(value) => setSelectedCountry(value === "all" ? "" : value)}>
                     <SelectTrigger className="w-[140px]">
                       <SelectValue placeholder="Country" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Countries</SelectItem>
-                      {/* Add more countries */}
+                      <SelectItem value="all">All Countries</SelectItem>
+                      <SelectItem value="France">France</SelectItem>
+                      <SelectItem value="Germany">Germany</SelectItem>
+                      <SelectItem value="Spain">Spain</SelectItem>
+                      <SelectItem value="Italy">Italy</SelectItem>
+                      <SelectItem value="Poland">Poland</SelectItem>
                     </SelectContent>
                   </Select>
                   
-                  <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                  <Select value={selectedLevel || "all"} onValueChange={(value) => setSelectedLevel(value === "all" ? "" : value)}>
                     <SelectTrigger className="w-[120px]">
                       <SelectValue placeholder="Level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Levels</SelectItem>
+                      <SelectItem value="all">All Levels</SelectItem>
                       <SelectItem value="Bachelor">Bachelor</SelectItem>
                       <SelectItem value="Master">Master</SelectItem>
                       <SelectItem value="PhD">PhD</SelectItem>
