@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { usePrograms, ProgramsQueryParams } from '@/hooks/usePrograms';
-import ModernProgramCard from '@/components/programs/ModernProgramCard';
-import MobileProgramCard from '@/components/programs/MobileProgramCard';
+import { ModernProgramCard } from '@/components/programs/ModernProgramCard';
+import { MobileProgramCard } from '@/components/programs/MobileProgramCard';
 import MobileFilters from '@/components/programs/MobileFilters';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
