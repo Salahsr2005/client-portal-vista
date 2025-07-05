@@ -4,41 +4,204 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ServiceApplications from '@/components/services/ServiceApplications';
 import ProgramApplications from '@/components/programs/ProgramApplications';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { ModernApplicationCard } from '@/components/applications/ModernApplicationCard';
+import { useApplications } from '@/hooks/useApplications';
+import { useDestinationApplications } from '@/hooks/useDestinationApplications';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Search, Filter, Grid, List } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Applications() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("programs");
+  const [activeTab, setActiveTab] = useState("all");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const isMobile = useIsMobile();
+
+  const { data: programApplications = [] } = useApplications();
+  const { data: destinationApplications = [] } = useDestinationApplications();
+
+  // Mock service applications for now
+  const serviceApplications = [
+    {
+      id: 'srv-1',
+      type: 'service' as const,
+      title: 'Document Translation',
+      subtitle: 'Academic certificates translation',
+      status: 'Completed',
+      priority: 'Medium',
+      createdAt: '2024-01-15T10:00:00Z',
+      updatedAt: '2024-01-20T14:30:00Z',
+      progress: 100,
+      paymentStatus: 'Paid',
+      fee: 150
+    },
+    {
+      id: 'srv-2',
+      type: 'service' as const,
+      title: 'Visa Consultation',
+      subtitle: 'Student visa guidance',
+      status: 'In Progress',
+      priority: 'High',
+      createdAt: '2024-01-20T09:00:00Z',
+      updatedAt: '2024-01-22T16:15:00Z',
+      progress: 60,
+      paymentStatus: 'Paid',
+      fee: 200
+    }
+  ];
+
+  // Transform and combine all applications
+  const allApplications = [
+    ...programApplications.map(app => ({
+      id: app.id || 'prog-' + Math.random(),
+      type: 'program' as const,
+      title: `Program Application`,
+      subtitle: app.program || 'Program',
+      status: app.status || 'Draft',
+      priority: 'Medium',
+      createdAt: app.created_at || new Date().toISOString(),
+      updatedAt: app.updated_at || new Date().toISOString(),
+      progress: app.status === 'Approved' ? 100 : app.status === 'Under Review' ? 70 : 30,
+      paymentStatus: app.payment_status || 'Pending'
+    })),
+    ...destinationApplications.map(app => ({
+      id: app.id,
+      type: 'destination' as const,
+      title: 'Destination Application',
+      subtitle: app.destination_id,
+      status: app.status,
+      priority: app.priority,
+      createdAt: app.created_at,
+      updatedAt: app.updated_at,
+      progress: app.status === 'Approved' ? 100 : app.status === 'Under Review' ? 70 : 30,
+      paymentStatus: app.payment_status,
+      location: app.program_level
+    })),
+    ...serviceApplications
+  ];
+
+  // Filter applications
+  const filteredApplications = allApplications.filter(app => {
+    const matchesSearch = app.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (app.subtitle && app.subtitle.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === 'all' || app.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesTab = activeTab === 'all' || app.type === activeTab;
+    
+    return matchesSearch && matchesStatus && matchesTab;
+  });
+
+  const handleViewApplication = (id: string) => {
+    // Navigate to application details
+    console.log('View application:', id);
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">My Applications</h1>
-      
-      <Tabs defaultValue="programs" onValueChange={setActiveTab} className="w-full">
-        <div className="mb-8">
-          <TabsList className="bg-slate-100 dark:bg-slate-800/40 p-1 h-auto">
-            <TabsTrigger 
-              value="programs"
-              className={`text-sm px-4 py-2 ${activeTab === "programs" ? "bg-white dark:bg-gray-800 shadow-sm" : ""}`}
-            >
-              Program Applications
-            </TabsTrigger>
-            <TabsTrigger 
-              value="services"
-              className={`text-sm px-4 py-2 ${activeTab === "services" ? "bg-white dark:bg-gray-800 shadow-sm" : ""}`}
-            >
-              Service Applications
-            </TabsTrigger>
-          </TabsList>
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+            My Applications
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Track all your program, destination, and service applications
+          </p>
         </div>
         
-        <TabsContent value="programs" className="mt-0">
-          <ProgramApplications />
-        </TabsContent>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:space-y-0 md:space-x-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search applications..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         
-        <TabsContent value="services" className="mt-0">
-          <ServiceApplications />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="in review">In Review</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 lg:w-fit">
+          <TabsTrigger value="all" className="text-sm">
+            All ({allApplications.length})
+          </TabsTrigger>
+          <TabsTrigger value="program" className="text-sm">
+            Programs ({programApplications.length})
+          </TabsTrigger>
+          <TabsTrigger value="destination" className="text-sm">
+            Destinations ({destinationApplications.length})
+          </TabsTrigger>
+          <TabsTrigger value="service" className="text-sm">
+            Services ({serviceApplications.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={activeTab} className="mt-6">
+          {filteredApplications.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Filter className="h-8 w-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No applications found</h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm || statusFilter !== 'all' 
+                  ? "Try adjusting your search or filters" 
+                  : "You haven't submitted any applications yet"}
+              </p>
+            </div>
+          ) : (
+            <div className={
+              viewMode === 'grid' 
+                ? `grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`
+                : 'space-y-4'
+            }>
+              {filteredApplications.map((application) => (
+                <ModernApplicationCard
+                  key={application.id}
+                  application={application}
+                  onView={handleViewApplication}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

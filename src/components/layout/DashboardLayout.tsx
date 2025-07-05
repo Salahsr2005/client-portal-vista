@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import SidebarBackground from './SidebarBackground';
 import NotificationBell from '../NotificationBell';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "next-themes";
 import {
   ChevronRight,
   Home,
@@ -24,11 +25,10 @@ import {
   Package,
   Search,
   Sparkles,
-  Users,
-  BarChart3,
-  UserCog,
   GraduationCap,
-  MapPin
+  MapPin,
+  HeadphonesIcon,
+  Palette
 } from "lucide-react";
 
 const sidebarSections = [
@@ -39,21 +39,21 @@ const sidebarSections = [
     ]
   },
   {
-    title: "ACADEMIC MANAGEMENT", 
+    title: "ACADEMIC", 
     items: [
       { label: "Programs", icon: GraduationCap, path: "/programs" },
-      { label: "Destinations", icon: MapPin, path: "/destinations", badge: "New", badgeColor: "bg-green-500" }
+      { label: "Destinations", icon: MapPin, path: "/destinations", badge: "New", badgeColor: "bg-green-500" },
+      { label: "Services", icon: HeadphonesIcon, path: "/services" }
     ]
   },
   {
-    title: "CLIENT MANAGEMENT",
+    title: "MY APPLICATIONS",
     items: [
-      { label: "Clients", icon: Users, path: "/clients" },
-      { label: "Applications", icon: FileText, path: "/applications", badge: "24", badgeColor: "bg-orange-500" }
+      { label: "Applications", icon: FileText, path: "/applications", badge: "3", badgeColor: "bg-blue-500" }
     ]
   },
   {
-    title: "OPERATIONS",
+    title: "APPOINTMENTS & PAYMENTS",
     items: [
       { label: "Appointments", icon: Calendar, path: "/appointments" },
       { label: "Payments", icon: CreditCard, path: "/payments" }
@@ -62,20 +62,8 @@ const sidebarSections = [
   {
     title: "COMMUNICATION",
     items: [
-      { label: "Messages", icon: MessageSquare, path: "/chat", badge: "12", badgeColor: "bg-pink-500" },
+      { label: "Messages", icon: MessageSquare, path: "/chat", badge: "2", badgeColor: "bg-pink-500" },
       { label: "Notifications", icon: Bell, path: "/notifications", badge: "5", badgeColor: "bg-yellow-500" }
-    ]
-  },
-  {
-    title: "ANALYTICS & REPORTS",
-    items: [
-      { label: "Reports", icon: BarChart3, path: "/reports" }
-    ]
-  },
-  {
-    title: "ADMINISTRATION", 
-    items: [
-      { label: "Admin Users", icon: UserCog, path: "/admin-users" }
     ]
   }
 ];
@@ -85,9 +73,18 @@ const sidebarItems = sidebarSections.flatMap(section => section.items);
 
 export function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [sidebarTheme, setSidebarTheme] = useState('violet');
   const isMobile = useIsMobile();
   const location = useLocation();
   const { signOut } = useAuth();
+  const { theme } = useTheme();
+
+  const themeColors = {
+    violet: 'from-violet-600 via-purple-600 to-indigo-700',
+    blue: 'from-blue-600 via-cyan-600 to-teal-700',
+    emerald: 'from-emerald-600 via-green-600 to-teal-700',
+    orange: 'from-orange-600 via-red-600 to-pink-700'
+  };
 
   useEffect(() => {
     const checkMobile = () => {
@@ -125,28 +122,51 @@ export function DashboardLayout() {
         } transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 overflow-hidden`}
       >
         {/* Background */}
-        <SidebarBackground />
+        <div className={`absolute inset-0 bg-gradient-to-br ${themeColors[sidebarTheme]} transition-all duration-500`}>
+          <SidebarBackground />
+        </div>
         
         <div className="relative z-10 flex flex-col h-full p-4">
-          {/* Logo */}
+          {/* Logo and Theme Switcher */}
           <div className="flex items-center justify-between mb-6 mt-2">
             <div className="flex flex-col">
               <Link
                 to="/dashboard"  
-                className="text-xl font-bold tracking-tight text-white drop-shadow-lg"
+                className="text-xl font-bold tracking-tight text-white drop-shadow-lg hover:scale-105 transition-transform duration-200"
               >
                 EuroVisa
               </Link>
-              <span className="text-xs text-white/70 font-medium">Admin Panel</span>
+              <span className="text-xs text-white/70 font-medium">Client Panel</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden text-white hover:bg-white/20"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              {/* Theme Color Switcher */}
+              <div className="flex space-x-1 p-1 rounded-full bg-white/10 backdrop-blur-sm">
+                {Object.entries(themeColors).map(([colorName, _]) => (
+                  <button
+                    key={colorName}
+                    onClick={() => setSidebarTheme(colorName)}
+                    className={`w-6 h-6 rounded-full transition-all duration-200 ${
+                      sidebarTheme === colorName 
+                        ? 'ring-2 ring-white/50 scale-110' 
+                        : 'hover:scale-105'
+                    } ${
+                      colorName === 'violet' ? 'bg-violet-500' :
+                      colorName === 'blue' ? 'bg-blue-500' :
+                      colorName === 'emerald' ? 'bg-emerald-500' :
+                      'bg-orange-500'
+                    }`}
+                  />
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(false)}
+                className="lg:hidden text-white hover:bg-white/20 hover:rotate-90 transition-all duration-200"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
 
           {/* Navigation Items */}
@@ -157,22 +177,28 @@ export function DashboardLayout() {
                   {section.title}
                 </h3>
                 <div className="space-y-1">
-                  {section.items.map((item) => (
+                  {section.items.map((item, index) => (
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                      className={`group flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
                         location.pathname === item.path
-                          ? "bg-white/20 text-white shadow-sm backdrop-blur-sm border border-white/20"
+                          ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/20 scale-[1.02]"
                           : "hover:bg-white/10 text-white/90 hover:text-white"
                       }`}
+                      style={{ 
+                        animationDelay: `${index * 50}ms`,
+                        animation: 'slideInLeft 0.6s ease-out forwards'
+                      }}
                     >
                       <div className="flex items-center">
-                        <item.icon className="h-4 w-4 mr-3 shrink-0" />
+                        <item.icon className={`h-4 w-4 mr-3 shrink-0 transition-all duration-200 ${
+                          location.pathname === item.path ? 'scale-110' : 'group-hover:scale-110'
+                        }`} />
                         <span className="text-sm font-medium">{item.label}</span>
                       </div>
                       {item.badge && (
-                        <span className={`px-1.5 py-0.5 text-xs font-medium text-white rounded-full ${item.badgeColor}`}>
+                        <span className={`px-1.5 py-0.5 text-xs font-medium text-white rounded-full ${item.badgeColor} animate-pulse`}>
                           {item.badge}
                         </span>
                       )}
