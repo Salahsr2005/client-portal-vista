@@ -63,10 +63,10 @@ export default function Applications() {
       subtitle: app.program || 'Program',
       status: app.status || 'Draft',
       priority: 'Medium',
-      createdAt: app.created_at || new Date().toISOString(),
-      updatedAt: app.updated_at || new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       progress: app.status === 'Approved' ? 100 : app.status === 'Under Review' ? 70 : 30,
-      paymentStatus: app.payment_status || 'Pending'
+      paymentStatus: 'Pending'
     })),
     ...destinationApplications.map(app => ({
       id: app.id,
