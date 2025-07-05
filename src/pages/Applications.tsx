@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ModernApplicationCard } from '@/components/applications/ModernApplicationCard';
 import { useApplications } from '@/hooks/useApplications';
 import { useDestinationApplications } from '@/hooks/useDestinationApplications';
+import { useServiceApplications } from '@/hooks/useServices';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,36 +24,7 @@ export default function Applications() {
 
   const { data: programApplications = [] } = useApplications();
   const { data: destinationApplications = [] } = useDestinationApplications();
-
-  // Mock service applications for now
-  const serviceApplications = [
-    {
-      id: 'srv-1',
-      type: 'service' as const,
-      title: 'Document Translation',
-      subtitle: 'Academic certificates translation',
-      status: 'Completed',
-      priority: 'Medium',
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-20T14:30:00Z',
-      progress: 100,
-      paymentStatus: 'Paid',
-      fee: 150
-    },
-    {
-      id: 'srv-2',
-      type: 'service' as const,
-      title: 'Visa Consultation',
-      subtitle: 'Student visa guidance',
-      status: 'In Progress',
-      priority: 'High',
-      createdAt: '2024-01-20T09:00:00Z',
-      updatedAt: '2024-01-22T16:15:00Z',
-      progress: 60,
-      paymentStatus: 'Paid',
-      fee: 200
-    }
-  ];
+  const { data: serviceApplicationsData = [] } = useServiceApplications();
 
   // Transform and combine all applications
   const allApplications = [
@@ -72,16 +44,29 @@ export default function Applications() {
       id: app.id,
       type: 'destination' as const,
       title: 'Destination Application',
-      subtitle: app.destination_id,
+      subtitle: app.destinations?.name || app.destination_id,
       status: app.status,
       priority: app.priority,
       createdAt: app.created_at,
       updatedAt: app.updated_at,
       progress: app.status === 'Approved' ? 100 : app.status === 'Under Review' ? 70 : 30,
       paymentStatus: app.payment_status,
-      location: app.program_level
+      location: app.destinations?.country || app.program_level,
+      imageUrl: '/placeholder.svg'
     })),
-    ...serviceApplications
+    ...serviceApplicationsData.map(app => ({
+      id: app.id,
+      type: 'service' as const,
+      title: app.services?.name || 'Service Application',
+      subtitle: app.services?.description || 'Service request',
+      status: app.status,
+      priority: 'Medium',
+      createdAt: app.created_at,
+      updatedAt: app.updated_at || app.created_at,
+      progress: app.status === 'Completed' ? 100 : app.status === 'In Progress' ? 60 : 30,
+      paymentStatus: app.payment_status,
+      fee: app.services?.price || 0
+    }))
   ];
 
   // Filter applications
@@ -131,7 +116,7 @@ export default function Applications() {
       </div>
 
       {/* Filters and Search */}
-      <div className="flex flex-col space-y-4 md:flex-row md:items-center md:space-y-0 md:space-x-4">
+      <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:space-y-0 lg:space-x-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -142,35 +127,40 @@ export default function Applications() {
           />
         </div>
         
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in review">In Review</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="in review">In Review</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-fit">
-          <TabsTrigger value="all" className="text-sm">
+        <TabsList className="grid w-full grid-cols-4 lg:w-fit lg:grid-cols-4">
+          <TabsTrigger value="all" className="text-xs sm:text-sm">
             All ({allApplications.length})
           </TabsTrigger>
-          <TabsTrigger value="program" className="text-sm">
-            Programs ({programApplications.length})
+          <TabsTrigger value="program" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Programs</span>
+            <span className="sm:hidden">Prog</span> ({programApplications.length})
           </TabsTrigger>
-          <TabsTrigger value="destination" className="text-sm">
-            Destinations ({destinationApplications.length})
+          <TabsTrigger value="destination" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Destinations</span>
+            <span className="sm:hidden">Dest</span> ({destinationApplications.length})
           </TabsTrigger>
-          <TabsTrigger value="service" className="text-sm">
-            Services ({serviceApplications.length})
+          <TabsTrigger value="service" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Services</span>
+            <span className="sm:hidden">Serv</span> ({serviceApplicationsData.length})
           </TabsTrigger>
         </TabsList>
 
@@ -181,7 +171,7 @@ export default function Applications() {
                 <Filter className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No applications found</h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-4 px-4">
                 {searchTerm || statusFilter !== 'all' 
                   ? "Try adjusting your search or filters" 
                   : "You haven't submitted any applications yet"}
@@ -190,8 +180,8 @@ export default function Applications() {
           ) : (
             <div className={
               viewMode === 'grid' 
-                ? `grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`
-                : 'space-y-4'
+                ? `grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`
+                : 'space-y-3'
             }>
               {filteredApplications.map((application) => (
                 <ModernApplicationCard

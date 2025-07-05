@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import SidebarBackground from './SidebarBackground';
 import NotificationBell from '../NotificationBell';
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/ThemeProvider";
 import {
   ChevronRight,
   Home,
@@ -122,7 +122,7 @@ export function DashboardLayout() {
         } transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 overflow-hidden`}
       >
         {/* Background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${themeColors[sidebarTheme]} transition-all duration-500`}>
+        <div className={`absolute inset-0 bg-gradient-to-br ${themeColors[sidebarTheme]} transition-all duration-700 ease-in-out`}>
           <SidebarBackground />
         </div>
         
@@ -140,15 +140,15 @@ export function DashboardLayout() {
             </div>
             <div className="flex items-center space-x-2">
               {/* Theme Color Switcher */}
-              <div className="flex space-x-1 p-1 rounded-full bg-white/10 backdrop-blur-sm">
+              <div className="flex space-x-1 p-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
                 {Object.entries(themeColors).map(([colorName, _]) => (
                   <button
                     key={colorName}
                     onClick={() => setSidebarTheme(colorName)}
-                    className={`w-6 h-6 rounded-full transition-all duration-200 ${
+                    className={`w-6 h-6 rounded-full transition-all duration-300 ${
                       sidebarTheme === colorName 
-                        ? 'ring-2 ring-white/50 scale-110' 
-                        : 'hover:scale-105'
+                        ? 'ring-2 ring-white/60 scale-110 shadow-lg' 
+                        : 'hover:scale-105 hover:ring-1 hover:ring-white/30'
                     } ${
                       colorName === 'violet' ? 'bg-violet-500' :
                       colorName === 'blue' ? 'bg-blue-500' :

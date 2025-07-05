@@ -89,16 +89,8 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
   };
 
   const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'program':
-        return '🎓';
-      case 'destination':
-        return '🌍';
-      case 'service':
-        return '🛠️';
-      default:
-        return '📋';
-    }
+    // Return placeholder for now, images should come from database
+    return '';
   };
 
   return (
@@ -108,13 +100,21 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
           <div className="flex items-center space-x-3">
             <div className="relative">
               <Avatar className="h-12 w-12 border-2 border-white shadow-lg">
-                <AvatarImage src={application.imageUrl} alt={application.title} />
-                <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-500 text-white font-semibold">
-                  {getTypeIcon(application.type)}
+                <AvatarImage 
+                  src={application.imageUrl || '/placeholder.svg'} 
+                  alt={application.title}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-500 text-white font-semibold text-lg">
+                  {application.type === 'program' ? 'PR' : 
+                   application.type === 'destination' ? 'DE' : 'SE'}
                 </AvatarFallback>
               </Avatar>
               <div className="absolute -top-1 -right-1 w-6 h-6 bg-white rounded-full shadow-sm flex items-center justify-center">
-                <span className="text-xs">{getTypeIcon(application.type)}</span>
+                <span className="text-xs font-semibold text-gray-600">
+                  {application.type === 'program' ? 'P' : 
+                   application.type === 'destination' ? 'D' : 'S'}
+                </span>
               </div>
             </div>
             <div className="flex-1 min-w-0">
@@ -165,14 +165,14 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
         </div>
 
         {/* Details */}
-        <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
+        <div className="grid grid-cols-2 gap-3 text-xs text-gray-600">
           <div className="flex items-center space-x-2">
-            <Calendar className="h-3 w-3" />
-            <span>Applied: {format(new Date(application.createdAt), 'MMM dd')}</span>
+            <Calendar className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Applied: {format(new Date(application.createdAt), 'MMM dd')}</span>
           </div>
           <div className="flex items-center space-x-2">
-            <Clock className="h-3 w-3" />
-            <span>Updated: {format(new Date(application.updatedAt), 'MMM dd')}</span>
+            <Clock className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">Updated: {format(new Date(application.updatedAt), 'MMM dd')}</span>
           </div>
           {application.fee && (
             <div className="flex items-center space-x-2">
@@ -181,7 +181,7 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
           )}
           {application.deadline && (
             <div className="flex items-center space-x-2 text-orange-600">
-              <span>Deadline: {format(new Date(application.deadline), 'MMM dd')}</span>
+              <span className="truncate">Deadline: {format(new Date(application.deadline), 'MMM dd')}</span>
             </div>
           )}
         </div>
@@ -194,12 +194,12 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
             className="flex-1 bg-violet-600 hover:bg-violet-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
           >
             <Eye className="h-4 w-4 mr-2" />
-            View Details
+            <span className="truncate">View Details</span>
           </Button>
           <Button 
             variant="outline" 
             size="sm"
-            className="hover:bg-gray-50 border-gray-200"
+            className="hover:bg-gray-50 border-gray-200 px-3"
           >
             <ExternalLink className="h-4 w-4" />
           </Button>

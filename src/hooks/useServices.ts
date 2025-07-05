@@ -71,21 +71,26 @@ export const useServiceApplications = (userId?: string) => {
       const id = userId || user?.id;
       if (!id) return [];
       
-      const { data, error } = await supabase
-        .from("service_applications")
-        .select(`
-          *,
-          services (*)
-        `)
-        .eq("user_id", id)
-        .order("created_at", { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching service applications:", error);
-        throw error;
+      try {
+        const { data, error } = await supabase
+          .from("service_applications")
+          .select(`
+            *,
+            services (*)
+          `)
+          .eq("user_id", id)
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching service applications:", error);
+          throw error;
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error("Error in service applications query:", error);
+        return [];
       }
-      
-      return data || [];
     }
   });
 };
