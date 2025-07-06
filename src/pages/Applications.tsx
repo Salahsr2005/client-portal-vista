@@ -180,7 +180,7 @@ export default function Applications() {
           ) : (
             <div className={
               viewMode === 'grid' 
-                ? `grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`
+                ? `grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`
                 : 'space-y-3'
             }>
               {filteredApplications.map((application) => (

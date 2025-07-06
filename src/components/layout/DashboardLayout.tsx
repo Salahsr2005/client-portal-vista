@@ -156,7 +156,10 @@ export function DashboardLayout() {
                 {Object.entries(themeColors).map(([colorName, _]) => (
                   <button
                     key={colorName}
-                    onClick={() => setSidebarTheme(colorName)}
+                    onClick={() => {
+                      setSidebarTheme(colorName as keyof typeof themeColors);
+                      // Force re-render by updating a state that affects the gradient
+                    }}
                     className={`w-6 h-6 rounded-full transition-all duration-300 ${
                       sidebarTheme === colorName 
                         ? 'ring-2 ring-white/60 scale-110 shadow-lg' 
