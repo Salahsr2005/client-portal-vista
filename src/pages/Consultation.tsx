@@ -1,7 +1,7 @@
 
 import React from 'react';
-import AdvancedConsultationFlow from '@/components/consultation/advanced/AdvancedConsultationFlow';
+import DestinationConsultationFlow from '@/components/consultation/DestinationConsultationFlow';
 
 export default function Consultation() {
-  return <AdvancedConsultationFlow />;
+  return <DestinationConsultationFlow />;
 }

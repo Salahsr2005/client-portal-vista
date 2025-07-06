@@ -47,6 +47,12 @@ const sidebarSections = [
     ]
   },
   {
+    title: "CONSULTATION",
+    items: [
+      { label: "AI Consultation", icon: Sparkles, path: "/consultation", badge: "AI", badgeColor: "bg-purple-500" }
+    ]
+  },
+  {
     title: "MY APPLICATIONS",
     items: [
       { label: "Applications", icon: FileText, path: "/applications", badge: "3", badgeColor: "bg-blue-500" }
@@ -64,6 +70,12 @@ const sidebarSections = [
     items: [
       { label: "Messages", icon: MessageSquare, path: "/chat", badge: "2", badgeColor: "bg-pink-500" },
       { label: "Notifications", icon: Bell, path: "/notifications", badge: "5", badgeColor: "bg-yellow-500" }
+    ]
+  },
+  {
+    title: "PROFILE",
+    items: [
+      { label: "Profile", icon: User, path: "/profile" }
     ]
   }
 ];
