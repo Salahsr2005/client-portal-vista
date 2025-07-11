@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SpotlightGrid } from "@/components/ui/spotlight-grid";
 import { FileText, GraduationCap, Home, Plane, Building, Languages, ArrowRight } from "lucide-react";
 
 export function ModernServicesSection() {
@@ -66,7 +67,7 @@ export function ModernServicesSection() {
   ];
 
   return (
-    <section className="py-24 relative">
+    <SpotlightGrid className="py-24 relative">
       <div className="container max-w-7xl mx-auto px-4">
         {/* Header */}
         <motion.div
@@ -136,6 +137,6 @@ export function ModernServicesSection() {
           ))}
         </div>
       </div>
-    </section>
+    </SpotlightGrid>
   );
 }

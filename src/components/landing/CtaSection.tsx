@@ -1,9 +1,8 @@
-
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { ModernButton } from "@/components/ui/modern-button";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 
 export function CtaSection() {
   const { t } = useTranslation();
@@ -76,15 +75,15 @@ export function CtaSection() {
             className="flex flex-col sm:flex-row gap-4 justify-center pt-4"
           >
             <Link to="/contact">
-              <ModernButton size="lg" className="group">
+              <ShimmerButton size="lg" className="group">
                 {t("cta.primaryButton", "Get Started Today")}
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </ModernButton>
+              </ShimmerButton>
             </Link>
             <Link to="/programs">
-              <ModernButton size="lg" variant="secondary">
+              <ShimmerButton size="lg" variant="secondary">
                 {t("cta.secondaryButton", "Explore Programs")}
-              </ModernButton>
+              </ShimmerButton>
             </Link>
           </motion.div>
 

@@ -101,6 +101,10 @@ export default {
 				'float': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-10px)' }
+				},
+				'shimmer': {
+					'0%': { transform: 'translateX(-100%) skewX(-12deg)' },
+					'100%': { transform: 'translateX(200%) skewX(-12deg)' }
 				}
 			},
 			animation: {
@@ -111,7 +115,8 @@ export default {
 				'slide-in-right': 'slide-in-right 0.5s ease-out forwards',
 				'slide-out-left': 'slide-out-left 0.5s ease-out forwards',
 				'slide-in-up': 'slide-in-up 0.5s ease-out forwards',
-				'float': 'float 3s ease-in-out infinite'
+				'float': 'float 3s ease-in-out infinite',
+				'shimmer': 'shimmer 2s linear infinite'
 			}
 		}
 	},

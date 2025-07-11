@@ -6,6 +6,8 @@ import { useTranslation } from "react-i18next";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ModernButton } from "@/components/ui/modern-button";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { Button } from "@/components/ui/button";
 import { Menu, X, Sparkles } from "lucide-react";
 
 interface NavbarProps {
@@ -107,9 +109,14 @@ export function Navbar({
                 </ModernButton>
               </Link>
               <Link to="/register">
-                <ModernButton size="sm">
+                <ShimmerButton size="sm">
                   {t("nav.getStarted", "Get Started")}
-                </ModernButton>
+                </ShimmerButton>
+              </Link>
+              <Link to="/guest">
+                <Button variant="outline" size="sm">
+                  Guest Mode
+                </Button>
               </Link>
             </div>
 
@@ -171,9 +178,14 @@ export function Navbar({
                     </ModernButton>
                   </Link>
                   <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
-                    <ModernButton size="sm">
+                    <ShimmerButton size="sm">
                       {t("nav.getStarted", "Get Started")}
-                    </ModernButton>
+                    </ShimmerButton>
+                  </Link>
+                  <Link to="/guest" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" size="sm">
+                      Guest Mode
+                    </Button>
                   </Link>
                 </div>
               </div>

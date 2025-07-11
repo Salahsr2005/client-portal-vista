@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { SpotlightGrid } from "@/components/ui/spotlight-grid";
 import { Smartphone, RefreshCw, Users, Apple, Play, ArrowRight } from "lucide-react";
 
 export function ProblemsSection() {
@@ -37,7 +39,7 @@ export function ProblemsSection() {
   ];
 
   return (
-    <section className="py-24 relative">
+    <SpotlightGrid className="py-24 relative">
       <div className="container max-w-7xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -64,7 +66,7 @@ export function ProblemsSection() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
             >
-              <Card className={`p-6 h-full ${problem.gradient} glass hover:scale-105 transition-all duration-300 relative overflow-hidden group`}>
+              <Card className={`p-6 h-full ${problem.gradient} glass hover:scale-105 transition-all duration-300 relative overflow-hidden group border-white/10 dark:border-gray-800/50`}>
                 {/* Background pattern */}
                 <div className="absolute top-0 right-0 w-20 h-20 opacity-10">
                   <div className="text-6xl font-bold text-white/20">85%</div>
@@ -72,23 +74,23 @@ export function ProblemsSection() {
 
                 <div className="relative z-10 space-y-4">
                   {/* Icon */}
-                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 dark:bg-white/20 flex items-center justify-center text-white dark:text-gray-200">
                     {problem.icon}
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-semibold text-white">
+                  <h3 className="text-xl font-semibold text-white dark:text-gray-100">
                     {problem.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-white/80 leading-relaxed">
+                  <p className="text-white/80 dark:text-gray-200/80 leading-relaxed">
                     {problem.description}
                   </p>
 
                   {/* Status badge */}
                   <div className="pt-4">
-                    <Badge variant="secondary" className="bg-white/10 text-white border-white/20">
+                    <Badge variant="secondary" className="bg-white/10 dark:bg-white/20 text-white dark:text-gray-200 border-white/20 dark:border-gray-600/50">
                       {problem.status}
                     </Badge>
                   </div>
@@ -123,15 +125,15 @@ export function ProblemsSection() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="text-center mt-12"
         >
-          <Button 
+          <ShimmerButton 
             size="lg" 
             className="px-8 py-6 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             Discover Our Solutions
             <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          </ShimmerButton>
         </motion.div>
       </div>
-    </section>
+    </SpotlightGrid>
   );
 }

@@ -33,6 +33,7 @@ import DestinationDetails from "./pages/DestinationDetails";
 import Consultation from "./pages/Consultation";
 import ChatSupport from "./pages/ChatSupport";
 import Settings from "./pages/Settings";
+import Guest from "./pages/Guest";
 
 // Layout
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -91,6 +92,7 @@ const AppRoutes = () => {
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/guest" element={<Guest />} />
         
         {/* Protected Dashboard Routes */}
         <Route element={
