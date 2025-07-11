@@ -10,15 +10,14 @@ import { useTheme } from "next-themes";
 
 // Components
 import { Navbar } from "@/components/landing/Navbar";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import { PricingSection } from "@/components/landing/PricingSection";
-import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { ModernHeroSection } from "@/components/landing/ModernHeroSection";
+import { ProblemsSection } from "@/components/landing/ProblemsSection";
+import { PlatformPreviewSection } from "@/components/landing/PlatformPreviewSection";
+import { ModernServicesSection } from "@/components/landing/ModernServicesSection";
+import { ModernTestimonialsSection } from "@/components/landing/ModernTestimonialsSection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { CtaSection } from "@/components/landing/CtaSection";
 import { Footer } from "@/components/landing/Footer";
-import { NewsletterForm } from "@/components/landing/NewsletterForm";
 import { LanguageSelector } from "@/components/LanguageSelector";
 
 // 3D particle effect
@@ -71,11 +70,6 @@ export default function Index() {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background overflow-x-hidden">
-        {/* 3D Particles Background */}
-        <div className="fixed inset-0 z-0 opacity-50 pointer-events-none">
-          {mounted && <ParticleField />}
-        </div>
-        
         {/* Navbar */}
         <Navbar 
           featuresRef={featuresRef} 
@@ -85,145 +79,38 @@ export default function Index() {
           faqRef={faqRef}
         />
         
-        {/* Parallax background elements */}
-        <motion.div className="fixed inset-0 -z-10 opacity-30 pointer-events-none">
-          <motion.div 
-            className="absolute -top-1/2 -right-1/4 w-[80vw] h-[80vw] rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-3xl"
-            style={{ 
-              y: backgroundY,
-              x: mousePosition.x,
-              rotate: useTransform(scrollYProgress, [0, 1], [0, 10]),
-            }}
-          />
-          <motion.div 
-            className="absolute -bottom-1/4 -left-1/4 w-[60vw] h-[60vw] rounded-full bg-gradient-to-tr from-blue-400/30 to-transparent blur-3xl"
-            style={{ 
-              y: useTransform(scrollYProgress, [0, 1], ['0%', '-20%']),
-              x: mousePosition.x * -1,
-            }}
-          />
-          <motion.div 
-            className="absolute top-1/3 right-1/3 w-[40vw] h-[40vw] rounded-full bg-gradient-to-bl from-purple-400/20 to-transparent blur-3xl"
-            style={{ 
-              y: useTransform(scrollYProgress, [0, 0.5, 1], ['0%', '10%', '0%']),
-              x: mousePosition.y,
-            }}
-          />
-        </motion.div>
-        
         {/* Main content */}
-        <motion.main 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          {/* Hero Section with parallax effect */}
-          <motion.div 
-            style={{ 
-              translateY: useTransform(scrollYProgress, [0, 0.2], [0, -50]) 
-            }}
-            data-aos="fade-up"
-          >
-            <HeroSection 
-              featuresRef={featuresRef} 
-              programsData={programs.data} 
-              programsLoading={programs.isLoading}
-            />
-          </motion.div>
+        <main>
+          {/* Hero Section */}
+          <ModernHeroSection />
           
-          {/* Features Section */}
-          <motion.div 
-            ref={featuresRef} 
-            data-aos="fade-up" 
-            data-aos-delay="100"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6 }}
-          >
-            <FeaturesSection 
-              featuresData={services.data} 
-              isLoading={services.isLoading} 
-            />
-          </motion.div>
+          {/* Problems Section */}
+          <ProblemsSection />
           
-          {/* How It Works Section */}
-          <motion.div 
-            ref={howItWorksRef} 
-            data-aos="fade-up" 
-            data-aos-delay="200"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6 }}
-          >
-            <HowItWorksSection />
-          </motion.div>
+          {/* Platform Preview Section */}
+          <PlatformPreviewSection />
           
-          {/* Pricing Section */}
-          <motion.div 
-            ref={pricingRef} 
-            data-aos="fade-up" 
-            data-aos-delay="300"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6 }}
-          >
-            <PricingSection />
-          </motion.div>
+          {/* Services Section */}
+          <div ref={featuresRef}>
+            <ModernServicesSection />
+          </div>
           
           {/* Testimonials Section */}
-          <motion.div 
-            ref={testimonialsRef} 
-            data-aos="fade-up" 
-            data-aos-delay="400"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <TestimonialsSection 
-              destinations={destinations.data}
-              isLoading={destinations.isLoading}
-            />
-          </motion.div>
+          <div ref={testimonialsRef}>
+            <ModernTestimonialsSection />
+          </div>
           
           {/* FAQ Section */}
-          <motion.div 
-            ref={faqRef} 
-            data-aos="fade-up" 
-            data-aos-delay="500"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
+          <div ref={faqRef}>
             <FaqSection />
-          </motion.div>
+          </div>
           
           {/* CTA Section */}
-          <motion.div 
-            data-aos="fade-up" 
-            data-aos-delay="600"
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <CtaSection />
-          </motion.div>
-        </motion.main>
+          <CtaSection />
+        </main>
         
-        {/* Footer with animated reveal */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <Footer />
-        </motion.div>
+        {/* Footer */}
+        <Footer />
       </div>
     </ThemeProvider>
   );
