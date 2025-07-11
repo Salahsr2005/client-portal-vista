@@ -94,11 +94,11 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
   };
 
   return (
-    <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50/50 border-0 shadow-md hover:shadow-2xl">
+    <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-white to-gray-50/50 border-0 shadow-md hover:shadow-2xl w-full">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div className="flex items-center space-x-3 flex-1 min-w-0">
+            <div className="relative shrink-0">
               <Avatar className="h-12 w-12 border-2 border-white shadow-lg">
                 <AvatarImage 
                   src={application.imageUrl || '/placeholder.svg'} 
@@ -118,7 +118,7 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-lg font-bold text-gray-900 truncate group-hover:text-violet-600 transition-colors">
+              <CardTitle className="text-base sm:text-lg font-bold text-gray-900 truncate group-hover:text-violet-600 transition-colors">
                 {application.title}
               </CardTitle>
               {application.subtitle && (
@@ -126,13 +126,13 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
               )}
               {application.location && (
                 <div className="flex items-center text-xs text-gray-500 mt-1">
-                  <MapPin className="h-3 w-3 mr-1" />
-                  {application.location}
+                  <MapPin className="h-3 w-3 mr-1 shrink-0" />
+                  <span className="truncate">{application.location}</span>
                 </div>
               )}
             </div>
           </div>
-          <Badge className={`${getPriorityColor(application.priority)} text-xs font-medium`}>
+          <Badge className={`${getPriorityColor(application.priority)} text-xs font-medium shrink-0`}>
             {application.priority}
           </Badge>
         </div>
@@ -165,7 +165,7 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
         </div>
 
         {/* Details */}
-        <div className="grid grid-cols-2 gap-3 text-xs text-gray-600">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-600">
           <div className="flex items-center space-x-2">
             <Calendar className="h-3 w-3 flex-shrink-0" />
             <span className="truncate">Applied: {format(new Date(application.createdAt), 'MMM dd')}</span>
@@ -187,7 +187,7 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
         </div>
 
         {/* Actions */}
-        <div className="flex space-x-2 pt-2">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 pt-2">
           <Button 
             onClick={() => onView(application.id)}
             size="sm" 
@@ -199,9 +199,10 @@ export const ModernApplicationCard: React.FC<ModernApplicationCardProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            className="hover:bg-gray-50 border-gray-200 px-3"
+            className="hover:bg-gray-50 border-gray-200 sm:px-3 sm:flex-shrink-0"
           >
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-4 w-4 sm:mr-0 mr-2" />
+            <span className="sm:hidden">External Link</span>
           </Button>
         </div>
       </CardContent>

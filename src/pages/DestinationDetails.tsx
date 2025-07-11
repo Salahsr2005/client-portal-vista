@@ -4,7 +4,7 @@ import { useDestinations } from '@/hooks/useDestinations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DestinationApplicationModal } from '@/components/destinations/DestinationApplicationModal';
 import { generateDestinationPDF } from '@/utils/pdfGenerator';
 import { useToast } from '@/hooks/use-toast';
@@ -25,9 +25,13 @@ import {
   Heart,
   Share2,
   Download,
-  Send
+  Send,
+  Eye,
+  EyeOff,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DestinationDetails() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +39,9 @@ export default function DestinationDetails() {
   const { data: destinations, isLoading } = useDestinations();
   const { toast } = useToast();
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('overview');
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [showDescriptionDialog, setShowDescriptionDialog] = useState(false);
   
   const destination = destinations?.find(d => d.id === id);
 
@@ -187,9 +194,35 @@ export default function DestinationDetails() {
                 <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
                   {destination.name}
                 </h1>
-                <p className="text-xl text-gray-200 max-w-2xl">
-                  {destination.description}
-                </p>
+                {destination.description && (
+                  <div className="max-w-2xl">
+                    <p className="text-xl text-gray-200 line-clamp-2">
+                      {destination.description}
+                    </p>
+                    {destination.description.length > 150 && (
+                      <Dialog open={showDescriptionDialog} onOpenChange={setShowDescriptionDialog}>
+                        <DialogTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-gray-200 hover:text-white hover:bg-white/10 mt-2 p-0"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            See more
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>{destination.name} - Description</DialogTitle>
+                          </DialogHeader>
+                          <DialogDescription className="text-base leading-relaxed">
+                            {destination.description}
+                          </DialogDescription>
+                        </DialogContent>
+                      </Dialog>
+                    )}
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-2">
@@ -221,15 +254,43 @@ export default function DestinationDetails() {
             transition={{ delay: 0.2 }}
             className="lg:col-span-2"
           >
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-6">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="programs">Programs</TabsTrigger>
-                <TabsTrigger value="requirements">Requirements</TabsTrigger>
-                <TabsTrigger value="services">Services</TabsTrigger>
-              </TabsList>
+            {/* Modern Navigation */}
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2 p-1 bg-muted/50 rounded-xl">
+                {[
+                  { id: 'overview', label: 'Overview', icon: Globe },
+                  { id: 'programs', label: 'Programs', icon: GraduationCap },
+                  { id: 'requirements', label: 'Requirements', icon: FileText },
+                  { id: 'services', label: 'Services', icon: Briefcase }
+                ].map(({ id, label, icon: Icon }) => (
+                  <Button
+                    key={id}
+                    variant={activeSection === id ? 'default' : 'ghost'}
+                    onClick={() => setActiveSection(id)}
+                    className={`flex-1 min-w-0 h-12 transition-all duration-200 ${
+                      activeSection === id 
+                        ? 'bg-background shadow-md hover:shadow-lg' 
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 mr-2 shrink-0" />
+                    <span className="truncate text-sm">{label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
 
-              <TabsContent value="overview" className="space-y-6">
+            {/* Content Sections */}
+            <AnimatePresence mode="wait">
+              {activeSection === 'overview' && (
+                <motion.div
+                  key="overview"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <Card className="text-center">
@@ -297,9 +358,18 @@ export default function DestinationDetails() {
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
+                </motion.div>
+              )}
 
-              <TabsContent value="programs" className="space-y-6">
+              {activeSection === 'programs' && (
+                <motion.div
+                  key="programs"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
                 {programLevels.filter(program => program.tuition_min && program.tuition_max).map((program) => (
                   <Card key={program.name}>
                     <CardHeader>
@@ -346,9 +416,18 @@ export default function DestinationDetails() {
                     </CardContent>
                   </Card>
                 ))}
-              </TabsContent>
+                </motion.div>
+              )}
 
-              <TabsContent value="requirements" className="space-y-6">
+              {activeSection === 'requirements' && (
+                <motion.div
+                  key="requirements"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
                 <Card>
                   <CardHeader>
                     <CardTitle>General Requirements Overview</CardTitle>
@@ -372,9 +451,18 @@ export default function DestinationDetails() {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+                </motion.div>
+              )}
 
-              <TabsContent value="services" className="space-y-6">
+              {activeSection === 'services' && (
+                <motion.div
+                  key="services"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
@@ -418,8 +506,9 @@ export default function DestinationDetails() {
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
-            </Tabs>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
           {/* Sidebar */}
@@ -460,16 +549,27 @@ export default function DestinationDetails() {
             <Card>
               <CardContent className="p-6">
                 <Button 
-                  className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg hover:shadow-xl transition-all"
-                  size="lg"
+                  size="lg" 
                   onClick={() => setIsApplicationModalOpen(true)}
+                  disabled={destination.status !== 'Active'}
+                  className={`w-full transition-all duration-300 ${
+                    destination.status === 'Active'
+                      ? 'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white shadow-lg hover:shadow-xl'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed'
+                  }`}
                 >
-                  <Send className="w-4 h-4 mr-2" />
-                  Apply Now
+                  <Send className="w-5 h-5 mr-2" />
+                  {destination.status === 'Active' ? 'Apply Now' : 'Currently Unavailable'}
                 </Button>
-                <p className="text-xs text-muted-foreground text-center mt-3">
-                  Start your application today and get expert guidance
-                </p>
+                {destination.status === 'Active' ? (
+                  <p className="text-xs text-muted-foreground text-center mt-3">
+                    Start your application today and get expert guidance
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center mt-3">
+                    This destination is currently not accepting applications
+                  </p>
+                )}
               </CardContent>
             </Card>
 

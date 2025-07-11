@@ -81,7 +81,7 @@ export default function Applications() {
 
   const handleViewApplication = (id: string) => {
     // Navigate to application details
-    console.log('View application:', id);
+    window.location.href = `/applications/${id}`;
   };
 
   return (
