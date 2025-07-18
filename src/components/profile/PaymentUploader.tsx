@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Upload, X, FileCheck, Loader2 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
-import { uploadPaymentReceipt } from '@/utils/databaseHelpers';
 
 interface PaymentUploaderProps {
   paymentId: string;
@@ -60,33 +59,59 @@ const PaymentUploader = ({ paymentId, onSuccess }: PaymentUploaderProps) => {
     setIsLoading(true);
     
     try {
-      // Upload the file to storage
-      const uploadResult = await uploadPaymentReceipt(file, user.id);
-      
-      if (uploadResult.error) {
-        throw new Error(uploadResult.error);
+      // Upload file to storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${paymentId}_${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payment-receipts')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw new Error('Failed to upload receipt: ' + uploadError.message);
       }
 
-      // Create receipt record in the database - ensure user.id is properly set
-      const { error } = await supabase
+      // Get the public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('payment-receipts')
+        .getPublicUrl(filePath);
+
+      // Update payment record with receipt path and set status to Under Review
+      const { error: updateError } = await supabase
+        .from('payments')
+        .update({
+          receipt_upload_path: filePath,
+          status: 'Under Review'
+        })
+        .eq('payment_id', paymentId)
+        .eq('client_id', user.id);
+
+      if (updateError) {
+        throw new Error('Failed to update payment: ' + updateError.message);
+      }
+
+      // Create receipt record with the public URL
+      const { error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
-          receipt_path: uploadResult.filePath!,
           payment_id: paymentId,
-          client_id: user.id, // This must match the authenticated user
+          client_id: user.id,
+          receipt_path: publicUrl,
           notes: notes,
+          status: 'Pending'
         });
-      
-      if (error) {
-        console.error('Database insert error:', error);
-        throw error;
+
+      if (receiptError) {
+        console.error('Receipt insert error:', receiptError);
+        throw new Error('Failed to create receipt record: ' + receiptError.message);
       }
-      
+
       toast({
-        title: "Receipt uploaded",
-        description: "Your payment receipt has been uploaded successfully",
+        title: "Receipt uploaded successfully",
+        description: "Your payment receipt has been submitted for review.",
       });
-      
+
       // Reset form
       setFile(null);
       setNotes('');

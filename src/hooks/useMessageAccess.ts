@@ -38,6 +38,33 @@ export const useMessageAccess = () => {
 
   const checkAccess = async () => {
     try {
+      // First check if user has any completed payments
+      const { data: completedPayments, error: paymentError } = await supabase
+        .from('payments')
+        .select('payment_id, status')
+        .eq('client_id', user?.id)
+        .eq('status', 'Completed');
+        
+      if (paymentError) throw paymentError;
+      
+      // If user has completed payments, grant access
+      if (completedPayments && completedPayments.length > 0) {
+        // Update client tier to Paid to ensure consistent access
+        await supabase
+          .from('client_users')
+          .update({ client_tier: 'Paid' })
+          .eq('client_id', user?.id);
+
+        setAccessState({
+          canAccessMessages: true,
+          isLoading: false,
+          reason: 'Your payment has been completed',
+          status: 'paid',
+          requiresPayment: false
+        });
+        return;
+      }
+
       // Check if user has any approved applications
       const { data: applications, error: appError } = await supabase
         .from('applications')

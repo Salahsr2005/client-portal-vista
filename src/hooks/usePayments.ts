@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -109,12 +110,12 @@ export const useUploadReceipt = () => {
         .from('payment-receipts')
         .getPublicUrl(filePath);
 
-      // Update payment record with receipt path
+      // Update payment record with receipt path and set status to Under Review
       const { error: updateError } = await supabase
         .from('payments')
         .update({
           receipt_upload_path: filePath,
-          status: 'Partial'
+          status: 'Under Review'
         })
         .eq('payment_id', paymentId)
         .eq('client_id', user.id);
@@ -137,22 +138,6 @@ export const useUploadReceipt = () => {
         throw new Error('Failed to create receipt record: ' + receiptError.message);
       }
 
-      // Check if user now has a completed payment to enable chat
-      const { data: completedPayments } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('client_id', user.id)
-        .eq('status', 'Completed')
-        .limit(1);
-
-      if (completedPayments && completedPayments.length > 0) {
-        // Update client tier to Paid to enable chat
-        await supabase
-          .from('client_users')
-          .update({ client_tier: 'Paid' })
-          .eq('client_id', user.id);
-      }
-
       return { success: true };
     },
     onSuccess: () => {
@@ -161,6 +146,7 @@ export const useUploadReceipt = () => {
         description: "Your payment receipt has been submitted for review.",
       });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['userPaymentStatus'] });
     },
     onError: (error: Error) => {
       toast({
@@ -172,7 +158,7 @@ export const useUploadReceipt = () => {
   });
 };
 
-// Hook to check if user has chat access
+// Hook to check if user has chat access based on completed payments
 export const useHasChatAccess = () => {
   const { user } = useAuth();
 
@@ -181,15 +167,20 @@ export const useHasChatAccess = () => {
     queryFn: async () => {
       if (!user) return false;
       
-      const { data, error } = await supabase
-        .from('client_users')
-        .select('client_tier')
+      // Check if user has any completed payments
+      const { data: completedPayments, error } = await supabase
+        .from('payments')
+        .select('payment_id')
         .eq('client_id', user.id)
-        .single();
+        .eq('status', 'Completed')
+        .limit(1);
 
-      if (error) return false;
+      if (error) {
+        console.error('Error checking chat access:', error);
+        return false;
+      }
       
-      return data?.client_tier === 'Paid';
+      return completedPayments && completedPayments.length > 0;
     },
     enabled: !!user,
   });
