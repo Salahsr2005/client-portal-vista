@@ -113,8 +113,8 @@ const Payments = () => {
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-xs px-2 py-1 rounded-full ${
                           payment.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                          payment.status === 'Under Review' ? 'bg-blue-100 text-blue-800' :
-                          payment.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                          payment.status === 'Partial' ? 'bg-blue-100 text-blue-800' :
+                          payment.status === 'Failed' ? 'bg-red-100 text-red-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
                           {payment.status}
@@ -164,7 +164,8 @@ const Payments = () => {
                 {pendingApplications.map((item) => (
                   <div
                     key={item.id}
-                    className="flex justify-between items-center p-4 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors"
+                    className="flex justify-between items-center p-4 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer"
+                    onClick={() => openUploadDialog({ id: item.id, description: item.name, amount: `$${item.fee}`, status: 'Pending' })}
                   >
                     <div>
                       <p className="font-medium">{item.name}</p>
@@ -172,7 +173,7 @@ const Payments = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">${item.fee}</p>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      <Upload className="h-4 w-4 text-primary" />
                     </div>
                   </div>
                 ))}

@@ -8,6 +8,7 @@ import SidebarBackground from './SidebarBackground';
 import NotificationBell from '../NotificationBell';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
+import { useHasChatAccess } from "@/hooks/usePayments";
 import {
   ChevronRight,
   Home,
@@ -90,6 +91,7 @@ export function DashboardLayout() {
   const location = useLocation();
   const { signOut } = useAuth();
   const { theme } = useTheme();
+  const { data: hasChatAccess } = useHasChatAccess();
 
   const themeColors = {
     violet: 'from-violet-600 via-purple-600 to-indigo-700',
@@ -186,13 +188,25 @@ export function DashboardLayout() {
 
           {/* Navigation Items */}
           <nav className="space-y-4 flex-1 overflow-y-auto scrollbar-hide">
-            {sidebarSections.map((section) => (
-              <div key={section.title} className="space-y-1">
-                <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider px-3 mb-2">
-                  {section.title}
-                </h3>
-                <div className="space-y-1">
-                  {section.items.map((item, index) => (
+            {sidebarSections.map((section) => {
+              // Filter out Messages if user doesn't have chat access
+              const filteredItems = section.items.filter(item => {
+                if (item.path === '/chat' && !hasChatAccess) {
+                  return false;
+                }
+                return true;
+              });
+
+              // Don't show section if no items remain after filtering
+              if (filteredItems.length === 0) return null;
+
+              return (
+                <div key={section.title} className="space-y-1">
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider px-3 mb-2">
+                    {section.title}
+                  </h3>
+                  <div className="space-y-1">
+                    {filteredItems.map((item, index) => (
                     <Link
                       key={item.path}
                       to={item.path}
@@ -218,10 +232,11 @@ export function DashboardLayout() {
                         </span>
                       )}
                     </Link>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </nav>
 
           {/* Bottom Actions */}
