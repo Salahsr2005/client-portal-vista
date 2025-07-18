@@ -1,6 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Payment {
   id: string;
@@ -16,6 +18,7 @@ export interface Payment {
   universityName?: string;
   serviceId?: string;
   serviceName?: string;
+  receiptUploadPath?: string;
 }
 
 export const usePayments = () => {
@@ -109,7 +112,8 @@ export const usePayments = () => {
           programName,
           universityName,
           serviceId: serviceInfo.serviceId,
-          serviceName: serviceInfo.serviceName
+          serviceName: serviceInfo.serviceName,
+          receiptUploadPath: payment.receipt_upload_path
         } as Payment;
       });
     },
@@ -188,6 +192,84 @@ export const usePendingApplications = () => {
         console.error("Error in pending applications query:", error);
         return [];
       }
+    },
+  });
+};
+
+// Upload receipt mutation
+export const useUploadReceipt = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      paymentId,
+      receiptFile,
+      notes
+    }: {
+      paymentId: string;
+      receiptFile: File;
+      notes?: string;
+    }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Upload file to storage
+      const fileExt = receiptFile.name.split('.').pop();
+      const fileName = `${paymentId}_${Date.now()}.${fileExt}`;
+      const filePath = `payment-receipts/${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('payment-receipts')
+        .upload(filePath, receiptFile);
+
+      if (uploadError) {
+        throw new Error(`Failed to upload receipt: ${uploadError.message}`);
+      }
+
+      // Update payment record with receipt path
+      const { error: updateError } = await supabase
+        .from('payments')
+        .update({
+          receipt_upload_path: filePath,
+          status: 'Under Review'
+        })
+        .eq('payment_id', paymentId)
+        .eq('client_id', user.id);
+
+      if (updateError) {
+        throw new Error(`Failed to update payment: ${updateError.message}`);
+      }
+
+      // Create receipt record
+      const { error: receiptError } = await supabase
+        .from('payment_receipts')
+        .insert({
+          payment_id: paymentId,
+          client_id: user.id,
+          receipt_path: filePath,
+          notes: notes
+        });
+
+      if (receiptError) {
+        throw new Error(`Failed to create receipt record: ${receiptError.message}`);
+      }
+
+      return filePath;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast({
+        title: "Receipt Uploaded",
+        description: "Your payment receipt has been uploaded successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Upload Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 };

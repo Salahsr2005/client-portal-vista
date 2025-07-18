@@ -1,105 +1,88 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { usePayments } from "@/hooks/usePayments";
-import { usePendingApplications } from "@/hooks/usePayments";
-import { CreditCard, BanknoteIcon, ArrowRight, CheckCircle, Shield, AlertTriangle } from "lucide-react";
-import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { usePayments, usePendingApplications, useUploadReceipt } from "@/hooks/usePayments";
+import { CreditCard, BanknoteIcon, ArrowRight, Upload, FileText, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { SecurePaymentForm } from "@/components/payments/SecurePaymentForm";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSecurePayments } from "@/hooks/useSecurePayments";
-import PaymentUploader from "@/components/profile/PaymentUploader";
 
 const Payments = () => {
-  const { data: payments = [], isLoading, error } = usePayments();
+  const { data: payments = [], isLoading } = usePayments();
   const { data: pendingApplications = [], isLoading: isLoadingPending } = usePendingApplications();
-  const { securePayments, isLoading: isLoadingSecure } = useSecurePayments();
-  const [pendingItem, setPendingItem] = useState<any>(null);
-  const [pendingType, setPendingType] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [showSecurePayment, setShowSecurePayment] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("card");
+  const uploadReceiptMutation = useUploadReceipt();
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [notes, setNotes] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  const handlePendingItemClick = (item: any, type: string) => {
-    setPendingItem(item);
-    setPendingType(type);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a JPG, PNG, GIF or PDF file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setReceiptFile(file);
+    }
   };
 
-  // Function to safely handle potentially missing properties
-  const getProgramDetails = (app: any) => {
-    return {
-      programName: app?.name || app?.programName || "Program Fee", 
-      university: app?.provider || app?.university || "", 
-      applicationFee: app?.fee || 0
-    };
-  };
+  const handleUploadReceipt = async () => {
+    if (!receiptFile || !selectedPayment) return;
 
-  const handlePaymentInitiated = (paymentMethod: string, reference: string) => {
-    setShowSecurePayment(false);
-    setIsDetailsOpen(false);
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Instructions de paiement générées",
-      description: `Suivez les instructions dans le PDF téléchargé pour effectuer votre paiement via ${paymentMethod}.`,
+    uploadReceiptMutation.mutate({
+      paymentId: selectedPayment.id,
+      receiptFile,
+      notes
+    }, {
+      onSuccess: () => {
+        setIsUploadDialogOpen(false);
+        setReceiptFile(null);
+        setNotes('');
+        setSelectedPayment(null);
+      }
     });
-    
-    // Here you would typically create a payment record in the database
-    // with status "pending" waiting for receipt upload
   };
 
-  const handleStartSecurePayment = () => {
-    setIsDialogOpen(false);
-    setIsDetailsOpen(false);
-    setShowSecurePayment(true);
+  const openUploadDialog = (payment: any) => {
+    setSelectedPayment(payment);
+    setIsUploadDialogOpen(true);
   };
 
   if (isLoading || isLoadingPending) {
-      return (
-        <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your payments...</p>
-          </div>
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your payments...</p>
         </div>
-      );
-    }
-
-    // Show secure payment form when user is making a payment
-    if (showSecurePayment && pendingItem && user) {
-      return (
-        <div className="space-y-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowSecurePayment(false)}
-            >
-              ← Retour
-            </Button>
-            <h1 className="text-3xl font-bold">Paiement Sécurisé</h1>
-          </div>
-          
-          <SecurePaymentForm
-            amount={getProgramDetails(pendingItem).applicationFee}
-            currency="DZD"
-            itemType={pendingType as 'program' | 'destination' | 'service'}
-            itemName={getProgramDetails(pendingItem).programName}
-            clientName={`${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() || user.email || 'Client'}
-            clientId={user.id}
-            onPaymentInitiated={handlePaymentInitiated}
-          />
-        </div>
-      );
-    }
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -108,61 +91,6 @@ const Payments = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Secure Payments Card */}
-        <Card className="shadow-md hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-emerald-500/5">
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" /> Secure Payments
-            </CardTitle>
-            <CardDescription>Your secure payment transactions</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            {securePayments.length > 0 ? (
-              <div className="space-y-4">
-                {securePayments.map((payment) => (
-                  <div 
-                    key={payment.id} 
-                    className="p-4 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-medium">{payment.item_name}</p>
-                        <p className="text-xs text-muted-foreground">Ref: {payment.payment_reference}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{payment.amount} {payment.currency}</p>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          payment.status === 'verified' ? 'bg-green-100 text-green-800' :
-                          payment.status === 'payment_uploaded' ? 'bg-blue-100 text-blue-800' :
-                          payment.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {payment.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground capitalize">{payment.payment_method} payment</p>
-                    
-                    {payment.status === 'pending_payment' && (
-                      <div className="mt-3 p-3 bg-yellow-50 rounded-lg border">
-                        <p className="text-sm font-medium text-yellow-800 mb-2">Upload Payment Receipt</p>
-                        <PaymentUploader 
-                          paymentId={payment.id} 
-                          onSuccess={() => window.location.reload()} 
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">No secure payments found.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Payment History Card */}
         <Card className="shadow-md hover:shadow-lg transition-shadow">
           <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
@@ -179,13 +107,37 @@ const Payments = () => {
                     key={payment.id} 
                     className="flex justify-between items-center p-4 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors"
                   >
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium">{payment.description}</p>
                       <p className="text-sm text-muted-foreground">{payment.date}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          payment.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          payment.status === 'Under Review' ? 'bg-blue-100 text-blue-800' :
+                          payment.status === 'Rejected' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {payment.status}
+                        </span>
+                        {payment.receiptUploadPath && (
+                          <FileText className="h-4 w-4 text-green-600" />
+                        )}
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-emerald-600 dark:text-emerald-400">{payment.amount}</p>
                       <p className="text-xs text-muted-foreground">{payment.method}</p>
+                      {payment.status === 'Pending' && !payment.receiptUploadPath && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2"
+                          onClick={() => openUploadDialog(payment)}
+                        >
+                          <Upload className="h-3 w-3 mr-1" />
+                          Upload Receipt
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -212,11 +164,7 @@ const Payments = () => {
                 {pendingApplications.map((item) => (
                   <div
                     key={item.id}
-                    className="flex justify-between items-center p-4 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer"
-                    onClick={() => {
-                      handlePendingItemClick(item, 'program');
-                      setIsDetailsOpen(true);
-                    }}
+                    className="flex justify-between items-center p-4 rounded-lg border border-border/50 hover:bg-secondary/30 transition-colors"
                   >
                     <div>
                       <p className="font-medium">{item.name}</p>
@@ -238,99 +186,65 @@ const Payments = () => {
         </Card>
       </div>
 
-      {/* Payment Details Sheet */}
-      <Sheet open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Payment Details</SheetTitle>
-            <SheetDescription>Review your payment information</SheetDescription>
-          </SheetHeader>
-          
-          {pendingItem && (
-            <div className="mt-6 space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">{getProgramDetails(pendingItem).programName}</h3>
-                <p className="text-muted-foreground">{getProgramDetails(pendingItem).university}</p>
-              </div>
-              
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Fee Details:</p>
-                <div className="flex justify-between items-center border-b pb-2 mb-2">
-                  <span>Application Fee</span>
-                  <span>${getProgramDetails(pendingItem).applicationFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center font-semibold">
-                  <span>Total</span>
-                  <span>${getProgramDetails(pendingItem).applicationFee.toFixed(2)}</span>
-                </div>
-              </div>
-              
-              <Button 
-                className="w-full mt-6 gap-2" 
-                onClick={handleStartSecurePayment}
-              >
-                <Shield className="h-4 w-4" />
-                Procéder au Paiement Sécurisé
-              </Button>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* Payment Method Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Upload Receipt Dialog */}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Select Payment Method</DialogTitle>
+            <DialogTitle>Upload Payment Receipt</DialogTitle>
             <DialogDescription>
-              Choose how you would like to pay for your application
+              Upload your payment receipt for verification
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-4">
-            <RadioGroup 
-              defaultValue="card" 
-              value={selectedPaymentMethod} 
-              onValueChange={setSelectedPaymentMethod}
-              className="space-y-4"
-            >
-              <div className={`flex items-start space-x-3 rounded-lg border p-4 ${selectedPaymentMethod === 'card' ? 'border-primary bg-primary/5' : ''}`}>
-                <RadioGroupItem value="card" id="card" className="mt-1" />
-                <div className="flex flex-col">
-                  <label htmlFor="card" className="font-medium cursor-pointer flex items-center gap-2">
-                    <CreditCard className="h-4 w-4" /> Credit/Debit Card
-                  </label>
-                  <span className="text-sm text-muted-foreground">Pay securely with your card</span>
-                </div>
-              </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="receipt-file">Receipt File</Label>
+              <Input
+                id="receipt-file"
+                type="file"
+                onChange={handleFileChange}
+                accept=".jpg,.jpeg,.png,.gif,.pdf"
+              />
+              <p className="text-xs text-muted-foreground">
+                Upload JPG, PNG, GIF or PDF (max 10MB)
+              </p>
+            </div>
 
-              <div className={`flex items-start space-x-3 rounded-lg border p-4 ${selectedPaymentMethod === 'bank' ? 'border-primary bg-primary/5' : ''}`}>
-                <RadioGroupItem value="bank" id="bank" className="mt-1" />
-                <div className="flex flex-col">
-                  <label htmlFor="bank" className="font-medium cursor-pointer">Bank Transfer (BDL-AGB-CPA)</label>
-                  <span className="text-sm text-muted-foreground">Transfer directly from your bank account</span>
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Any additional notes about this payment..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
 
-              <div className={`flex items-start space-x-3 rounded-lg border p-4 ${selectedPaymentMethod === 'ccp' ? 'border-primary bg-primary/5' : ''}`}>
-                <RadioGroupItem value="ccp" id="ccp" className="mt-1" />
-                <div className="flex flex-col">
-                  <label htmlFor="ccp" className="font-medium cursor-pointer">Algeria CCP</label>
-                  <span className="text-sm text-muted-foreground">Pay using Algeria CCP account</span>
-                </div>
-              </div>
-            </RadioGroup>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsUploadDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUploadReceipt}
+                disabled={!receiptFile || uploadReceiptMutation.isPending}
+              >
+                {uploadReceiptMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Receipt
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button onClick={handleStartSecurePayment} className="w-full sm:w-auto gap-2">
-              <Shield className="h-4 w-4" />
-              Paiement Sécurisé
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

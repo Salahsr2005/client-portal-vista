@@ -3,21 +3,26 @@ import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, CheckCircle, AlertCircle, Clock, Upload, FileText, ExternalLink, Eye } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, Clock, Upload, FileText, Eye } from "lucide-react";
 import { useUserPaymentStatus } from "@/hooks/useUserPaymentStatus";
-import PaymentUploader from "./PaymentUploader";
+import { useUploadReceipt } from "@/hooks/usePayments";
 import { formatCurrency, getReceiptUrl } from "@/utils/databaseHelpers";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 // Helper for badge styling
 const getStatusBadgeStyle = (status: string) => {
   switch (status) {
+    case 'Completed':
     case 'Approved':
       return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
     case 'Rejected':
       return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+    case 'Under Review':
     case 'Pending':
       return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
     default:
@@ -50,9 +55,56 @@ const formatRelativeTime = (dateString: string) => {
 
 const PaymentStatus: React.FC = () => {
   const { data, isLoading, isError } = useUserPaymentStatus();
-  const [viewingReceipt, setViewingReceipt] = useState<string | null>(null);
+  const uploadReceiptMutation = useUploadReceipt();
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [notes, setNotes] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a JPG, PNG, GIF or PDF file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setReceiptFile(file);
+    }
+  };
+
+  const handleUploadReceipt = async () => {
+    if (!receiptFile || !data) return;
+
+    uploadReceiptMutation.mutate({
+      paymentId: data.id,
+      receiptFile,
+      notes
+    }, {
+      onSuccess: () => {
+        setReceiptFile(null);
+        setNotes('');
+        queryClient.invalidateQueries({ queryKey: ['userPaymentStatus'] });
+      }
+    });
+  };
 
   // View receipt handler
   const handleViewReceipt = async (receiptPath: string) => {
@@ -101,7 +153,6 @@ const PaymentStatus: React.FC = () => {
     );
   }
 
-  // Render payment status
   return (
     <Card className="shadow-md">
       <CardHeader>
@@ -187,59 +238,9 @@ const PaymentStatus: React.FC = () => {
             </p>
           </div>
         )}
-        
-        {/* Payment instructions */}
-        {!data.isPaid && (
-          <div className="rounded-md border bg-card p-4">
-            <h3 className="font-medium flex items-center gap-2 mb-2">
-              <Clock className="h-4 w-4 text-amber-500" />
-              Payment Instructions
-            </h3>
-            <p className="text-sm mb-4">
-              Please make a payment to the following account and upload your receipt:
-            </p>
-            <div className="bg-muted rounded-md p-3 text-sm mb-4">
-              <div className="grid grid-cols-1 gap-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Bank:</span>
-                  <span className="font-medium">International Bank of Morocco</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Account Name:</span>
-                  <span className="font-medium">Euro Visa Services</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Account Number:</span>
-                  <span className="font-medium">872-55392-001</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">IBAN:</span>
-                  <span className="font-medium">MA82 1234 5678 9012 3456 7890</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Reference:</span>
-                  <span className="font-medium">{data.reference || 'Your Name-Application ID'}</span>
-                </div>
-              </div>
-            </div>
-            <div className="text-sm text-muted-foreground mb-4">
-              <p className="flex items-center gap-1">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-                <span>
-                  Be sure to include your reference number in the payment description.
-                </span>
-              </p>
-            </div>
-            <Button variant="outline" className="w-full" asChild>
-              <a href="https://www.bankofmorocco.com" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Go to Online Banking
-              </a>
-            </Button>
-          </div>
-        )}
 
-        {data.status === 'Approved' && (
+        {/* Status-specific content */}
+        {data.status === 'Completed' && (
           <div className="rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/30 p-4 text-center">
             <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-500 mx-auto mb-2" />
             <h3 className="font-medium text-lg">Payment Verified</h3>
@@ -262,17 +263,53 @@ const PaymentStatus: React.FC = () => {
           </div>
         )}
 
-        {/* Upload Receipt Section (only show if not approved yet) */}
-        {data.status !== 'Approved' && (
-          <div className="mt-8">
-            <h3 className="font-medium mb-2">Upload Payment Receipt</h3>
-            <PaymentUploader paymentId={data.id} onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ['userPaymentStatus'] });
-              toast({
-                title: "Receipt uploaded",
-                description: "Your payment receipt has been uploaded and is pending verification",
-              });
-            }}/>
+        {/* Upload Receipt Section (only show if not completed) */}
+        {data.status !== 'Completed' && (
+          <div className="mt-8 space-y-4">
+            <h3 className="font-medium">Upload Payment Receipt</h3>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="receipt-file">Receipt File</Label>
+                <Input
+                  id="receipt-file"
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".jpg,.jpeg,.png,.gif,.pdf"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload JPG, PNG, GIF or PDF (max 10MB)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Any additional notes about this payment..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <Button
+                onClick={handleUploadReceipt}
+                disabled={!receiptFile || uploadReceiptMutation.isPending}
+                className="w-full"
+              >
+                {uploadReceiptMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Receipt
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
