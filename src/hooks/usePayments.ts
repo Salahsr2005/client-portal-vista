@@ -115,7 +115,7 @@ export const useUploadReceipt = () => {
         .from('payments')
         .update({
           receipt_upload_path: filePath,
-          status: 'Under Review'
+          status: 'Pending'
         })
         .eq('payment_id', paymentId)
         .eq('client_id', user.id);

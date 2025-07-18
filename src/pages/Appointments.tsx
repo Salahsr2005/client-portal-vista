@@ -358,7 +358,7 @@ export default function Appointments() {
                           <Button 
                             variant="outline" 
                             className="w-full"
-                            onClick={() => {}} // Handle view details
+                            onClick={() => navigate(`/appointments/${appointment.id}`)}
                           >
                             View Details
                           </Button>
@@ -464,7 +464,7 @@ export default function Appointments() {
                           <Button 
                             variant="outline" 
                             className="w-full"
-                            onClick={() => {}} // Handle view details
+                            onClick={() => navigate(`/appointments/${appointment.id}`)}
                           >
                             View Details
                           </Button>

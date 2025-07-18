@@ -82,7 +82,7 @@ const PaymentUploader = ({ paymentId, onSuccess }: PaymentUploaderProps) => {
         .from('payments')
         .update({
           receipt_upload_path: filePath,
-          status: 'Under Review'
+          status: 'Pending'
         })
         .eq('payment_id', paymentId)
         .eq('client_id', user.id);
@@ -91,13 +91,13 @@ const PaymentUploader = ({ paymentId, onSuccess }: PaymentUploaderProps) => {
         throw new Error('Failed to update payment: ' + updateError.message);
       }
 
-      // Create receipt record with the public URL
+      // Create receipt record with the file path for storage and public URL for display
       const { error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
           payment_id: paymentId,
           client_id: user.id,
-          receipt_path: publicUrl,
+          receipt_path: publicUrl, // Store public URL for easy access
           notes: notes,
           status: 'Pending'
         });

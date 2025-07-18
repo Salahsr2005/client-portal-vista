@@ -23,6 +23,7 @@ import Applications from "./pages/Applications";
 import NewApplication from "./pages/NewApplication"; 
 import ApplicationView from "./pages/ApplicationView";
 import Appointments from "./pages/Appointments";
+import AppointmentDetails from "./pages/AppointmentDetails";
 import Services from "./pages/Services";
 import Notifications from "./pages/Notifications";
 import Payments from "./pages/Payments";
@@ -109,6 +110,7 @@ const AppRoutes = () => {
           <Route path="/programs/:programId" element={<ProgramView />} />
           <Route path="/services" element={<Services />} />
           <Route path="/appointments" element={<Appointments />} />
+          <Route path="/appointments/:id" element={<AppointmentDetails />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/payments" element={<Payments />} />
