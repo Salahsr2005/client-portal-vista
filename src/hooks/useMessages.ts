@@ -31,12 +31,12 @@ export const useMessages = () => {
       
       return (messagesData || []).map(message => ({
         id: message.message_id,
-        subject: message.message_type || "No Subject",
+        subject: "Chat Message",
         content: message.message_text || "",
         sentAt: new Date(message.sent_at).toLocaleString(),
-        isRead: message.status === "Read",
+        isRead: true,
         isIncoming: message.sender_id !== user.id,
-        senderType: message.sender_type || "System",
+        senderType: "System",
         senderId: message.sender_id,
         recipientType: "Client",
         recipientId: user.id,

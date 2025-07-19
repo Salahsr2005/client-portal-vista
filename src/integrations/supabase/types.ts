@@ -386,13 +386,10 @@ export type Database = {
           is_edited: boolean | null
           message_id: string
           message_text: string
-          message_type: Database["public"]["Enums"]["message_type"] | null
           metadata: Json | null
           reply_to_message_id: string | null
           sender_id: string
-          sender_type: Database["public"]["Enums"]["chat_participant_type"]
           sent_at: string | null
-          status: Database["public"]["Enums"]["message_status"] | null
         }
         Insert: {
           chat_id: string
@@ -400,13 +397,10 @@ export type Database = {
           is_edited?: boolean | null
           message_id?: string
           message_text: string
-          message_type?: Database["public"]["Enums"]["message_type"] | null
           metadata?: Json | null
           reply_to_message_id?: string | null
           sender_id: string
-          sender_type: Database["public"]["Enums"]["chat_participant_type"]
           sent_at?: string | null
-          status?: Database["public"]["Enums"]["message_status"] | null
         }
         Update: {
           chat_id?: string
@@ -414,13 +408,10 @@ export type Database = {
           is_edited?: boolean | null
           message_id?: string
           message_text?: string
-          message_type?: Database["public"]["Enums"]["message_type"] | null
           metadata?: Json | null
           reply_to_message_id?: string | null
           sender_id?: string
-          sender_type?: Database["public"]["Enums"]["chat_participant_type"]
           sent_at?: string | null
-          status?: Database["public"]["Enums"]["message_status"] | null
         }
         Relationships: [
           {
@@ -449,7 +440,7 @@ export type Database = {
           last_read_at: string | null
           notification_settings: Json | null
           participant_id: string
-          participant_type: Database["public"]["Enums"]["chat_participant_type"]
+          participant_type: string
           unread_count: number | null
         }
         Insert: {
@@ -461,7 +452,7 @@ export type Database = {
           last_read_at?: string | null
           notification_settings?: Json | null
           participant_id: string
-          participant_type: Database["public"]["Enums"]["chat_participant_type"]
+          participant_type?: string
           unread_count?: number | null
         }
         Update: {
@@ -473,7 +464,7 @@ export type Database = {
           last_read_at?: string | null
           notification_settings?: Json | null
           participant_id?: string
-          participant_type?: Database["public"]["Enums"]["chat_participant_type"]
+          participant_type?: string
           unread_count?: number | null
         }
         Relationships: [
@@ -489,35 +480,38 @@ export type Database = {
       chats: {
         Row: {
           chat_id: string
+          chat_name: string | null
+          chat_type: string | null
           created_at: string | null
+          created_by: string | null
           is_active: boolean | null
-          is_group_chat: boolean | null
+          last_message_at: string | null
           last_message_text: string | null
-          last_message_time: string | null
           metadata: Json | null
-          title: string | null
           updated_at: string | null
         }
         Insert: {
           chat_id?: string
+          chat_name?: string | null
+          chat_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           is_active?: boolean | null
-          is_group_chat?: boolean | null
+          last_message_at?: string | null
           last_message_text?: string | null
-          last_message_time?: string | null
           metadata?: Json | null
-          title?: string | null
           updated_at?: string | null
         }
         Update: {
           chat_id?: string
+          chat_name?: string | null
+          chat_type?: string | null
           created_at?: string | null
+          created_by?: string | null
           is_active?: boolean | null
-          is_group_chat?: boolean | null
+          last_message_at?: string | null
           last_message_text?: string | null
-          last_message_time?: string | null
           metadata?: Json | null
-          title?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1108,15 +1102,7 @@ export type Database = {
           message_id?: string
           thumbnail_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "message_attachments_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "chat_messages"
-            referencedColumns: ["message_id"]
-          },
-        ]
+        Relationships: []
       }
       message_reactions: {
         Row: {
@@ -1125,7 +1111,6 @@ export type Database = {
           reaction: string
           reaction_id: string
           user_id: string
-          user_type: Database["public"]["Enums"]["chat_participant_type"]
         }
         Insert: {
           created_at?: string | null
@@ -1133,7 +1118,6 @@ export type Database = {
           reaction: string
           reaction_id?: string
           user_id: string
-          user_type: Database["public"]["Enums"]["chat_participant_type"]
         }
         Update: {
           created_at?: string | null
@@ -1141,17 +1125,8 @@ export type Database = {
           reaction?: string
           reaction_id?: string
           user_id?: string
-          user_type?: Database["public"]["Enums"]["chat_participant_type"]
         }
-        Relationships: [
-          {
-            foreignKeyName: "message_reactions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "chat_messages"
-            referencedColumns: ["message_id"]
-          },
-        ]
+        Relationships: []
       }
       notification_delivery_stats: {
         Row: {
@@ -2029,24 +2004,13 @@ export type Database = {
         }[]
       }
       get_chat_messages: {
-        Args: {
-          p_chat_id: string
-          p_limit?: number
-          p_offset?: number
-          p_before_timestamp?: string
-        }
+        Args: { p_chat_id: string; p_limit?: number }
         Returns: {
           message_id: string
-          sender_id: string
-          sender_type: Database["public"]["Enums"]["chat_participant_type"]
           message_text: string
+          sender_id: string
+          sender_type: string
           sent_at: string
-          status: Database["public"]["Enums"]["message_status"]
-          is_edited: boolean
-          reply_to_message_id: string
-          message_type: Database["public"]["Enums"]["message_type"]
-          attachments: Json
-          reactions: Json
         }[]
       }
       get_destination_statistics: {
@@ -2113,14 +2077,10 @@ export type Database = {
         }[]
       }
       get_user_chats: {
-        Args: {
-          p_user_id: string
-          p_user_type: Database["public"]["Enums"]["chat_participant_type"]
-        }
+        Args: { p_user_id: string; p_user_type: string }
         Returns: {
           chat_id: string
           title: string
-          is_group_chat: boolean
           last_message_text: string
           last_message_time: string
           unread_count: number
@@ -2138,7 +2098,7 @@ export type Database = {
         Args: {
           p_chat_id: string
           p_participant_id: string
-          p_participant_type: Database["public"]["Enums"]["chat_participant_type"]
+          p_participant_type: string
         }
         Returns: undefined
       }
@@ -2189,13 +2149,13 @@ export type Database = {
         | "Completed"
         | "Cancelled"
         | "No-Show"
-      chat_participant_type: "Client" | "Admin" | "System"
+      chat_participant_type: "admin" | "client" | "user"
       client_tier: "Basic" | "Applicant" | "Paid"
       contact_preference: "Email" | "Phone" | "Both"
       fee_type: "Fixed" | "Percentage" | "Tiered"
       language_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
-      message_status: "Sent" | "Delivered" | "Read" | "Failed"
-      message_type: "Text" | "Image" | "File" | "System"
+      message_status: "sent" | "delivered" | "read" | "failed"
+      message_type: "text" | "image" | "file" | "audio" | "video" | "system"
       notification_type:
         | "System"
         | "Application"
@@ -2525,13 +2485,13 @@ export const Constants = {
         "Cancelled",
         "No-Show",
       ],
-      chat_participant_type: ["Client", "Admin", "System"],
+      chat_participant_type: ["admin", "client", "user"],
       client_tier: ["Basic", "Applicant", "Paid"],
       contact_preference: ["Email", "Phone", "Both"],
       fee_type: ["Fixed", "Percentage", "Tiered"],
       language_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
-      message_status: ["Sent", "Delivered", "Read", "Failed"],
-      message_type: ["Text", "Image", "File", "System"],
+      message_status: ["sent", "delivered", "read", "failed"],
+      message_type: ["text", "image", "file", "audio", "video", "system"],
       notification_type: [
         "System",
         "Application",

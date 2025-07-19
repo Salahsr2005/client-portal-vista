@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 
 export interface Payment {
   id: string;
@@ -23,8 +25,13 @@ export interface PendingApplication {
 
 export const usePayments = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
-  return useQuery({
+  const navigateToPayment = useCallback((paymentId: string) => {
+    navigate(`/payment-checkout/${paymentId}`);
+  }, [navigate]);
+
+  const query = useQuery({
     queryKey: ['payments', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -49,6 +56,8 @@ export const usePayments = () => {
     },
     enabled: !!user,
   });
+
+  return { data: query.data, isLoading: query.isLoading, navigateToPayment };
 };
 
 export const usePendingApplications = () => {

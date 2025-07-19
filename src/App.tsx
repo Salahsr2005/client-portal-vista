@@ -114,7 +114,7 @@ const AppRoutes = () => {
           <Route path="/messages" element={<Messages />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/payments" element={<Payments />} />
-          <Route path="/payment-checkout" element={<PaymentCheckout />} />
+          <Route path="/payment-checkout/:paymentId" element={<PaymentCheckout />} />
           <Route path="/destinations" element={<ModernDestinations />} />
           <Route path="/destinations/:id" element={<DestinationDetails />} />
           <Route path="/consultation" element={<Consultation />} />
