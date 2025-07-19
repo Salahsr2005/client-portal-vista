@@ -389,6 +389,7 @@ export type Database = {
           metadata: Json | null
           reply_to_message_id: string | null
           sender_id: string
+          sender_type: string | null
           sent_at: string | null
         }
         Insert: {
@@ -400,6 +401,7 @@ export type Database = {
           metadata?: Json | null
           reply_to_message_id?: string | null
           sender_id: string
+          sender_type?: string | null
           sent_at?: string | null
         }
         Update: {
@@ -411,6 +413,7 @@ export type Database = {
           metadata?: Json | null
           reply_to_message_id?: string | null
           sender_id?: string
+          sender_type?: string | null
           sent_at?: string | null
         }
         Relationships: [
@@ -485,6 +488,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           is_active: boolean | null
+          is_group_chat: boolean
           last_message_at: string | null
           last_message_text: string | null
           metadata: Json | null
@@ -497,6 +501,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           is_active?: boolean | null
+          is_group_chat?: boolean
           last_message_at?: string | null
           last_message_text?: string | null
           metadata?: Json | null
@@ -509,6 +514,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           is_active?: boolean | null
+          is_group_chat?: boolean
           last_message_at?: string | null
           last_message_text?: string | null
           metadata?: Json | null
@@ -2126,6 +2132,15 @@ export type Database = {
           scholarship_score: number
           cultural_score: number
         }[]
+      }
+      send_message: {
+        Args: {
+          p_chat_id: string
+          p_sender_id: string
+          p_message_text: string
+          p_sender_type?: string
+        }
+        Returns: string
       }
       user_can_access_chat: {
         Args: { chat_id_param: string }
