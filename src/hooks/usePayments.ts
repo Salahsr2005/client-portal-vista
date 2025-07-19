@@ -133,14 +133,15 @@ export const useUploadReceipt = () => {
         throw new Error('Failed to update payment: ' + updateError.message);
       }
 
-      // Create receipt record
+      // Create receipt record with proper user context
       const { error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
           payment_id: paymentId,
           client_id: user.id,
           receipt_path: publicUrl,
-          notes: notes
+          notes: notes,
+          status: 'Pending'
         });
 
       if (receiptError) {

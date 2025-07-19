@@ -96,13 +96,13 @@ const PaymentCheckout = () => {
         throw new Error('Failed to update payment: ' + updateError.message);
       }
 
-      // Create receipt record with the file path for storage and public URL for display
+      // Create receipt record with proper user context
       const { error: receiptError } = await supabase
         .from('payment_receipts')
         .insert({
           payment_id: paymentId,
           client_id: user.id,
-          receipt_path: publicUrl, // Store public URL for easy access
+          receipt_path: filePath, // Store file path instead of public URL
           notes: notes,
           status: 'Pending'
         });
