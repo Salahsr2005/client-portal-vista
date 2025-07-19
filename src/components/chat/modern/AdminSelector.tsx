@@ -63,7 +63,7 @@ export const AdminSelector: React.FC<AdminSelectorProps> = ({ onSelectAdmin, onC
       </CardHeader>
       
       <CardContent className="p-6">
-        {admins.length === 0 ? (
+        {!admins || admins.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
             <h3 className="text-lg font-medium mb-2">No advisors available</h3>

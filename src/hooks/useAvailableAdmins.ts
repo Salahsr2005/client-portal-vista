@@ -14,7 +14,7 @@ export interface Admin {
 }
 
 export const useAvailableAdmins = () => {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["availableAdmins"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_available_admins');
@@ -41,4 +41,10 @@ export const useAvailableAdmins = () => {
     },
     refetchInterval: 30000, // Refetch every 30 seconds to update online status
   });
+
+  return {
+    admins: query.data || [],
+    isLoading: query.isLoading,
+    error: query.error
+  };
 };

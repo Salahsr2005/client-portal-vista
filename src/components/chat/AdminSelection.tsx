@@ -51,7 +51,7 @@ export default function AdminSelection({ onSelectAdmin }: AdminSelectionProps) {
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
-        {admins.length === 0 ? (
+        {!admins || admins.length === 0 ? (
           <div className="text-center py-8">
             <User className="w-16 h-16 mx-auto mb-4 opacity-50" />
             <p className="text-muted-foreground">No advisors available right now</p>
