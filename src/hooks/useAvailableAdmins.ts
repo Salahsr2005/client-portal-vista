@@ -1,7 +1,6 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Admin {
   admin_id: string;
@@ -10,48 +9,36 @@ export interface Admin {
   full_name: string;
   photo_url: string;
   status: string;
-  last_active: string | null;
-  isOnline?: boolean;
+  last_active?: string;
+  isOnline: boolean;
 }
 
 export const useAvailableAdmins = () => {
-  const [admins, setAdmins] = useState<Admin[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
-
-  const fetchAdmins = async () => {
-    try {
+  return useQuery({
+    queryKey: ["availableAdmins"],
+    queryFn: async () => {
       const { data, error } = await supabase.rpc('get_available_admins');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching available admins:', error);
+        throw error;
+      }
 
-      const adminsWithOnlineStatus = data?.map((admin: any) => ({
-        ...admin,
-        isOnline: admin.last_active && 
-          new Date(admin.last_active) > new Date(Date.now() - 5 * 60 * 1000) // 5 minutes
-      })) || [];
+      const admins: Admin[] = (data || []).map((admin: any) => ({
+        admin_id: admin.admin_id,
+        first_name: admin.first_name,
+        last_name: admin.last_name,
+        full_name: admin.full_name,
+        photo_url: admin.photo_url || '/placeholder.svg',
+        status: admin.status,
+        last_active: admin.last_active,
+        isOnline: admin.last_active ? 
+          new Date(admin.last_active) > new Date(Date.now() - 5 * 60 * 1000) : 
+          false
+      }));
 
-      setAdmins(adminsWithOnlineStatus);
-    } catch (error) {
-      console.error('Error fetching admins:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load available advisors',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAdmins();
-    
-    // Refresh admin list every minute
-    const interval = setInterval(fetchAdmins, 60000);
-    
-    return () => clearInterval(interval);
-  }, []);
-
-  return { admins, isLoading, refetch: fetchAdmins };
+      return admins;
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds to update online status
+  });
 };
