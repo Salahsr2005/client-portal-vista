@@ -62,34 +62,34 @@ export const ChatWindow: React.FC = () => {
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       className={cn(
-        "flex items-end space-x-2 mb-6",
+        "flex items-end space-x-2 mb-4 md:mb-6",
         isOwn ? "justify-end" : "justify-start"
       )}
     >
       {!isOwn && (
-        <Avatar className="w-8 h-8 border-2 border-background shadow-sm">
+        <Avatar className="w-6 h-6 md:w-8 md:h-8 border-2 border-background shadow-sm flex-shrink-0">
           <AvatarFallback className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white text-xs">
-            <Bot className="w-4 h-4" />
+            <Bot className="w-3 h-3 md:w-4 md:h-4" />
           </AvatarFallback>
         </Avatar>
       )}
 
       <div className={cn(
-        "max-w-[70%] group",
+        "max-w-[85%] sm:max-w-[70%] group",
         isOwn ? "order-first" : ""
       )}>
         <div className={cn(
-          "px-4 py-3 rounded-2xl shadow-sm relative",
+          "px-3 py-2 md:px-4 md:py-3 rounded-2xl shadow-sm relative",
           isOwn 
             ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-br-md" 
             : "bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 text-foreground rounded-bl-md border border-border/50"
         )}>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
             {message.text}
           </p>
           
           <div className={cn(
-            "flex items-center justify-end space-x-1 mt-2 opacity-70",
+            "flex items-center justify-end space-x-1 mt-1 md:mt-2 opacity-70",
             isOwn ? "text-white/80" : "text-muted-foreground"
           )}>
             <span className="text-xs">
@@ -103,9 +103,9 @@ export const ChatWindow: React.FC = () => {
       </div>
 
       {isOwn && (
-        <Avatar className="w-8 h-8 border-2 border-background shadow-sm">
+        <Avatar className="w-6 h-6 md:w-8 md:h-8 border-2 border-background shadow-sm flex-shrink-0">
           <AvatarFallback className="bg-gradient-to-br from-violet-400 to-purple-500 text-white text-xs">
-            <User className="w-4 h-4" />
+            <User className="w-3 h-3 md:w-4 md:h-4" />
           </AvatarFallback>
         </Avatar>
       )}
@@ -131,32 +131,33 @@ export const ChatWindow: React.FC = () => {
   return (
     <Card className="h-full flex flex-col shadow-lg border-border/50">
       {/* Header */}
-      <CardHeader className="pb-4 border-b border-border/50 bg-gradient-to-r from-background to-muted/10">
+      <CardHeader className="pb-3 md:pb-4 px-3 md:px-6 border-b border-border/50 bg-gradient-to-r from-background to-muted/10">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
+          <div className="flex items-center space-x-2 md:space-x-3 min-w-0 flex-1">
+            <Avatar className="w-8 h-8 md:w-10 md:h-10 border-2 border-background shadow-sm flex-shrink-0">
               <AvatarFallback className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white">
-                <Bot className="w-5 h-5" />
+                <Bot className="w-4 h-4 md:w-5 md:h-5" />
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="font-semibold text-foreground">{activeRoom?.title}</h3>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-foreground text-sm md:text-base truncate">{activeRoom?.title}</h3>
               <p className="text-xs text-muted-foreground flex items-center space-x-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span>Support Team</span>
+                <span className="hidden sm:inline">Support Team</span>
+                <span className="sm:hidden">Online</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="hover:bg-muted/50">
-              <Phone className="w-4 h-4" />
+          <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+            <Button variant="ghost" size="sm" className="hover:bg-muted/50 h-8 w-8 md:h-9 md:w-9 p-0">
+              <Phone className="w-3 h-3 md:w-4 md:h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="hover:bg-muted/50">
-              <Video className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="hover:bg-muted/50 h-8 w-8 md:h-9 md:w-9 p-0 hidden sm:inline-flex">
+              <Video className="w-3 h-3 md:w-4 md:h-4" />
             </Button>
-            <Button variant="ghost" size="sm" className="hover:bg-muted/50">
-              <Info className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="hover:bg-muted/50 h-8 w-8 md:h-9 md:w-9 p-0">
+              <Info className="w-3 h-3 md:w-4 md:h-4" />
             </Button>
           </div>
         </div>
@@ -164,7 +165,7 @@ export const ChatWindow: React.FC = () => {
 
       {/* Messages */}
       <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 p-3 md:p-6">
           {messages.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-20 h-20 mx-auto bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-900/20 dark:to-purple-900/20 rounded-full flex items-center justify-center mb-4">
@@ -192,13 +193,13 @@ export const ChatWindow: React.FC = () => {
         <Separator />
 
         {/* Message Input */}
-        <div className="p-6 bg-gradient-to-r from-background to-muted/5">
-          <div className="flex items-end space-x-3">
-            <div className="flex space-x-2">
-              <Button variant="ghost" size="sm" className="hover:bg-muted/50">
+        <div className="p-3 md:p-6 bg-gradient-to-r from-background to-muted/5">
+          <div className="flex items-end space-x-2 md:space-x-3">
+            <div className="hidden sm:flex space-x-2">
+              <Button variant="ghost" size="sm" className="hover:bg-muted/50 h-8 w-8 p-0">
                 <Paperclip className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" className="hover:bg-muted/50">
+              <Button variant="ghost" size="sm" className="hover:bg-muted/50 h-8 w-8 p-0">
                 <Smile className="w-4 h-4" />
               </Button>
             </div>
@@ -209,7 +210,7 @@ export const ChatWindow: React.FC = () => {
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
-                className="pr-12 py-3 bg-muted/30 border-muted-foreground/20 focus:border-violet-400 rounded-xl"
+                className="pr-12 py-2 md:py-3 bg-muted/30 border-muted-foreground/20 focus:border-violet-400 rounded-xl text-sm md:text-base"
                 disabled={isSending}
               />
             </div>
@@ -217,7 +218,7 @@ export const ChatWindow: React.FC = () => {
             <Button
               onClick={handleSendMessage}
               disabled={!newMessage.trim() || isSending}
-              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-md px-6 py-3 rounded-xl"
+              className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-md px-4 py-2 md:px-6 md:py-3 rounded-xl h-9 md:h-auto"
             >
               {isSending ? (
                 <Clock className="w-4 h-4 animate-spin" />

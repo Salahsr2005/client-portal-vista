@@ -42,23 +42,24 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateChat }) => {
   return (
     <Card className="h-full flex flex-col border-r border-border/50 rounded-none shadow-lg bg-gradient-to-b from-background to-muted/10">
       {/* Header */}
-      <div className="p-6 border-b border-border/50">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg">
-              <Users className="w-5 h-5 text-white" />
+      <div className="p-3 md:p-6 border-b border-border/50">
+        <div className="flex items-center justify-between mb-3 md:mb-4">
+          <div className="flex items-center space-x-2 min-w-0 flex-1">
+            <div className="p-1.5 md:p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex-shrink-0">
+              <Users className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">Messages</h2>
-              <p className="text-xs text-muted-foreground">Support Chat</p>
+            <div className="min-w-0">
+              <h2 className="text-base md:text-lg font-semibold text-foreground truncate">Messages</h2>
+              <p className="text-xs text-muted-foreground hidden sm:block">Support Chat</p>
             </div>
           </div>
           <Button
             onClick={onCreateChat}
             size="sm"
-            className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-md"
+            className="bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white shadow-md h-8 w-8 md:h-9 md:w-auto md:px-3 p-0"
           >
             <MessageSquarePlus className="w-4 h-4" />
+            <span className="hidden md:ml-2 md:inline">New</span>
           </Button>
         </div>
 
@@ -69,7 +70,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onCreateChat }) => {
             placeholder="Search conversations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 bg-muted/50 border-muted-foreground/20 focus:border-violet-400"
+            className="pl-10 bg-muted/50 border-muted-foreground/20 focus:border-violet-400 text-sm"
           />
         </div>
       </div>
