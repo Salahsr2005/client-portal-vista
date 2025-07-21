@@ -2019,6 +2019,10 @@ export type Database = {
           sent_at: string
         }[]
       }
+      get_current_user_type: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_destination_statistics: {
         Args: Record<PropertyKey, never>
         Returns: {
