@@ -1,82 +1,111 @@
+"use client"
 
-import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import type React from "react"
 
-export function WavyBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+import { useEffect, useRef } from "react"
+
+interface WavyBackgroundProps {
+  className?: string
+  children?: React.ReactNode
+  containerClassName?: string
+  colors?: string[]
+  waveWidth?: number
+  backgroundFill?: string
+  blur?: number
+  speed?: "slow" | "fast"
+  waveOpacity?: number
+}
+
+export function WavyBackground({
+  className,
+  children,
+  containerClassName,
+  colors = ["#38bdf8", "#818cf8", "#c084fc", "#e879f9", "#22d3ee"],
+  waveWidth = 50,
+  backgroundFill = "black",
+  blur = 10,
+  speed = "fast",
+  waveOpacity = 0.5,
+  ...props
+}: WavyBackgroundProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
 
-    let animationId: number;
-    let time = 0;
+    let animationId: number
+    let time = 0
 
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
 
     const drawWave = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Create gradient
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)');
-      gradient.addColorStop(0.5, 'rgba(147, 51, 234, 0.05)');
-      gradient.addColorStop(1, 'rgba(236, 72, 153, 0.1)');
+      ctx.fillStyle = backgroundFill
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height);
+      const waveColors = colors
+      const numWaves = waveColors.length
 
-      // Draw multiple waves
-      for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.moveTo(0, canvas.height);
+      for (let i = 0; i < numWaves; i++) {
+        ctx.globalAlpha = waveOpacity
+        ctx.fillStyle = waveColors[i]
+
+        const waveHeight = canvas.height * 0.3
+        const frequency = 0.01 + i * 0.005
+        const amplitude = 50 + i * 20
+        const phase = time * (speed === "fast" ? 0.02 : 0.01) + i * 0.5
+
+        ctx.beginPath()
+        ctx.moveTo(0, canvas.height)
 
         for (let x = 0; x <= canvas.width; x += 5) {
-          const y = Math.sin((x * 0.01) + (time * 0.002) + (i * 0.5)) * (30 + i * 20) + 
-                   Math.sin((x * 0.02) + (time * 0.003) + (i * 0.3)) * (20 + i * 10) +
-                   canvas.height * 0.8 - i * 50;
-          ctx.lineTo(x, y);
+          const y =
+            Math.sin(x * frequency + phase) * amplitude +
+            Math.sin(x * frequency * 2 + phase * 1.5) * (amplitude * 0.5) +
+            canvas.height -
+            waveHeight -
+            i * 30
+          ctx.lineTo(x, y)
         }
 
-        ctx.lineTo(canvas.width, canvas.height);
-        ctx.lineTo(0, canvas.height);
-        ctx.closePath();
-
-        const waveGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        waveGradient.addColorStop(0, `rgba(59, 130, 246, ${0.03 + i * 0.01})`);
-        waveGradient.addColorStop(1, `rgba(147, 51, 234, ${0.05 + i * 0.02})`);
-        
-        ctx.fillStyle = waveGradient;
-        ctx.fill();
+        ctx.lineTo(canvas.width, canvas.height)
+        ctx.lineTo(0, canvas.height)
+        ctx.closePath()
+        ctx.fill()
       }
 
-      time += 1;
-      animationId = requestAnimationFrame(drawWave);
-    };
+      time += 1
+      animationId = requestAnimationFrame(drawWave)
+    }
 
-    resizeCanvas();
-    drawWave();
+    resizeCanvas()
+    drawWave()
 
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener("resize", resizeCanvas)
 
     return () => {
-      cancelAnimationFrame(animationId);
-      window.removeEventListener('resize', resizeCanvas);
-    };
-  }, []);
+      cancelAnimationFrame(animationId)
+      window.removeEventListener("resize", resizeCanvas)
+    }
+  }, [colors, waveWidth, backgroundFill, blur, speed, waveOpacity])
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 z-0 opacity-60"
-      style={{ background: 'transparent' }}
-    />
-  );
+    <div className={`relative ${containerClassName}`} ref={containerRef} {...props}>
+      <canvas
+        ref={canvasRef}
+        className={`absolute inset-0 z-0 ${className}`}
+        style={{
+          filter: `blur(${blur}px)`,
+        }}
+      />
+      <div className="relative z-10">{children}</div>
+    </div>
+  )
 }
