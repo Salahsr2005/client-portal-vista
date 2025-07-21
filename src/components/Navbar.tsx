@@ -1,100 +1,106 @@
-"use client"
 
-import { useState, useEffect } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/ThemeToggle"
-import { Menu, X, LogOut, User, Settings } from "lucide-react"
-import { useAuth } from "@/contexts/AuthContext"
-import { LanguageSelector } from "@/components/LanguageSelector"
-import { useTranslation } from "react-i18next"
-import { motion, AnimatePresence } from "framer-motion"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Menu, X, LogOut, User, Settings } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const location = useLocation()
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  const isMobile = useIsMobile()
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
-    setIsMobileMenuOpen(false)
-  }, [location])
+    setIsMobileMenuOpen(false);
+  }, [location]);
 
   const handleSignOut = async () => {
-    await signOut()
-  }
+    await signOut();
+  };
 
   const getInitials = () => {
-    if (!user || !user.email) return "U"
-    const email = user.email
-    return email.charAt(0).toUpperCase()
-  }
+    if (!user || !user.email) return "U";
+    const email = user.email;
+    return email.charAt(0).toUpperCase();
+  };
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? `${isMobile ? "py-2" : "py-3"} bg-slate-950/80 backdrop-blur-md border-b border-white/10`
-          : `${isMobile ? "py-3" : "py-5"} bg-transparent`
+          ? `${isMobile ? 'py-2' : 'py-3'} glass-light dark:glass-dark shadow-md`
+          : `${isMobile ? 'py-3' : 'py-5'} bg-transparent`
       }`}
     >
-      <div className={`container mx-auto ${isMobile ? "px-3" : "px-6"} flex items-center justify-between`}>
-        <Link to="/" className="flex items-center space-x-2">
-          <motion.div
-            className="flex items-center space-x-2"
+      <div className={`container mx-auto ${isMobile ? 'px-3' : 'px-6'} flex items-center justify-between`}>
+        <Link
+          to="/"
+          className="flex items-center space-x-2"
+        >
+          <motion.img 
+            src="/logo.png" 
+            alt="Euro Visa" 
+            className={`${isMobile ? 'h-7' : 'h-9'}`}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+          />
+          <motion.span 
+            className={`${isMobile ? 'text-lg' : 'text-2xl'} font-semibold tracking-tight text-gradient`}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">EV</span>
-            </div>
-            <span className={`${isMobile ? "text-lg" : "text-xl"} font-bold text-white`}>Euro Visa</span>
-          </motion.div>
+            Euro Visa
+          </motion.span>
         </Link>
 
         {/* Desktop Navigation */}
         {!isMobile && (
           <nav className="hidden md:flex items-center space-x-1">
             <Link to="/">
-              <Button variant="ghost" className="rounded-full text-white hover:bg-white/10">
-                {t("nav.home", "Accueil")}
+              <Button variant="ghost" className="rounded-full">
+                {t('nav.home')}
+              </Button>
+            </Link>
+            <Link to="/about">
+              <Button variant="ghost" className="rounded-full">
+                {t('nav.about')}
               </Button>
             </Link>
             <Link to="/services">
-              <Button variant="ghost" className="rounded-full text-white hover:bg-white/10">
-                {t("nav.services", "Services")}
-              </Button>
-            </Link>
-            <Link to="/programs">
-              <Button variant="ghost" className="rounded-full text-white hover:bg-white/10">
-                {t("nav.programs", "À Propos")}
+              <Button variant="ghost" className="rounded-full">
+                {t('nav.services')}
               </Button>
             </Link>
             <Link to="/contact">
-              <Button variant="ghost" className="rounded-full text-white hover:bg-white/10">
-                {t("nav.contact", "Contact")}
+              <Button variant="ghost" className="rounded-full">
+                {t('nav.contact')}
               </Button>
             </Link>
             <LanguageSelector />
@@ -112,22 +118,24 @@ export function Navbar() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                     <User className="mr-2 h-4 w-4" />
-                    {t("nav.dashboard")}
+                    {t('nav.dashboard')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     <Settings className="mr-2 h-4 w-4" />
-                    {t("nav.profile")}
+                    {t('nav.profile')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    {t("nav.logout")}
+                    {t('nav.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <Link to="/login">
-                <ShimmerButton className="ml-2">{t("nav.login", "S'inscrire")}</ShimmerButton>
+                <Button className="ml-2 rounded-full">
+                  {t('nav.login')}
+                </Button>
               </Link>
             )}
           </nav>
@@ -151,16 +159,16 @@ export function Navbar() {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                     <User className="mr-2 h-4 w-4" />
-                    {t("nav.dashboard")}
+                    {t('nav.dashboard')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     <Settings className="mr-2 h-4 w-4" />
-                    {t("nav.profile")}
+                    {t('nav.profile')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    {t("nav.logout")}
+                    {t('nav.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -170,9 +178,13 @@ export function Navbar() {
               size="icon"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
-              className="ml-1 text-white hover:bg-white/10"
+              className="ml-1"
             >
-              {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {isMobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -181,8 +193,8 @@ export function Navbar() {
       {/* Mobile Navigation */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
-            className="md:hidden fixed inset-0 top-16 z-40 bg-slate-950/95 backdrop-blur-md"
+          <motion.div 
+            className="md:hidden fixed inset-0 top-16 z-40 glass-light dark:glass-dark"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -192,62 +204,68 @@ export function Navbar() {
               <Link to="/">
                 <Button
                   variant="ghost"
-                  className="w-full text-base text-white hover:bg-white/10"
+                  className="w-full text-base"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {t("nav.home", "Accueil")}
+                  {t('nav.home')}
+                </Button>
+              </Link>
+              <Link to="/about">
+                <Button
+                  variant="ghost"
+                  className="w-full text-base"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('nav.about')}
                 </Button>
               </Link>
               <Link to="/services">
                 <Button
                   variant="ghost"
-                  className="w-full text-base text-white hover:bg-white/10"
+                  className="w-full text-base"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {t("nav.services", "Services")}
-                </Button>
-              </Link>
-              <Link to="/programs">
-                <Button
-                  variant="ghost"
-                  className="w-full text-base text-white hover:bg-white/10"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {t("nav.programs", "À Propos")}
+                  {t('nav.services')}
                 </Button>
               </Link>
               <Link to="/contact">
                 <Button
                   variant="ghost"
-                  className="w-full text-base text-white hover:bg-white/10"
+                  className="w-full text-base"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {t("nav.contact", "Contact")}
+                  {t('nav.contact')}
                 </Button>
               </Link>
               {user ? (
                 <>
                   <Link to="/dashboard" className="w-full">
-                    <Button className="w-full text-base rounded-full" onClick={() => setIsMobileMenuOpen(false)}>
-                      {t("nav.dashboard")}
+                    <Button
+                      className="w-full text-base rounded-full"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {t('nav.dashboard')}
                     </Button>
                   </Link>
-                  <Button
-                    variant="ghost"
+                  <Button 
+                    variant="ghost" 
                     onClick={async () => {
-                      await handleSignOut()
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className="w-full text-base text-white hover:bg-white/10"
+                      await handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }} 
+                    className="w-full text-base"
                   >
-                    {t("nav.logout")}
+                    {t('nav.logout')}
                   </Button>
                 </>
               ) : (
                 <Link to="/login" className="w-full">
-                  <ShimmerButton className="w-full text-base" onClick={() => setIsMobileMenuOpen(false)}>
-                    {t("nav.login", "S'inscrire")}
-                  </ShimmerButton>
+                  <Button
+                    className="w-full text-base rounded-full"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {t('nav.login')}
+                  </Button>
                 </Link>
               )}
             </nav>
@@ -255,6 +273,5 @@ export function Navbar() {
         )}
       </AnimatePresence>
     </header>
-  )
+  );
 }
-
