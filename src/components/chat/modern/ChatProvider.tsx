@@ -134,19 +134,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsSending(true);
 
     try {
-      const { error } = await supabase
-        .from('chat_messages')
-        .insert({
-          chat_id: activeChat,
-          sender_id: user.id,
-          sender_type: 'Client',
-          message_text: text
-        });
+      const { data: messageId, error } = await supabase.rpc('send_message', {
+        p_chat_id: activeChat,
+        p_sender_id: user.id,
+        p_message_text: text,
+        p_sender_type: 'Client'
+      });
 
       if (error) throw error;
 
       // Remove temp message - real message will come through real-time
       setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+      
+      // Refresh chat rooms to update last message
+      await loadChatRooms();
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
@@ -158,7 +159,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsSending(false);
     }
-  }, [user, activeChat, toast]);
+  }, [user, activeChat, toast, loadChatRooms]);
 
   const createChat = useCallback(async (adminId: string) => {
     if (!user) return null;
