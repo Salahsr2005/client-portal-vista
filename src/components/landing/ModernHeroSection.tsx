@@ -1,7 +1,62 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { ArrowRight, Clock, Users, Globe, Award, Star, Sparkles, User } from "lucide-react"
+
+// Animated Counter Hook
+const useAnimatedCounter = (end: number, duration = 2000, start = 0) => {
+  const [count, setCount] = useState(start)
+  const [isVisible, setIsVisible] = useState(false)
+  const countRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !isVisible) {
+          setIsVisible(true)
+        }
+      },
+      { threshold: 0.1 },
+    )
+
+    if (countRef.current) {
+      observer.observe(countRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [isVisible])
+
+  useEffect(() => {
+    if (!isVisible) return
+
+    let startTime: number
+    let animationFrame: number
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime
+      const progress = Math.min((currentTime - startTime) / duration, 1)
+
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4)
+      const currentCount = Math.floor(easeOutQuart * (end - start) + start)
+
+      setCount(currentCount)
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate)
+      }
+    }
+
+    animationFrame = requestAnimationFrame(animate)
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame)
+      }
+    }
+  }, [isVisible, end, start, duration])
+
+  return { count, ref: countRef }
+}
 
 // Elegant Button Component
 const ElegantButton = ({ children, variant = "primary", className = "", onClick, icon: Icon, ...props }) => {
@@ -129,41 +184,87 @@ const CountdownTimer = ({ targetDate }) => {
   )
 }
 
-// Stats Component
+// Animated Stat Card Component
+const AnimatedStatCard = ({ icon: Icon, number, suffix = "", label, color, isAnimated = false }) => {
+  const numericValue = isAnimated ? Number.parseInt(number.replace(/\D/g, "")) : 0
+  const { count, ref } = useAnimatedCounter(numericValue, 2500)
+
+  const displayValue = isAnimated ? `${count}${suffix}` : number
+
+  return (
+    <div className="text-center group">
+      <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-600/30 hover:bg-slate-800/40 transition-all duration-300 hover:scale-[1.02]">
+        <Icon className={`h-8 w-8 ${color} mx-auto mb-3`} />
+        <div ref={ref} className="text-3xl font-bold text-slate-200 mb-2 tabular-nums">
+          {displayValue}
+        </div>
+        <div className="text-slate-400 text-sm">{label}</div>
+      </div>
+    </div>
+  )
+}
+
+// Stats Component with Animated Counters
 const StatsGrid = () => {
   const stats = [
-    { icon: Award, number: "15+", label: "Years Experience", color: "text-amber-400" },
-    { icon: Users, number: "10K+", label: "Success Stories", color: "text-blue-400" },
-    { icon: Globe, number: "50+", label: "Countries", color: "text-emerald-400" },
-    { icon: Star, number: "98%", label: "Success Rate", color: "text-purple-400" },
+    {
+      icon: Award,
+      number: "15",
+      suffix: "+",
+      label: "Years Experience",
+      color: "text-amber-400",
+      isAnimated: true,
+    },
+    {
+      icon: Users,
+      number: "10000",
+      suffix: "+",
+      label: "Success Stories",
+      color: "text-blue-400",
+      isAnimated: true,
+    },
+    {
+      icon: Globe,
+      number: "50",
+      suffix: "+",
+      label: "Countries",
+      color: "text-emerald-400",
+      isAnimated: true,
+    },
+    {
+      icon: Star,
+      number: "98",
+      suffix: "%",
+      label: "Success Rate",
+      color: "text-purple-400",
+      isAnimated: true,
+    },
   ]
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
       {stats.map((stat, index) => (
-        <div key={index} className="text-center group">
-          <div className="bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-slate-600/30 hover:bg-slate-800/40 transition-all duration-300 hover:scale-[1.02]">
-            <stat.icon className={`h-8 w-8 ${stat.color} mx-auto mb-3`} />
-            <div className="text-3xl font-bold text-slate-200 mb-2">{stat.number}</div>
-            <div className="text-slate-400 text-sm">{stat.label}</div>
-          </div>
-        </div>
+        <AnimatedStatCard
+          key={index}
+          icon={stat.icon}
+          number={stat.number}
+          suffix={stat.suffix}
+          label={stat.label}
+          color={stat.color}
+          isAnimated={stat.isAnimated}
+        />
       ))}
     </div>
   )
 }
 
 // Main Hero Component
-export const ElegantHeroSection = () => {
+export const ModernHeroSection = () => {
   const handleGuestMode = () => {
-    // For Vite/React Router, you would use navigate from useNavigate hook
-    // For now, using window.location for compatibility
     window.location.href = "/guest"
   }
 
   const handleJoinUs = () => {
-    // For Vite/React Router, you would use navigate from useNavigate hook
-    // For now, using window.location for compatibility
     window.location.href = "/register"
   }
 
@@ -175,10 +276,34 @@ export const ElegantHeroSection = () => {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px),linear-gradient(to_bottom,#334155_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-30" />
 
       {/* Corner Spotlights */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-radial from-blue-500/20 via-blue-500/10 to-transparent rounded-full blur-3xl" />
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-radial from-purple-500/20 via-purple-500/10 to-transparent rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-radial from-emerald-500/20 via-emerald-500/10 to-transparent rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-radial from-amber-500/20 via-amber-500/10 to-transparent rounded-full blur-3xl" />
+      <div
+        className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 50%, transparent 100%)",
+        }}
+      />
+      <div
+        className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, rgba(147, 51, 234, 0.1) 50%, transparent 100%)",
+        }}
+      />
+      <div
+        className="absolute bottom-0 left-0 w-96 h-96 rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 50%, transparent 100%)",
+        }}
+      />
+      <div
+        className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 50%, transparent 100%)",
+        }}
+      />
 
       {/* Subtle Gradient Overlays */}
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-800/20 via-transparent to-slate-800/20" />
@@ -241,7 +366,7 @@ export const ElegantHeroSection = () => {
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid with Animated Counters */}
         <div className="mb-20">
           <StatsGrid />
         </div>
@@ -252,15 +377,11 @@ export const ElegantHeroSection = () => {
           <CountdownTimer targetDate="2025-09-01T00:00:00" />
         </div>
       </div>
-
-      <style jsx>{`
-        .bg-gradient-radial {
-          background: radial-gradient(circle, var(--tw-gradient-stops));
-        }
-      `}</style>
     </section>
   )
 }
 
-export default ElegantHeroSection
+// Default export for compatibility
+export default ModernHeroSection
+
 
