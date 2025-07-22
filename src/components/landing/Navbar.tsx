@@ -8,7 +8,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ModernButton } from "@/components/ui/modern-button";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import logoImage from "@/assets/logo.png";
 
 interface NavbarProps {
   featuresRef: React.RefObject<HTMLDivElement>;
@@ -64,12 +65,13 @@ export function Navbar({
           <Link to="/" className="flex items-center group">
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-3"
             >
-              <div className="relative">
-                <Sparkles className="h-8 w-8 text-blue-500 group-hover:text-purple-500 transition-colors" />
-                <div className="absolute inset-0 bg-blue-500/20 rounded-full blur-xl group-hover:bg-purple-500/20 transition-colors" />
-              </div>
+              <img 
+                src={logoImage} 
+                alt="Euro Visa Logo" 
+                className="h-10 w-auto object-contain"
+              />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
                 Euro Visa
               </h1>

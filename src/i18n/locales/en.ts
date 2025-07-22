@@ -11,10 +11,24 @@ export default {
     logout: "Logout"
   },
   hero: {
-    title: "Global Mobility Solutions",
-    subtitle: "Your trusted partner for visa and immigration services",
+    title: "Euro Visa",
+    subtitle: "Your Gateway to International Education",
+    description: "With over a decade of experience, Euro Visa has helped thousands of students achieve their dreams of studying abroad. Our comprehensive services ensure a smooth transition from application to arrival.",
     cta: "Start Your Journey",
-    learnMore: "Learn More"
+    guestMode: "Browse as Guest",
+    stats: {
+      experience: "Years Experience",
+      students: "Students Helped",
+      countries: "Countries",
+      success: "Success Rate"
+    },
+    credentials: {
+      phone: "+961 1 123456",
+      email: "info@eurovisa.com",
+      address: "Beirut, Lebanon",
+      hours: "Mon-Fri 9AM-6PM"
+    },
+    instagramReel: "Follow our journey and success stories on Instagram"
   },
   programs: {
     title: "Our Programs",

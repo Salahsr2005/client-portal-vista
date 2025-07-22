@@ -11,10 +11,24 @@ export default {
     logout: "Déconnexion"
   },
   hero: {
-    title: "Solutions de Mobilité Globale",
-    subtitle: "Votre partenaire de confiance pour les services de visa et d'immigration",
+    title: "Euro Visa",
+    subtitle: "Votre Porte d'Entrée vers l'Éducation Internationale",
+    description: "Avec plus d'une décennie d'expérience, Euro Visa a aidé des milliers d'étudiants à réaliser leurs rêves d'étudier à l'étranger. Nos services complets garantissent une transition en douceur de la candidature à l'arrivée.",
     cta: "Commencez Votre Voyage",
-    learnMore: "En Savoir Plus"
+    guestMode: "Parcourir en Invité",
+    stats: {
+      experience: "Années d'Expérience",
+      students: "Étudiants Aidés",
+      countries: "Pays",
+      success: "Taux de Réussite"
+    },
+    credentials: {
+      phone: "+961 1 123456",
+      email: "info@eurovisa.com",
+      address: "Beyrouth, Liban",
+      hours: "Lun-Ven 9h-18h"
+    },
+    instagramReel: "Suivez notre parcours et nos histoires de réussite sur Instagram"
   },
   programs: {
     title: "Nos Programmes",
