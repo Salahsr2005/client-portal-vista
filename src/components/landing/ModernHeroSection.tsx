@@ -313,7 +313,7 @@ export const ModernHeroSection = () => {
         <div className="flex justify-center mb-12">
           <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-600/30 rounded-full px-4 py-2">
             <Sparkles className="h-4 w-4 text-blue-400" />
-            <span className="text-slate-300 text-sm font-medium">Guest Mode</span>
+            <span className="text-slate-300 text-sm font-medium">1st on Africa</span>
           </div>
         </div>
 
