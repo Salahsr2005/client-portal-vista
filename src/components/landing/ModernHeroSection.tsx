@@ -183,7 +183,14 @@ export const ElegantHeroSection = () => {
       {/* Subtle Gradient Overlays */}
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-800/20 via-transparent to-slate-800/20" />
 
-
+      <div className="relative z-10 container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Guest Mode Badge */}
+        <div className="flex justify-center mb-12">
+          <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-600/30 rounded-full px-4 py-2">
+            <Sparkles className="h-4 w-4 text-blue-400" />
+            <span className="text-slate-300 text-sm font-medium">Guest Mode</span>
+          </div>
+        </div>
 
         {/* Main Hero Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
@@ -258,6 +265,3 @@ export const ElegantHeroSection = () => {
 }
 
 export default ElegantHeroSection
-
-
-
