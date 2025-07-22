@@ -209,7 +209,7 @@ const StatsGrid = () => {
   const stats = [
     {
       icon: Award,
-      number: "15",
+      number: "5",
       suffix: "+",
       label: "Years Experience",
       color: "text-amber-400",
@@ -217,7 +217,7 @@ const StatsGrid = () => {
     },
     {
       icon: Users,
-      number: "10000",
+      number: "1000",
       suffix: "+",
       label: "Success Stories",
       color: "text-blue-400",
@@ -225,7 +225,7 @@ const StatsGrid = () => {
     },
     {
       icon: Globe,
-      number: "50",
+      number: "10",
       suffix: "+",
       label: "Countries",
       color: "text-emerald-400",
