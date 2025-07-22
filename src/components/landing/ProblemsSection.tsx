@@ -66,31 +66,31 @@ export function ProblemsSection() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
             >
-              <Card className={`p-6 h-full ${problem.gradient} glass hover:scale-105 transition-all duration-300 relative overflow-hidden group border-white/10 dark:border-gray-800/50`}>
+              <Card className={`p-6 h-full ${problem.gradient} hover:scale-105 transition-all duration-300 relative overflow-hidden group`}>
                 {/* Background pattern */}
                 <div className="absolute top-0 right-0 w-20 h-20 opacity-10">
-                  <div className="text-6xl font-bold text-white/20">85%</div>
+                  <div className="text-6xl font-bold text-primary/20">85%</div>
                 </div>
 
                 <div className="relative z-10 space-y-4">
                   {/* Icon */}
-                  <div className="w-12 h-12 rounded-xl bg-white/10 dark:bg-white/20 flex items-center justify-center text-white dark:text-gray-200">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                     {problem.icon}
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-semibold text-white dark:text-gray-100">
+                  <h3 className="text-xl font-semibold text-foreground">
                     {problem.title}
                   </h3>
 
                   {/* Description */}
-                  <p className="text-white/80 dark:text-gray-200/80 leading-relaxed">
+                  <p className="text-muted-foreground leading-relaxed">
                     {problem.description}
                   </p>
 
                   {/* Status badge */}
                   <div className="pt-4">
-                    <Badge variant="secondary" className="bg-white/10 dark:bg-white/20 text-white dark:text-gray-200 border-white/20 dark:border-gray-600/50">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                       {problem.status}
                     </Badge>
                   </div>
@@ -98,11 +98,11 @@ export function ProblemsSection() {
                   {/* App store badges for mobile app card */}
                   {problem.badges && (
                     <div className="flex flex-col gap-2 pt-2">
-                      <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                      <Button variant="outline" size="sm" className="border-primary/20 text-primary hover:bg-primary/10">
                         <Apple className="mr-2 h-4 w-4" />
                         Download on the App Store
                       </Button>
-                      <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                      <Button variant="outline" size="sm" className="border-primary/20 text-primary hover:bg-primary/10">
                         <Play className="mr-2 h-4 w-4" />
                         GET IT ON Google Play
                       </Button>

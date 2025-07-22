@@ -87,17 +87,18 @@ export function ModernHeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="space-y-4"
+              className="space-y-6"
             >
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+                <span className="text-foreground">Réalisez </span>
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  {t('hero.title')}
+                  vos rêves d'études
+                </span>
+                <br />
+                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  à l'étranger !
                 </span>
               </h1>
-              
-              <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-foreground/90 leading-tight">
-                {t('hero.subtitle')}
-              </h2>
             </motion.div>
 
             {/* Description */}
@@ -107,7 +108,7 @@ export function ModernHeroSection() {
               transition={{ delay: 0.5 }}
               className="text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed"
             >
-              {t('hero.description')}
+              Euro Visa vous accompagne dans toutes les étapes de votre projet d'études en Europe. De la sélection des universités à l'obtention du visa, nous sommes à vos côtés.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -117,16 +118,18 @@ export function ModernHeroSection() {
               transition={{ delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Link to="/register">
-                <ModernButton size="lg" className="group">
-                  {t('hero.cta')}
-                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </ModernButton>
-              </Link>
+              <ModernButton size="lg" className="group bg-blue-600 hover:bg-blue-700 text-white">
+                Découvrir nos services
+                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              </ModernButton>
+              
+              <ModernButton variant="ghost" size="lg" className="border-white/20 text-foreground hover:bg-white/10">
+                Nous contacter
+              </ModernButton>
               
               <Link to="/guest">
-                <ShimmerButton className="px-8 py-4 text-lg">
-                  {t('hero.guestMode')}
+                <ShimmerButton className="px-8 py-4 text-lg bg-blue-600 hover:bg-blue-700">
+                  Join Us
                 </ShimmerButton>
               </Link>
             </motion.div>
