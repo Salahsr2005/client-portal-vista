@@ -19,6 +19,7 @@ import {
 import { motion } from 'framer-motion';
 import { generateProgramPDF } from '@/utils/pdfGenerator';
 import { useToast } from '@/hooks/use-toast';
+import { useGuestRestrictions } from '@/components/layout/GuestModeWrapper';
 
 interface Program {
   id: string;
@@ -62,6 +63,13 @@ export const ModernProgramCard: React.FC<ModernProgramCardProps> = ({
 }) => {
   const [isLiked, setIsLiked] = useState(false);
   const { toast } = useToast();
+  const { isRestricted, handleRestrictedAction } = useGuestRestrictions();
+
+  const handleApply = () => {
+    if (handleRestrictedAction('apply')) {
+      onApply(program);
+    }
+  };
 
   const handleDownloadBrochure = async () => {
     try {
@@ -219,10 +227,11 @@ export const ModernProgramCard: React.FC<ModernProgramCardProps> = ({
             </Button>
           </div>
           <Button 
-            onClick={() => onApply(program)}
+            onClick={handleApply}
             className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground border-0 shadow-lg hover:shadow-xl transition-all"
+            disabled={isRestricted}
           >
-            Apply Now
+            {isRestricted ? 'Sign Up to Apply' : 'Apply Now'}
           </Button>
         </div>
       </CardContent>

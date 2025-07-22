@@ -105,16 +105,16 @@ export function ModernHeroSection() {
               transition={{ delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Link to="/consultation">
+              <Link to="/register">
                 <ModernButton size="lg" className="group">
                   Start Your Journey
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </ModernButton>
               </Link>
               
-              <Link to="/programs">
+              <Link to="/guest">
                 <ModernButton variant="secondary" size="lg">
-                  Explore Programs
+                  Browse as Guest
                 </ModernButton>
               </Link>
             </motion.div>

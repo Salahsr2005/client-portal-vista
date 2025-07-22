@@ -20,13 +20,13 @@ export default function Guest() {
       icon: <Eye className="h-6 w-6" />,
       title: "Browse Destinations",
       description: "Explore universities and programs worldwide",
-      path: "/destinations"
+      path: "/guest/destinations"
     },
     {
       icon: <Eye className="h-6 w-6" />,
       title: "View Programs",
       description: "Discover academic programs and requirements",
-      path: "/programs"
+      path: "/guest/programs"
     },
     {
       icon: <Eye className="h-6 w-6" />,
@@ -38,7 +38,7 @@ export default function Guest() {
       icon: <Eye className="h-6 w-6" />,
       title: "Try Consultation",
       description: "Experience our automated consultation tool",
-      path: "/consultation"
+      path: "/guest/consultation"
     }
   ];
 

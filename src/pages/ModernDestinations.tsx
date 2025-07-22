@@ -34,10 +34,20 @@ export default function ModernDestinations() {
   const procedures = Array.from(new Set(destinations?.map(d => d.procedure_type) || []));
 
   const handleViewDetails = (destination: Destination) => {
-    navigate(`/destinations/${destination.id}`);
+    // Check if we're in guest mode and navigate accordingly
+    const isGuestRoute = window.location.pathname.startsWith('/guest/');
+    const targetPath = isGuestRoute ? `/guest/destinations/${destination.id}` : `/destinations/${destination.id}`;
+    navigate(targetPath);
   };
 
   const handleApply = (destination: Destination) => {
+    // Check if we're in guest mode
+    const isGuestRoute = window.location.pathname.startsWith('/guest/');
+    if (isGuestRoute) {
+      // Redirect to register for guest users
+      window.location.href = '/register';
+      return;
+    }
     setSelectedDestination(destination);
     setIsApplicationModalOpen(true);
   };

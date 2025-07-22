@@ -25,6 +25,7 @@ import { useDestinations } from '@/hooks/useDestinations';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useGuestRestrictions } from '@/components/layout/GuestModeWrapper';
 
 const STEPS = [
   { id: 1, title: 'Study Level', icon: GraduationCap, description: 'Choose your academic level' },
@@ -47,6 +48,7 @@ export default function DestinationConsultationFlow() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: destinations = [], isLoading: destinationsLoading } = useDestinations();
+  const { isRestricted, handleRestrictedAction } = useGuestRestrictions();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [consultationData, setConsultationData] = useState<ConsultationData>({
@@ -135,7 +137,7 @@ export default function DestinationConsultationFlow() {
         setMatchedDestinations(matches);
 
         // Save to database
-        if (user) {
+        if (user && !isRestricted) {
           await supabase.from('consultation_results').insert({
             user_id: user.id,
             study_level: consultationData.studyLevel as any,
@@ -158,6 +160,11 @@ export default function DestinationConsultationFlow() {
           toast({
             title: "Consultation Complete",
             description: `Found ${matches.length} matching destinations for you!`
+          });
+        } else if (isRestricted) {
+          toast({
+            title: "Consultation Complete",
+            description: `Found ${matches.length} matching destinations! Sign up to save your results.`
           });
         }
 

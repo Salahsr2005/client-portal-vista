@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { GuestModeProvider } from "@/contexts/GuestModeContext";
 import { useEffect } from "react";
 
 // Pages
@@ -35,6 +36,11 @@ import Consultation from "./pages/Consultation";
 import ChatSupport from "./pages/ChatSupport";
 import Settings from "./pages/Settings";
 import Guest from "./pages/Guest";
+import GuestPrograms from "./pages/GuestPrograms";
+import GuestProgramView from "./pages/GuestProgramView";
+import GuestDestinations from "./pages/GuestDestinations";
+import GuestDestinationDetails from "./pages/GuestDestinationDetails";
+import GuestConsultation from "./pages/GuestConsultation";
 
 // Layout
 import { DashboardLayout } from "./components/layout/DashboardLayout";
@@ -95,6 +101,13 @@ const AppRoutes = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/guest" element={<Guest />} />
         
+        {/* Guest Mode Routes - Public access to view content */}
+        <Route path="/guest/programs" element={<GuestPrograms />} />
+        <Route path="/guest/programs/:programId" element={<GuestProgramView />} />
+        <Route path="/guest/destinations" element={<GuestDestinations />} />
+        <Route path="/guest/destinations/:id" element={<GuestDestinationDetails />} />
+        <Route path="/guest/consultation" element={<GuestConsultation />} />
+        
         {/* Protected Dashboard Routes */}
         <Route element={
           <ProtectedRoute>
@@ -138,9 +151,11 @@ const App = () => (
         <Sonner />
         {/* Removed basename to fix deployment routing issues */}
         <BrowserRouter>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
+          <GuestModeProvider>
+            <AuthProvider>
+              <AppRoutes />
+            </AuthProvider>
+          </GuestModeProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

@@ -94,8 +94,10 @@ export default function Programs() {
   const ProgramCardComponent = isMobile ? MobileProgramCard : ModernProgramCard;
 
   const handleViewDetails = (program: any) => {
-    // Navigate to program details page or open modal
-    window.open(`/programs/${program.id}`, '_blank');
+    // Check if we're in guest mode and navigate accordingly
+    const isGuestRoute = window.location.pathname.startsWith('/guest/');
+    const targetPath = isGuestRoute ? `/guest/programs/${program.id}` : `/programs/${program.id}`;
+    window.open(targetPath, '_blank');
   };
 
   const handleApply = (program: any) => {
