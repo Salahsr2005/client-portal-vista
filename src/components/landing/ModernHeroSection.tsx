@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { ArrowRight, Clock, Users, Globe, Award, Star, Sparkles, User } from "lucide-react"
-import { useRouter } from "next/navigation"
-import Image from "next/image"
 
 // Elegant Button Component
 const ElegantButton = ({ children, variant = "primary", className = "", onClick, icon: Icon, ...props }) => {
@@ -157,14 +155,16 @@ const StatsGrid = () => {
 
 // Main Hero Component
 export const ElegantHeroSection = () => {
-  const router = useRouter()
-
   const handleGuestMode = () => {
-    router.push("/guest")
+    // For Vite/React Router, you would use navigate from useNavigate hook
+    // For now, using window.location for compatibility
+    window.location.href = "/guest"
   }
 
   const handleJoinUs = () => {
-    router.push("/register")
+    // For Vite/React Router, you would use navigate from useNavigate hook
+    // For now, using window.location for compatibility
+    window.location.href = "/register"
   }
 
   const typewriterTexts = ["rêves d'études", "ambitions académiques", "projets universitaires"]
@@ -227,11 +227,9 @@ export const ElegantHeroSection = () => {
           {/* Right Content - Professional Image */}
           <div className="relative">
             <div className="relative overflow-hidden rounded-2xl shadow-2xl border border-slate-600/30 bg-slate-800/20 backdrop-blur-sm">
-              <Image
+              <img
                 src="/images/euro-visa-professional.jpg"
                 alt="Euro Visa Professional"
-                width={600}
-                height={500}
                 className="w-full h-[500px] object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
@@ -265,3 +263,4 @@ export const ElegantHeroSection = () => {
 }
 
 export default ElegantHeroSection
+
