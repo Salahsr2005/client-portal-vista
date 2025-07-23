@@ -1,50 +1,42 @@
-import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import { SpotlightGrid } from "@/components/ui/spotlight-grid";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
-import { Link } from "react-router-dom";
-import { 
-  GraduationCap, 
-  Plane, 
-  MessageCircle, 
-  FileText, 
-  CreditCard, 
-  MapPin,
-  ArrowRight,
-  Sparkles
-} from "lucide-react";
+"use client"
+
+import { motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
+import { SpotlightGrid } from "@/components/ui/spotlight-grid"
+import { Card } from "@/components/ui/card"
+import { ShimmerButton } from "@/components/ui/shimmer-button"
+import { Link } from "react-router-dom"
+import { GraduationCap, MessageCircle, MapPin, ArrowRight, Sparkles } from "lucide-react"
 
 export function PlatformPreviewSection() {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   const features = [
     {
       id: 1,
-      title: "Smart Consultation",
-      description: "AI-powered guidance for your perfect program match",
+      title: t("platformPreview.features.consultation.title"),
+      description: t("platformPreview.features.consultation.description"),
       icon: <MessageCircle className="h-8 w-8" />,
       gradient: "gradient-card-blue",
-      link: "/guest/consultation"
+      link: "/guest/consultation",
     },
     {
       id: 2,
-      title: "Destination Explorer",
-      description: "Discover your ideal study destinations",
+      title: t("platformPreview.features.destinations.title"),
+      description: t("platformPreview.features.destinations.description"),
       icon: <MapPin className="h-8 w-8" />,
       gradient: "gradient-card-teal",
-      link: "/guest/destinations"
+      link: "/guest/destinations",
     },
     {
       id: 3,
-      title: "Program Finder",
-      description: "Browse thousands of study programs worldwide",
+      title: t("platformPreview.features.programs.title"),
+      description: t("platformPreview.features.programs.description"),
       icon: <GraduationCap className="h-8 w-8" />,
       gradient: "gradient-card-purple",
-      link: "/guest/programs"
-    }
-  ];
+      link: "/guest/programs",
+    },
+  ]
 
   return (
     <SpotlightGrid className="py-24 relative bg-gradient-to-br from-background via-background/90 to-muted/20">
@@ -60,16 +52,12 @@ export function PlatformPreviewSection() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-blue-500/20 backdrop-blur-sm">
               <Sparkles className="h-4 w-4 text-blue-400" />
               <span className="text-sm font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Pre-Launch Access
+                {t("platformPreview.badge")}
               </span>
             </div>
-            
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">
-              Explore our platform
-            </h2>
-            <h3 className="text-2xl md:text-3xl text-muted-foreground">
-              before the official launch
-            </h3>
+
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold">{t("platformPreview.title")}</h2>
+            <h3 className="text-2xl md:text-3xl text-muted-foreground">{t("platformPreview.subtitle")}</h3>
           </div>
 
           {/* Feature Cards Grid */}
@@ -84,7 +72,9 @@ export function PlatformPreviewSection() {
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
               >
                 <Link to={feature.link}>
-                  <Card className={`p-8 h-full ${feature.gradient} hover:scale-105 transition-all duration-300 relative overflow-hidden group cursor-pointer`}>
+                  <Card
+                    className={`p-8 h-full ${feature.gradient} hover:scale-105 transition-all duration-300 relative overflow-hidden group cursor-pointer`}
+                  >
                     {/* Background pattern */}
                     <div className="absolute top-0 right-0 w-16 h-16 opacity-10">
                       <div className="text-4xl font-bold text-primary/20">#{index + 1}</div>
@@ -97,18 +87,14 @@ export function PlatformPreviewSection() {
                       </div>
 
                       {/* Title */}
-                      <h3 className="text-2xl font-bold text-foreground">
-                        {feature.title}
-                      </h3>
+                      <h3 className="text-2xl font-bold text-foreground">{feature.title}</h3>
 
                       {/* Description */}
-                      <p className="text-muted-foreground leading-relaxed">
-                        {feature.description}
-                      </p>
+                      <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
 
                       {/* Action indicator */}
                       <div className="flex items-center justify-center gap-2 text-primary group-hover:gap-4 transition-all duration-300">
-                        <span className="text-sm font-medium">Try it now</span>
+                        <span className="text-sm font-medium">{t("platformPreview.tryNow")}</span>
                         <ArrowRight className="h-4 w-4" />
                       </div>
                     </div>
@@ -131,7 +117,7 @@ export function PlatformPreviewSection() {
           >
             <Link to="/guest">
               <ShimmerButton size="lg" className="px-12 py-6 text-lg">
-                Start Exploring Now
+                {t("platformPreview.cta")}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </ShimmerButton>
             </Link>
@@ -139,5 +125,5 @@ export function PlatformPreviewSection() {
         </motion.div>
       </div>
     </SpotlightGrid>
-  );
+  )
 }
