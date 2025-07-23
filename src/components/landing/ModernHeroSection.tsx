@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { ArrowRight, Clock, Users, Globe, Award, Star, Sparkles, User } from "lucide-react"
 
 // Animated Counter Hook
@@ -137,6 +138,7 @@ const TypewriterText = ({ texts, className = "" }) => {
 
 // Countdown Timer Component
 const CountdownTimer = ({ targetDate }) => {
+  const { t } = useTranslation()
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -167,7 +169,7 @@ const CountdownTimer = ({ targetDate }) => {
       <div className="flex items-center justify-center gap-6 text-slate-200">
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-blue-400" />
-          <span className="text-sm font-medium">{"We're coming back in:"}</span>
+          <span className="text-sm font-medium">{t("modernHero.countdown.subtitle")}</span>
         </div>
         <div className="flex gap-4">
           {Object.entries(timeLeft).map(([unit, value]) => (
@@ -206,12 +208,14 @@ const AnimatedStatCard = ({ icon: Icon, number, suffix = "", label, color, isAni
 
 // Stats Component with Animated Counters
 const StatsGrid = () => {
+  const { t } = useTranslation()
+
   const stats = [
     {
       icon: Award,
       number: "5",
       suffix: "+",
-      label: "Years Experience",
+      label: t("modernHero.stats.experience"),
       color: "text-amber-400",
       isAnimated: true,
     },
@@ -219,7 +223,7 @@ const StatsGrid = () => {
       icon: Users,
       number: "1000",
       suffix: "+",
-      label: "Success Stories",
+      label: t("modernHero.stats.students"),
       color: "text-blue-400",
       isAnimated: true,
     },
@@ -227,7 +231,7 @@ const StatsGrid = () => {
       icon: Globe,
       number: "10",
       suffix: "+",
-      label: "Countries",
+      label: t("modernHero.stats.countries"),
       color: "text-emerald-400",
       isAnimated: true,
     },
@@ -235,7 +239,7 @@ const StatsGrid = () => {
       icon: Star,
       number: "98",
       suffix: "%",
-      label: "Success Rate",
+      label: t("modernHero.stats.success"),
       color: "text-purple-400",
       isAnimated: true,
     },
@@ -260,6 +264,8 @@ const StatsGrid = () => {
 
 // Main Hero Component
 export const ModernHeroSection = () => {
+  const { t } = useTranslation()
+
   const handleGuestMode = () => {
     window.location.href = "/guest"
   }
@@ -268,7 +274,7 @@ export const ModernHeroSection = () => {
     window.location.href = "/register"
   }
 
-  const typewriterTexts = ["rêves d'études", "ambitions académiques", "projets universitaires"]
+  const typewriterTexts = [t("modernHero.subtitle"), t("modernHero.subtitle2"), t("modernHero.subtitle3")]
 
   return (
     <section className="relative min-h-screen bg-slate-900 overflow-hidden">
@@ -313,7 +319,7 @@ export const ModernHeroSection = () => {
         <div className="flex justify-center mb-12">
           <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-600/30 rounded-full px-4 py-2">
             <Sparkles className="h-4 w-4 text-blue-400" />
-            <span className="text-slate-300 text-sm font-medium">1st on Africa</span>
+            <span className="text-slate-300 text-sm font-medium">{t("modernHero.badge")}</span>
           </div>
         </div>
 
@@ -324,7 +330,7 @@ export const ModernHeroSection = () => {
             {/* Hero Title with Typewriter Effect */}
             <div className="space-y-6">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                <span className="block text-slate-200 mb-2">Réalisez vos</span>
+                <span className="block text-slate-200 mb-2">{t("modernHero.title")}</span>
                 <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 min-h-[1.2em]">
                   <TypewriterText texts={typewriterTexts} />
                 </span>
@@ -333,18 +339,15 @@ export const ModernHeroSection = () => {
             </div>
 
             {/* Description */}
-            <p className="text-lg text-slate-300 leading-relaxed max-w-2xl">
-              Euro Visa vous accompagne dans toutes les étapes de votre projet d'études en Europe. De la sélection des
-              universités à l'obtention du visa, nous sommes à vos côtés.
-            </p>
+            <p className="text-lg text-slate-300 leading-relaxed max-w-2xl">{t("modernHero.description")}</p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <ElegantButton variant="guest" onClick={handleGuestMode} icon={User}>
-                Guest Mode
+                {t("modernHero.guestMode")}
               </ElegantButton>
               <ElegantButton variant="primary" onClick={handleJoinUs} icon={ArrowRight}>
-                Join Us
+                {t("modernHero.joinUs")}
               </ElegantButton>
             </div>
           </div>
@@ -353,7 +356,7 @@ export const ModernHeroSection = () => {
           <div className="relative">
             <div className="relative overflow-hidden rounded-2xl shadow-2xl border border-slate-600/30 bg-slate-800/20 backdrop-blur-sm">
               <img
-                src="/images/euro-visa-professional.jpg"
+                src="/placeholder.svg?height=500&width=600"
                 alt="Euro Visa Professional"
                 className="w-full h-[500px] object-cover"
               />
@@ -373,7 +376,7 @@ export const ModernHeroSection = () => {
 
         {/* Countdown Section */}
         <div className="text-center">
-          <h3 className="text-2xl font-bold text-slate-200 mb-8">{"We're Currently Updating Our Platform"}</h3>
+          <h3 className="text-2xl font-bold text-slate-200 mb-8">{t("modernHero.countdown.title")}</h3>
           <CountdownTimer targetDate="2025-09-01T00:00:00" />
         </div>
       </div>
@@ -383,5 +386,6 @@ export const ModernHeroSection = () => {
 
 // Default export for compatibility
 export default ModernHeroSection
+
 
 
