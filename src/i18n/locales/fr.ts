@@ -1,4 +1,3 @@
-
 export default {
   nav: {
     home: "Accueil",
@@ -8,71 +7,152 @@ export default {
     login: "Connexion",
     register: "S'inscrire",
     dashboard: "Tableau de Bord",
-    logout: "Déconnexion"
+    logout: "Déconnexion",
+    features: "Fonctionnalités",
+    howItWorks: "Comment Ça Marche",
+    pricing: "Tarifs",
+    testimonials: "Témoignages",
+    faq: "FAQ",
+    getStarted: "Commencer",
   },
   hero: {
     title: "Euro Visa",
     subtitle: "Votre Porte d'Entrée vers l'Éducation Internationale",
-    description: "Avec plus d'une décennie d'expérience, Euro Visa a aidé des milliers d'étudiants à réaliser leurs rêves d'étudier à l'étranger. Nos services complets garantissent une transition en douceur de la candidature à l'arrivée.",
+    description:
+      "Avec plus d'une décennie d'expérience, Euro Visa a aidé des milliers d'étudiants à réaliser leurs rêves d'étudier à l'étranger. Nos services complets garantissent une transition en douceur de la candidature à l'arrivée.",
     cta: "Commencez Votre Voyage",
     guestMode: "Parcourir en Invité",
+    primaryCta: "Explorer les Programmes",
+    secondaryCta: "En Savoir Plus",
+    badgeText: "Services de visa et d'éducation simplifiés",
+    feature1: "Conseils d'Experts",
+    feature2: "Traitement Rapide",
+    feature3: "Support Global",
     stats: {
       experience: "Années d'Expérience",
       students: "Étudiants Aidés",
       countries: "Pays",
-      success: "Taux de Réussite"
+      success: "Taux de Réussite",
     },
     credentials: {
       phone: "+961 1 123456",
       email: "info@eurovisa.com",
       address: "Beyrouth, Liban",
-      hours: "Lun-Ven 9h-18h"
+      hours: "Lun-Ven 9h-18h",
     },
-    instagramReel: "Suivez notre parcours et nos histoires de réussite sur Instagram"
+    instagramReel: "Suivez notre parcours et nos histoires de réussite sur Instagram",
+  },
+  macbook: {
+    title: "Découvrez Notre Plateforme",
+    subtitle:
+      "Découvrez comment Euro Visa transforme votre parcours d'éducation internationale avec notre plateforme intuitive.",
+    platformTitle: "Votre Voyage Commence Ici",
+    badge: "Nouvelle Plateforme",
+  },
+  draggable: {
+    title: "Expérience Interactive",
+    subtitle: "Explorez nos services avec des cartes interactives. Glissez et découvrez ce que nous offrons.",
+    education: {
+      title: "Programmes d'Éducation",
+      description: "Découvrez les meilleures universités et programmes du monde",
+    },
+    visa: {
+      title: "Services de Visa",
+      description: "Conseils d'experts dans les processus de demande de visa",
+    },
+    support: {
+      title: "Support 24/7",
+      description: "Assistance continue pour tous vos besoins",
+    },
   },
   programs: {
     title: "Nos Programmes",
     subtitle: "Explorez les opportunités dans le monde entier",
-    viewAll: "Voir Tous les Programmes"
+    viewAll: "Voir Tous les Programmes",
   },
   destinations: {
     title: "Destinations Populaires",
     subtitle: "Découvrez votre prochaine destination",
-    viewAll: "Explorer Toutes les Destinations"
+    viewAll: "Explorer Toutes les Destinations",
   },
   services: {
     title: "Nos Services",
     subtitle: "Assistance professionnelle pour vos besoins de visa",
-    viewAll: "Voir Tous les Services"
+    viewAll: "Voir Tous les Services",
   },
   testimonials: {
     title: "Témoignages Clients",
-    subtitle: "Ce que nos clients disent de nous"
+    subtitle: "Ce que nos clients disent de nous",
   },
   features: {
     title: "Pourquoi Choisir Euro Visa",
     subtitle: "Nous fournissons des solutions d'immigration complètes",
     expert: {
       title: "Consultants Experts",
-      description: "Notre équipe est composée de spécialistes certifiés en immigration"
+      description: "Notre équipe est composée de spécialistes certifiés en immigration",
     },
     support: {
       title: "Support 24/7",
-      description: "Nous sommes toujours disponibles pour vous aider tout au long de votre voyage"
+      description: "Nous sommes toujours disponibles pour vous aider tout au long de votre voyage",
     },
     success: {
       title: "Taux de Réussite Élevé",
-      description: "Nous avons un historique prouvé de demandes réussies"
-    }
+      description: "Nous avons un historique prouvé de demandes réussies",
+    },
+  },
+  howItWorks: {
+    title: "Comment Ça Marche",
+    subtitle:
+      "Notre processus simple étape par étape pour vous aider à atteindre vos objectifs d'éducation internationale et d'immigration.",
+  },
+  pricing: {
+    title: "Options d'Éducation Internationale",
+    subtitle: "Explorez les opportunités d'études dans différents pays avec nos services d'assistance.",
+    applicationFee: "Frais de Candidature",
+    learnMore: "En Savoir Plus",
+    customPlan: "Besoin d'aide avec un autre pays ? ",
+    contactUs: "Contactez notre équipe",
+    admissionDetails: "Exigences d'admission et détails du processus",
+    requirements: "Exigences",
+    documents: "Documents Requis",
+    timeline: "Calendrier de Candidature",
+    additionalInfo: "Informations Supplémentaires",
+    applyNow: "Postuler Maintenant",
+  },
+  faq: {
+    title: "Questions Fréquemment Posées",
+    subtitle: "Trouvez des réponses aux questions courantes sur nos services et processus.",
+    moreQuestions: "Vous avez encore des questions ? ",
+    contactUs: "Contactez notre équipe de support",
   },
   cta: {
     title: "Prêt à Commencer Votre Voyage?",
     subtitle: "Contactez-nous aujourd'hui pour une consultation gratuite",
-    button: "Commencer"
+    button: "Commencer",
+    primaryButton: "Commencer Aujourd'hui",
+    secondaryButton: "Explorer les Programmes",
   },
   footer: {
     rights: "Tous droits réservés",
     privacy: "Politique de Confidentialité",
-    terms: "Conditions d'Utilisation"
-  }
-};
+    terms: "Conditions d'Utilisation",
+    description:
+      "Votre partenaire de confiance pour les services de visa et d'immigration dans le monde entier, aidant les étudiants et les professionnels à atteindre leurs objectifs internationaux.",
+    company: "Entreprise",
+    services: "Services",
+    resources: "Ressources",
+    legal: "Légal",
+    newsletter: {
+      title: "Abonnez-vous à Notre Newsletter",
+      description: "Restez informé des derniers changements de politique de visa et des opportunités éducatives.",
+      placeholder: "Entrez votre email",
+      subscribe: "S'abonner",
+      subscribing: "Abonnement...",
+      success: "Abonnement réussi !",
+      successMessage: "Merci de vous être abonné à notre newsletter.",
+      error: "Email invalide",
+      errorMessage: "Veuillez entrer une adresse email valide.",
+    },
+  },
+}
+
