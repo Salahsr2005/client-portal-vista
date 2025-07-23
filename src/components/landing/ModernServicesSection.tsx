@@ -1,70 +1,72 @@
-import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { SpotlightGrid } from "@/components/ui/spotlight-grid";
-import { FileText, GraduationCap, Home, Plane, Building, Languages, ArrowRight } from "lucide-react";
+"use client"
+
+import { motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { SpotlightGrid } from "@/components/ui/spotlight-grid"
+import { FileText, GraduationCap, Home, Plane, Building, Languages, ArrowRight } from "lucide-react"
 
 export function ModernServicesSection() {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
 
   const services = [
     {
       id: 1,
-      title: "Visa Application",
-      description: "Expert guidance through the entire visa application process for your study abroad journey.",
+      title: t("modernServices.services.visa.title"),
+      description: t("modernServices.services.visa.description"),
       icon: <FileText className="h-6 w-6" />,
       gradient: "bg-gradient-to-br from-blue-500/10 via-blue-600/5 to-transparent",
       borderColor: "border-blue-500/30",
-      iconBg: "bg-blue-500/10 text-blue-600"
+      iconBg: "bg-blue-500/10 text-blue-600",
     },
     {
       id: 2,
-      title: "University Admission",
-      description: "Assistance with university selection and application to top European institutions.",
+      title: t("modernServices.services.university.title"),
+      description: t("modernServices.services.university.description"),
       icon: <GraduationCap className="h-6 w-6" />,
       gradient: "bg-gradient-to-br from-purple-500/10 via-purple-600/5 to-transparent",
       borderColor: "border-purple-500/30",
-      iconBg: "bg-purple-500/10 text-purple-600"
+      iconBg: "bg-purple-500/10 text-purple-600",
     },
     {
       id: 3,
-      title: "Accommodation",
-      description: "Help finding suitable and affordable student accommodation in your destination country.",
+      title: t("modernServices.services.accommodation.title"),
+      description: t("modernServices.services.accommodation.description"),
       icon: <Home className="h-6 w-6" />,
       gradient: "bg-gradient-to-br from-teal-500/10 via-teal-600/5 to-transparent",
       borderColor: "border-teal-500/30",
-      iconBg: "bg-teal-500/10 text-teal-600"
+      iconBg: "bg-teal-500/10 text-teal-600",
     },
     {
       id: 4,
-      title: "Travel Arrangements",
-      description: "Support with travel planning, flight bookings, and pre-departure preparations.",
+      title: t("modernServices.services.travel.title"),
+      description: t("modernServices.services.travel.description"),
       icon: <Plane className="h-6 w-6" />,
       gradient: "bg-gradient-to-br from-orange-500/10 via-orange-600/5 to-transparent",
       borderColor: "border-orange-500/30",
-      iconBg: "bg-orange-500/10 text-orange-600"
+      iconBg: "bg-orange-500/10 text-orange-600",
     },
     {
       id: 5,
-      title: "Local Integration",
-      description: "Resources and support for cultural integration and adapting to your new environment.",
+      title: t("modernServices.services.integration.title"),
+      description: t("modernServices.services.integration.description"),
       icon: <Building className="h-6 w-6" />,
       gradient: "bg-gradient-to-br from-red-500/10 via-red-600/5 to-transparent",
       borderColor: "border-red-500/30",
-      iconBg: "bg-red-500/10 text-red-600"
+      iconBg: "bg-red-500/10 text-red-600",
     },
     {
       id: 6,
-      title: "Language Courses",
-      description: "Access to language preparation courses to help you succeed in your studies abroad.",
+      title: t("modernServices.services.language.title"),
+      description: t("modernServices.services.language.description"),
       icon: <Languages className="h-6 w-6" />,
       gradient: "bg-gradient-to-br from-indigo-500/10 via-indigo-600/5 to-transparent",
       borderColor: "border-indigo-500/30",
-      iconBg: "bg-indigo-500/10 text-indigo-600"
-    }
-  ];
+      iconBg: "bg-indigo-500/10 text-indigo-600",
+    },
+  ]
 
   return (
     <SpotlightGrid className="py-24 relative">
@@ -78,14 +80,10 @@ export function ModernServicesSection() {
           className="text-center mb-16"
         >
           <Badge variant="outline" className="mb-4 border-primary/20 text-primary">
-            Premium Services
+            {t("modernServices.badge")}
           </Badge>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            Our Comprehensive Services
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Euro Visa provides end-to-end support for your international education journey, from application to arrival.
-          </p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{t("modernServices.title")}</h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">{t("modernServices.subtitle")}</p>
         </motion.div>
 
         {/* Services grid */}
@@ -99,7 +97,9 @@ export function ModernServicesSection() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
             >
-              <Card className={`p-6 h-full ${service.gradient} border ${service.borderColor} hover:scale-105 transition-all duration-300 group relative overflow-hidden`}>
+              <Card
+                className={`p-6 h-full ${service.gradient} border ${service.borderColor} hover:scale-105 transition-all duration-300 group relative overflow-hidden`}
+              >
                 {/* Background decoration */}
                 <div className="absolute top-0 right-0 w-20 h-20 opacity-5">
                   <div className="w-full h-full rounded-full bg-gradient-to-br from-current to-transparent"></div>
@@ -112,19 +112,15 @@ export function ModernServicesSection() {
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {service.title}
-                  </h3>
+                  <h3 className="text-xl font-semibold text-foreground">{service.title}</h3>
 
                   {/* Description */}
-                  <p className="text-muted-foreground leading-relaxed">
-                    {service.description}
-                  </p>
+                  <p className="text-muted-foreground leading-relaxed">{service.description}</p>
 
                   {/* Learn more link */}
                   <div className="pt-2">
                     <Button variant="ghost" size="sm" className="p-0 h-auto text-primary hover:text-primary/80">
-                      Learn more
+                      {t("modernServices.learnMore")}
                       <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </div>
@@ -138,5 +134,5 @@ export function ModernServicesSection() {
         </div>
       </div>
     </SpotlightGrid>
-  );
+  )
 }
