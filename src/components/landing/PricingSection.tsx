@@ -1,107 +1,68 @@
+"use client"
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import { Info, Flag, ExternalLink } from "lucide-react";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
+import { Info, ExternalLink } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
 
 export function PricingSection() {
-  const { t } = useTranslation();
-  const [activeCountry, setActiveCountry] = useState("");
-  const [dialogOpen, setDialogOpen] = useState<string | null>(null);
-  
+  const { t } = useTranslation()
+  const [activeCountry, setActiveCountry] = useState("")
+  const [dialogOpen, setDialogOpen] = useState<string | null>(null)
+
   // Country data with pricing options and admission details
   const countries = [
     {
       id: "france",
-      name: "France",
+      name: t("pricing.countries.france.name"),
       flag: "🇫🇷",
       color: "from-blue-500 to-blue-600",
       options: [
-        { name: "Campus France", price: "100€" },
-        { name: "Parcoursup", price: "100€" },
-        { name: "Université non connectée", price: "Varies" },
-        { name: "Université privée", price: "Varies" },
+        { name: t("pricing.countries.france.options.campusFrance"), price: "100€" },
+        { name: t("pricing.countries.france.options.parcoursup"), price: "100€" },
+        { name: t("pricing.countries.france.options.nonConnected"), price: "Varies" },
+        { name: t("pricing.countries.france.options.private"), price: "Varies" },
       ],
       admissionInfo: {
-        title: "Study in France",
-        requirements: [
-          "Completed secondary education",
-          "B2 level proficiency in French (DELF/DALF certification)",
-          "Campus France procedure for non-EU students",
-          "Parcoursup registration for Bachelor's programs",
-        ],
-        documents: [
-          "Birth certificate",
-          "High school diploma/transcripts",
-          "Motivation letter",
-          "French language certification",
-          "Proof of financial resources",
-        ],
-        timeline: "Applications open from November to January",
-        additionalInfo: "Campus France procedure is mandatory for students from most non-EU countries. The process includes an interview and validation of academic documents."
-      }
+        title: t("pricing.countries.france.admissionInfo.title"),
+        requirements: t("pricing.countries.france.admissionInfo.requirements", { returnObjects: true }) as string[],
+        documents: t("pricing.countries.france.admissionInfo.documents", { returnObjects: true }) as string[],
+        timeline: t("pricing.countries.france.admissionInfo.timeline"),
+        additionalInfo: t("pricing.countries.france.admissionInfo.additionalInfo"),
+      },
     },
     {
       id: "poland",
-      name: "Poland",
+      name: t("pricing.countries.poland.name"),
       flag: "🇵🇱",
       color: "from-red-500 to-red-600",
       price: "400€",
       admissionInfo: {
-        title: "Study in Poland",
-        requirements: [
-          "Completed secondary education",
-          "English proficiency (B2 level) for English-taught programs",
-          "Polish proficiency for Polish-taught programs",
-          "Entrance exams for some programs"
-        ],
-        documents: [
-          "Completed application form",
-          "Secondary school certificate",
-          "Transcript of records",
-          "Language proficiency certificate",
-          "Copy of passport",
-          "Health insurance"
-        ],
-        timeline: "Applications typically open from May to July",
-        additionalInfo: "Many Polish universities offer programs in English. The academic year starts in October and ends in June."
-      }
+        title: t("pricing.countries.poland.admissionInfo.title"),
+        requirements: t("pricing.countries.poland.admissionInfo.requirements", { returnObjects: true }) as string[],
+        documents: t("pricing.countries.poland.admissionInfo.documents", { returnObjects: true }) as string[],
+        timeline: t("pricing.countries.poland.admissionInfo.timeline"),
+        additionalInfo: t("pricing.countries.poland.admissionInfo.additionalInfo"),
+      },
     },
     {
       id: "belgium",
-      name: "Belgium",
+      name: t("pricing.countries.belgium.name"),
       flag: "🇧🇪",
       color: "from-yellow-500 to-yellow-600",
       price: "1000€",
       admissionInfo: {
-        title: "Study in Belgium",
-        requirements: [
-          "Completed secondary education equivalent to Belgian standards",
-          "Language proficiency in French, Dutch, or English depending on the program",
-          "Specific entrance exams for some programs (e.g., medicine, engineering)"
-        ],
-        documents: [
-          "Application form",
-          "Secondary school certificate (legalized)",
-          "Transcript of records",
-          "Copy of passport/ID",
-          "Language proficiency certificate",
-          "Motivation letter"
-        ],
-        timeline: "Applications usually due by April 30 for most programs",
-        additionalInfo: "Belgium has a high-quality education system with reasonable tuition fees compared to other Western European countries. The country has French, Dutch, and German-speaking institutions."
-      }
-    }
-  ];
+        title: t("pricing.countries.belgium.admissionInfo.title"),
+        requirements: t("pricing.countries.belgium.admissionInfo.requirements", { returnObjects: true }) as string[],
+        documents: t("pricing.countries.belgium.admissionInfo.documents", { returnObjects: true }) as string[],
+        timeline: t("pricing.countries.belgium.admissionInfo.timeline"),
+        additionalInfo: t("pricing.countries.belgium.admissionInfo.additionalInfo"),
+      },
+    },
+  ]
 
   // Card animation variants
   const cardVariants = {
@@ -111,38 +72,34 @@ export function PricingSection() {
       scale: 1.05,
       transition: {
         duration: 0.3,
-        ease: "easeOut"
-      }
-    }
-  };
+        ease: "easeOut",
+      },
+    },
+  }
 
   const openDialog = (countryId: string) => {
-    setDialogOpen(countryId);
-  };
+    setDialogOpen(countryId)
+  }
 
   const closeDialog = () => {
-    setDialogOpen(null);
-  };
+    setDialogOpen(null)
+  }
 
   return (
     <section className="py-24 bg-muted/30">
       <div className="container max-w-7xl mx-auto px-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            {t("pricing.title", "International Education Options")}
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
-            {t("pricing.subtitle", "Explore study opportunities across different countries with our assistance services.")}
-          </p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">{t("pricing.title")}</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto mb-8">{t("pricing.subtitle")}</p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial="hidden"
           whileInView="show"
           viewport={{ once: true }}
@@ -153,13 +110,13 @@ export function PricingSection() {
               transition: {
                 staggerChildren: 0.1,
                 delayChildren: 0.3,
-              }
-            }
+              },
+            },
           }}
           className="grid grid-cols-1 md:grid-cols-3 gap-8"
         >
           {countries.map((country) => (
-            <motion.div 
+            <motion.div
               key={country.id}
               whileHover="hover"
               variants={cardVariants}
@@ -174,7 +131,7 @@ export function PricingSection() {
                     </span>
                     <h3 className="text-2xl font-bold">{country.name}</h3>
                   </div>
-                  
+
                   {country.options ? (
                     <ul className="space-y-3 mb-6">
                       {country.options.map((option, idx) => (
@@ -187,27 +144,27 @@ export function PricingSection() {
                   ) : (
                     <div className="text-center mb-6">
                       <span className="text-2xl font-bold">{country.price}</span>
-                      <p className="text-sm opacity-80">{t("pricing.applicationFee", "Application Fee")}</p>
+                      <p className="text-sm opacity-80">{t("pricing.applicationFee")}</p>
                     </div>
                   )}
                 </div>
 
                 <div className="px-6 py-4 mt-auto">
-                  <Button 
-                    variant="outline" 
-                    className="w-full group-hover:bg-primary group-hover:text-white transition-colors"
+                  <Button
+                    variant="outline"
+                    className="w-full group-hover:bg-primary group-hover:text-white transition-colors bg-transparent"
                     onClick={() => openDialog(country.id)}
                   >
                     <Info className="mr-2 h-4 w-4" />
-                    {t("pricing.learnMore", "Learn More")}
+                    {t("pricing.learnMore")}
                   </Button>
                 </div>
               </Card>
             </motion.div>
           ))}
         </motion.div>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -215,9 +172,9 @@ export function PricingSection() {
           className="mt-12 text-center"
         >
           <p className="text-muted-foreground">
-            {t("pricing.customPlan", "Need assistance with a different country? ")}
+            {t("pricing.customPlan")}
             <Button variant="link" className="p-0 h-auto text-primary">
-              {t("pricing.contactUs", "Contact our team")}
+              {t("pricing.contactUs")}
             </Button>
           </p>
         </motion.div>
@@ -232,44 +189,46 @@ export function PricingSection() {
                 <span className="text-2xl">{country.flag}</span>
                 {country.admissionInfo.title}
               </DialogTitle>
-              <DialogDescription>
-                {t("pricing.admissionDetails", "Admission requirements and process details")}
-              </DialogDescription>
+              <DialogDescription>{t("pricing.admissionDetails")}</DialogDescription>
             </DialogHeader>
-            
+
             <div className="mt-4 space-y-4">
               <div>
-                <h4 className="font-semibold mb-2">{t("pricing.requirements", "Requirements")}</h4>
+                <h4 className="font-semibold mb-2">{t("pricing.requirements")}</h4>
                 <ul className="list-disc pl-5 space-y-1">
                   {country.admissionInfo.requirements.map((req, idx) => (
-                    <li key={idx} className="text-sm">{req}</li>
+                    <li key={idx} className="text-sm">
+                      {req}
+                    </li>
                   ))}
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-semibold mb-2">{t("pricing.documents", "Required Documents")}</h4>
+                <h4 className="font-semibold mb-2">{t("pricing.documents")}</h4>
                 <ul className="list-disc pl-5 space-y-1">
                   {country.admissionInfo.documents.map((doc, idx) => (
-                    <li key={idx} className="text-sm">{doc}</li>
+                    <li key={idx} className="text-sm">
+                      {doc}
+                    </li>
                   ))}
                 </ul>
               </div>
-              
+
               <div>
-                <h4 className="font-semibold mb-2">{t("pricing.timeline", "Application Timeline")}</h4>
+                <h4 className="font-semibold mb-2">{t("pricing.timeline")}</h4>
                 <p className="text-sm">{country.admissionInfo.timeline}</p>
               </div>
-              
+
               <div>
-                <h4 className="font-semibold mb-2">{t("pricing.additionalInfo", "Additional Information")}</h4>
+                <h4 className="font-semibold mb-2">{t("pricing.additionalInfo")}</h4>
                 <p className="text-sm">{country.admissionInfo.additionalInfo}</p>
               </div>
-              
+
               <div className="pt-4 border-t">
                 <Button className="w-full">
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  {t("pricing.applyNow", "Apply Now")}
+                  {t("pricing.applyNow")}
                 </Button>
               </div>
             </div>
@@ -277,5 +236,6 @@ export function PricingSection() {
         </Dialog>
       ))}
     </section>
-  );
+  )
 }
+
