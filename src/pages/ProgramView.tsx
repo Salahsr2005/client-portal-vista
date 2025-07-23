@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -16,7 +16,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/contexts/AuthContext"
 import {
@@ -25,16 +24,20 @@ import {
   School,
   MapPin,
   CalendarDays,
+  CircleDollarSign,
   GraduationCap,
   BookOpen,
   Clock,
+  Globe,
   Home,
   Building,
   Users,
   FileCheck,
+  Award,
   Info,
   Languages,
   Heart,
+  Check,
   CheckCircle,
   Share2,
   BarChart3,
@@ -42,6 +45,16 @@ import {
   UserCheck,
   DollarSign,
 } from "lucide-react"
+
+// Simple Progress component inline
+const Progress = ({ value, className = "" }: { value: number; className?: string }) => (
+  <div className={`relative h-2 w-full overflow-hidden rounded-full bg-slate-800 ${className}`}>
+    <div
+      className="h-full bg-blue-500 transition-all duration-300 ease-in-out"
+      style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
+    />
+  </div>
+)
 
 export default function ProgramView() {
   const { programId } = useParams()
@@ -82,11 +95,13 @@ export default function ProgramView() {
 
     fetchProgramDetails()
 
+    // Check if program is in favorites
     if (user) {
       checkFavoriteStatus()
     }
   }, [programId, toast, user])
 
+  // Check if program is in favorites
   const checkFavoriteStatus = async () => {
     if (!user || !programId) return
 
@@ -108,6 +123,7 @@ export default function ProgramView() {
     }
   }
 
+  // Toggle favorite status
   const toggleFavorite = async () => {
     if (!user || !programId) {
       toast({
@@ -120,6 +136,7 @@ export default function ProgramView() {
 
     try {
       if (isFavorite) {
+        // Remove from favorites
         const { error } = await supabase
           .from("favorite_programs")
           .delete()
@@ -134,6 +151,7 @@ export default function ProgramView() {
           description: "Program removed from your favorites",
         })
       } else {
+        // Add to favorites
         const { error } = await supabase.from("favorite_programs").insert({
           user_id: user.id,
           program_id: programId,
@@ -157,6 +175,7 @@ export default function ProgramView() {
     }
   }
 
+  // Share program function
   const handleShare = async () => {
     const url = window.location.href
     const programTitle = program?.name || "Educational Program"
@@ -170,6 +189,7 @@ export default function ProgramView() {
           url: url,
         })
       } else {
+        // Fallback for browsers that don't support the Web Share API
         await navigator.clipboard.writeText(url)
         toast({
           title: "Link copied!",
@@ -178,6 +198,7 @@ export default function ProgramView() {
       }
     } catch (error) {
       console.error("Error sharing:", error)
+      // Fallback in case sharing fails
       try {
         await navigator.clipboard.writeText(url)
         toast({
@@ -245,7 +266,10 @@ export default function ProgramView() {
   const employmentRate = 75
   const currentCapacity = program.available_places || 25
   const totalCapacity = program.total_places || 50
-  const capacityPercentage = (currentCapacity / totalCapacity) * 100
+  const capacityPercentage = Math.min((currentCapacity / totalCapacity) * 100, 100)
+
+  // Program image
+  const programImage = program.image_url || "/placeholder.svg?height=400&width=800&text=Program+Image"
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -316,6 +340,12 @@ export default function ProgramView() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Program Overview - Left Column */}
           <div className="xl:col-span-2 space-y-6">
+            {/* Program Image */}
+            <div className="relative h-64 w-full rounded-lg overflow-hidden">
+              <img src={programImage || "/placeholder.svg"} alt={program.name} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            </div>
+
             <Card className="bg-slate-900 border-slate-800">
               <CardHeader className="border-b border-slate-800">
                 <div className="flex items-center gap-2">
@@ -424,9 +454,46 @@ export default function ProgramView() {
               </CardContent>
             </Card>
 
-            {/* Detailed Tabs */}
+            {/* Program Features */}
             <Card className="bg-slate-900 border-slate-800">
               <CardContent className="p-6">
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {program.scholarship_available && (
+                    <Badge
+                      variant="outline"
+                      className="bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
+                    >
+                      <Award className="h-3.5 w-3.5 mr-1" /> Scholarship Available
+                    </Badge>
+                  )}
+                  {program.internship_opportunities && (
+                    <Badge
+                      variant="outline"
+                      className="bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400"
+                    >
+                      <BookOpen className="h-3.5 w-3.5 mr-1" /> Internship Opportunities
+                    </Badge>
+                  )}
+                  {program.exchange_opportunities && (
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+                    >
+                      <Globe className="h-3.5 w-3.5 mr-1" /> Exchange Opportunities
+                    </Badge>
+                  )}
+                  {program.religious_facilities && (
+                    <Badge variant="outline">
+                      <Heart className="h-3.5 w-3.5 mr-1" /> Religious Facilities
+                    </Badge>
+                  )}
+                  {program.halal_food_availability && (
+                    <Badge variant="outline">
+                      <Check className="h-3.5 w-3.5 mr-1" /> Halal Food Options
+                    </Badge>
+                  )}
+                </div>
+
                 <Tabs defaultValue="details" className="w-full">
                   <TabsList className="grid w-full grid-cols-4 bg-slate-800">
                     <TabsTrigger value="details" className="data-[state=active]:bg-slate-700">
@@ -445,9 +512,15 @@ export default function ProgramView() {
 
                   <TabsContent value="details" className="mt-6 space-y-4">
                     <div>
+                      <h4 className="font-medium mb-2 text-white">Field of Study</h4>
+                      <p className="text-slate-300">{program.field}</p>
+                    </div>
+
+                    <div>
                       <h4 className="font-medium mb-2 text-white">Program Advantages</h4>
                       <p className="text-slate-300">{program.advantages || "Details not provided."}</p>
                     </div>
+
                     <div>
                       <h4 className="font-medium mb-2 text-white">Application Process</h4>
                       <p className="text-slate-300">
@@ -470,12 +543,25 @@ export default function ProgramView() {
                         </div>
                       )}
                     </div>
+
                     <div>
                       <h4 className="font-medium mb-2 text-white">Language Requirements</h4>
-                      <p className="text-slate-300">
-                        {program.language_test &&
-                          `${program.language_test}: ${program.language_test_score || "Score requirements vary"}`}
-                      </p>
+                      <div className="space-y-2">
+                        <p className="text-slate-300">
+                          {program.language_test &&
+                            `${program.language_test}: ${program.language_test_score || "Score requirements vary"}`}
+                        </p>
+                        {program.language_test_exemptions && (
+                          <p className="text-slate-300">
+                            <span className="font-medium">Exemptions:</span> {program.language_test_exemptions}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2 text-white">Admission Requirements</h4>
+                      <p className="text-slate-300">{program.admission_requirements}</p>
                     </div>
                   </TabsContent>
 
@@ -486,13 +572,46 @@ export default function ProgramView() {
                         ${program.tuition_min?.toLocaleString()} - ${program.tuition_max?.toLocaleString()} per year
                       </p>
                     </div>
+
                     <div>
                       <h4 className="font-medium mb-2 text-white">Living Costs</h4>
                       <p className="text-slate-300">
-                        Estimated monthly: ${program.living_cost_min?.toLocaleString()} - $
+                        Estimated monthly living expenses: ${program.living_cost_min?.toLocaleString()} - $
                         {program.living_cost_max?.toLocaleString()}
                       </p>
                     </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2 text-white">Additional Fees</h4>
+                      <div className="space-y-1 text-sm">
+                        <p>
+                          <span className="text-slate-400">Application Fee:</span> $
+                          {program.application_fee?.toLocaleString() || "N/A"}
+                        </p>
+                        <p>
+                          <span className="text-slate-400">Visa Fee:</span> $
+                          {program.visa_fee?.toLocaleString() || "Varies by nationality"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {program.scholarship_available && (
+                      <div>
+                        <h4 className="font-medium mb-2 text-white">Scholarship Information</h4>
+                        <p className="text-slate-300">
+                          {program.scholarship_details ||
+                            "Scholarships available based on academic merit and financial need."}
+                        </p>
+                        {program.scholarship_amount && (
+                          <p className="text-sm font-medium mt-1 text-white">
+                            Up to ${program.scholarship_amount?.toLocaleString()} available
+                          </p>
+                        )}
+                        {program.scholarship_deadline && (
+                          <p className="text-sm text-slate-400 mt-1">Deadline: {program.scholarship_deadline}</p>
+                        )}
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="housing" className="mt-6 space-y-4">
@@ -502,12 +621,41 @@ export default function ProgramView() {
                         {program.housing_availability || "Contact the university for housing information."}
                       </p>
                     </div>
+
                     <div>
                       <h4 className="font-medium mb-2 text-white">Housing Costs</h4>
                       <p className="text-slate-300">
-                        Monthly: ${program.housing_cost_min?.toLocaleString()} - $
+                        Estimated monthly housing costs: ${program.housing_cost_min?.toLocaleString()} - $
                         {program.housing_cost_max?.toLocaleString()}
                       </p>
+                    </div>
+
+                    {program.north_african_community_size && (
+                      <div>
+                        <h4 className="font-medium mb-2 text-white">Community</h4>
+                        <p className="text-slate-300">
+                          North African community size: {program.north_african_community_size}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {program.religious_facilities && (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400"
+                        >
+                          Religious Facilities Available
+                        </Badge>
+                      )}
+                      {program.halal_food_availability && (
+                        <Badge
+                          variant="outline"
+                          className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400"
+                        >
+                          Halal Food Options
+                        </Badge>
+                      )}
                     </div>
                   </TabsContent>
                 </Tabs>
@@ -533,7 +681,7 @@ export default function ProgramView() {
                     </div>
                     <span className="text-white font-semibold">{successRate}%</span>
                   </div>
-                  <Progress value={successRate} className="h-2 bg-slate-800" />
+                  <Progress value={successRate} />
                 </div>
 
                 <div>
@@ -544,7 +692,7 @@ export default function ProgramView() {
                     </div>
                     <span className="text-white font-semibold">{employmentRate}%</span>
                   </div>
-                  <Progress value={employmentRate} className="h-2 bg-slate-800" />
+                  <Progress value={employmentRate} />
                 </div>
 
                 <div>
@@ -557,7 +705,7 @@ export default function ProgramView() {
                       {currentCapacity}/{totalCapacity}
                     </span>
                   </div>
-                  <Progress value={capacityPercentage} className="h-2 bg-slate-800" />
+                  <Progress value={capacityPercentage} />
                 </div>
               </CardContent>
             </Card>
@@ -571,7 +719,7 @@ export default function ProgramView() {
                     <span className="text-white font-medium">Tuition Range</span>
                   </div>
                   <p className="text-slate-300">
-                    €{program.tuition_min?.toLocaleString()} - €{program.tuition_max?.toLocaleString()}
+                    ${program.tuition_min?.toLocaleString()} - ${program.tuition_max?.toLocaleString()}
                   </p>
                 </div>
 
@@ -581,7 +729,7 @@ export default function ProgramView() {
                     <span className="text-white font-medium">Living Costs</span>
                   </div>
                   <p className="text-slate-300">
-                    €{program.living_cost_min?.toLocaleString()} - €{program.living_cost_max?.toLocaleString()}
+                    ${program.living_cost_min?.toLocaleString()} - ${program.living_cost_max?.toLocaleString()}
                   </p>
                 </div>
 
@@ -590,14 +738,115 @@ export default function ProgramView() {
                     <FileCheck className="h-4 w-4 text-purple-400" />
                     <span className="text-white font-medium">Application Fee</span>
                   </div>
-                  <p className="text-slate-300">€{program.application_fee?.toLocaleString() || "400"}</p>
+                  <p className="text-slate-300">${program.application_fee?.toLocaleString() || "400"}</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Action Buttons */}
+            {/* Application Info */}
             <Card className="bg-slate-900 border-slate-800">
-              <CardContent className="p-6 space-y-3">
+              <CardHeader className="border-b border-slate-800">
+                <CardTitle className="text-white">Application</CardTitle>
+                <CardDescription className="text-slate-400">Key information about applying</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-400 mb-1">Deadline</h3>
+                    <div className="flex items-center text-base">
+                      <CalendarDays className="h-4 w-4 mr-2 text-blue-400" />
+                      <span className="text-white">{program.application_deadline || "Contact for details"}</span>
+                    </div>
+                  </div>
+
+                  {program.available_places !== null && (
+                    <div>
+                      <h3 className="text-sm font-medium text-slate-400 mb-1">Available Places</h3>
+                      <div className="flex items-center text-base">
+                        <Users className="h-4 w-4 mr-2 text-blue-400" />
+                        <span className="text-white">
+                          {program.available_places} / {program.total_places || "∞"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-400 mb-1">Application Fee</h3>
+                    <div className="flex items-center text-base">
+                      <CircleDollarSign className="h-4 w-4 mr-2 text-blue-400" />
+                      <span className="text-white">
+                        ${program.application_fee?.toLocaleString() || "Contact for details"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator className="bg-slate-800" />
+
+                  <div>
+                    <h3 className="font-medium mb-3 text-white">Required Documents</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                        <span className="text-sm text-slate-300">Academic transcripts</span>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                        <span className="text-sm text-slate-300">Language proficiency test results</span>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                        <span className="text-sm text-slate-300">Passport copy</span>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                        <span className="text-sm text-slate-300">Motivation letter</span>
+                      </li>
+                    </ul>
+
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
+                      onClick={() => openDialog("requirements")}
+                    >
+                      View All Requirements
+                    </Button>
+                  </div>
+
+                  <Separator className="bg-slate-800" />
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium mb-1 text-white">Our Services</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
+                        <span className="text-slate-300">Application preparation</span>
+                      </div>
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
+                        <span className="text-slate-300">Document verification</span>
+                      </div>
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
+                        <span className="text-slate-300">Visa guidance</span>
+                      </div>
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
+                        <span className="text-slate-300">Pre-departure orientation</span>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
+                      onClick={() => navigate("/services")}
+                    >
+                      View Our Services
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex-col gap-2">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={handleApplyClick}>
                   Apply Now
                 </Button>
@@ -609,13 +858,24 @@ export default function ProgramView() {
                   Get Consultation
                 </Button>
                 <Button
+                  variant={isFavorite ? "secondary" : "outline"}
+                  className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
+                  onClick={toggleFavorite}
+                >
+                  <Heart className={`mr-2 h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                  {isFavorite ? "Saved to Favorites" : "Save to Favorites"}
+                </Button>
+
+                {/* Share button */}
+                <Button
                   variant="outline"
                   className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-                  onClick={() => openDialog("requirements")}
+                  onClick={handleShare}
                 >
-                  View Requirements
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share Program
                 </Button>
-              </CardContent>
+              </CardFooter>
             </Card>
           </div>
         </div>
@@ -672,26 +932,57 @@ export default function ProgramView() {
                 <div>
                   <h3 className="font-semibold mb-2 text-white">Required Documents</h3>
                   <ul className="space-y-2">
-                    {[
-                      {
-                        title: "Academic transcripts",
-                        desc: "Official transcripts from all previously attended institutions",
-                      },
-                      { title: "Language proficiency proof", desc: "IELTS, TOEFL, or equivalent as specified" },
-                      { title: "Passport copy", desc: "Valid for at least 6 months beyond program end date" },
-                      { title: "Motivation letter", desc: "Statement explaining your interest in the program" },
-                      { title: "Recommendation letters", desc: "2-3 letters from academic or professional references" },
-                      { title: "Curriculum Vitae/Resume", desc: "Detailed academic and professional history" },
-                      { title: "Financial documents", desc: "Proof of ability to fund your studies" },
-                    ].map((doc, index) => (
-                      <li key={index} className="flex items-start">
-                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1 flex-shrink-0" />
-                        <div>
-                          <span className="font-medium text-white">{doc.title}</span>
-                          <p className="text-sm text-slate-400">{doc.desc}</p>
-                        </div>
-                      </li>
-                    ))}
+                    <li className="flex items-start">
+                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      <div>
+                        <span className="font-medium text-white">Academic transcripts</span>
+                        <p className="text-sm text-slate-400">
+                          Official transcripts from all previously attended institutions
+                        </p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      <div>
+                        <span className="font-medium text-white">Language proficiency proof</span>
+                        <p className="text-sm text-slate-400">IELTS, TOEFL, or equivalent as specified</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      <div>
+                        <span className="font-medium text-white">Passport copy</span>
+                        <p className="text-sm text-slate-400">Valid for at least 6 months beyond program end date</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      <div>
+                        <span className="font-medium text-white">Motivation letter</span>
+                        <p className="text-sm text-slate-400">Statement explaining your interest in the program</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      <div>
+                        <span className="font-medium text-white">Recommendation letters</span>
+                        <p className="text-sm text-slate-400">2-3 letters from academic or professional references</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      <div>
+                        <span className="font-medium text-white">Curriculum Vitae/Resume</span>
+                        <p className="text-sm text-slate-400">Detailed academic and professional history</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start">
+                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      <div>
+                        <span className="font-medium text-white">Financial documents</span>
+                        <p className="text-sm text-slate-400">Proof of ability to fund your studies</p>
+                      </div>
+                    </li>
                   </ul>
                 </div>
 
@@ -718,3 +1009,4 @@ export default function ProgramView() {
     </div>
   )
 }
+
