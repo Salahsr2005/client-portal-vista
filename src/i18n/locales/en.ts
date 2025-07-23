@@ -1,4 +1,3 @@
-
 export default {
   nav: {
     home: "Home",
@@ -8,71 +7,150 @@ export default {
     login: "Login",
     register: "Register",
     dashboard: "Dashboard",
-    logout: "Logout"
+    logout: "Logout",
+    features: "Features",
+    howItWorks: "How It Works",
+    pricing: "Pricing",
+    testimonials: "Testimonials",
+    faq: "FAQ",
+    getStarted: "Get Started",
   },
   hero: {
     title: "Euro Visa",
     subtitle: "Your Gateway to International Education",
-    description: "With over a decade of experience, Euro Visa has helped thousands of students achieve their dreams of studying abroad. Our comprehensive services ensure a smooth transition from application to arrival.",
+    description:
+      "With over a decade of experience, Euro Visa has helped thousands of students achieve their dreams of studying abroad. Our comprehensive services ensure a smooth transition from application to arrival.",
     cta: "Start Your Journey",
     guestMode: "Browse as Guest",
+    primaryCta: "Explore Programs",
+    secondaryCta: "Learn More",
+    badgeText: "Simplified visa & educational services",
+    feature1: "Expert Guidance",
+    feature2: "Fast Processing",
+    feature3: "Global Support",
     stats: {
       experience: "Years Experience",
       students: "Students Helped",
       countries: "Countries",
-      success: "Success Rate"
+      success: "Success Rate",
     },
     credentials: {
       phone: "+961 1 123456",
       email: "info@eurovisa.com",
       address: "Beirut, Lebanon",
-      hours: "Mon-Fri 9AM-6PM"
+      hours: "Mon-Fri 9AM-6PM",
     },
-    instagramReel: "Follow our journey and success stories on Instagram"
+    instagramReel: "Follow our journey and success stories on Instagram",
+  },
+  macbook: {
+    title: "Experience Our Platform",
+    subtitle: "Discover how Euro Visa transforms your international education journey with our intuitive platform.",
+    platformTitle: "Your Journey Starts Here",
+    badge: "New Platform",
+  },
+  draggable: {
+    title: "Interactive Experience",
+    subtitle: "Explore our services with interactive cards. Drag and discover what we offer.",
+    education: {
+      title: "Education Programs",
+      description: "Discover top universities and programs worldwide",
+    },
+    visa: {
+      title: "Visa Services",
+      description: "Expert guidance through visa application processes",
+    },
+    support: {
+      title: "24/7 Support",
+      description: "Round-the-clock assistance for all your needs",
+    },
   },
   programs: {
     title: "Our Programs",
     subtitle: "Explore opportunities around the world",
-    viewAll: "View All Programs"
+    viewAll: "View All Programs",
   },
   destinations: {
     title: "Popular Destinations",
     subtitle: "Discover your next destination",
-    viewAll: "Explore All Destinations"
+    viewAll: "Explore All Destinations",
   },
   services: {
     title: "Our Services",
     subtitle: "Professional assistance for your visa needs",
-    viewAll: "See All Services"
+    viewAll: "See All Services",
   },
   testimonials: {
     title: "Client Testimonials",
-    subtitle: "What our clients say about us"
+    subtitle: "What our clients say about us",
   },
   features: {
     title: "Why Choose Euro Visa",
     subtitle: "We provide comprehensive immigration solutions",
     expert: {
       title: "Expert Consultants",
-      description: "Our team consists of certified immigration specialists"
+      description: "Our team consists of certified immigration specialists",
     },
     support: {
       title: "24/7 Support",
-      description: "We're always available to assist you throughout your journey"
+      description: "We're always available to assist you throughout your journey",
     },
     success: {
       title: "High Success Rate",
-      description: "We have a proven track record of successful applications"
-    }
+      description: "We have a proven track record of successful applications",
+    },
+  },
+  howItWorks: {
+    title: "How It Works",
+    subtitle: "Our simple step-by-step process to help you achieve your international education and immigration goals.",
+  },
+  pricing: {
+    title: "International Education Options",
+    subtitle: "Explore study opportunities across different countries with our assistance services.",
+    applicationFee: "Application Fee",
+    learnMore: "Learn More",
+    customPlan: "Need assistance with a different country? ",
+    contactUs: "Contact our team",
+    admissionDetails: "Admission requirements and process details",
+    requirements: "Requirements",
+    documents: "Required Documents",
+    timeline: "Application Timeline",
+    additionalInfo: "Additional Information",
+    applyNow: "Apply Now",
+  },
+  faq: {
+    title: "Frequently Asked Questions",
+    subtitle: "Find answers to common questions about our services and processes.",
+    moreQuestions: "Still have questions? ",
+    contactUs: "Contact our support team",
   },
   cta: {
     title: "Ready to Start Your Journey?",
     subtitle: "Contact us today for a free consultation",
-    button: "Get Started"
+    button: "Get Started",
+    primaryButton: "Get Started Today",
+    secondaryButton: "Explore Programs",
   },
   footer: {
     rights: "All rights reserved",
     privacy: "Privacy Policy",
-    terms: "Terms of Service"
-  }
-};
+    terms: "Terms of Service",
+    description:
+      "Your trusted partner for visa and immigration services worldwide, helping students and professionals achieve their international goals.",
+    company: "Company",
+    services: "Services",
+    resources: "Resources",
+    legal: "Legal",
+    newsletter: {
+      title: "Subscribe to Our Newsletter",
+      description: "Stay updated with the latest visa policy changes and educational opportunities.",
+      placeholder: "Enter your email",
+      subscribe: "Subscribe",
+      subscribing: "Subscribing...",
+      success: "Successfully subscribed!",
+      successMessage: "Thank you for subscribing to our newsletter.",
+      error: "Invalid email",
+      errorMessage: "Please enter a valid email address.",
+    },
+  },
+}
+
