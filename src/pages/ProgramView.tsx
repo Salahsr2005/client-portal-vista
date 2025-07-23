@@ -1,219 +1,179 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { supabase } from "@/integrations/supabase/client"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/contexts/AuthContext"
-import {
-  ArrowLeft,
-  FileText,
-  School,
-  MapPin,
-  CalendarDays,
-  CircleDollarSign,
-  GraduationCap,
-  BookOpen,
-  Clock,
-  Globe,
-  Home,
-  Building,
-  Users,
-  FileCheck,
-  Award,
-  Info,
-  Languages,
-  Heart,
-  Check,
-  CheckCircle,
-  Share2,
-  BarChart3,
-  TrendingUp,
-  UserCheck,
-  DollarSign,
-} from "lucide-react"
-
-// Simple Progress component inline
-const Progress = ({ value, className = "" }: { value: number; className?: string }) => (
-  <div className={`relative h-2 w-full overflow-hidden rounded-full bg-slate-800 ${className}`}>
-    <div
-      className="h-full bg-blue-500 transition-all duration-300 ease-in-out"
-      style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
-    />
-  </div>
-)
+  School, MapPin, CalendarDays, CircleDollarSign, GraduationCap, BookOpen, Clock, Globe, 
+  Home, Building, Users, FileCheck, Award, Info, Languages, Heart, Check, CheckCircle, 
+  Share2, ArrowLeft, Star, TrendingUp, BookmarkPlus, MessageCircle, Download, Eye,
+  Wifi, Car, Utensils, Coffee, Dumbbell, Library, ChevronDown, ChevronUp
+} from 'lucide-react';
 
 export default function ProgramView() {
-  const { programId } = useParams()
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const { toast } = useToast()
-  const [program, setProgram] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [showDialog, setShowDialog] = useState(false)
-  const [dialogContent, setDialogContent] = useState("requirements")
-  const [isFavorite, setIsFavorite] = useState(false)
-
+  const { programId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [program, setProgram] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogContent, setDialogContent] = useState('requirements');
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  
   useEffect(() => {
     const fetchProgramDetails = async () => {
-      if (!programId) return
-
+      if (!programId) return;
+      
       try {
-        const { data, error } = await supabase.from("programs").select("*").eq("id", programId).single()
-
+        const { data, error } = await supabase
+          .from('programs')
+          .select('*')
+          .eq('id', programId)
+          .single();
+          
         if (error) {
-          throw error
+          throw error;
         }
-
+        
         if (data) {
-          setProgram(data)
+          setProgram(data);
         }
       } catch (error) {
-        console.error("Error fetching program details:", error)
+        console.error('Error fetching program details:', error);
         toast({
           title: "Error",
           description: "Failed to load program details. Please try again.",
           variant: "destructive",
-        })
+        });
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchProgramDetails()
-
-    // Check if program is in favorites
+    fetchProgramDetails();
+    
     if (user) {
-      checkFavoriteStatus()
+      checkFavoriteStatus();
     }
-  }, [programId, toast, user])
-
-  // Check if program is in favorites
+  }, [programId, toast, user]);
+  
   const checkFavoriteStatus = async () => {
-    if (!user || !programId) return
-
+    if (!user || !programId) return;
+    
     try {
       const { data, error } = await supabase
-        .from("favorite_programs")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("program_id", programId)
-        .single()
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Error checking favorite status:", error)
+        .from('favorite_programs')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('program_id', programId)
+        .single();
+        
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking favorite status:', error);
       }
-
-      setIsFavorite(!!data)
+      
+      setIsFavorite(!!data);
     } catch (err) {
-      console.error("Error in checkFavoriteStatus:", err)
+      console.error('Error in checkFavoriteStatus:', err);
     }
-  }
-
-  // Toggle favorite status
+  };
+  
   const toggleFavorite = async () => {
     if (!user || !programId) {
       toast({
         title: "Authentication required",
         description: "Please sign in to save favorite programs",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
-
+    
     try {
       if (isFavorite) {
-        // Remove from favorites
         const { error } = await supabase
-          .from("favorite_programs")
+          .from('favorite_programs')
           .delete()
-          .eq("user_id", user.id)
-          .eq("program_id", programId)
-
-        if (error) throw error
-
-        setIsFavorite(false)
+          .eq('user_id', user.id)
+          .eq('program_id', programId);
+          
+        if (error) throw error;
+        
+        setIsFavorite(false);
         toast({
           title: "Removed from favorites",
           description: "Program removed from your favorites",
-        })
+        });
       } else {
-        // Add to favorites
-        const { error } = await supabase.from("favorite_programs").insert({
-          user_id: user.id,
-          program_id: programId,
-        })
-
-        if (error) throw error
-
-        setIsFavorite(true)
+        const { error } = await supabase
+          .from('favorite_programs')
+          .insert({
+            user_id: user.id,
+            program_id: programId
+          });
+          
+        if (error) throw error;
+        
+        setIsFavorite(true);
         toast({
           title: "Added to favorites",
           description: "Program added to your favorites",
-        })
+        });
       }
     } catch (err) {
-      console.error("Error toggling favorite:", err)
+      console.error('Error toggling favorite:', err);
       toast({
         title: "Error",
         description: "Failed to update favorites. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
-  // Share program function
   const handleShare = async () => {
-    const url = window.location.href
-    const programTitle = program?.name || "Educational Program"
-    const text = `Check out this educational program: ${programTitle}`
-
+    const url = window.location.href;
+    const programTitle = program?.name || "Educational Program";
+    const text = `Check out this educational program: ${programTitle}`;
+    
     try {
       if (navigator.share) {
         await navigator.share({
           title: programTitle,
           text: text,
           url: url,
-        })
+        });
       } else {
-        // Fallback for browsers that don't support the Web Share API
-        await navigator.clipboard.writeText(url)
+        await navigator.clipboard.writeText(url);
         toast({
           title: "Link copied!",
           description: "Program link copied to clipboard",
-        })
+        });
       }
     } catch (error) {
-      console.error("Error sharing:", error)
-      // Fallback in case sharing fails
+      console.error('Error sharing:', error);
       try {
-        await navigator.clipboard.writeText(url)
+        await navigator.clipboard.writeText(url);
         toast({
           title: "Link copied!",
           description: "Program link copied to clipboard",
-        })
+        });
       } catch (err) {
         toast({
           title: "Sharing failed",
           description: "Unable to share this program",
           variant: "destructive",
-        })
+        });
       }
     }
-  }
+  };
 
   const handleApplyClick = () => {
     if (!user) {
@@ -221,792 +181,437 @@ export default function ProgramView() {
         title: "Authentication Required",
         description: "Please login or register to apply for programs.",
         variant: "default",
-      })
-      navigate("/login", { state: { from: `/programs/${programId}` } })
-      return
+      });
+      navigate("/login", { state: { from: `/programs/${programId}` } });
+      return;
     }
-
-    navigate(`/applications/new?program=${programId}`)
-  }
-
-  const openDialog = (content: string) => {
-    setDialogContent(content)
-    setShowDialog(true)
-  }
+    
+    navigate(`/applications/new?program=${programId}`);
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center min-h-[60vh]">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent mx-auto"></div>
+              <p className="text-muted-foreground">Loading program details...</p>
+            </div>
+          </div>
+        </div>
       </div>
-    )
+    );
   }
 
   if (!program) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <Card className="bg-slate-900 border-slate-800 max-w-md w-full">
-          <CardContent className="flex flex-col items-center justify-center p-8">
-            <Info className="h-12 w-12 text-slate-400 mb-4" />
-            <h2 className="text-xl font-semibold mb-2 text-white">Program Not Found</h2>
-            <p className="text-slate-400 mb-4 text-center">
-              The program you're looking for doesn't exist or has been removed.
-            </p>
-            <Button onClick={() => navigate("/programs")} className="bg-blue-600 hover:bg-blue-700">
-              View All Programs
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto shadow-lg">
+            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+              <Info className="h-16 w-16 text-muted-foreground mb-6" />
+              <h2 className="text-2xl font-bold mb-4">Program Not Found</h2>
+              <p className="text-muted-foreground mb-6 max-w-md">The program you're looking for doesn't exist or has been removed.</p>
+              <Button onClick={() => navigate('/programs')} className="px-8">
+                Browse All Programs
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    )
+    );
   }
 
-  // Calculate mock stats (you can replace with real data)
-  const successRate = 80
-  const employmentRate = 75
-  const currentCapacity = program.available_places || 25
-  const totalCapacity = program.total_places || 50
-  const capacityPercentage = Math.min((currentCapacity / totalCapacity) * 100, 100)
-
-  // Program image
-  const programImage = program.image_url || "/placeholder.svg?height=400&width=800&text=Program+Image"
+  const programImage = program.image_url || '/placeholder.svg';
+  const truncatedDescription = program.description?.length > 200 
+    ? program.description.substring(0, 200) + "..." 
+    : program.description;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      {/* Header */}
-      <div className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Header with Back Button */}
+      <div className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("/programs")}
-                className="text-slate-300 hover:text-white hover:bg-slate-800"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <div className="flex-1 min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{program.name}</h1>
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <Badge className="bg-green-600 hover:bg-green-700 text-white">Active</Badge>
-                  <span className="text-slate-400 text-sm flex items-center">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {program.city}, {program.country}
-                  </span>
-                  <span className="text-slate-400 text-sm flex items-center">
-                    <Building className="h-3 w-3 mr-1" />
-                    {program.university}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Export Brochure</span>
-                <span className="sm:hidden">Export</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleShare}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Share</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleFavorite}
-                className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-              >
-                <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
-              </Button>
-            </div>
-          </div>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/programs')}
+            className="hover:bg-blue-50 dark:hover:bg-gray-800"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Programs
+          </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Program Overview - Left Column */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Program Image */}
-            <div className="relative h-64 w-full rounded-lg overflow-hidden">
-              <img src={programImage || "/placeholder.svg"} alt={program.name} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+      <div className="container mx-auto px-4 pb-8 max-w-7xl">
+        {/* Hero Section */}
+        <div className="relative mb-8">
+          <div className="relative h-48 sm:h-64 md:h-80 lg:h-96 w-full rounded-2xl overflow-hidden shadow-2xl">
+            <img 
+              src={programImage} 
+              alt={program.name} 
+              className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" 
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+            
+            {/* Floating Action Buttons */}
+            <div className="absolute top-4 right-4 flex gap-2">
+              <Button 
+                size="icon" 
+                className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 border border-white/20" 
+                onClick={toggleFavorite}
+              >
+                <Heart 
+                  className={`h-5 w-5 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-white'}`} 
+                />
+              </Button>
+              <Button 
+                size="icon" 
+                className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 border border-white/20" 
+                onClick={handleShare}
+              >
+                <Share2 className="h-5 w-5 text-white" />
+              </Button>
+            </div>
+            
+            {/* Hero Content */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 lg:p-8">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Badge className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 text-sm font-medium">
+                  {program.study_level}
+                </Badge>
+                <Badge variant="outline" className="bg-white/20 backdrop-blur-md text-white border-white/30 hover:bg-white/30">
+                  <Star className="h-3 w-3 mr-1" />
+                  Featured
+                </Badge>
+              </div>
+              
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 leading-tight">
+                {program.name}
+              </h1>
+              
+              <div className="flex flex-wrap items-center gap-4 text-white/90">
+                <div className="flex items-center gap-1">
+                  <Building className="h-4 w-4" />
+                  <span className="text-sm sm:text-base">{program.university}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-sm sm:text-base">{program.city}, {program.country}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Left Column - Program Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick Stats Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+                <CardContent className="p-4 text-center">
+                  <Clock className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Duration</p>
+                  <p className="font-semibold text-sm">{program.duration_months} months</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
+                <CardContent className="p-4 text-center">
+                  <Languages className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Language</p>
+                  <p className="font-semibold text-sm">{program.program_language}</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20">
+                <CardContent className="p-4 text-center">
+                  <CircleDollarSign className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Tuition</p>
+                  <p className="font-semibold text-sm">${program.tuition_min?.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-0 shadow-md bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20">
+                <CardContent className="p-4 text-center">
+                  <Users className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground">Places</p>
+                  <p className="font-semibold text-sm">{program.available_places || "Open"}</p>
+                </CardContent>
+              </Card>
             </div>
 
-            <Card className="bg-slate-900 border-slate-800">
-              <CardHeader className="border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <School className="h-5 w-5 text-blue-400" />
-                  <CardTitle className="text-white">Program Overview</CardTitle>
-                </div>
+            {/* Program Description */}
+            <Card className="border-0 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-blue-600" />
+                  About This Program
+                </CardTitle>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-slate-400 text-sm">Program ID</label>
-                      <p className="text-white font-mono text-sm mt-1 break-all">{programId}</p>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">University</label>
-                      <div className="flex items-center mt-1">
-                        <Building className="h-4 w-4 text-blue-400 mr-2" />
-                        <p className="text-white">{program.university}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">Location</label>
-                      <div className="flex items-center mt-1">
-                        <MapPin className="h-4 w-4 text-green-400 mr-2" />
-                        <p className="text-white">
-                          {program.city}, {program.country}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">Study Level</label>
-                      <div className="flex items-center mt-1">
-                        <GraduationCap className="h-4 w-4 text-purple-400 mr-2" />
-                        <p className="text-white">{program.study_level}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">Field of Study</label>
-                      <div className="flex items-center mt-1">
-                        <BookOpen className="h-4 w-4 text-orange-400 mr-2" />
-                        <p className="text-white">{program.field}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-slate-400 text-sm">Status</label>
-                      <div className="mt-1">
-                        <Badge className="bg-green-600 text-white">Active</Badge>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">Duration</label>
-                      <div className="flex items-center mt-1">
-                        <Clock className="h-4 w-4 text-red-400 mr-2" />
-                        <p className="text-white">{program.duration_months} months</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">Program Language</label>
-                      <div className="flex items-center mt-1">
-                        <Languages className="h-4 w-4 text-blue-400 mr-2" />
-                        <p className="text-white">{program.program_language}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">Language Requirement</label>
-                      <div className="flex items-center mt-1">
-                        <Badge variant="outline" className="border-pink-500 text-pink-400">
-                          {program.language_test_score || "B2"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-slate-400 text-sm">Application Deadline</label>
-                      <div className="flex items-center mt-1">
-                        <CalendarDays className="h-4 w-4 text-orange-400 mr-2" />
-                        <p className="text-white">{program.application_deadline || "N/A"}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Description */}
-            <Card className="bg-slate-900 border-slate-800">
-              <CardHeader className="border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-400" />
-                  <CardTitle className="text-white">Description</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6">
-                <p className="text-slate-300 leading-relaxed">{program.description}</p>
-              </CardContent>
-            </Card>
-
-            {/* Program Features */}
-            <Card className="bg-slate-900 border-slate-800">
-              <CardContent className="p-6">
-                <div className="flex flex-wrap gap-2 mb-6">
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed mb-4">
+                  {showFullDescription ? program.description : truncatedDescription}
+                </p>
+                {program.description?.length > 200 && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => setShowFullDescription(!showFullDescription)}
+                    className="p-0 h-auto text-blue-600 hover:text-blue-700"
+                  >
+                    {showFullDescription ? (
+                      <>Show Less <ChevronUp className="h-4 w-4 ml-1" /></>
+                    ) : (
+                      <>Read More <ChevronDown className="h-4 w-4 ml-1" /></>
+                    )}
+                  </Button>
+                )}
+                
+                {/* Feature Badges */}
+                <div className="flex flex-wrap gap-2 mt-6">
                   {program.scholarship_available && (
-                    <Badge
-                      variant="outline"
-                      className="bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
-                    >
-                      <Award className="h-3.5 w-3.5 mr-1" /> Scholarship Available
+                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400">
+                      <Award className="h-3 w-3 mr-1" />
+                      Scholarship Available
                     </Badge>
                   )}
                   {program.internship_opportunities && (
-                    <Badge
-                      variant="outline"
-                      className="bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400"
-                    >
-                      <BookOpen className="h-3.5 w-3.5 mr-1" /> Internship Opportunities
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400">
+                      <BookOpen className="h-3 w-3 mr-1" />
+                      Internships
                     </Badge>
                   )}
                   {program.exchange_opportunities && (
-                    <Badge
-                      variant="outline"
-                      className="bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
-                    >
-                      <Globe className="h-3.5 w-3.5 mr-1" /> Exchange Opportunities
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400">
+                      <Globe className="h-3 w-3 mr-1" />
+                      Exchange Programs
                     </Badge>
                   )}
                   {program.religious_facilities && (
-                    <Badge variant="outline">
-                      <Heart className="h-3.5 w-3.5 mr-1" /> Religious Facilities
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400">
+                      <Heart className="h-3 w-3 mr-1" />
+                      Religious Facilities
                     </Badge>
                   )}
                   {program.halal_food_availability && (
-                    <Badge variant="outline">
-                      <Check className="h-3.5 w-3.5 mr-1" /> Halal Food Options
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400">
+                      <Check className="h-3 w-3 mr-1" />
+                      Halal Food
                     </Badge>
                   )}
                 </div>
+              </CardContent>
+            </Card>
 
-                <Tabs defaultValue="details" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 bg-slate-800">
-                    <TabsTrigger value="details" className="data-[state=active]:bg-slate-700">
-                      Details
-                    </TabsTrigger>
-                    <TabsTrigger value="requirements" className="data-[state=active]:bg-slate-700">
-                      Requirements
-                    </TabsTrigger>
-                    <TabsTrigger value="costs" className="data-[state=active]:bg-slate-700">
-                      Costs
-                    </TabsTrigger>
-                    <TabsTrigger value="housing" className="data-[state=active]:bg-slate-700">
-                      Housing
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="details" className="mt-6 space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Field of Study</h4>
-                      <p className="text-slate-300">{program.field}</p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Program Advantages</h4>
-                      <p className="text-slate-300">{program.advantages || "Details not provided."}</p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Application Process</h4>
-                      <p className="text-slate-300">
-                        {program.application_process ||
-                          "Contact an advisor for detailed application process information."}
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="requirements" className="mt-6 space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Academic Requirements</h4>
-                      <p className="text-slate-300">
-                        {program.academic_requirements || "Standard academic requirements apply."}
-                      </p>
-                      {program.gpa_requirement && (
-                        <div className="mt-2 flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          <span className="text-slate-300">Minimum GPA: {program.gpa_requirement}</span>
+            {/* Detailed Information Tabs */}
+            <Card className="border-0 shadow-lg">
+              <CardContent className="p-0">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <div className="px-6 pt-6">
+                    <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                      <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
+                      <TabsTrigger value="requirements" className="text-xs sm:text-sm py-2">Requirements</TabsTrigger>
+                      <TabsTrigger value="costs" className="text-xs sm:text-sm py-2">Costs</TabsTrigger>
+                      <TabsTrigger value="housing" className="text-xs sm:text-sm py-2">Life & Housing</TabsTrigger>
+                    </TabsList>
+                  </div>
+                  
+                  <div className="p-6">
+                    <TabsContent value="overview" className="mt-0 space-y-6">
+                      <div className="grid gap-6">
+                        <div>
+                          <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                            <GraduationCap className="h-5 w-5 text-blue-600" />
+                            Field of Study
+                          </h4>
+                          <p className="text-muted-foreground leading-relaxed">{program.field}</p>
                         </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Language Requirements</h4>
-                      <div className="space-y-2">
-                        <p className="text-slate-300">
-                          {program.language_test &&
-                            `${program.language_test}: ${program.language_test_score || "Score requirements vary"}`}
-                        </p>
-                        {program.language_test_exemptions && (
-                          <p className="text-slate-300">
-                            <span className="font-medium">Exemptions:</span> {program.language_test_exemptions}
+                        
+                        <Separator />
+                        
+                        <div>
+                          <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                            Program Advantages
+                          </h4>
+                          <p className="text-muted-foreground leading-relaxed">
+                            {program.advantages || "This program offers excellent academic opportunities with modern facilities and experienced faculty."}
                           </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Admission Requirements</h4>
-                      <p className="text-slate-300">{program.admission_requirements}</p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="costs" className="mt-6 space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Tuition Fees</h4>
-                      <p className="text-slate-300">
-                        ${program.tuition_min?.toLocaleString()} - ${program.tuition_max?.toLocaleString()} per year
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Living Costs</h4>
-                      <p className="text-slate-300">
-                        Estimated monthly living expenses: ${program.living_cost_min?.toLocaleString()} - $
-                        {program.living_cost_max?.toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Additional Fees</h4>
-                      <div className="space-y-1 text-sm">
-                        <p>
-                          <span className="text-slate-400">Application Fee:</span> $
-                          {program.application_fee?.toLocaleString() || "N/A"}
-                        </p>
-                        <p>
-                          <span className="text-slate-400">Visa Fee:</span> $
-                          {program.visa_fee?.toLocaleString() || "Varies by nationality"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {program.scholarship_available && (
-                      <div>
-                        <h4 className="font-medium mb-2 text-white">Scholarship Information</h4>
-                        <p className="text-slate-300">
-                          {program.scholarship_details ||
-                            "Scholarships available based on academic merit and financial need."}
-                        </p>
-                        {program.scholarship_amount && (
-                          <p className="text-sm font-medium mt-1 text-white">
-                            Up to ${program.scholarship_amount?.toLocaleString()} available
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div>
+                          <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                            <FileCheck className="h-5 w-5 text-purple-600" />
+                            Application Process
+                          </h4>
+                          <p className="text-muted-foreground leading-relaxed">
+                            {program.application_process || "Our team will guide you through each step of the application process to ensure your success."}
                           </p>
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="requirements" className="mt-0 space-y-6">
+                      <div>
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          Academic Requirements
+                        </h4>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-4">
+                          <p className="text-muted-foreground leading-relaxed">
+                            {program.academic_requirements || "Standard academic requirements apply based on your chosen level of study."}
+                          </p>
+                        </div>
+                        {program.gpa_requirement && (
+                          <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <span className="font-medium">Minimum GPA: {program.gpa_requirement}</span>
+                          </div>
                         )}
-                        {program.scholarship_deadline && (
-                          <p className="text-sm text-slate-400 mt-1">Deadline: {program.scholarship_deadline}</p>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                          <Languages className="h-5 w-5 text-blue-600" />
+                          Language Requirements
+                        </h4>
+                        <div className="space-y-3">
+                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                            <p className="font-medium text-blue-900 dark:text-blue-400">
+                              Required Test: {program.language_test || "Contact for details"}
+                            </p>
+                            {program.language_test_score && (
+                              <p className="text-blue-700 dark:text-blue-300 mt-1">
+                                Minimum Score: {program.language_test_score}
+                              </p>
+                            )}
+                          </div>
+                          {program.language_test_exemptions && (
+                            <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                              <h5 className="font-medium mb-2">Exemptions Available</h5>
+                              <p className="text-muted-foreground text-sm">{program.language_test_exemptions}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="costs" className="mt-0 space-y-6">
+                      <div className="grid gap-6">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <Card className="border-2 border-blue-200 dark:border-blue-800">
+                            <CardContent className="p-4">
+                              <h4 className="font-semibold mb-2 text-blue-700 dark:text-blue-400">Annual Tuition</h4>
+                              <p className="text-2xl font-bold">
+                                ${program.tuition_min?.toLocaleString()} - ${program.tuition_max?.toLocaleString()}
+                              </p>
+                            </CardContent>
+                          </Card>
+                          
+                          <Card className="border-2 border-green-200 dark:border-green-800">
+                            <CardContent className="p-4">
+                              <h4 className="font-semibold mb-2 text-green-700 dark:text-green-400">Monthly Living Costs</h4>
+                              <p className="text-2xl font-bold">
+                                ${program.living_cost_min?.toLocaleString()} - ${program.living_cost_max?.toLocaleString()}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </div>
+                        
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <p className="flex justify-between">
+                              <span className="text-muted-foreground">Application Fee:</span>
+                              <span className="font-medium">${program.application_fee?.toLocaleString() || "TBD"}</span>
+                            </p>
+                            <p className="flex justify-between">
+                              <span className="text-muted-foreground">Visa Fee:</span>
+                              <span className="font-medium">${program.visa_fee?.toLocaleString() || "Varies"}</span>
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {program.scholarship_available && (
+                          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 p-6 rounded-xl border border-yellow-200 dark:border-yellow-800">
+                            <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                              <Award className="h-5 w-5 text-yellow-600" />
+                              Scholarship Opportunities
+                            </h4>
+                            <p className="text-muted-foreground mb-3">
+                              {program.scholarship_details || "Merit-based and need-based scholarships available for qualified students."}
+                            </p>
+                            {program.scholarship_amount && (
+                              <p className="font-semibold text-yellow-700 dark:text-yellow-400">
+                                Up to ${program.scholarship_amount?.toLocaleString()} available
+                              </p>
+                            )}
+                            {program.scholarship_deadline && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                Application Deadline: {program.scholarship_deadline}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="housing" className="mt-6 space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Housing Options</h4>
-                      <p className="text-slate-300">
-                        {program.housing_availability || "Contact the university for housing information."}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h4 className="font-medium mb-2 text-white">Housing Costs</h4>
-                      <p className="text-slate-300">
-                        Estimated monthly housing costs: ${program.housing_cost_min?.toLocaleString()} - $
-                        {program.housing_cost_max?.toLocaleString()}
-                      </p>
-                    </div>
-
-                    {program.north_african_community_size && (
+                    </TabsContent>
+                    
+                    <TabsContent value="housing" className="mt-0 space-y-6">
                       <div>
-                        <h4 className="font-medium mb-2 text-white">Community</h4>
-                        <p className="text-slate-300">
-                          North African community size: {program.north_african_community_size}
-                        </p>
+                        <h4 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                          <Home className="h-5 w-5 text-blue-600" />
+                          Housing Options
+                        </h4>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 mb-4">
+                          <p className="text-muted-foreground leading-relaxed">
+                            {program.housing_availability || "Various housing options available including dormitories, shared apartments, and private accommodations."}
+                          </p>
+                        </div>
+                        
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <Card className="border-2 border-purple-200 dark:border-purple-800">
+                            <CardContent className="p-4">
+                              <h5 className="font-semibold mb-2 text-purple-700 dark:text-purple-400">Monthly Housing Cost</h5>
+                              <p className="text-xl font-bold">
+                                ${program.housing_cost_min?.toLocaleString()} - ${program.housing_cost_max?.toLocaleString()}
+                              </p>
+                            </CardContent>
+                          </Card>
+                          
+                          {program.north_african_community_size && (
+                            <Card className="border-2 border-emerald-200 dark:border-emerald-800">
+                              <CardContent className="p-4">
+                                <h5 className="font-semibold mb-2 text-emerald-700 dark:text-emerald-400">Community Size</h5>
+                                <p className="text-xl font-bold">{program.north_african_community_size}</p>
+                                <p className="text-sm text-muted-foreground">North African students</p>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
                       </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {program.religious_facilities && (
-                        <Badge
-                          variant="outline"
-                          className="bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400"
-                        >
-                          Religious Facilities Available
-                        </Badge>
-                      )}
-                      {program.halal_food_availability && (
-                        <Badge
-                          variant="outline"
-                          className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400"
-                        >
-                          Halal Food Options
-                        </Badge>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Program Stats - Right Column */}
-          <div className="space-y-6">
-            <Card className="bg-slate-900 border-slate-800">
-              <CardHeader className="border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-blue-400" />
-                  <CardTitle className="text-white">Program Stats</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="p-6 space-y-6">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-green-400" />
-                      <span className="text-slate-300">Success Rate</span>
-                    </div>
-                    <span className="text-white font-semibold">{successRate}%</span>
-                  </div>
-                  <Progress value={successRate} />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="h-4 w-4 text-blue-400" />
-                      <span className="text-slate-300">Employment Rate</span>
-                    </div>
-                    <span className="text-white font-semibold">{employmentRate}%</span>
-                  </div>
-                  <Progress value={employmentRate} />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-purple-400" />
-                      <span className="text-slate-300">Capacity</span>
-                    </div>
-                    <span className="text-white font-semibold">
-                      {currentCapacity}/{totalCapacity}
-                    </span>
-                  </div>
-                  <Progress value={capacityPercentage} />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Financial Info */}
-            <Card className="bg-slate-900 border-slate-800">
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <DollarSign className="h-4 w-4 text-green-400" />
-                    <span className="text-white font-medium">Tuition Range</span>
-                  </div>
-                  <p className="text-slate-300">
-                    ${program.tuition_min?.toLocaleString()} - ${program.tuition_max?.toLocaleString()}
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Home className="h-4 w-4 text-blue-400" />
-                    <span className="text-white font-medium">Living Costs</span>
-                  </div>
-                  <p className="text-slate-300">
-                    ${program.living_cost_min?.toLocaleString()} - ${program.living_cost_max?.toLocaleString()}
-                  </p>
-                </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileCheck className="h-4 w-4 text-purple-400" />
-                    <span className="text-white font-medium">Application Fee</span>
-                  </div>
-                  <p className="text-slate-300">${program.application_fee?.toLocaleString() || "400"}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Application Info */}
-            <Card className="bg-slate-900 border-slate-800">
-              <CardHeader className="border-b border-slate-800">
-                <CardTitle className="text-white">Application</CardTitle>
-                <CardDescription className="text-slate-400">Key information about applying</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 mb-1">Deadline</h3>
-                    <div className="flex items-center text-base">
-                      <CalendarDays className="h-4 w-4 mr-2 text-blue-400" />
-                      <span className="text-white">{program.application_deadline || "Contact for details"}</span>
-                    </div>
-                  </div>
-
-                  {program.available_places !== null && (
-                    <div>
-                      <h3 className="text-sm font-medium text-slate-400 mb-1">Available Places</h3>
-                      <div className="flex items-center text-base">
-                        <Users className="h-4 w-4 mr-2 text-blue-400" />
-                        <span className="text-white">
-                          {program.available_places} / {program.total_places || "∞"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-400 mb-1">Application Fee</h3>
-                    <div className="flex items-center text-base">
-                      <CircleDollarSign className="h-4 w-4 mr-2 text-blue-400" />
-                      <span className="text-white">
-                        ${program.application_fee?.toLocaleString() || "Contact for details"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Separator className="bg-slate-800" />
-
-                  <div>
-                    <h3 className="font-medium mb-3 text-white">Required Documents</h3>
-                    <ul className="space-y-2">
-                      <li className="flex items-start">
-                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                        <span className="text-sm text-slate-300">Academic transcripts</span>
-                      </li>
-                      <li className="flex items-start">
-                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                        <span className="text-sm text-slate-300">Language proficiency test results</span>
-                      </li>
-                      <li className="flex items-start">
-                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                        <span className="text-sm text-slate-300">Passport copy</span>
-                      </li>
-                      <li className="flex items-start">
-                        <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                        <span className="text-sm text-slate-300">Motivation letter</span>
-                      </li>
-                    </ul>
-
-                    <Button
-                      variant="outline"
-                      className="w-full mt-4 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-                      onClick={() => openDialog("requirements")}
-                    >
-                      View All Requirements
-                    </Button>
-                  </div>
-
-                  <Separator className="bg-slate-800" />
-
-                  <div className="space-y-4">
-                    <h3 className="font-medium mb-1 text-white">Our Services</h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-start">
-                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
-                        <span className="text-slate-300">Application preparation</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
-                        <span className="text-slate-300">Document verification</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
-                        <span className="text-slate-300">Visa guidance</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Check className="h-4 w-4 mr-2 text-blue-400 mt-0.5" />
-                        <span className="text-slate-300">Pre-departure orientation</span>
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-                      onClick={() => navigate("/services")}
-                    >
-                      View Our Services
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="flex-col gap-2">
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={handleApplyClick}>
-                  Apply Now
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-                  onClick={() => navigate("/consultation")}
-                >
-                  Get Consultation
-                </Button>
-                <Button
-                  variant={isFavorite ? "secondary" : "outline"}
-                  className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-                  onClick={toggleFavorite}
-                >
-                  <Heart className={`mr-2 h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
-                  {isFavorite ? "Saved to Favorites" : "Save to Favorites"}
-                </Button>
-
-                {/* Share button */}
-                <Button
-                  variant="outline"
-                  className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white bg-transparent"
-                  onClick={handleShare}
-                >
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share Program
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Dialog for detailed content */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-2xl bg-slate-900 border-slate-800 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              {dialogContent === "requirements" ? "Application Requirements" : "University Details"}
-            </DialogTitle>
-            <DialogDescription className="text-slate-400">
-              {program.name} at {program.university}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="max-h-[60vh] overflow-y-auto">
-            {dialogContent === "requirements" && (
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-2 text-white">Academic Requirements</h3>
-                  <p className="text-slate-300">
-                    {program.academic_requirements || "Standard academic requirements apply."}
-                  </p>
-
-                  {program.gpa_requirement && (
-                    <div className="mt-2">
-                      <h4 className="font-medium text-white">Minimum GPA</h4>
-                      <p className="text-slate-300">{program.gpa_requirement}</p>
-                    </div>
-                  )}
-                </div>
-
-                <Separator className="bg-slate-800" />
-
-                <div>
-                  <h3 className="font-semibold mb-2 text-white">Language Requirements</h3>
-                  <p className="text-slate-300">Required test: {program.language_test || "Not specified"}</p>
-                  {program.language_test_score && (
-                    <p className="text-slate-300">Minimum score: {program.language_test_score}</p>
-                  )}
-
-                  {program.language_test_exemptions && (
-                    <div className="mt-2">
-                      <h4 className="font-medium text-white">Exemptions</h4>
-                      <p className="text-slate-300">{program.language_test_exemptions}</p>
-                    </div>
-                  )}
-                </div>
-
-                <Separator className="bg-slate-800" />
-
-                <div>
-                  <h3 className="font-semibold mb-2 text-white">Required Documents</h3>
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
+                      
+                      <Separator />
+                      
                       <div>
-                        <span className="font-medium text-white">Academic transcripts</span>
-                        <p className="text-sm text-slate-400">
-                          Official transcripts from all previously attended institutions
-                        </p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                      <div>
-                        <span className="font-medium text-white">Language proficiency proof</span>
-                        <p className="text-sm text-slate-400">IELTS, TOEFL, or equivalent as specified</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                      <div>
-                        <span className="font-medium text-white">Passport copy</span>
-                        <p className="text-sm text-slate-400">Valid for at least 6 months beyond program end date</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                      <div>
-                        <span className="font-medium text-white">Motivation letter</span>
-                        <p className="text-sm text-slate-400">Statement explaining your interest in the program</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                      <div>
-                        <span className="font-medium text-white">Recommendation letters</span>
-                        <p className="text-sm text-slate-400">2-3 letters from academic or professional references</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                      <div>
-                        <span className="font-medium text-white">Curriculum Vitae/Resume</span>
-                        <p className="text-sm text-slate-400">Detailed academic and professional history</p>
-                      </div>
-                    </li>
-                    <li className="flex items-start">
-                      <FileCheck className="h-4 w-4 mr-2 text-blue-400 mt-1" />
-                      <div>
-                        <span className="font-medium text-white">Financial documents</span>
-                        <p className="text-sm text-slate-400">Proof of ability to fund your studies</p>
-                      </div>
-                    </li>
-                  </ul>
-                </div>
-
-                <Separator className="bg-slate-800" />
-
-                <div>
-                  <h3 className="font-semibold mb-2 text-white">Application Process</h3>
-                  <p className="text-slate-300">
-                    {program.application_process ||
-                      "Detailed application process information will be provided during consultation."}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setShowDialog(false)} className="bg-slate-800 hover:bg-slate-700">
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
+                        <h4 className="font-semibold text-lg mb-4">Campus Life & Facilities</h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                          {program.religious_facilities && (
+                            <div className="flex flex-col items-center text-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                              <Heart className="h-8 w-8 text-amber-600 mb-2" />
+                              <span className="text-sm font-medium">Prayer Facilities</span>
+                            </div>
+                          )}
+                          {program.halal_food_availability && (
+                            <div className="flex flex-col items-center text-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                              <Utensils className="h-8 w-8 text-emerald-600 mb-2" />
+                              <span className="text-sm font-medium">Halal Food</span>
+                            </div>
+                          )}
+                          <div className="flex flex-col items-center text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                            <Library className="h-8 w-8 text-blue-600 mb-2" />
