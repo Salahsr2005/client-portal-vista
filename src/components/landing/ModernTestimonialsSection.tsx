@@ -1,14 +1,16 @@
-import { motion } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Quote, ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+"use client"
+
+import { motion } from "framer-motion"
+import { useTranslation } from "react-i18next"
+import { Card } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Quote, ChevronLeft, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 export function ModernTestimonialsSection() {
-  const { t } = useTranslation();
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const { t } = useTranslation()
+  const [currentTestimonial, setCurrentTestimonial] = useState(0)
 
   const testimonials = [
     {
@@ -16,34 +18,37 @@ export function ModernTestimonialsSection() {
       name: "Karim Hadj",
       role: "Student in Brussels",
       location: "Oran, Algeria",
-      content: "I couldn't have navigated the complex application process without Euro Visa's expert help. They provided personalized guidance and made sure all my documents were in order. Thanks to them, I'm now studying in my dream university!",
-      avatar: "/placeholder.svg"
+      content:
+        "I couldn't have navigated the complex application process without Euro Visa's expert help. They provided personalized guidance and made sure all my documents were in order. Thanks to them, I'm now studying in my dream university!",
+      avatar: "/placeholder.svg",
     },
     {
       id: 2,
       name: "Amina Benali",
       role: "Master's Student",
       location: "Casablanca, Morocco",
-      content: "Euro Visa made my dream of studying in Europe a reality. Their comprehensive support throughout the visa process was exceptional, and their team was always available to answer my questions.",
-      avatar: "/placeholder.svg"
+      content:
+        "Euro Visa made my dream of studying in Europe a reality. Their comprehensive support throughout the visa process was exceptional, and their team was always available to answer my questions.",
+      avatar: "/placeholder.svg",
     },
     {
       id: 3,
       name: "Mohamed Trabelsi",
       role: "PhD Candidate",
       location: "Tunis, Tunisia",
-      content: "The expertise and professionalism of Euro Visa exceeded my expectations. From university selection to visa approval, they guided me every step of the way with remarkable efficiency.",
-      avatar: "/placeholder.svg"
-    }
-  ];
+      content:
+        "The expertise and professionalism of Euro Visa exceeded my expectations. From university selection to visa approval, they guided me every step of the way with remarkable efficiency.",
+      avatar: "/placeholder.svg",
+    },
+  ]
 
   const nextTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-  };
+    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
+  }
 
   const prevTestimonial = () => {
-    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
-  };
+    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length)
+  }
 
   return (
     <section className="py-24 relative bg-gradient-to-br from-primary/5 via-blue-500/5 to-background">
@@ -55,12 +60,8 @@ export function ModernTestimonialsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">
-            What Our Students Say
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Hear from students who have successfully started their international education journey with Euro Visa.
-          </p>
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4">{t("testimonials.modernTitle")}</h2>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">{t("testimonials.modernSubtitle")}</p>
         </motion.div>
 
         <motion.div
@@ -98,12 +99,15 @@ export function ModernTestimonialsSection() {
 
                 <div className="flex flex-col items-center space-y-4">
                   <Avatar className="w-16 h-16">
-                    <AvatarImage src={testimonials[currentTestimonial].avatar} />
+                    <AvatarImage src={testimonials[currentTestimonial].avatar || "/placeholder.svg"} />
                     <AvatarFallback>
-                      {testimonials[currentTestimonial].name.split(' ').map(n => n[0]).join('')}
+                      {testimonials[currentTestimonial].name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="text-center">
                     <h4 className="font-semibold text-lg">{testimonials[currentTestimonial].name}</h4>
                     <p className="text-primary">{testimonials[currentTestimonial].role}</p>
@@ -118,7 +122,7 @@ export function ModernTestimonialsSection() {
                   variant="outline"
                   size="icon"
                   onClick={prevTestimonial}
-                  className="rounded-full border-primary/20 hover:border-primary/40"
+                  className="rounded-full border-primary/20 hover:border-primary/40 bg-transparent"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -130,9 +134,9 @@ export function ModernTestimonialsSection() {
                       key={index}
                       onClick={() => setCurrentTestimonial(index)}
                       className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        index === currentTestimonial 
-                          ? 'bg-primary scale-125' 
-                          : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                        index === currentTestimonial
+                          ? "bg-primary scale-125"
+                          : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
                       }`}
                     />
                   ))}
@@ -142,7 +146,7 @@ export function ModernTestimonialsSection() {
                   variant="outline"
                   size="icon"
                   onClick={nextTestimonial}
-                  className="rounded-full border-primary/20 hover:border-primary/40"
+                  className="rounded-full border-primary/20 hover:border-primary/40 bg-transparent"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -152,5 +156,5 @@ export function ModernTestimonialsSection() {
         </motion.div>
       </div>
     </section>
-  );
+  )
 }
