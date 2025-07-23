@@ -356,7 +356,7 @@ export const ModernHeroSection = () => {
           <div className="relative">
             <div className="relative overflow-hidden rounded-2xl shadow-2xl border border-slate-600/30 bg-slate-800/20 backdrop-blur-sm">
               <img
-                src="/placeholder.svg?height=500&width=600"
+                src="/assets/hero-image?height=500&width=600"
                 alt="Euro Visa Professional"
                 className="w-full h-[500px] object-cover"
               />
