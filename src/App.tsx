@@ -39,6 +39,7 @@ import Guest from "./pages/Guest";
 import GuestPrograms from "./pages/GuestPrograms";
 import GuestProgramView from "./pages/GuestProgramView";
 import GuestDestinations from "./pages/GuestDestinations";
+import GuestServices from "./pages/GuestServices";
 import GuestDestinationDetails from "./pages/GuestDestinationDetails";
 import GuestConsultation from "./pages/GuestConsultation";
 
@@ -107,6 +108,7 @@ const AppRoutes = () => {
         <Route path="/guest/destinations" element={<GuestDestinations />} />
         <Route path="/guest/destinations/:id" element={<GuestDestinationDetails />} />
         <Route path="/guest/consultation" element={<GuestConsultation />} />
+        <Route path="/guest/services" element={<GuestServices />} />
         
         {/* Protected Dashboard Routes */}
         <Route element={
