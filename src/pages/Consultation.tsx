@@ -1,7 +1,8 @@
 
 import React from 'react';
-import DestinationConsultationFlow from '@/components/consultation/DestinationConsultationFlow';
+import EnhancedConsultationFlow from '@/components/consultation/EnhancedConsultationFlow';
 
 export default function Consultation() {
-  return <DestinationConsultationFlow />;
+  return <EnhancedConsultationFlow />;
 }
+
