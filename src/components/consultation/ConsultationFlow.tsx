@@ -695,3 +695,365 @@ export default function DestinationConsultationFlow() {
                     >
                       {factor.label}
                     </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="work"
+                    checked={consultationData.workWhileStudying}
+                    onCheckedChange={(checked) => updateData({ workWhileStudying: !!checked })}
+                  />
+                  <Label htmlFor="work">I want to work while studying</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="scholarship"
+                    checked={consultationData.scholarshipRequired}
+                    onCheckedChange={(checked) => updateData({ scholarshipRequired: !!checked })}
+                  />
+                  <Label htmlFor="scholarship">I need scholarship opportunities</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Your Personalized Matches</h2>
+              <p className="text-muted-foreground">
+                We found {matchedDestinations.length} destinations ranked by compatibility
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              {matchedDestinations.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground mb-4">
+                    No perfect matches found with your current criteria.
+                  </p>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <p>Try adjusting:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Increase your budget or flexibility</li>
+                      <li>Consider different intake periods</li>
+                      <li>Expand language or regional preferences</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                matchedDestinations.map((dest, index) => (
+                  <motion.div
+                    key={dest.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Card className={`hover:shadow-lg transition-shadow ${
+                      dest.recommendation === 'highly_recommended' ? 'ring-2 ring-green-200 bg-green-50/30' :
+                      dest.recommendation === 'recommended' ? 'ring-1 ring-blue-200 bg-blue-50/30' :
+                      dest.recommendation === 'consider' ? 'ring-1 ring-yellow-200 bg-yellow-50/30' :
+                      'ring-1 ring-gray-200'
+                    }`}>
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-4">
+                            <div 
+                              className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
+                              style={{ 
+                                backgroundImage: `url(${dest.logo_url || dest.cover_image_url || '/placeholder.svg'})` 
+                              }}
+                            />
+                            <div>
+                              <h3 className="text-xl font-semibold">{dest.name}</h3>
+                              <p className="text-muted-foreground flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                {dest.country}
+                              </p>
+                              <div className="flex items-center mt-1">
+                                {dest.recommendation === 'highly_recommended' && (
+                                  <Badge className="bg-green-100 text-green-800 text-xs">
+                                    <Trophy className="h-3 w-3 mr-1" />
+                                    Top Choice
+                                  </Badge>
+                                )}
+                                {dest.recommendation === 'recommended' && (
+                                  <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                    <TrendingUp className="h-3 w-3 mr-1" />
+                                    Recommended
+                                  </Badge>
+                                )}
+                                {dest.recommendation === 'consider' && (
+                                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Consider
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge className={`text-lg px-3 py-1 ${
+                              dest.matchScore >= 80 ? 'bg-green-100 text-green-800' :
+                              dest.matchScore >= 60 ? 'bg-blue-100 text-blue-800' :
+                              dest.matchScore >= 40 ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {dest.matchScore}% Match
+                            </Badge>
+                            {dest.matchDetails?.successRates && (
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Success: {Math.round((dest.matchDetails.successRates.admission + dest.matchDetails.successRates.visa) / 2)}%
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{dest.description}</p>
+                        
+                        {/* Cost Breakdown */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4 p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <span className="font-medium text-gray-700">Tuition Range:</span>
+                            <p className="text-gray-900">
+                              €{dest.matchDetails?.costs?.tuitionRange[0]?.toLocaleString()} - 
+                              €{dest.matchDetails?.costs?.tuitionRange[1]?.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Total Cost:</span>
+                            <p className="text-gray-900">
+                              €{dest.matchDetails?.costs?.totalRange[0]?.toLocaleString()} - 
+                              €{dest.matchDetails?.costs?.totalRange[1]?.toLocaleString()}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Processing:</span>
+                            <p className="text-gray-900">{dest.processing_time || 'N/A'}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Match Reasons */}
+                        <div className="space-y-3">
+                          {dest.matchReasons.length > 0 && (
+                            <div>
+                              <p className="font-medium text-sm text-green-700 mb-2 flex items-center">
+                                <Check className="h-4 w-4 mr-1" />
+                                Why this matches:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {dest.matchReasons.map((reason: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                    {reason}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {dest.matchWarnings.length > 0 && (
+                            <div>
+                              <p className="font-medium text-sm text-orange-700 mb-2 flex items-center">
+                                <AlertCircle className="h-4 w-4 mr-1" />
+                                Things to consider:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {dest.matchWarnings.map((warning: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                    {warning}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Additional Information */}
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-muted-foreground">
+                            <div>
+                              <span className="font-medium">Available Programs:</span>
+                              <p>{dest.available_programs?.join(', ') || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Languages:</span>
+                              <p>{dest.language_requirements || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Intake Periods:</span>
+                              <p>{dest.intake_periods?.join(', ') || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <span className="font-medium">Application Fee:</span>
+                              <p>€{dest.application_fee || 0}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
+              
+              {matchedDestinations.length > 0 && (
+                <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+                  <h3 className="font-semibold text-blue-900 mb-2">Next Steps:</h3>
+                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                    <li>Review the detailed cost breakdowns and requirements</li>
+                    <li>Check language certificate requirements if applicable</li>
+                    <li>Contact our consultants for personalized application guidance</li>
+                    <li>Start preparing required documents for your top choices</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  if (destinationsLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p>Loading destinations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="container max-w-5xl mx-auto px-4 py-8">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <div className="flex items-center justify-center mb-4">
+            <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            AI-Powered Destination Matching
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Advanced algorithm analyzing 25+ factors to find your perfect study destination
+          </p>
+        </motion.div>
+
+        {/* Progress */}
+        <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <currentStepInfo.icon className="w-6 h-6 text-indigo-600" />
+                <div>
+                  <h3 className="font-semibold text-lg">{currentStepInfo.title}</h3>
+                  <p className="text-sm text-muted-foreground">{currentStepInfo.description}</p>
+                </div>
+              </div>
+              <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                Step {currentStep} of {STEPS.length}
+              </Badge>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </CardContent>
+        </Card>
+
+        {/* Main Content */}
+        <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm mb-8">
+          <CardContent className="p-8">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+
+        {/* Navigation */}
+        {currentStep < 6 && (
+          <div className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={handlePrev}
+              disabled={currentStep === 1}
+              className="flex items-center space-x-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Previous</span>
+            </Button>
+
+            <Button
+              onClick={handleNext}
+              disabled={!isStepValid() || isProcessing}
+              className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+            >
+              <span>
+                {isProcessing ? 'Analyzing Matches...' : 
+                 currentStep === 5 ? 'Find My Perfect Matches' : 'Continue'}
+              </span>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Restart Option for Results Page */}
+        {currentStep === 6 && (
+          <div className="text-center">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentStep(1);
+                setConsultationData({
+                  studyLevel: '',
+                  totalBudget: 0,
+                  budgetFlexibility: 'flexible',
+                  includeServiceFees: true,
+                  language: '',
+                  languageLevel: 'intermediate',
+                  regionPreference: [],
+                  currentGPA: '',
+                  previousEducationCountry: '',
+                  hasLanguageCertificate: false,
+                  intakePeriod: '',
+                  urgency: 'flexible',
+                  workWhileStudying: false,
+                  scholarshipRequired: false,
+                  priorityFactors: []
+                });
+                setMatchedDestinations([]);
+              }}
+              className="flex items-center space-x-2"
+            >
+              <span>Start New Consultation</span>
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
