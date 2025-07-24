@@ -36,6 +36,14 @@ export function PlatformPreviewSection() {
       gradient: "gradient-card-purple",
       link: "/guest/programs",
     },
+    {
+      id: 4,
+      title: t("platformPreview.features.services.title"),
+      description: t("platformPreview.features.services.description"),
+      icon: <GraduationCap className="h-8 w-8" />,
+      gradient: "gradient-card-purple",
+      link: "/guest/services",
+    },
   ]
 
   return (
