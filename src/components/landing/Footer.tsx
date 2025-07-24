@@ -4,7 +4,7 @@ import { Link } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
 import { Separator } from "@/components/ui/separator"
-import { NewsletterForm } from "@/landing/NewsletterForm"
+// import { NewsletterForm } from "@/landing/NewsletterForm"
 import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react"
 
 export function Footer() {
@@ -154,7 +154,7 @@ export function Footer() {
         </motion.div>
 
         {/* Newsletter */}
-        <motion.div
+{/*         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -166,7 +166,7 @@ export function Footer() {
             <p className="text-muted-foreground mb-6">{t("footer.newsletter.description")}</p>
             <NewsletterForm />
           </div>
-        </motion.div>
+        </motion.div> */}
 
         <Separator className="mb-8" />
 
