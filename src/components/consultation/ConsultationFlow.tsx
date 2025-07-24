@@ -452,10 +452,10 @@ export default function DestinationConsultationFlow() {
                 <Label>Total Available Budget (EUR)</Label>
                 <div className="grid grid-cols-2 gap-4">
                   {[
-                    { label: '€5,000 - €10,000', value: 10000 },
-                    { label: '€10,000 - €20,000', value: 20000 },
-                    { label: '€20,000 - €30,000', value: 30000 },
-                    { label: '€30,000+', value: 50000 }
+                    { label: '€2,500 - €5,000', value: 5000 },
+                    { label: '€5,000 - €7,000', value: 7000 },
+                    { label: '€7,000 - €10,000', value: 10000 },
+                    { label: '€10,000+', value: 12000 }
                   ].map(option => (
                     <Button
                       key={option.value}
