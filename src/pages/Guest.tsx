@@ -38,7 +38,7 @@ export default function Guest() {
       icon: <Eye className="h-6 w-6" />,
       title: "Check Services",
       description: "See our comprehensive service offerings",
-      path: "/services",
+      path: "/guest/services",
       gradient: "from-green-500/10 to-emerald-500/10",
       iconBg: "bg-green-500/10 group-hover:bg-green-500",
       color: "text-green-600"
