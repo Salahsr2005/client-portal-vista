@@ -1,276 +1,231 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import type React from "react"
+import { useState } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { BookOpen, Search, Plus, X, Sparkles } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { BookOpen, Plus, X, Search } from "lucide-react"
+import { motion } from "framer-motion"
 import { supabase } from "@/integrations/supabase/client"
+import { useQuery } from "@tanstack/react-query"
 
 interface FieldSelectionStepProps {
-  data: any
-  updateData: (data: any) => void
-  onValidation: (isValid: boolean) => void
+  selectedFields: string[]
+  onFieldsChange: (fields: string[]) => void
+  onNext: () => void
+  onBack: () => void
 }
 
-export function FieldSelectionStep({ data, updateData, onValidation }: FieldSelectionStepProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [availableFields, setAvailableFields] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
+export const FieldSelectionStep: React.FC<FieldSelectionStepProps> = ({
+  selectedFields,
+  onFieldsChange,
+  onNext,
+  onBack,
+}) => {
   const [customField, setCustomField] = useState("")
+  const [searchTerm, setSearchTerm] = useState("")
 
-  // Skip this step for destinations consultation
-  useEffect(() => {
-    if (data.consultationType === "destinations") {
-      onValidation(true)
-      return
-    }
+  // Fetch available fields from programs
+  const { data: availableFields = [], isLoading } = useQuery({
+    queryKey: ["program-fields"],
+    queryFn: async () => {
+      const { data: programs, error } = await supabase
+        .from("programs")
+        .select("name, field, field_keywords")
+        .eq("status", "Active")
 
-    fetchFields()
-  }, [data.consultationType])
+      if (error) throw error
 
-  useEffect(() => {
-    if (data.consultationType === "destinations") {
-      onValidation(true)
-    } else {
-      onValidation(!!data.field)
-    }
-  }, [data.field, data.consultationType, onValidation])
+      const fieldsSet = new Set<string>()
 
-  const fetchFields = async () => {
-    try {
-      setLoading(true)
-      const { data: programs, error } = await supabase.from("programs").select("name").not("name", "is", null)
-
-      if (error) {
-        console.error("Error fetching fields:", error)
-        return
-      }
-
-      // Extract unique fields from program names
-      const fields = new Set<string>()
       programs?.forEach((program) => {
+        // Add main field
+        if (program.field) {
+          fieldsSet.add(program.field)
+        }
+
+        // Add field keywords
+        if (program.field_keywords && Array.isArray(program.field_keywords)) {
+          program.field_keywords.forEach((keyword) => fieldsSet.add(keyword))
+        }
+
+        // Extract meaningful keywords from program names
         if (program.name) {
-          // Extract field-like keywords from program names
-          const words = program.name.toLowerCase().split(/[\s,\-$$$$]+/)
-          words.forEach((word) => {
-            if (word.length > 3 && !isCommonWord(word)) {
-              fields.add(capitalizeFirst(word))
-            }
-          })
+          const words = program.name
+            .toLowerCase()
+            .split(/[\s,.-]+/)
+            .filter(
+              (word) =>
+                word.length > 3 &&
+                ![
+                  "university",
+                  "college",
+                  "school",
+                  "program",
+                  "degree",
+                  "bachelor",
+                  "master",
+                  "phd",
+                  "diploma",
+                ].includes(word),
+            )
+          words.forEach((word) => fieldsSet.add(word.charAt(0).toUpperCase() + word.slice(1)))
         }
       })
 
-      setAvailableFields(Array.from(fields).sort())
-    } catch (error) {
-      console.error("Error fetching fields:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const isCommonWord = (word: string): boolean => {
-    const commonWords = [
-      "and",
-      "the",
-      "for",
-      "with",
-      "from",
-      "into",
-      "upon",
-      "over",
-      "under",
-      "about",
-      "through",
-      "during",
-      "before",
-      "after",
-      "above",
-      "below",
-      "university",
-      "college",
-      "degree",
-      "bachelor",
-      "master",
-      "phd",
-      "program",
-      "course",
-      "study",
-      "studies",
-      "science",
-      "arts",
-      "technology",
-      "engineering",
-    ]
-    return commonWords.includes(word.toLowerCase())
-  }
-
-  const capitalizeFirst = (str: string): string => {
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
-  }
+      return Array.from(fieldsSet).sort()
+    },
+  })
 
   const filteredFields = availableFields.filter((field) => field.toLowerCase().includes(searchTerm.toLowerCase()))
 
-  const handleFieldSelect = (field: string) => {
-    updateData({
-      field,
-      fieldKeywords: [field.toLowerCase(), ...field.toLowerCase().split(/[\s,-]+/)],
-    })
+  const handleFieldToggle = (field: string) => {
+    if (selectedFields.includes(field)) {
+      onFieldsChange(selectedFields.filter((f) => f !== field))
+    } else {
+      onFieldsChange([...selectedFields, field])
+    }
   }
 
-  const handleCustomFieldAdd = () => {
-    if (customField.trim()) {
-      const field = capitalizeFirst(customField.trim())
-      updateData({
-        field,
-        fieldKeywords: [field.toLowerCase(), ...field.toLowerCase().split(/[\s,-]+/)],
-      })
+  const handleAddCustomField = () => {
+    if (customField.trim() && !selectedFields.includes(customField.trim())) {
+      onFieldsChange([...selectedFields, customField.trim()])
       setCustomField("")
     }
   }
 
-  // Skip rendering for destinations consultation
-  if (data.consultationType === "destinations") {
-    return null
+  const handleRemoveField = (field: string) => {
+    onFieldsChange(selectedFields.filter((f) => f !== field))
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="text-center px-4">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
-        >
-          <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-        </motion.div>
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-          What's your field of interest?
-        </h2>
-        <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Select your area of study to find programs that match your academic interests
-        </p>
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
+    >
+      <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+        <CardHeader className="text-center pb-4">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
+            <BookOpen className="w-8 h-8 text-white" />
+          </div>
+          <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Select Your Fields of Interest
+          </CardTitle>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Choose the academic fields you're interested in studying
+          </p>
+        </CardHeader>
 
-      {/* Search Input */}
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-          <Input
-            placeholder="Search for your field of study..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-12 pr-4 py-3 sm:py-4 text-base sm:text-lg border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-400 dark:focus:border-blue-500 transition-colors"
-          />
-        </div>
-      </div>
+        <CardContent className="space-y-6">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Search fields..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 border-2 focus:border-blue-500 transition-colors"
+            />
+          </div>
 
-      {/* Selected Field */}
-      {data.field && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center px-4"
-        >
-          <Card className="max-w-md mx-auto bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Sparkles className="w-5 h-5 text-blue-600" />
-                  <span className="font-semibold text-blue-700 dark:text-blue-300 text-sm sm:text-base">
-                    Selected: {data.field}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => updateData({ field: "", fieldKeywords: [] })}
-                  className="text-slate-500 hover:text-slate-700 p-1"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+          {/* Selected Fields */}
+          {selectedFields.length > 0 && (
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground">Selected Fields:</Label>
+              <div className="flex flex-wrap gap-2">
+                {selectedFields.map((field) => (
+                  <Badge
+                    key={field}
+                    variant="default"
+                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-1 cursor-pointer group"
+                    onClick={() => handleRemoveField(field)}
+                  >
+                    {field}
+                    <X className="w-3 h-3 ml-2 group-hover:text-red-200 transition-colors" />
+                  </Badge>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+            </div>
+          )}
 
-      {/* Custom Field Input */}
-      <div className="max-w-2xl mx-auto px-4">
-        <Card className="border-dashed border-2 border-slate-300 dark:border-slate-600">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row gap-3">
+          {/* Available Fields */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-muted-foreground">Available Fields:</Label>
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
+                {filteredFields.map((field) => (
+                  <Button
+                    key={field}
+                    variant={selectedFields.includes(field) ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleFieldToggle(field)}
+                    className={`text-xs sm:text-sm justify-start transition-all duration-200 ${
+                      selectedFields.includes(field)
+                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0"
+                        : "hover:border-blue-500 hover:text-blue-600"
+                    }`}
+                  >
+                    {field}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Add Custom Field */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-muted-foreground">Add Custom Field:</Label>
+            <div className="flex gap-2">
               <Input
-                placeholder="Don't see your field? Add it here..."
+                placeholder="Enter custom field..."
                 value={customField}
                 onChange={(e) => setCustomField(e.target.value)}
-                className="flex-1 text-sm sm:text-base"
-                onKeyPress={(e) => e.key === "Enter" && handleCustomFieldAdd()}
+                onKeyPress={(e) => e.key === "Enter" && handleAddCustomField()}
+                className="flex-1 border-2 focus:border-blue-500 transition-colors"
               />
               <Button
-                onClick={handleCustomFieldAdd}
+                onClick={handleAddCustomField}
                 disabled={!customField.trim()}
-                className="bg-blue-600 hover:bg-blue-700 px-4 sm:px-6 whitespace-nowrap"
+                size="sm"
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Field
+                <Plus className="w-4 h-4" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Available Fields */}
-      <div className="max-w-6xl mx-auto px-4">
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-600 dark:text-slate-400">Loading available fields...</p>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-            {filteredFields.slice(0, 50).map((field, index) => (
-              <motion.div
-                key={field}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Badge
-                  variant={data.field === field ? "default" : "outline"}
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-md transform hover:scale-105 p-2 sm:p-3 text-xs sm:text-sm w-full justify-center text-center ${
-                    data.field === field
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400"
-                  }`}
-                  onClick={() => handleFieldSelect(field)}
-                >
-                  <span className="truncate">{field}</span>
-                </Badge>
-              </motion.div>
-            ))}
-          </div>
-        )}
 
-        {!loading && filteredFields.length === 0 && searchTerm && (
-          <div className="text-center py-8">
-            <p className="text-slate-600 dark:text-slate-400 mb-4">No fields found matching "{searchTerm}"</p>
+          {/* Navigation Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-6">
             <Button
-              onClick={() => {
-                setCustomField(searchTerm)
-                handleCustomFieldAdd()
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
+              onClick={onBack}
+              variant="outline"
+              className="flex-1 border-2 hover:border-gray-400 transition-colors bg-transparent"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add "{searchTerm}" as custom field
+              Back
+            </Button>
+            <Button
+              onClick={onNext}
+              disabled={selectedFields.length === 0}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all"
+            >
+              Continue ({selectedFields.length} selected)
             </Button>
           </div>
-        )}
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   )
 }
+
 
