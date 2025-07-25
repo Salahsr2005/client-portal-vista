@@ -1,23 +1,14 @@
 "use client"
 
-import React, { useState } from "react"
+import type React from "react"
+import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import {
-  GraduationCap,
-  BookOpen,
-  Globe,
-  DollarSign,
-  Home,
-  ChevronRight,
-  ChevronLeft,
-  Trophy,
-  Target,
-  Zap,
-} from "lucide-react"
+import { CheckCircle } from "lucide-react"
+
+// Import steps
 import { ConsultationTypeStep } from "./steps/ConsultationTypeStep"
 import { LevelSelectionStep } from "./steps/LevelSelectionStep"
 import { FieldSelectionStep } from "./steps/FieldSelectionStep"
@@ -26,293 +17,278 @@ import { BudgetSelectionStep } from "./steps/BudgetSelectionStep"
 import { PreferencesStep } from "./steps/PreferencesStep"
 import { UnifiedResultsStep } from "./steps/UnifiedResultsStep"
 
-export interface UnifiedConsultationData {
-  consultationType: "programs" | "destinations" | ""
+export interface ConsultationData {
+  type: "programs" | "destinations"
   level: string
-  field: string
-  fieldKeywords: string[]
+  fields: string[]
   language: string
-  languageTestRequired: boolean
-  languageTestScore: string
-  tuitionBudget: number
-  serviceFeesBudget: number
-  livingCostsBudget: number
-  totalBudget: number
-  budgetFlexibility: "strict" | "flexible" | "very_flexible"
-  religiousFacilities: boolean
-  halalFood: boolean
-  scholarshipRequired: boolean
-  accommodationPreference: string
-  workWhileStudying: boolean
-  startDatePreference: string
-  countryPreference: string[]
-  cityPreference: string
-  durationPreference: string
-  urgency: "asap" | "flexible" | "planning_ahead"
-  priorityFactors: string[]
+  budget: number
+  specialRequirements: {
+    religiousFacilities: boolean
+    halalFood: boolean
+    scholarshipRequired: boolean
+  }
+  destination?: string
+  subjects?: string[]
 }
 
-const STEPS = [
-  { id: 1, title: "Consultation Type", icon: Target, description: "Choose what you're looking for" },
-  { id: 2, title: "Study Level", icon: GraduationCap, description: "Your academic level" },
-  { id: 3, title: "Field of Study", icon: BookOpen, description: "Your area of interest" },
-  { id: 4, title: "Language & Tests", icon: Globe, description: "Language preferences" },
-  { id: 5, title: "Budget Planning", icon: DollarSign, description: "Financial breakdown" },
-  { id: 6, title: "Preferences", icon: Home, description: "Additional requirements" },
-  { id: 7, title: "Perfect Matches", icon: Trophy, description: "Your personalized results" },
-]
-
-export default function UnifiedConsultationFlow() {
-  const [currentStep, setCurrentStep] = useState(1)
-  const [consultationData, setConsultationData] = useState<UnifiedConsultationData>({
-    consultationType: "",
-    level: "",
-    field: "",
-    fieldKeywords: [],
-    language: "",
-    languageTestRequired: false,
-    languageTestScore: "",
-    tuitionBudget: 0,
-    serviceFeesBudget: 0,
-    livingCostsBudget: 0,
-    totalBudget: 0,
-    budgetFlexibility: "flexible",
+const INITIAL_DATA: ConsultationData = {
+  type: "programs",
+  level: "",
+  fields: [],
+  language: "",
+  budget: 0,
+  specialRequirements: {
     religiousFacilities: false,
     halalFood: false,
     scholarshipRequired: false,
-    accommodationPreference: "",
-    workWhileStudying: false,
-    startDatePreference: "",
-    countryPreference: [],
-    cityPreference: "",
-    durationPreference: "",
-    urgency: "flexible",
-    priorityFactors: [],
-  })
-  const [isValidStep, setIsValidStep] = useState(false)
+  },
+}
 
-  const progress = (currentStep / STEPS.length) * 100
+export const UnifiedConsultationFlow: React.FC = () => {
+  const [currentStep, setCurrentStep] = useState(0)
+  const [consultationData, setConsultationData] = useState<ConsultationData>(INITIAL_DATA)
+  const [isComplete, setIsComplete] = useState(false)
 
-  const updateData = (newData: Partial<UnifiedConsultationData>) => {
-    setConsultationData((prev) => ({ ...prev, ...newData }))
+  // Define steps based on consultation type
+  const getSteps = useCallback(() => {
+    const baseSteps = [
+      { id: "type", title: "Consultation Type", component: ConsultationTypeStep },
+      { id: "level", title: "Study Level", component: LevelSelectionStep },
+    ]
+
+    // Add field selection only for programs
+    if (consultationData.type === "programs") {
+      baseSteps.push({ id: "field", title: "Field of Study", component: FieldSelectionStep })
+    }
+
+    baseSteps.push(
+      { id: "language", title: "Language", component: LanguageSelectionStep },
+      { id: "budget", title: "Budget", component: BudgetSelectionStep },
+      { id: "preferences", title: "Preferences", component: PreferencesStep },
+      { id: "results", title: "Results", component: UnifiedResultsStep },
+    )
+
+    return baseSteps
+  }, [consultationData.type])
+
+  const steps = getSteps()
+  const totalSteps = steps.length
+  const progress = ((currentStep + 1) / totalSteps) * 100
+
+  const updateConsultationData = (updates: Partial<ConsultationData>) => {
+    setConsultationData((prev) => ({ ...prev, ...updates }))
   }
 
-  const nextStep = () => {
-    if (currentStep < STEPS.length && isValidStep) {
-      // Skip field selection step for destinations consultation
-      if (currentStep === 2 && consultationData.consultationType === "destinations") {
-        setCurrentStep(4) // Skip to language step
-      } else {
-        setCurrentStep((prev) => prev + 1)
-      }
-      setIsValidStep(false)
+  const handleNext = () => {
+    if (currentStep < totalSteps - 1) {
+      setCurrentStep(currentStep + 1)
+    } else {
+      setIsComplete(true)
     }
   }
 
-  const prevStep = () => {
-    if (currentStep > 1) {
-      // Handle skipped field step for destinations
-      if (currentStep === 4 && consultationData.consultationType === "destinations") {
-        setCurrentStep(2) // Go back to level step
-      } else {
-        setCurrentStep((prev) => prev - 1)
-      }
-      setIsValidStep(true)
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleReset = () => {
+    setCurrentStep(0)
+    setConsultationData(INITIAL_DATA)
+    setIsComplete(false)
+  }
+
+  // Handle consultation type change - reset to step 1 if type changes
+  const handleTypeChange = (type: "programs" | "destinations") => {
+    if (type !== consultationData.type) {
+      setConsultationData({ ...INITIAL_DATA, type })
+      setCurrentStep(1) // Move to level selection
     }
   }
 
   const renderCurrentStep = () => {
-    switch (currentStep) {
-      case 1:
-        return <ConsultationTypeStep data={consultationData} updateData={updateData} onValidation={setIsValidStep} />
-      case 2:
-        return <LevelSelectionStep data={consultationData} updateData={updateData} onValidation={setIsValidStep} />
-      case 3:
-        return <FieldSelectionStep data={consultationData} updateData={updateData} onValidation={setIsValidStep} />
-      case 4:
-        return <LanguageSelectionStep data={consultationData} updateData={updateData} onValidation={setIsValidStep} />
-      case 5:
-        return <BudgetSelectionStep data={consultationData} updateData={updateData} onValidation={setIsValidStep} />
-      case 6:
-        return <PreferencesStep data={consultationData} updateData={updateData} onValidation={setIsValidStep} />
-      case 7:
-        return <UnifiedResultsStep data={consultationData} updateData={updateData} onValidation={setIsValidStep} />
+    const CurrentStepComponent = steps[currentStep].component
+    const stepProps = {
+      consultationData,
+      onUpdate: updateConsultationData,
+      onNext: handleNext,
+      onBack: handleBack,
+      onReset: handleReset,
+    }
+
+    switch (steps[currentStep].id) {
+      case "type":
+        return (
+          <CurrentStepComponent
+            selectedType={consultationData.type}
+            onTypeChange={handleTypeChange}
+            onNext={handleNext}
+            {...stepProps}
+          />
+        )
+      case "level":
+        return (
+          <CurrentStepComponent
+            selectedLevel={consultationData.level}
+            onLevelChange={(level: string) => updateConsultationData({ level })}
+            onNext={handleNext}
+            onBack={handleBack}
+            consultationType={consultationData.type}
+            {...stepProps}
+          />
+        )
+      case "field":
+        return (
+          <CurrentStepComponent
+            selectedFields={consultationData.fields}
+            onFieldsChange={(fields: string[]) => updateConsultationData({ fields })}
+            onNext={handleNext}
+            onBack={handleBack}
+            {...stepProps}
+          />
+        )
+      case "language":
+        return (
+          <CurrentStepComponent
+            selectedLanguage={consultationData.language}
+            onLanguageChange={(language: string) => updateConsultationData({ language })}
+            onNext={handleNext}
+            onBack={handleBack}
+            {...stepProps}
+          />
+        )
+      case "budget":
+        return (
+          <CurrentStepComponent
+            selectedBudget={consultationData.budget}
+            onBudgetChange={(budget: number) => updateConsultationData({ budget })}
+            onNext={handleNext}
+            onBack={handleBack}
+            consultationType={consultationData.type}
+            level={consultationData.level}
+            {...stepProps}
+          />
+        )
+      case "preferences":
+        return (
+          <CurrentStepComponent
+            specialRequirements={consultationData.specialRequirements}
+            onRequirementsChange={(specialRequirements: any) => updateConsultationData({ specialRequirements })}
+            onNext={handleNext}
+            onBack={handleBack}
+            {...stepProps}
+          />
+        )
+      case "results":
+        return (
+          <CurrentStepComponent
+            preferences={{
+              type: consultationData.type,
+              level: consultationData.level,
+              field: consultationData.fields[0], // Use first field for compatibility
+              subjects: consultationData.fields,
+              language: consultationData.language,
+              budget: consultationData.budget,
+              specialRequirements: consultationData.specialRequirements,
+            }}
+            onReset={handleReset}
+            {...stepProps}
+          />
+        )
       default:
         return null
     }
   }
 
-  const currentStepInfo = STEPS[currentStep - 1]
+  if (isComplete) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center space-y-6"
+      >
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+          <CheckCircle className="w-10 h-10 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Consultation Complete!</h2>
+        <p className="text-muted-foreground">
+          Thank you for using our consultation service. We hope you found the perfect match!
+        </p>
+        <Button
+          onClick={handleReset}
+          className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
+        >
+          Start New Consultation
+        </Button>
+      </motion.div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-800 dark:to-indigo-900">
-      <div className="container max-w-7xl mx-auto px-4 py-6 sm:py-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-6 sm:mb-8"
-        >
-          <div className="flex items-center justify-center mb-4 sm:mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur-lg opacity-30 animate-pulse"></div>
-              <div className="relative p-3 sm:p-4 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full">
-                <Zap className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-              </div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Progress Header */}
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              Smart Consultation
+            </h1>
+            <div className="text-sm text-muted-foreground">
+              Step {currentStep + 1} of {totalSteps}
             </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 sm:mb-4">
-            AI-Powered Study Consultation
-          </h1>
-          <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed px-4">
-            Discover your perfect study path with our advanced matching algorithm that analyzes programs and
-            destinations
-          </p>
+
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="font-medium">{steps[currentStep].title}</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+
+          {/* Step Indicators */}
+          <div className="flex justify-between mt-4">
+            {steps.map((step, index) => (
+              <div
+                key={step.id}
+                className={`flex items-center space-x-2 ${
+                  index <= currentStep ? "text-blue-600" : "text-muted-foreground"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                    index < currentStep
+                      ? "bg-blue-600 text-white"
+                      : index === currentStep
+                        ? "bg-blue-100 text-blue-600 border-2 border-blue-600"
+                        : "bg-gray-200 text-gray-500"
+                  }`}
+                >
+                  {index < currentStep ? "✓" : index + 1}
+                </div>
+                <span className="hidden sm:block text-xs font-medium">{step.title}</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Step Content */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          {renderCurrentStep()}
         </motion.div>
-
-        {/* Progress Section */}
-        <Card className="mb-6 sm:mb-8 border-0 shadow-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm mx-4">
-          <CardContent className="p-4 sm:p-6 lg:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="p-2 sm:p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl">
-                  <currentStepInfo.icon className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg sm:text-xl text-slate-800 dark:text-slate-100">
-                    {currentStepInfo.title}
-                  </h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
-                    {currentStepInfo.description}
-                  </p>
-                </div>
-              </div>
-              <Badge
-                variant="outline"
-                className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800 px-3 sm:px-4 py-1 sm:py-2 text-xs sm:text-sm font-medium"
-              >
-                Step {currentStep} of {STEPS.length}
-              </Badge>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm font-medium">
-                <span className="text-slate-600 dark:text-slate-400">Progress</span>
-                <span className="text-blue-600 dark:text-blue-400">{Math.round(progress)}%</span>
-              </div>
-              <div className="relative">
-                <Progress value={progress} className="h-2 sm:h-3 bg-slate-200 dark:bg-slate-700" />
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full opacity-20 animate-pulse"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Steps Navigation */}
-        <Card className="mb-6 sm:mb-8 border-0 shadow-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden mx-4">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between overflow-x-auto pb-2">
-              {STEPS.map((step, index) => {
-                // Skip field step display for destinations
-                if (step.id === 3 && consultationData.consultationType === "destinations") {
-                  return null
-                }
-
-                return (
-                  <React.Fragment key={step.id}>
-                    <div className="flex flex-col items-center space-y-2 sm:space-y-3 min-w-0 flex-shrink-0">
-                      <div
-                        className={`relative p-2 sm:p-3 rounded-xl transition-all duration-500 ${
-                          step.id <= currentStep
-                            ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg scale-110"
-                            : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500"
-                        }`}
-                      >
-                        {step.id < currentStep && (
-                          <div className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-green-500 rounded-full flex items-center justify-center">
-                            <ChevronRight className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
-                          </div>
-                        )}
-                        <step.icon className="w-4 h-4 sm:w-6 sm:h-6" />
-                      </div>
-                      <div className="text-center max-w-16 sm:max-w-20">
-                        <div
-                          className={`text-xs font-semibold transition-colors duration-300 ${
-                            step.id <= currentStep
-                              ? "text-blue-600 dark:text-blue-400"
-                              : "text-slate-400 dark:text-slate-500"
-                          }`}
-                        >
-                          {step.title}
-                        </div>
-                      </div>
-                    </div>
-                    {index < STEPS.length - 1 &&
-                      !(step.id === 2 && consultationData.consultationType === "destinations") && (
-                        <div
-                          className={`flex-1 h-1 mx-2 sm:mx-4 rounded-full transition-all duration-500 ${
-                            step.id < currentStep
-                              ? "bg-gradient-to-r from-blue-500 to-indigo-500 shadow-sm"
-                              : "bg-slate-200 dark:bg-slate-700"
-                          }`}
-                        />
-                      )}
-                  </React.Fragment>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Content */}
-        <Card className="border-0 shadow-2xl bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm mx-4">
-          <CardContent className="p-6 sm:p-8 lg:p-10">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.4, ease: "easeInOut" }}
-              >
-                {renderCurrentStep()}
-              </motion.div>
-            </AnimatePresence>
-          </CardContent>
-        </Card>
-
-        {/* Navigation */}
-        <div className="flex flex-col sm:flex-row justify-between mt-6 sm:mt-8 space-y-4 sm:space-y-0 px-4">
-          <Button
-            variant="outline"
-            onClick={prevStep}
-            disabled={currentStep === 1}
-            className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg border-2 border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-300 bg-transparent w-full sm:w-auto"
-          >
-            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span>Previous</span>
-          </Button>
-
-          {currentStep < STEPS.length ? (
-            <Button
-              onClick={nextStep}
-              disabled={!isValidStep}
-              className="flex items-center justify-center space-x-2 px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
-            >
-              <span>Continue</span>
-              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
-          ) : (
-            <Button
-              className="flex items-center justify-center space-x-2 px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full sm:w-auto"
-              disabled={!isValidStep}
-            >
-              <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>View My Matches</span>
-            </Button>
-          )}
-        </div>
-      </div>
+      </AnimatePresence>
     </div>
   )
 }
+
 
