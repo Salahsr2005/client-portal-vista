@@ -1,4 +1,6 @@
 "use client"
+
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -23,6 +25,10 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { usePrograms } from "@/hooks/usePrograms"
+import { useDestinations } from "@/hooks/useDestinations"
+import { useToast } from "@/hooks/use-toast"
+import { useGuestRestrictions } from "@/components/layout/GuestModeWrapper"
 import type { UnifiedConsultationData } from "../UnifiedConsultationFlow"
 
 interface UnifiedResultsStepProps {
@@ -85,28 +91,28 @@ interface MatchedDestination {
   matchReasons: string[]
 }
 
-// Safe array helper function
-const safeArray = <T>(arr: T[] | undefined | null): T[] => {\
+// Safe array helper function - Fixed TypeScript generic syntax
+function safeArray<T>(arr: T[] | undefined | null): T[] {
   return Array.isArray(arr) ? arr : []
 }
 
 // Safe string helper function
-const safeString = (str: string | undefined | null): string => {\
-  return typeof str === 'string' ? str : ''
+function safeString(str: string | undefined | null): string {
+  return typeof str === "string" ? str : ""
 }
 
 // Safe number helper function
-const safeNumber = (num: number | undefined | null): number => {\
-  return typeof num === 'number' && !isNaN(num) ? num : 0
+function safeNumber(num: number | undefined | null): number {
+  return typeof num === "number" && !isNaN(num) ? num : 0
 }
 
 // Calculate match score for programs
-const calculateProgramMatchScore = (program: any, consultationData: any): number => {\
+function calculateProgramMatchScore(program: any, consultationData: any): number {
   let score = 0
   const maxScore = 100
 
   try {
-    // Study level match (25 points)\
+    // Study level match (25 points)
     if (safeString(program.study_level).toLowerCase() === safeString(consultationData.level).toLowerCase()) {
       score += 25
     }
@@ -115,13 +121,14 @@ const calculateProgramMatchScore = (program: any, consultationData: any): number
     const programField = safeString(program.field).toLowerCase()
     const userField = safeString(consultationData.field).toLowerCase()
     const fieldKeywords = safeArray(consultationData.fieldKeywords)
-    
+
     if (userField && (programField.includes(userField) || userField.includes(programField))) {
       score += 20
-    } else if (fieldKeywords.length > 0) {\
-      const keywordMatch = fieldKeywords.some(keyword => 
-        programField.includes(safeString(keyword).toLowerCase()) ||
-        safeString(keyword).toLowerCase().includes(programField)
+    } else if (fieldKeywords.length > 0) {
+      const keywordMatch = fieldKeywords.some(
+        (keyword) =>
+          programField.includes(safeString(keyword).toLowerCase()) ||
+          safeString(keyword).toLowerCase().includes(programField),
       )
       if (keywordMatch) score += 15
     }
@@ -137,9 +144,9 @@ const calculateProgramMatchScore = (program: any, consultationData: any): number
     const totalBudget = safeNumber(consultationData.totalBudget)
     const tuitionMin = safeNumber(program.tuition_min)
     const livingCostMin = safeNumber(program.living_cost_min)
-    
-    if (totalBudget > 0 && tuitionMin > 0) {\
-      const totalCost = tuitionMin + (livingCostMin * 12)
+
+    if (totalBudget > 0 && tuitionMin > 0) {
+      const totalCost = tuitionMin + livingCostMin * 12
       if (totalBudget >= totalCost) {
         score += 20
       } else if (totalBudget >= totalCost * 0.8) {
@@ -152,11 +159,11 @@ const calculateProgramMatchScore = (program: any, consultationData: any): number
     // Country preference (10 points)
     const countryPreference = safeArray(consultationData.countryPreference)
     const programCountry = safeString(program.country).toLowerCase()
-    
-    if (countryPreference.length === 0 || 
-        countryPreference.some(country => 
-          programCountry.includes(safeString(country).toLowerCase())
-        )) {
+
+    if (
+      countryPreference.length === 0 ||
+      countryPreference.some((country) => programCountry.includes(safeString(country).toLowerCase()))
+    ) {
       score += 10
     }
 
@@ -170,9 +177,8 @@ const calculateProgramMatchScore = (program: any, consultationData: any): number
     if (consultationData.halalFood && program.halal_food_availability) {
       score += 2
     }
-
   } catch (error) {
-    console.error('Error calculating match score:', error)\
+    console.error("Error calculating match score:", error)
     return 0
   }
 
@@ -180,10 +186,10 @@ const calculateProgramMatchScore = (program: any, consultationData: any): number
 }
 
 // Generate match reasons
-const generateMatchReasons = (program: any, consultationData: any, score: number): string[] => {\
+function generateMatchReasons(program: any, consultationData: any, score: number): string[] {
   const reasons: string[] = []
 
-  try {\
+  try {
     if (safeString(program.study_level).toLowerCase() === safeString(consultationData.level).toLowerCase()) {
       reasons.push(`Perfect match for ${consultationData.level} level studies`)
     }
@@ -197,11 +203,11 @@ const generateMatchReasons = (program: any, consultationData: any, score: number
     const totalBudget = safeNumber(consultationData.totalBudget)
     const tuitionMin = safeNumber(program.tuition_min)
     if (totalBudget > 0 && tuitionMin > 0 && totalBudget >= tuitionMin) {
-      reasons.push('Fits within your budget range')
+      reasons.push("Fits within your budget range")
     }
 
     if (program.scholarship_available) {
-      reasons.push('Scholarship opportunities available')
+      reasons.push("Scholarship opportunities available")
     }
 
     const programLanguage = safeString(program.program_language).toLowerCase()
@@ -211,26 +217,26 @@ const generateMatchReasons = (program: any, consultationData: any, score: number
     }
 
     if (reasons.length === 0) {
-      reasons.push('General compatibility with your preferences')
+      reasons.push("General compatibility with your preferences")
     }
   } catch (error) {
-    console.error('Error generating match reasons:', error)\
-    reasons.push('Basic program match')
+    console.error("Error generating match reasons:", error)
+    reasons.push("Basic program match")
   }
 
   return reasons
 }
 
-export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedResultsStepProps) {\
+export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedResultsStepProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("match")
   const [filterBy, setFilterBy] = useState("all")
-  const [isLoading, setIsLoading] = useState(true)\
-  const [matchedPrograms, setMatchedPrograms] = useState<MatchedProgram[]>([])\
+  const [isLoading, setIsLoading] = useState(true)
+  const [matchedPrograms, setMatchedPrograms] = useState<MatchedProgram[]>([])
   const [matchedDestinations, setMatchedDestinations] = useState<MatchedDestination[]>([])
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
-\
-  const { programs = [], loading: programsLoading } = usePrograms()\
+
+  const { programs = [], loading: programsLoading } = usePrograms()
   const { destinations = [], loading: destinationsLoading } = useDestinations()
   const { toast } = useToast()
   const { isRestricted, handleRestrictedAction } = useGuestRestrictions()
@@ -239,8 +245,8 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
     onValidation(true)
   }, [onValidation])
 
-  useEffect(() => {\
-    if (!programsLoading && !destinationsLoading) {\
+  useEffect(() => {
+    if (!programsLoading && !destinationsLoading) {
       if (data.consultationType === "programs" && safeArray(programs).length > 0) {
         processPrograms()
       } else if (data.consultationType === "destinations" && safeArray(destinations).length > 0) {
@@ -253,25 +259,26 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
 
   const processPrograms = () => {
     setIsLoading(true)
-\
-    try {\
+
+    try {
       const safePrograms = safeArray(programs)
-      
+
       if (safePrograms.length === 0) {
-        setMatchedPrograms([])\
+        setMatchedPrograms([])
         setIsLoading(false)
         return
       }
 
       // Enhanced filtering logic with safe checks
-      const filteredPrograms = safePrograms.filter((program) => {\
-        if (!program || typeof program !== 'object') return false
+      const filteredPrograms = safePrograms.filter((program) => {
+        if (!program || typeof program !== "object") return false
 
         // Basic filters with safe checks
-        const levelMatch = !data.level || 
-          safeString(program.study_level).toLowerCase() === safeString(data.level).toLowerCase()
-        
-        const languageMatch = !data.language ||
+        const levelMatch =
+          !data.level || safeString(program.study_level).toLowerCase() === safeString(data.level).toLowerCase()
+
+        const languageMatch =
+          !data.language ||
           safeString(program.program_language).toLowerCase().includes(safeString(data.language).toLowerCase()) ||
           safeString(program.secondary_language).toLowerCase().includes(safeString(data.language).toLowerCase())
 
@@ -279,41 +286,46 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
         const totalBudget = safeNumber(data.totalBudget)
         const tuitionMin = safeNumber(program.tuition_min)
         const livingCostMin = safeNumber(program.living_cost_min)
-        
-        const budgetMatch = totalBudget === 0 || 
-          (tuitionMin > 0 && livingCostMin >= 0 && \
-           tuitionMin + livingCostMin * 12 <= totalBudget * 1.2)
+
+        const budgetMatch =
+          totalBudget === 0 ||
+          (tuitionMin > 0 && livingCostMin >= 0 && tuitionMin + livingCostMin * 12 <= totalBudget * 1.2)
 
         // Field matching with safe checks
         let fieldMatch = true
         const userField = safeString(data.field)
-        if (userField) {\
+        if (userField) {
           const programField = safeString(program.field).toLowerCase()
           const userFieldLower = userField.toLowerCase()
 
           fieldMatch = programField.includes(userFieldLower) || userFieldLower.includes(programField)
 
-          if (!fieldMatch) {\
+          if (!fieldMatch) {
             const programKeywords = safeArray(program.field_keywords)
             const userKeywords = safeArray(data.fieldKeywords)
-            
-            fieldMatch = programKeywords.some(keyword =>
-              safeString(keyword).toLowerCase().includes(userFieldLower) ||
-              userFieldLower.includes(safeString(keyword).toLowerCase())
-            ) || userKeywords.some(keyword =>
-              programField.includes(safeString(keyword).toLowerCase()) ||
-              programKeywords.some(pk => 
-                safeString(pk).toLowerCase().includes(safeString(keyword).toLowerCase())
+
+            fieldMatch =
+              programKeywords.some(
+                (keyword) =>
+                  safeString(keyword).toLowerCase().includes(userFieldLower) ||
+                  userFieldLower.includes(safeString(keyword).toLowerCase()),
+              ) ||
+              userKeywords.some(
+                (keyword) =>
+                  programField.includes(safeString(keyword).toLowerCase()) ||
+                  programKeywords.some((pk) =>
+                    safeString(pk).toLowerCase().includes(safeString(keyword).toLowerCase()),
+                  ),
               )
-            )
           }
         }
 
         // Country preference with safe checks
         const countryPreference = safeArray(data.countryPreference)
-        const countryMatch = countryPreference.length === 0 ||
-          countryPreference.some(country => 
-            safeString(program.country).toLowerCase().includes(safeString(country).toLowerCase())
+        const countryMatch =
+          countryPreference.length === 0 ||
+          countryPreference.some((country) =>
+            safeString(program.country).toLowerCase().includes(safeString(country).toLowerCase()),
           )
 
         // Special requirements
@@ -323,7 +335,7 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
       })
 
       // Calculate match scores for filtered programs
-      const scoredPrograms = filteredPrograms.map((program) => {\
+      const scoredPrograms = filteredPrograms.map((program) => {
         const matchScore = calculateProgramMatchScore(program, data)
         const matchReasons = generateMatchReasons(program, data, matchScore)
 
@@ -343,24 +355,27 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
       setMatchedPrograms(sortedPrograms)
 
       // If no matches, show some programs with basic matching
-      if (sortedPrograms.length === 0) {\
+      if (sortedPrograms.length === 0) {
         const fallbackPrograms = safePrograms
-          .filter((program) => {\
-            const levelMatch = !data.level || 
-              safeString(program.study_level).toLowerCase() === safeString(data.level).toLowerCase()
+          .filter((program) => {
+            const levelMatch =
+              !data.level || safeString(program.study_level).toLowerCase() === safeString(data.level).toLowerCase()
             return levelMatch
           })
           .slice(0, 10)
-          .map((program) => ({
-            ...program,\
-            matchScore: 25,
-            matchReasons: ["Basic match based on study level"],
-          } as MatchedProgram))
+          .map(
+            (program) =>
+              ({
+                ...program,
+                matchScore: 25,
+                matchReasons: ["Basic match based on study level"],
+              }) as MatchedProgram,
+          )
 
         setMatchedPrograms(fallbackPrograms)
       }
     } catch (error) {
-      console.error("Error processing programs:", error)\
+      console.error("Error processing programs:", error)
       setMatchedPrograms([])
       toast({
         title: "Processing Error",
@@ -377,7 +392,7 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
 
     try {
       const safeDestinations = safeArray(destinations)
-      
+
       if (safeDestinations.length === 0) {
         setMatchedDestinations([])
         setIsLoading(false)
@@ -386,12 +401,15 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
 
       // Simple destination matching with safe checks
       const matchedDests = safeDestinations
-        .filter(dest => dest && typeof dest === 'object')
-        .map((dest) => ({
-          ...dest,
-          matchScore: 50, // Default score for destinations
-          matchReasons: ["Suitable destination for your studies"],
-        } as MatchedDestination))
+        .filter((dest) => dest && typeof dest === "object")
+        .map(
+          (dest) =>
+            ({
+              ...dest,
+              matchScore: 50, // Default score for destinations
+              matchReasons: ["Suitable destination for your studies"],
+            }) as MatchedDestination,
+        )
         .slice(0, 15)
 
       setMatchedDestinations(matchedDests)
@@ -445,58 +463,61 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
     })
   }
 
-  const filteredResults = data.consultationType === "programs"
-    ? safeArray(matchedPrograms)
-        .filter((program) => {
-          const searchLower = safeString(searchTerm).toLowerCase()
-          const matchesSearch = !searchLower ||
-            safeString(program.name).toLowerCase().includes(searchLower) ||
-            safeString(program.university).toLowerCase().includes(searchLower) ||
-            safeString(program.country).toLowerCase().includes(searchLower)
+  const filteredResults =
+    data.consultationType === "programs"
+      ? safeArray(matchedPrograms)
+          .filter((program) => {
+            const searchLower = safeString(searchTerm).toLowerCase()
+            const matchesSearch =
+              !searchLower ||
+              safeString(program.name).toLowerCase().includes(searchLower) ||
+              safeString(program.university).toLowerCase().includes(searchLower) ||
+              safeString(program.country).toLowerCase().includes(searchLower)
 
-          const matchesFilter =
-            filterBy === "all" ||
-            (filterBy === "scholarship" && program.scholarship_available) ||
-            (filterBy === "high_match" && program.matchScore >= 80) ||
-            (filterBy === "budget_friendly" && safeNumber(program.tuition_min) <= safeNumber(data.totalBudget) * 0.8)
+            const matchesFilter =
+              filterBy === "all" ||
+              (filterBy === "scholarship" && program.scholarship_available) ||
+              (filterBy === "high_match" && program.matchScore >= 80) ||
+              (filterBy === "budget_friendly" && safeNumber(program.tuition_min) <= safeNumber(data.totalBudget) * 0.8)
 
-          return matchesSearch && matchesFilter
-        })
-        .sort((a, b) => {
-          switch (sortBy) {
-            case "match":
-              return b.matchScore - a.matchScore
-            case "cost":
-              return safeNumber(a.tuition_min) - safeNumber(b.tuition_min)
-            case "name":
-              return safeString(a.name).localeCompare(safeString(b.name))
-            case "country":
-              return safeString(a.country).localeCompare(safeString(b.country))
-            default:
-              return b.matchScore - a.matchScore
-          }
-        })
-    : safeArray(matchedDestinations)
-        .filter((dest) => {
-          const searchLower = safeString(searchTerm).toLowerCase()
-          const matchesSearch = !searchLower ||
-            safeString(dest.name).toLowerCase().includes(searchLower) ||
-            safeString(dest.country).toLowerCase().includes(searchLower)
+            return matchesSearch && matchesFilter
+          })
+          .sort((a, b) => {
+            switch (sortBy) {
+              case "match":
+                return b.matchScore - a.matchScore
+              case "cost":
+                return safeNumber(a.tuition_min) - safeNumber(b.tuition_min)
+              case "name":
+                return safeString(a.name).localeCompare(safeString(b.name))
+              case "country":
+                return safeString(a.country).localeCompare(safeString(b.country))
+              default:
+                return b.matchScore - a.matchScore
+            }
+          })
+      : safeArray(matchedDestinations)
+          .filter((dest) => {
+            const searchLower = safeString(searchTerm).toLowerCase()
+            const matchesSearch =
+              !searchLower ||
+              safeString(dest.name).toLowerCase().includes(searchLower) ||
+              safeString(dest.country).toLowerCase().includes(searchLower)
 
-          return matchesSearch
-        })
-        .sort((a, b) => {
-          switch (sortBy) {
-            case "match":
-              return b.matchScore - a.matchScore
-            case "name":
-              return safeString(a.name).localeCompare(safeString(b.name))
-            case "country":
-              return safeString(a.country).localeCompare(safeString(b.country))
-            default:
-              return b.matchScore - a.matchScore
-          }
-        })
+            return matchesSearch
+          })
+          .sort((a, b) => {
+            switch (sortBy) {
+              case "match":
+                return b.matchScore - a.matchScore
+              case "name":
+                return safeString(a.name).localeCompare(safeString(b.name))
+              case "country":
+                return safeString(a.country).localeCompare(safeString(b.country))
+              default:
+                return b.matchScore - a.matchScore
+            }
+          })
 
   if (isLoading || programsLoading || destinationsLoading) {
     return (
@@ -530,8 +551,8 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
           </h2>
         </div>
         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
-          Based on your preferences, we've found {safeArray(filteredResults).length} {data.consultationType} that match your
-          criteria. Results are ranked by compatibility score.
+          Based on your preferences, we've found {safeArray(filteredResults).length} {data.consultationType} that match
+          your criteria. Results are ranked by compatibility score.
         </p>
       </motion.div>
 
@@ -742,12 +763,14 @@ function ProgramResultCard({
                 Why this matches you:
               </h4>
               <div className="space-y-1">
-                {safeArray(program.matchReasons).slice(0, 3).map((reason, index) => (
-                  <p key={index} className="text-sm text-slate-600 dark:text-slate-400 flex items-start">
-                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0" />
-                    {safeString(reason)}
-                  </p>
-                ))}
+                {safeArray(program.matchReasons)
+                  .slice(0, 3)
+                  .map((reason, index) => (
+                    <p key={index} className="text-sm text-slate-600 dark:text-slate-400 flex items-start">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2 flex-shrink-0" />
+                      {safeString(reason)}
+                    </p>
+                  ))}
               </div>
             </div>
 
@@ -762,7 +785,8 @@ function ProgramResultCard({
               <div className="flex items-center justify-between text-sm">
                 <span className="text-slate-600 dark:text-slate-400">Total Cost (with living)</span>
                 <span className="text-slate-600 dark:text-slate-400">
-                  €{(tuitionMin + livingCostMin * 12).toLocaleString()} - €{(tuitionMax + livingCostMax * 12).toLocaleString()}
+                  €{(tuitionMin + livingCostMin * 12).toLocaleString()} - €
+                  {(tuitionMax + livingCostMax * 12).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -867,9 +891,7 @@ function DestinationResultCard({
               </div>
 
               {destination.description && (
-                <p className="text-slate-600 dark:text-slate-400 line-clamp-2">
-                  {safeString(destination.description)}
-                </p>
+                <p className="text-slate-600 dark:text-slate-400 line-clamp-2">{safeString(destination.description)}</p>
               )}
             </div>
 
@@ -880,12 +902,14 @@ function DestinationResultCard({
                 Why this destination suits you:
               </h4>
               <div className="space-y-1">
-                {safeArray(destination.matchReasons).slice(0, 3).map((reason, index) => (
-                  <p key={index} className="text-sm text-slate-600 dark:text-slate-400 flex items-start">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0" />
-                    {safeString(reason)}
-                  </p>
-                ))}
+                {safeArray(destination.matchReasons)
+                  .slice(0, 3)
+                  .map((reason, index) => (
+                    <p key={index} className="text-sm text-slate-600 dark:text-slate-400 flex items-start">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0" />
+                      {safeString(reason)}
+                    </p>
+                  ))}
               </div>
             </div>
 
@@ -936,6 +960,7 @@ function DestinationResultCard({
     </Card>
   )
 }
+
 
 
 
