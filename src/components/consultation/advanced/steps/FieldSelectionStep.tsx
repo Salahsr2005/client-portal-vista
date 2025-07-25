@@ -1,227 +1,291 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent } from "@/components/ui/card"
+import type React from "react"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, BookOpen, Target, X, Plus } from "lucide-react"
+import {
+  Search,
+  BookOpen,
+  Lightbulb,
+  Briefcase,
+  Heart,
+  Cpu,
+  Palette,
+  Globe,
+  Calculator,
+  Microscope,
+} from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
+import { useQuery } from "@tanstack/react-query"
 
 interface FieldSelectionStepProps {
   data: {
-    fields?: string[]
+    consultationType?: string
+    studyLevel?: string
+    selectedFields?: string[]
   }
-  updateData: (data: any) => void
+  onUpdate: (data: any) => void
+  onNext: () => void
+  onBack: () => void
   onValidation: (isValid: boolean) => void
 }
 
-export function FieldSelectionStep({ data, updateData, onValidation }: FieldSelectionStepProps) {
-  const [availableFields, setAvailableFields] = useState<string[]>([])
+// Popular field categories with icons
+const fieldCategories = [
+  { name: "Engineering", icon: Cpu, color: "bg-blue-100 text-blue-800" },
+  { name: "Business", icon: Briefcase, color: "bg-green-100 text-green-800" },
+  { name: "Medicine", icon: Heart, color: "bg-red-100 text-red-800" },
+  { name: "Arts", icon: Palette, color: "bg-purple-100 text-purple-800" },
+  { name: "Science", icon: Microscope, color: "bg-cyan-100 text-cyan-800" },
+  { name: "Mathematics", icon: Calculator, color: "bg-orange-100 text-orange-800" },
+  { name: "Languages", icon: Globe, color: "bg-indigo-100 text-indigo-800" },
+  { name: "Education", icon: BookOpen, color: "bg-yellow-100 text-yellow-800" },
+]
+
+export const FieldSelectionStep: React.FC<FieldSelectionStepProps> = ({
+  data = {},
+  onUpdate,
+  onNext,
+  onBack,
+  onValidation,
+}) => {
   const [searchTerm, setSearchTerm] = useState("")
-  const [loading, setLoading] = useState(true)
-  const selectedFields = data?.fields || []
+  const [selectedFields, setSelectedFields] = useState<string[]>(data.selectedFields || [])
 
-  useEffect(() => {
-    fetchProgramFields()
-  }, [])
+  // Fetch available fields from the programs table
+  const { data: availableFields = [], isLoading } = useQuery({
+    queryKey: ["program-fields"],
+    queryFn: async () => {
+      try {
+        // Get unique field names from the programs table
+        const { data: programs, error } = await supabase.from("programs").select("name").not("name", "is", null)
 
-  useEffect(() => {
-    onValidation(selectedFields.length > 0)
-  }, [selectedFields, onValidation])
+        if (error) {
+          console.error("Error fetching program fields:", error)
+          return []
+        }
 
-  const fetchProgramFields = async () => {
-    try {
-      setLoading(true)
-      const { data: programs, error } = await supabase.from("programs").select("name").eq("status", "Active")
+        // Extract unique field names and clean them
+        const fieldNames =
+          programs
+            ?.map((program) => program.name)
+            .filter(Boolean)
+            .map((name) => name.trim())
+            .filter((name, index, array) => array.indexOf(name) === index)
+            .sort() || []
 
-      if (error) {
-        console.error("Error fetching program fields:", error)
-        return
+        return fieldNames
+      } catch (error) {
+        console.error("Error in field query:", error)
+        return []
       }
+    },
+    staleTime: 1000 * 60 * 10, // Cache for 10 minutes
+  })
 
-      // Extract unique field names from program names
-      const fields =
-        programs
-          ?.map((program) => program.name)
-          .filter(Boolean)
-          .filter((field, index, array) => array.indexOf(field) === index)
-          .sort() || []
-
-      setAvailableFields(fields)
-    } catch (error) {
-      console.error("Error fetching fields:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Filter fields based on search term
   const filteredFields = availableFields.filter((field) => field.toLowerCase().includes(searchTerm.toLowerCase()))
+
+  // Get category suggestions based on search
+  const categoryMatches = fieldCategories.filter((category) =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  useEffect(() => {
+    const isValid = selectedFields.length > 0
+    onValidation(isValid)
+  }, [selectedFields, onValidation])
 
   const handleFieldToggle = (field: string) => {
     const updatedFields = selectedFields.includes(field)
       ? selectedFields.filter((f) => f !== field)
       : [...selectedFields, field]
 
-    updateData({ fields: updatedFields })
+    setSelectedFields(updatedFields)
+    onUpdate({
+      ...data,
+      selectedFields: updatedFields,
+    })
   }
 
-  const handleRemoveField = (field: string) => {
-    const updatedFields = selectedFields.filter((f) => f !== field)
-    updateData({ fields: updatedFields })
+  const handleCategorySelect = (categoryName: string) => {
+    // Find fields that contain the category name
+    const categoryFields = availableFields.filter((field) => field.toLowerCase().includes(categoryName.toLowerCase()))
+
+    if (categoryFields.length > 0) {
+      // Add the first few matching fields
+      const fieldsToAdd = categoryFields.slice(0, 3).filter((field) => !selectedFields.includes(field))
+
+      if (fieldsToAdd.length > 0) {
+        const updatedFields = [...selectedFields, ...fieldsToAdd]
+        setSelectedFields(updatedFields)
+        onUpdate({
+          ...data,
+          selectedFields: updatedFields,
+        })
+      }
+    }
   }
 
-  const handleAddCustomField = () => {
-    if (searchTerm.trim() && !selectedFields.includes(searchTerm.trim())) {
-      const updatedFields = [...selectedFields, searchTerm.trim()]
-      updateData({ fields: updatedFields })
-      setSearchTerm("")
+  const handleNext = () => {
+    if (selectedFields.length > 0) {
+      onNext()
     }
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="text-center px-4">
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center"
-        >
-          <Target className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-        </motion.div>
-        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-          What field interests you?
-        </h2>
-        <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Select one or more fields of study that match your interests and career goals
-        </p>
-      </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Select Your Fields of Interest
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Choose the academic fields you're interested in studying. You can select multiple fields.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search for fields of study..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-      {/* Search Input */}
-      <div className="max-w-2xl mx-auto px-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
-          <Input
-            type="text"
-            placeholder="Search for fields of study..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 pr-4 py-3 text-lg border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          />
-          {searchTerm && !availableFields.some((field) => field.toLowerCase() === searchTerm.toLowerCase()) && (
-            <Button
-              onClick={handleAddCustomField}
-              size="sm"
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add
-            </Button>
+          {/* Selected Fields */}
+          {selectedFields.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Selected Fields:</h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedFields.map((field) => (
+                  <Badge
+                    key={field}
+                    variant="default"
+                    className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => handleFieldToggle(field)}
+                  >
+                    {field} ×
+                  </Badge>
+                ))}
+              </div>
+            </div>
           )}
-        </div>
+
+          {/* Category Suggestions */}
+          {searchTerm && categoryMatches.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Field Categories:</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {categoryMatches.map((category) => {
+                  const Icon = category.icon
+                  return (
+                    <Button
+                      key={category.name}
+                      variant="outline"
+                      size="sm"
+                      className="justify-start h-auto p-3 bg-transparent"
+                      onClick={() => handleCategorySelect(category.name)}
+                    >
+                      <Icon className="h-4 w-4 mr-2" />
+                      <span className="text-xs">{category.name}</span>
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Popular Categories (when no search) */}
+          {!searchTerm && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Popular Categories:</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {fieldCategories.map((category) => {
+                  const Icon = category.icon
+                  return (
+                    <Button
+                      key={category.name}
+                      variant="outline"
+                      size="sm"
+                      className="justify-start h-auto p-3 bg-transparent"
+                      onClick={() => handleCategorySelect(category.name)}
+                    >
+                      <Icon className="h-4 w-4 mr-2" />
+                      <span className="text-xs">{category.name}</span>
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Available Fields */}
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">{searchTerm ? "Search Results:" : "Available Programs:"}</h4>
+
+            {isLoading ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading fields...</p>
+              </div>
+            ) : filteredFields.length > 0 ? (
+              <div className="max-h-60 overflow-y-auto space-y-1">
+                {filteredFields.slice(0, 50).map((field) => (
+                  <Button
+                    key={field}
+                    variant={selectedFields.includes(field) ? "default" : "ghost"}
+                    size="sm"
+                    className="w-full justify-start text-left h-auto p-2"
+                    onClick={() => handleFieldToggle(field)}
+                  >
+                    <span className="text-xs truncate">{field}</span>
+                    {selectedFields.includes(field) && <span className="ml-auto text-xs">✓</span>}
+                  </Button>
+                ))}
+                {filteredFields.length > 50 && (
+                  <p className="text-xs text-muted-foreground text-center py-2">
+                    Showing first 50 results. Use search to narrow down.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Lightbulb className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  {searchTerm ? "No fields found matching your search." : "No fields available."}
+                </p>
+                {searchTerm && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Try a different search term or browse categories above.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Navigation */}
+      <div className="flex justify-between">
+        <Button variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button onClick={handleNext} disabled={selectedFields.length === 0}>
+          Next ({selectedFields.length} selected)
+        </Button>
       </div>
-
-      {/* Selected Fields */}
-      {selectedFields.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto px-4">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">
-            Selected Fields ({selectedFields.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {selectedFields.map((field) => (
-              <Badge
-                key={field}
-                variant="default"
-                className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-3 py-2 text-sm flex items-center space-x-2 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800"
-                onClick={() => handleRemoveField(field)}
-              >
-                <span>{field}</span>
-                <X className="w-3 h-3" />
-              </Badge>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Available Fields */}
-      <div className="max-w-6xl mx-auto px-4">
-        {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="text-slate-600 dark:text-slate-400 mt-2">Loading fields...</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredFields.slice(0, 50).map((field, index) => (
-              <motion.div
-                key={field}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.02 }}
-              >
-                <Card
-                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
-                    selectedFields.includes(field)
-                      ? "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                      : "hover:shadow-md border-slate-200 dark:border-slate-700"
-                  }`}
-                  onClick={() => handleFieldToggle(field)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          selectedFields.includes(field)
-                            ? "bg-blue-500 text-white"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                        }`}
-                      >
-                        <BookOpen className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-slate-800 dark:text-slate-200 truncate">{field}</h3>
-                      </div>
-                      {selectedFields.includes(field) && (
-                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                          <div className="w-2 h-2 bg-white rounded-full"></div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {!loading && filteredFields.length === 0 && (
-          <div className="text-center py-8">
-            <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-600 dark:text-slate-400">
-              No fields found matching "{searchTerm}". Try a different search term or add it as a custom field.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {selectedFields.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl sm:rounded-2xl border border-blue-200 dark:border-blue-800 max-w-2xl mx-auto"
-        >
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 text-blue-700 dark:text-blue-300">
-            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-            <span className="font-semibold text-base sm:text-lg text-center">
-              Excellent! We'll find programs in {selectedFields.length === 1 ? "this field" : "these fields"} for you.
-            </span>
-          </div>
-        </motion.div>
-      )}
     </div>
   )
 }
+
 
 
 
