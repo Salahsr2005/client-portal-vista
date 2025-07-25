@@ -1,231 +1,227 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
+import { motion } from "framer-motion"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { BookOpen, Plus, X, Search } from "lucide-react"
-import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Search, BookOpen, Target, X, Plus } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
-import { useQuery } from "@tanstack/react-query"
 
 interface FieldSelectionStepProps {
-  selectedFields: string[]
-  onFieldsChange: (fields: string[]) => void
-  onNext: () => void
-  onBack: () => void
+  data: {
+    fields?: string[]
+  }
+  updateData: (data: any) => void
+  onValidation: (isValid: boolean) => void
 }
 
-export const FieldSelectionStep: React.FC<FieldSelectionStepProps> = ({
-  selectedFields,
-  onFieldsChange,
-  onNext,
-  onBack,
-}) => {
-  const [customField, setCustomField] = useState("")
+export function FieldSelectionStep({ data, updateData, onValidation }: FieldSelectionStepProps) {
+  const [availableFields, setAvailableFields] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(true)
+  const selectedFields = data?.fields || []
 
-  // Fetch available fields from programs
-  const { data: availableFields = [], isLoading } = useQuery({
-    queryKey: ["program-fields"],
-    queryFn: async () => {
-      const { data: programs, error } = await supabase
-        .from("programs")
-        .select("name, field, field_keywords")
-        .eq("status", "Active")
+  useEffect(() => {
+    fetchProgramFields()
+  }, [])
 
-      if (error) throw error
+  useEffect(() => {
+    onValidation(selectedFields.length > 0)
+  }, [selectedFields, onValidation])
 
-      const fieldsSet = new Set<string>()
+  const fetchProgramFields = async () => {
+    try {
+      setLoading(true)
+      const { data: programs, error } = await supabase.from("programs").select("name").eq("status", "Active")
 
-      programs?.forEach((program) => {
-        // Add main field
-        if (program.field) {
-          fieldsSet.add(program.field)
-        }
+      if (error) {
+        console.error("Error fetching program fields:", error)
+        return
+      }
 
-        // Add field keywords
-        if (program.field_keywords && Array.isArray(program.field_keywords)) {
-          program.field_keywords.forEach((keyword) => fieldsSet.add(keyword))
-        }
+      // Extract unique field names from program names
+      const fields =
+        programs
+          ?.map((program) => program.name)
+          .filter(Boolean)
+          .filter((field, index, array) => array.indexOf(field) === index)
+          .sort() || []
 
-        // Extract meaningful keywords from program names
-        if (program.name) {
-          const words = program.name
-            .toLowerCase()
-            .split(/[\s,.-]+/)
-            .filter(
-              (word) =>
-                word.length > 3 &&
-                ![
-                  "university",
-                  "college",
-                  "school",
-                  "program",
-                  "degree",
-                  "bachelor",
-                  "master",
-                  "phd",
-                  "diploma",
-                ].includes(word),
-            )
-          words.forEach((word) => fieldsSet.add(word.charAt(0).toUpperCase() + word.slice(1)))
-        }
-      })
-
-      return Array.from(fieldsSet).sort()
-    },
-  })
+      setAvailableFields(fields)
+    } catch (error) {
+      console.error("Error fetching fields:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredFields = availableFields.filter((field) => field.toLowerCase().includes(searchTerm.toLowerCase()))
 
   const handleFieldToggle = (field: string) => {
-    if (selectedFields.includes(field)) {
-      onFieldsChange(selectedFields.filter((f) => f !== field))
-    } else {
-      onFieldsChange([...selectedFields, field])
-    }
-  }
+    const updatedFields = selectedFields.includes(field)
+      ? selectedFields.filter((f) => f !== field)
+      : [...selectedFields, field]
 
-  const handleAddCustomField = () => {
-    if (customField.trim() && !selectedFields.includes(customField.trim())) {
-      onFieldsChange([...selectedFields, customField.trim()])
-      setCustomField("")
-    }
+    updateData({ fields: updatedFields })
   }
 
   const handleRemoveField = (field: string) => {
-    onFieldsChange(selectedFields.filter((f) => f !== field))
+    const updatedFields = selectedFields.filter((f) => f !== field)
+    updateData({ fields: updatedFields })
+  }
+
+  const handleAddCustomField = () => {
+    if (searchTerm.trim() && !selectedFields.includes(searchTerm.trim())) {
+      const updatedFields = [...selectedFields, searchTerm.trim()]
+      updateData({ fields: updatedFields })
+      setSearchTerm("")
+    }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-6"
-    >
-      <Card className="border-0 shadow-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
-            <BookOpen className="w-8 h-8 text-white" />
-          </div>
-          <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Select Your Fields of Interest
-          </CardTitle>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Choose the academic fields you're interested in studying
-          </p>
-        </CardHeader>
+    <div className="space-y-6 sm:space-y-8">
+      <div className="text-center px-4">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center"
+        >
+          <Target className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+        </motion.div>
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+          What field interests you?
+        </h2>
+        <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+          Select one or more fields of study that match your interests and career goals
+        </p>
+      </div>
 
-        <CardContent className="space-y-6">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search fields..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-2 focus:border-blue-500 transition-colors"
-            />
-          </div>
-
-          {/* Selected Fields */}
-          {selectedFields.length > 0 && (
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-muted-foreground">Selected Fields:</Label>
-              <div className="flex flex-wrap gap-2">
-                {selectedFields.map((field) => (
-                  <Badge
-                    key={field}
-                    variant="default"
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-3 py-1 cursor-pointer group"
-                    onClick={() => handleRemoveField(field)}
-                  >
-                    {field}
-                    <X className="w-3 h-3 ml-2 group-hover:text-red-200 transition-colors" />
-                  </Badge>
-                ))}
-              </div>
-            </div>
+      {/* Search Input */}
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Input
+            type="text"
+            placeholder="Search for fields of study..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-4 py-3 text-lg border-2 border-slate-200 dark:border-slate-700 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          />
+          {searchTerm && !availableFields.some((field) => field.toLowerCase() === searchTerm.toLowerCase()) && (
+            <Button
+              onClick={handleAddCustomField}
+              size="sm"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add
+            </Button>
           )}
+        </div>
+      </div>
 
-          {/* Available Fields */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium text-muted-foreground">Available Fields:</Label>
-            {isLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
-                {filteredFields.map((field) => (
-                  <Button
-                    key={field}
-                    variant={selectedFields.includes(field) ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleFieldToggle(field)}
-                    className={`text-xs sm:text-sm justify-start transition-all duration-200 ${
-                      selectedFields.includes(field)
-                        ? "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0"
-                        : "hover:border-blue-500 hover:text-blue-600"
-                    }`}
-                  >
-                    {field}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Add Custom Field */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium text-muted-foreground">Add Custom Field:</Label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter custom field..."
-                value={customField}
-                onChange={(e) => setCustomField(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAddCustomField()}
-                className="flex-1 border-2 focus:border-blue-500 transition-colors"
-              />
-              <Button
-                onClick={handleAddCustomField}
-                disabled={!customField.trim()}
-                size="sm"
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0"
+      {/* Selected Fields */}
+      {selectedFields.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto px-4">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-3">
+            Selected Fields ({selectedFields.length})
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {selectedFields.map((field) => (
+              <Badge
+                key={field}
+                variant="default"
+                className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-3 py-2 text-sm flex items-center space-x-2 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800"
+                onClick={() => handleRemoveField(field)}
               >
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
+                <span>{field}</span>
+                <X className="w-3 h-3" />
+              </Badge>
+            ))}
           </div>
+        </motion.div>
+      )}
 
-          {/* Navigation Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            <Button
-              onClick={onBack}
-              variant="outline"
-              className="flex-1 border-2 hover:border-gray-400 transition-colors bg-transparent"
-            >
-              Back
-            </Button>
-            <Button
-              onClick={onNext}
-              disabled={selectedFields.length === 0}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg hover:shadow-xl transition-all"
-            >
-              Continue ({selectedFields.length} selected)
-            </Button>
+      {/* Available Fields */}
+      <div className="max-w-6xl mx-auto px-4">
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+            <p className="text-slate-600 dark:text-slate-400 mt-2">Loading fields...</p>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filteredFields.slice(0, 50).map((field, index) => (
+              <motion.div
+                key={field}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.02 }}
+              >
+                <Card
+                  className={`cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+                    selectedFields.includes(field)
+                      ? "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                      : "hover:shadow-md border-slate-200 dark:border-slate-700"
+                  }`}
+                  onClick={() => handleFieldToggle(field)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`p-2 rounded-lg ${
+                          selectedFields.includes(field)
+                            ? "bg-blue-500 text-white"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        }`}
+                      >
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-slate-800 dark:text-slate-200 truncate">{field}</h3>
+                      </div>
+                      {selectedFields.includes(field) && (
+                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                          <div className="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {!loading && filteredFields.length === 0 && (
+          <div className="text-center py-8">
+            <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <p className="text-slate-600 dark:text-slate-400">
+              No fields found matching "{searchTerm}". Try a different search term or add it as a custom field.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {selectedFields.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl sm:rounded-2xl border border-blue-200 dark:border-blue-800 max-w-2xl mx-auto"
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 text-blue-700 dark:text-blue-300">
+            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+            <span className="font-semibold text-base sm:text-lg text-center">
+              Excellent! We'll find programs in {selectedFields.length === 1 ? "this field" : "these fields"} for you.
+            </span>
+          </div>
+        </motion.div>
+      )}
+    </div>
   )
 }
+
 
 
