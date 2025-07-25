@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { BookOpen, MapPin, Globe, Users, Sparkles, Target, ArrowRight } from "lucide-react"
 
 interface ConsultationTypeStepProps {
-  data: any
+  data: {
+    consultationType?: "programs" | "destinations"
+  }
   updateData: (data: any) => void
   onValidation: (isValid: boolean) => void
 }
@@ -53,13 +55,13 @@ const CONSULTATION_TYPES = [
 ]
 
 export function ConsultationTypeStep({ data, updateData, onValidation }: ConsultationTypeStepProps) {
-  const selectedType = data.consultationType
+  const selectedType = data?.consultationType
 
   useEffect(() => {
     onValidation(!!selectedType)
   }, [selectedType, onValidation])
 
-  const handleTypeSelect = (type: string) => {
+  const handleTypeSelect = (type: "programs" | "destinations") => {
     updateData({ consultationType: type })
   }
 
@@ -96,7 +98,7 @@ export function ConsultationTypeStep({ data, updateData, onValidation }: Consult
                   ? `ring-2 sm:ring-4 ring-offset-2 sm:ring-offset-4 ring-blue-400 ${type.bgColor} ${type.borderColor} shadow-xl sm:shadow-2xl scale-105`
                   : "hover:shadow-xl border-slate-200 dark:border-slate-700"
               }`}
-              onClick={() => handleTypeSelect(type.id)}
+              onClick={() => handleTypeSelect(type.id as "programs" | "destinations")}
             >
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 <div className="space-y-4 sm:space-y-6">
@@ -189,4 +191,5 @@ export function ConsultationTypeStep({ data, updateData, onValidation }: Consult
     </div>
   )
 }
+
 
