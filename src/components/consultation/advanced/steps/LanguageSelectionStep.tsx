@@ -1,241 +1,236 @@
+"use client"
 
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { 
-  Globe,
-  BookOpen,
-  Award,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react';
+import { useEffect } from "react"
+import { motion } from "framer-motion"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Globe, Target, Users, BookOpen } from "lucide-react"
 
-interface LanguageSelectionProps {
-  data: any;
-  updateData: (data: any) => void;
-  onValidation: (isValid: boolean) => void;
+interface LanguageSelectionStepProps {
+  data: {
+    language?: string
+  }
+  updateData: (data: any) => void
+  onValidation: (isValid: boolean) => void
 }
 
 const LANGUAGES = [
-  { id: 'English', name: 'English', flag: '🇬🇧', popularity: 'Most Popular' },
-  { id: 'French', name: 'French', flag: '🇫🇷', popularity: 'Popular' },
-  { id: 'Spanish', name: 'Spanish', flag: '🇪🇸', popularity: 'Popular' },
-  { id: 'German', name: 'German', flag: '🇩🇪', popularity: 'Popular' },
-  { id: 'Italian', name: 'Italian', flag: '🇮🇹', popularity: 'Common' },
-  { id: 'Portuguese', name: 'Portuguese', flag: '🇵🇹', popularity: 'Common' },
-  { id: 'Dutch', name: 'Dutch', flag: '🇳🇱', popularity: 'Common' },
-  { id: 'Polish', name: 'Polish', flag: '🇵🇱', popularity: 'Available' }
-];
+  {
+    id: "English",
+    name: "English",
+    nativeName: "English",
+    flag: "🇺🇸",
+    popularity: "Most Popular",
+    countries: ["USA", "UK", "Canada", "Australia", "Ireland"],
+    programs: "2000+",
+    color: "from-blue-500 to-indigo-500",
+    bgColor: "bg-blue-50 dark:bg-blue-900/20",
+    borderColor: "border-blue-200 dark:border-blue-800",
+  },
+  {
+    id: "French",
+    name: "French",
+    nativeName: "Français",
+    flag: "🇫🇷",
+    popularity: "Very Popular",
+    countries: ["France", "Belgium", "Switzerland", "Canada"],
+    programs: "800+",
+    color: "from-red-500 to-pink-500",
+    bgColor: "bg-red-50 dark:bg-red-900/20",
+    borderColor: "border-red-200 dark:border-red-800",
+  },
+  {
+    id: "German",
+    name: "German",
+    nativeName: "Deutsch",
+    flag: "🇩🇪",
+    popularity: "Popular",
+    countries: ["Germany", "Austria", "Switzerland"],
+    programs: "600+",
+    color: "from-yellow-500 to-orange-500",
+    bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+    borderColor: "border-yellow-200 dark:border-yellow-800",
+  },
+  {
+    id: "Spanish",
+    name: "Spanish",
+    nativeName: "Español",
+    flag: "🇪🇸",
+    popularity: "Popular",
+    countries: ["Spain", "Mexico", "Argentina", "Chile"],
+    programs: "400+",
+    color: "from-orange-500 to-red-500",
+    bgColor: "bg-orange-50 dark:bg-orange-900/20",
+    borderColor: "border-orange-200 dark:border-orange-800",
+  },
+  {
+    id: "Italian",
+    name: "Italian",
+    nativeName: "Italiano",
+    flag: "🇮🇹",
+    popularity: "Growing",
+    countries: ["Italy", "Switzerland"],
+    programs: "300+",
+    color: "from-green-500 to-emerald-500",
+    bgColor: "bg-green-50 dark:bg-green-900/20",
+    borderColor: "border-green-200 dark:border-green-800",
+  },
+  {
+    id: "Dutch",
+    name: "Dutch",
+    nativeName: "Nederlands",
+    flag: "🇳🇱",
+    popularity: "Growing",
+    countries: ["Netherlands", "Belgium"],
+    programs: "250+",
+    color: "from-indigo-500 to-purple-500",
+    bgColor: "bg-indigo-50 dark:bg-indigo-900/20",
+    borderColor: "border-indigo-200 dark:border-indigo-800",
+  },
+]
 
-const LANGUAGE_TESTS = {
-  English: ['IELTS', 'TOEFL', 'Cambridge', 'PTE'],
-  French: ['DELF', 'DALF', 'TCF', 'TEF'],
-  Spanish: ['DELE', 'SIELE'],
-  German: ['TestDaF', 'DSH', 'Goethe'],
-  Italian: ['CILS', 'CELI'],
-  Portuguese: ['CELPE-Bras'],
-  Dutch: ['NT2'],
-  Polish: ['Polish Certificate']
-};
-
-export function LanguageSelectionStep({ data, updateData, onValidation }: LanguageSelectionProps) {
-  const { language, languageTestRequired, languageTestScore } = data;
+export function LanguageSelectionStep({ data, updateData, onValidation }: LanguageSelectionStepProps) {
+  const selectedLanguage = data?.language
 
   useEffect(() => {
-    onValidation(!!language);
-  }, [language, onValidation]);
+    onValidation(!!selectedLanguage)
+  }, [selectedLanguage, onValidation])
 
-  const handleLanguageSelect = (selectedLanguage: string) => {
-    updateData({ 
-      language: selectedLanguage,
-      languageTestRequired: false,
-      languageTestScore: ''
-    });
-  };
-
-  const handleTestRequiredChange = (required: boolean) => {
-    updateData({ 
-      languageTestRequired: required,
-      languageTestScore: required ? languageTestScore : ''
-    });
-  };
-
-  const handleTestScoreChange = (score: string) => {
-    updateData({ languageTestScore: score });
-  };
+  const handleLanguageSelect = (language: string) => {
+    updateData({ language })
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold mb-2">Language Preferences</h2>
-        <p className="text-muted-foreground text-lg">
-          Choose your preferred language of instruction
+    <div className="space-y-6 sm:space-y-8">
+      <div className="text-center px-4">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center"
+        >
+          <Target className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+        </motion.div>
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
+          What's your preferred language?
+        </h2>
+        <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+          Choose the language you'd like to study in. This will help us find programs that match your language skills.
         </p>
       </div>
 
-      {/* Language Selection */}
-      <div className="grid md:grid-cols-4 gap-4">
-        {LANGUAGES.map((lang, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto px-4">
+        {LANGUAGES.map((language, index) => (
           <motion.div
-            key={lang.id}
+            key={language.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
+            transition={{ delay: index * 0.1 }}
+            className="w-full"
           >
-            <Card 
-              className={`cursor-pointer transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
-                language === lang.id 
-                  ? 'ring-2 ring-offset-2 ring-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' 
-                  : 'hover:shadow-md'
+            <Card
+              className={`cursor-pointer transition-all duration-500 hover:shadow-2xl transform hover:-translate-y-1 sm:hover:-translate-y-2 h-full ${
+                selectedLanguage === language.id
+                  ? `ring-2 sm:ring-4 ring-offset-2 sm:ring-offset-4 ring-blue-400 ${language.bgColor} ${language.borderColor} shadow-xl sm:shadow-2xl scale-105`
+                  : "hover:shadow-xl border-slate-200 dark:border-slate-700"
               }`}
-              onClick={() => handleLanguageSelect(lang.id)}
+              onClick={() => handleLanguageSelect(language.id)}
             >
-              <CardContent className="p-4">
-                <div className="text-center space-y-3">
-                  <div className="text-3xl">{lang.flag}</div>
-                  <div>
-                    <h3 className="font-semibold">{lang.name}</h3>
-                    <Badge 
-                      variant={lang.popularity === 'Most Popular' ? 'default' : 'outline'}
-                      className="text-xs"
-                    >
-                      {lang.popularity}
+              <CardContent className="p-4 sm:p-6 h-full flex flex-col">
+                <div className="space-y-4 flex-1">
+                  {/* Header */}
+                  <div className="text-center">
+                    <div className="text-4xl sm:text-5xl mb-3">{language.flag}</div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 mb-1">
+                      {language.name}
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{language.nativeName}</p>
+                    <Badge variant="outline" className={`bg-gradient-to-r ${language.color} text-white border-0`}>
+                      {language.popularity}
                     </Badge>
                   </div>
 
-                  {language === lang.id && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="flex justify-center"
-                    >
-                      <CheckCircle className="w-5 h-5 text-indigo-500" />
-                    </motion.div>
-                  )}
+                  {/* Stats */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
+                        <BookOpen className="w-4 h-4" />
+                        <span>Programs</span>
+                      </div>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">{language.programs}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center space-x-2 text-slate-600 dark:text-slate-400">
+                        <Globe className="w-4 h-4" />
+                        <span>Countries</span>
+                      </div>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">
+                        {language.countries.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Countries */}
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm flex items-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      Available in:
+                    </h4>
+                    <div className="flex flex-wrap gap-1">
+                      {language.countries.slice(0, 3).map((country) => (
+                        <Badge
+                          key={country}
+                          variant="secondary"
+                          className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        >
+                          {country}
+                        </Badge>
+                      ))}
+                      {language.countries.length > 3 && (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                        >
+                          +{language.countries.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </div>
+
+                {/* Selection indicator */}
+                {selectedLanguage === language.id && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                  >
+                    <div className="flex items-center justify-center space-x-2 text-blue-700 dark:text-blue-300">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-sm font-medium">Selected</span>
+                    </div>
+                  </motion.div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
         ))}
       </div>
 
-      {/* Language Test Section */}
-      {language && (
+      {selectedLanguage && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
+          className="text-center p-4 sm:p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl sm:rounded-2xl border border-blue-200 dark:border-blue-800 max-w-2xl mx-auto"
         >
-          <Card className="border-2 border-dashed border-indigo-200 dark:border-indigo-800">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Award className="w-5 h-5 text-indigo-500" />
-                    <div>
-                      <Label className="text-base font-medium">Language Test Requirement</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Do you need to take a language proficiency test?
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={languageTestRequired}
-                    onCheckedChange={handleTestRequiredChange}
-                  />
-                </div>
-
-                {languageTestRequired && LANGUAGE_TESTS[language as keyof typeof LANGUAGE_TESTS] && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-3"
-                  >
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">Test Type</Label>
-                        <Select value={languageTestScore.split(':')[0] || ''} onValueChange={(test) => handleTestScoreChange(`${test}:`)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose test type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LANGUAGE_TESTS[language as keyof typeof LANGUAGE_TESTS].map(test => (
-                              <SelectItem key={test} value={test}>{test}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium mb-2 block">Score/Level</Label>
-                        <Select 
-                          value={languageTestScore.split(':')[1] || ''} 
-                          onValueChange={(score) => {
-                            const testType = languageTestScore.split(':')[0] || '';
-                            handleTestScoreChange(`${testType}:${score}`);
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your score" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {language === 'English' && (
-                              <>
-                                <SelectItem value="6.0-6.5">IELTS 6.0-6.5 / TOEFL 60-78</SelectItem>
-                                <SelectItem value="7.0-7.5">IELTS 7.0-7.5 / TOEFL 79-93</SelectItem>
-                                <SelectItem value="8.0+">IELTS 8.0+ / TOEFL 94+</SelectItem>
-                              </>
-                            )}
-                            {language === 'French' && (
-                              <>
-                                <SelectItem value="B1">B1 (Intermediate)</SelectItem>
-                                <SelectItem value="B2">B2 (Upper Intermediate)</SelectItem>
-                                <SelectItem value="C1">C1 (Advanced)</SelectItem>
-                                <SelectItem value="C2">C2 (Proficient)</SelectItem>
-                              </>
-                            )}
-                            {language !== 'English' && language !== 'French' && (
-                              <>
-                                <SelectItem value="B1">B1 (Intermediate)</SelectItem>
-                                <SelectItem value="B2">B2 (Upper Intermediate)</SelectItem>
-                                <SelectItem value="C1">C1 (Advanced)</SelectItem>
-                                <SelectItem value="C2">C2 (Proficient)</SelectItem>
-                              </>
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {!languageTestRequired && (
-                  <div className="flex items-center space-x-2 text-green-600 text-sm">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Great! Many programs offer exemptions or alternatives.</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-              <div className="text-sm text-blue-700 dark:text-blue-300">
-                <p className="font-medium mb-1">Language Requirements Tip</p>
-                <p>
-                  Many universities offer foundation courses or alternative assessment methods. 
-                  We'll match you with programs that align with your current language level.
-                </p>
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3 text-blue-700 dark:text-blue-300">
+            <Globe className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+            <span className="font-semibold text-base sm:text-lg text-center">
+              Perfect! We'll find programs taught in {selectedLanguage} for you.
+            </span>
           </div>
         </motion.div>
       )}
     </div>
-  );
+  )
 }
+
