@@ -124,6 +124,11 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
     setIsLoading(true)
 
     try {
+      // Ensure required arrays are initialized
+      const safeFieldKeywords = data.fieldKeywords && Array.isArray(data.fieldKeywords) ? data.fieldKeywords : []
+      const safeCountryPreference =
+        data.countryPreference && Array.isArray(data.countryPreference) ? data.countryPreference : []
+
       // Enhanced filtering logic
       const filteredPrograms = programs.filter((program) => {
         // Basic filters
@@ -151,18 +156,24 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
           fieldMatch = programField.includes(userField) || userField.includes(programField)
 
           // Keyword matching if available
-          if (!fieldMatch && program.field_keywords && program.field_keywords.length > 0) {
+          if (
+            !fieldMatch &&
+            program.field_keywords &&
+            Array.isArray(program.field_keywords) &&
+            program.field_keywords.length > 0
+          ) {
             fieldMatch = program.field_keywords.some(
               (keyword) => keyword.toLowerCase().includes(userField) || userField.includes(keyword.toLowerCase()),
             )
           }
 
           // Additional field keywords from consultation data
-          if (!fieldMatch && data.fieldKeywords && data.fieldKeywords.length > 0) {
-            fieldMatch = data.fieldKeywords.some(
+          if (!fieldMatch && safeFieldKeywords.length > 0) {
+            fieldMatch = safeFieldKeywords.some(
               (keyword) =>
                 programField.includes(keyword.toLowerCase()) ||
                 (program.field_keywords &&
+                  Array.isArray(program.field_keywords) &&
                   program.field_keywords.some((pk) => pk.toLowerCase().includes(keyword.toLowerCase()))),
             )
           }
@@ -170,9 +181,8 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
 
         // Country preference
         const countryMatch =
-          !data.countryPreference ||
-          data.countryPreference.length === 0 ||
-          data.countryPreference.some((country) => program.country?.toLowerCase().includes(country.toLowerCase()))
+          safeCountryPreference.length === 0 ||
+          safeCountryPreference.some((country) => program.country?.toLowerCase().includes(country.toLowerCase()))
 
         // Special requirements
         const scholarshipMatch = !data.scholarshipRequired || program.scholarship_available
@@ -184,10 +194,10 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
       const scoredPrograms = filteredPrograms.map((program) => {
         const matchScore = calculateMatchScore(program, {
           level: data.level,
-          subjects: data.fieldKeywords.length > 0 ? data.fieldKeywords : [data.field],
+          subjects: safeFieldKeywords.length > 0 ? safeFieldKeywords : [data.field].filter(Boolean),
           budget: data.totalBudget,
           language: data.language,
-          destination: data.countryPreference.join(", "),
+          destination: safeCountryPreference.join(", "),
           religiousFacilities: data.religiousFacilities,
           halalFood: data.halalFood,
           scholarshipRequired: data.scholarshipRequired,
@@ -808,5 +818,6 @@ function DestinationResultCard({
     </Card>
   )
 }
+
 
 
