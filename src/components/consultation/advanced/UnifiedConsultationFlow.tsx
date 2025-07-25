@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { CheckCircle } from "lucide-react"
+import { CheckCircle, ArrowLeft, ArrowRight } from "lucide-react"
 
 // Import steps
 import { ConsultationTypeStep } from "./steps/ConsultationTypeStep"
@@ -18,7 +18,7 @@ import { PreferencesStep } from "./steps/PreferencesStep"
 import { UnifiedResultsStep } from "./steps/UnifiedResultsStep"
 
 export interface ConsultationData {
-  type: "programs" | "destinations"
+  consultationType: "programs" | "destinations"
   level: string
   fields: string[]
   language: string
@@ -33,7 +33,7 @@ export interface ConsultationData {
 }
 
 const INITIAL_DATA: ConsultationData = {
-  type: "programs",
+  consultationType: "programs",
   level: "",
   fields: [],
   language: "",
@@ -49,6 +49,7 @@ export const UnifiedConsultationFlow: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0)
   const [consultationData, setConsultationData] = useState<ConsultationData>(INITIAL_DATA)
   const [isComplete, setIsComplete] = useState(false)
+  const [stepValidation, setStepValidation] = useState<boolean>(false)
 
   // Define steps based on consultation type
   const getSteps = useCallback(() => {
@@ -58,7 +59,7 @@ export const UnifiedConsultationFlow: React.FC = () => {
     ]
 
     // Add field selection only for programs
-    if (consultationData.type === "programs") {
+    if (consultationData.consultationType === "programs") {
       baseSteps.push({ id: "field", title: "Field of Study", component: FieldSelectionStep })
     }
 
@@ -70,7 +71,7 @@ export const UnifiedConsultationFlow: React.FC = () => {
     )
 
     return baseSteps
-  }, [consultationData.type])
+  }, [consultationData.consultationType])
 
   const steps = getSteps()
   const totalSteps = steps.length
@@ -81,9 +82,10 @@ export const UnifiedConsultationFlow: React.FC = () => {
   }
 
   const handleNext = () => {
-    if (currentStep < totalSteps - 1) {
+    if (stepValidation && currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1)
-    } else {
+      setStepValidation(false)
+    } else if (currentStep === totalSteps - 1) {
       setIsComplete(true)
     }
   }
@@ -91,6 +93,7 @@ export const UnifiedConsultationFlow: React.FC = () => {
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1)
+      setStepValidation(true) // Assume previous step was valid
     }
   }
 
@@ -98,94 +101,42 @@ export const UnifiedConsultationFlow: React.FC = () => {
     setCurrentStep(0)
     setConsultationData(INITIAL_DATA)
     setIsComplete(false)
-  }
-
-  // Handle consultation type change - reset to step 1 if type changes
-  const handleTypeChange = (type: "programs" | "destinations") => {
-    if (type !== consultationData.type) {
-      setConsultationData({ ...INITIAL_DATA, type })
-      setCurrentStep(1) // Move to level selection
-    }
+    setStepValidation(false)
   }
 
   const renderCurrentStep = () => {
     const CurrentStepComponent = steps[currentStep].component
-    const stepProps = {
-      consultationData,
-      onUpdate: updateConsultationData,
-      onNext: handleNext,
-      onBack: handleBack,
-      onReset: handleReset,
+
+    const commonProps = {
+      data: consultationData,
+      updateData: updateConsultationData,
+      onValidation: setStepValidation,
     }
 
     switch (steps[currentStep].id) {
       case "type":
-        return (
-          <CurrentStepComponent
-            selectedType={consultationData.type}
-            onTypeChange={handleTypeChange}
-            onNext={handleNext}
-            {...stepProps}
-          />
-        )
+        return <CurrentStepComponent {...commonProps} />
       case "level":
-        return (
-          <CurrentStepComponent
-            selectedLevel={consultationData.level}
-            onLevelChange={(level: string) => updateConsultationData({ level })}
-            onNext={handleNext}
-            onBack={handleBack}
-            consultationType={consultationData.type}
-            {...stepProps}
-          />
-        )
+        return <CurrentStepComponent {...commonProps} consultationType={consultationData.consultationType} />
       case "field":
-        return (
-          <CurrentStepComponent
-            selectedFields={consultationData.fields}
-            onFieldsChange={(fields: string[]) => updateConsultationData({ fields })}
-            onNext={handleNext}
-            onBack={handleBack}
-            {...stepProps}
-          />
-        )
+        return <CurrentStepComponent {...commonProps} />
       case "language":
-        return (
-          <CurrentStepComponent
-            selectedLanguage={consultationData.language}
-            onLanguageChange={(language: string) => updateConsultationData({ language })}
-            onNext={handleNext}
-            onBack={handleBack}
-            {...stepProps}
-          />
-        )
+        return <CurrentStepComponent {...commonProps} />
       case "budget":
         return (
           <CurrentStepComponent
-            selectedBudget={consultationData.budget}
-            onBudgetChange={(budget: number) => updateConsultationData({ budget })}
-            onNext={handleNext}
-            onBack={handleBack}
-            consultationType={consultationData.type}
+            {...commonProps}
+            consultationType={consultationData.consultationType}
             level={consultationData.level}
-            {...stepProps}
           />
         )
       case "preferences":
-        return (
-          <CurrentStepComponent
-            specialRequirements={consultationData.specialRequirements}
-            onRequirementsChange={(specialRequirements: any) => updateConsultationData({ specialRequirements })}
-            onNext={handleNext}
-            onBack={handleBack}
-            {...stepProps}
-          />
-        )
+        return <CurrentStepComponent {...commonProps} />
       case "results":
         return (
           <CurrentStepComponent
             preferences={{
-              type: consultationData.type,
+              type: consultationData.consultationType,
               level: consultationData.level,
               field: consultationData.fields[0], // Use first field for compatibility
               subjects: consultationData.fields,
@@ -194,7 +145,6 @@ export const UnifiedConsultationFlow: React.FC = () => {
               specialRequirements: consultationData.specialRequirements,
             }}
             onReset={handleReset}
-            {...stepProps}
           />
         )
       default:
@@ -207,9 +157,9 @@ export const UnifiedConsultationFlow: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="text-center space-y-6"
+        className="text-center space-y-6 max-w-2xl mx-auto p-8"
       >
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+        <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
           <CheckCircle className="w-10 h-10 text-green-600" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Consultation Complete!</h2>
@@ -227,7 +177,7 @@ export const UnifiedConsultationFlow: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 p-4">
       {/* Progress Header */}
       <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
         <CardContent className="p-6">
@@ -249,16 +199,16 @@ export const UnifiedConsultationFlow: React.FC = () => {
           </div>
 
           {/* Step Indicators */}
-          <div className="flex justify-between mt-4">
+          <div className="flex justify-between mt-4 overflow-x-auto">
             {steps.map((step, index) => (
               <div
                 key={step.id}
-                className={`flex items-center space-x-2 ${
+                className={`flex items-center space-x-2 min-w-0 ${
                   index <= currentStep ? "text-blue-600" : "text-muted-foreground"
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 ${
                     index < currentStep
                       ? "bg-blue-600 text-white"
                       : index === currentStep
@@ -268,7 +218,7 @@ export const UnifiedConsultationFlow: React.FC = () => {
                 >
                   {index < currentStep ? "✓" : index + 1}
                 </div>
-                <span className="hidden sm:block text-xs font-medium">{step.title}</span>
+                <span className="hidden sm:block text-xs font-medium truncate">{step.title}</span>
               </div>
             ))}
           </div>
@@ -284,11 +234,38 @@ export const UnifiedConsultationFlow: React.FC = () => {
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          {renderCurrentStep()}
+          <Card className="shadow-lg">
+            <CardContent className="p-6">{renderCurrentStep()}</CardContent>
+          </Card>
         </motion.div>
       </AnimatePresence>
+
+      {/* Navigation Buttons */}
+      {currentStep < totalSteps - 1 && (
+        <div className="flex justify-between items-center">
+          <Button
+            variant="outline"
+            onClick={handleBack}
+            disabled={currentStep === 0}
+            className="flex items-center space-x-2 bg-transparent"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </Button>
+
+          <Button
+            onClick={handleNext}
+            disabled={!stepValidation}
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white flex items-center space-x-2"
+          >
+            <span>Next</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
+
 
 
