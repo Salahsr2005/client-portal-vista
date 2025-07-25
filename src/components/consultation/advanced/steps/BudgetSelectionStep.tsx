@@ -1,147 +1,183 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Euro, Target, Calculator, TrendingUp, Info } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DollarSign, PiggyBank, Home, CreditCard, Plane, Calculator } from "lucide-react"
+import { supabase } from "@/integrations/supabase/client"
 
 interface BudgetSelectionStepProps {
-  data: {
-    budget?: number
-  }
+  data: any
   updateData: (data: any) => void
   onValidation: (isValid: boolean) => void
-  consultationType?: "programs" | "destinations"
-  level?: string
 }
 
-const BUDGET_RANGES = [
-  {
-    id: "low",
-    label: "Budget-Friendly",
-    range: "€5,000 - €15,000",
-    min: 5000,
-    max: 15000,
-    description: "Affordable options with good value",
-    icon: "💰",
-    color: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-50 dark:bg-green-900/20",
-    borderColor: "border-green-200 dark:border-green-800",
-  },
-  {
-    id: "medium",
-    label: "Mid-Range",
-    range: "€15,000 - €30,000",
-    min: 15000,
-    max: 30000,
-    description: "Balanced cost and quality programs",
-    icon: "🎯",
-    color: "from-blue-500 to-indigo-500",
-    bgColor: "bg-blue-50 dark:bg-blue-900/20",
-    borderColor: "border-blue-200 dark:border-blue-800",
-  },
-  {
-    id: "high",
-    label: "Premium",
-    range: "€30,000 - €50,000",
-    min: 30000,
-    max: 50000,
-    description: "High-quality programs and services",
-    icon: "⭐",
-    color: "from-purple-500 to-pink-500",
-    bgColor: "bg-purple-50 dark:bg-purple-900/20",
-    borderColor: "border-purple-200 dark:border-purple-800",
-  },
-  {
-    id: "luxury",
-    label: "Luxury",
-    range: "€50,000+",
-    min: 50000,
-    max: 100000,
-    description: "Premium institutions and experiences",
-    icon: "💎",
-    color: "from-yellow-500 to-orange-500",
-    bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
-    borderColor: "border-yellow-200 dark:border-yellow-800",
-  },
-]
+interface BudgetRanges {
+  tuitionMin: number
+  tuitionMax: number
+  serviceFeeMin: number
+  serviceFeeMax: number
+  applicationFeeMin: number
+  applicationFeeMax: number
+  visaFeeMin: number
+  visaFeeMax: number
+  livingCostMin: number
+  livingCostMax: number
+}
 
-export function BudgetSelectionStep({
-  data,
-  updateData,
-  onValidation,
-  consultationType,
-  level,
-}: BudgetSelectionStepProps) {
-  const [customBudget, setCustomBudget] = useState(data?.budget || 20000)
-  const [selectedRange, setSelectedRange] = useState<string>("")
-  const selectedBudget = data?.budget || 0
+export function BudgetSelectionStep({ data, updateData, onValidation }: BudgetSelectionStepProps) {
+  const [budgetRanges, setBudgetRanges] = useState<BudgetRanges>({
+    tuitionMin: 0,
+    tuitionMax: 50000,
+    serviceFeeMin: 0,
+    serviceFeeMax: 5000,
+    applicationFeeMin: 0,
+    applicationFeeMax: 500,
+    visaFeeMin: 0,
+    visaFeeMax: 1000,
+    livingCostMin: 0,
+    livingCostMax: 2000,
+  })
+  const [loading, setLoading] = useState(true)
+
+  const tuitionBudget = data.tuitionBudget || 0
+  const serviceFeesBudget = data.serviceFeesBudget || 0
+  const livingCostsBudget = data.livingCostsBudget || 0
+  const totalBudget = tuitionBudget + serviceFeesBudget + livingCostsBudget
 
   useEffect(() => {
-    onValidation(selectedBudget > 0)
-  }, [selectedBudget, onValidation])
+    fetchBudgetRanges()
+  }, [data.consultationType, data.level])
 
   useEffect(() => {
-    // Find which range the current budget falls into
-    const range = BUDGET_RANGES.find((r) => selectedBudget >= r.min && (selectedBudget <= r.max || r.id === "luxury"))
-    setSelectedRange(range?.id || "")
-  }, [selectedBudget])
+    const total = tuitionBudget + serviceFeesBudget + livingCostsBudget
+    updateData({ totalBudget: total })
+    onValidation(total > 0)
+  }, [tuitionBudget, serviceFeesBudget, livingCostsBudget, updateData, onValidation])
 
-  const handleRangeSelect = (range: (typeof BUDGET_RANGES)[0]) => {
-    const midpoint = range.id === "luxury" ? 60000 : (range.min + range.max) / 2
-    setCustomBudget(midpoint)
-    updateData({ budget: midpoint })
-  }
+  const fetchBudgetRanges = async () => {
+    try {
+      setLoading(true)
 
-  const handleCustomBudgetChange = (value: number[]) => {
-    const budget = value[0]
-    setCustomBudget(budget)
-    updateData({ budget })
-  }
+      if (data.consultationType === "programs") {
+        // Fetch from programs table
+        const { data: programs, error } = await supabase
+          .from("programs")
+          .select("tuition_min, tuition_max, living_cost_min, living_cost_max")
+          .not("tuition_min", "is", null)
+          .not("tuition_max", "is", null)
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number.parseInt(e.target.value) || 0
-    setCustomBudget(value)
-    updateData({ budget: value })
-  }
+        if (!error && programs) {
+          const tuitionValues = programs.flatMap((p) => [p.tuition_min, p.tuition_max]).filter(Boolean)
+          const livingValues = programs.flatMap((p) => [p.living_cost_min, p.living_cost_max]).filter(Boolean)
 
-  const getBudgetBreakdown = () => {
-    if (consultationType === "destinations") {
-      // For destinations, budget calculation is different
-      const serviceFee = 2000
-      const applicationFee = 500
-      const visaFee = 300
-      const maxTuition = selectedBudget - serviceFee - applicationFee - visaFee
+          setBudgetRanges({
+            tuitionMin: Math.min(...tuitionValues) || 0,
+            tuitionMax: Math.max(...tuitionValues) || 50000,
+            serviceFeeMin: 0,
+            serviceFeeMax: 2000,
+            applicationFeeMin: 0,
+            applicationFeeMax: 300,
+            visaFeeMin: 0,
+            visaFeeMax: 500,
+            livingCostMin: Math.min(...livingValues) || 0,
+            livingCostMax: Math.max(...livingValues) || 2000,
+          })
+        }
+      } else if (data.consultationType === "destinations") {
+        // Fetch from destinations table with level-specific tuition
+        const levelPrefix = data.level?.toLowerCase() || "bachelor"
+        const { data: destinations, error } = await supabase
+          .from("destinations")
+          .select(`
+            ${levelPrefix}_tuition_min,
+            ${levelPrefix}_tuition_max,
+            service_fee,
+            application_fee,
+            visa_processing_fee
+          `)
+          .not(`${levelPrefix}_tuition_min`, "is", null)
 
-      return {
-        maxTuition: Math.max(0, maxTuition / 2), // Half of max tuition as specified
-        serviceFee,
-        applicationFee,
-        visaFee,
-        total: selectedBudget,
+        if (!error && destinations) {
+          const tuitionMinKey = `${levelPrefix}_tuition_min`
+          const tuitionMaxKey = `${levelPrefix}_tuition_max`
+
+          const tuitionValues = destinations.flatMap((d) => [d[tuitionMinKey], d[tuitionMaxKey]]).filter(Boolean)
+          const serviceFees = destinations.map((d) => d.service_fee).filter(Boolean)
+          const applicationFees = destinations.map((d) => d.application_fee).filter(Boolean)
+          const visaFees = destinations.map((d) => d.visa_processing_fee).filter(Boolean)
+
+          // Calculate budget intervals as 1/2 of max_tuition + fees
+          const maxTuition = Math.max(...tuitionValues) || 50000
+          const budgetInterval = maxTuition / 2
+
+          setBudgetRanges({
+            tuitionMin: Math.min(...tuitionValues) || 0,
+            tuitionMax: Math.max(...tuitionValues) || 50000,
+            serviceFeeMin: Math.min(...serviceFees) || 0,
+            serviceFeeMax: Math.max(...serviceFees) || 5000,
+            applicationFeeMin: Math.min(...applicationFees) || 0,
+            applicationFeeMax: Math.max(...applicationFees) || 500,
+            visaFeeMin: Math.min(...visaFees) || 0,
+            visaFeeMax: Math.max(...visaFees) || 1000,
+            livingCostMin: 500,
+            livingCostMax: 3000,
+          })
+        }
       }
-    } else {
-      // For programs
-      const tuition = selectedBudget * 0.6
-      const living = selectedBudget * 0.3
-      const other = selectedBudget * 0.1
-
-      return {
-        tuition,
-        living,
-        other,
-        total: selectedBudget,
-      }
+    } catch (error) {
+      console.error("Error fetching budget ranges:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const breakdown = getBudgetBreakdown()
+  const handleTuitionChange = (value: number[]) => {
+    updateData({ tuitionBudget: value[0] })
+  }
+
+  const handleServiceFeesChange = (value: number[]) => {
+    updateData({ serviceFeesBudget: value[0] })
+  }
+
+  const handleLivingCostsChange = (value: number[]) => {
+    updateData({ livingCostsBudget: value[0] })
+  }
+
+  const handleFlexibilityChange = (flexibility: string) => {
+    updateData({ budgetFlexibility: flexibility })
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  const getBudgetRecommendation = () => {
+    if (totalBudget < 10000) return { level: "Budget-Friendly", color: "text-green-600", bg: "bg-green-50" }
+    if (totalBudget < 25000) return { level: "Moderate", color: "text-blue-600", bg: "bg-blue-50" }
+    if (totalBudget < 50000) return { level: "Premium", color: "text-purple-600", bg: "bg-purple-50" }
+    return { level: "Luxury", color: "text-orange-600", bg: "bg-orange-50" }
+  }
+
+  const recommendation = getBudgetRecommendation()
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full mx-auto mb-4"></div>
+        <p className="text-slate-600 dark:text-slate-400">Loading budget information...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -149,203 +185,196 @@ export function BudgetSelectionStep({
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center"
+          className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center"
         >
-          <Target className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+          <DollarSign className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
         </motion.div>
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-slate-800 to-slate-600 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
-          What's your budget?
+          Plan your budget
         </h2>
         <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          {consultationType === "destinations"
-            ? "Set your total budget including tuition, fees, and living expenses for your study destination"
-            : "Set your annual budget for tuition, living expenses, and other costs"}
+          Set your budget for different categories to find options that fit your financial plan
         </p>
       </div>
 
-      {/* Budget Range Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto px-4">
-        {BUDGET_RANGES.map((range, index) => (
-          <motion.div
-            key={range.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="w-full"
-          >
-            <Card
-              className={`cursor-pointer transition-all duration-500 hover:shadow-xl transform hover:-translate-y-1 h-full ${
-                selectedRange === range.id
-                  ? `ring-2 ring-blue-400 ${range.bgColor} ${range.borderColor} shadow-lg scale-105`
-                  : "hover:shadow-md border-slate-200 dark:border-slate-700"
-              }`}
-              onClick={() => handleRangeSelect(range)}
-            >
-              <CardContent className="p-4 sm:p-6 h-full flex flex-col">
-                <div className="space-y-4 flex-1">
-                  {/* Header */}
-                  <div className="text-center">
-                    <div className="text-3xl sm:text-4xl mb-3">{range.icon}</div>
-                    <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">
-                      {range.label}
-                    </h3>
-                    <Badge variant="outline" className={`bg-gradient-to-r ${range.color} text-white border-0 text-sm`}>
-                      {range.range}
-                    </Badge>
-                  </div>
+      {/* Budget Summary */}
+      <Card className={`max-w-4xl mx-auto ${recommendation.bg} border-2 border-opacity-20`}>
+        <CardContent className="p-4 sm:p-6 lg:p-8">
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <Calculator className="w-6 h-6 text-slate-600" />
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100">
+                Total Budget Overview
+              </h3>
+            </div>
+            <div className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 text-slate-800 dark:text-slate-100">
+              {formatCurrency(totalBudget)}
+            </div>
+            <Badge className={`${recommendation.color} ${recommendation.bg} border-0 px-4 py-2 text-sm font-medium`}>
+              {recommendation.level} Range
+            </Badge>
+          </div>
 
-                  {/* Description */}
-                  <p className="text-slate-600 dark:text-slate-400 text-center text-sm leading-relaxed">
-                    {range.description}
-                  </p>
-                </div>
-
-                {/* Selection indicator */}
-                {selectedRange === range.id && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800"
-                  >
-                    <div className="flex items-center justify-center space-x-2 text-blue-700 dark:text-blue-300">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm font-medium">Selected</span>
-                    </div>
-                  </motion.div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Custom Budget Slider */}
-      <div className="max-w-2xl mx-auto px-4">
-        <Card className="shadow-lg">
-          <CardContent className="p-6">
-            <div className="space-y-6">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-2 flex items-center justify-center">
-                  <Calculator className="w-5 h-5 mr-2" />
-                  Custom Budget
-                </h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
-                  Adjust the slider or enter a specific amount
-                </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+              <PiggyBank className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+              <div className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100">
+                {formatCurrency(tuitionBudget)}
               </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">Tuition Fees</div>
+            </div>
+            <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+              <CreditCard className="w-8 h-8 mx-auto mb-2 text-green-600" />
+              <div className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100">
+                {formatCurrency(serviceFeesBudget)}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">Service & Application Fees</div>
+            </div>
+            <div className="text-center p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+              <Home className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+              <div className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100">
+                {formatCurrency(livingCostsBudget)}
+              </div>
+              <div className="text-sm text-slate-600 dark:text-slate-400">Living Costs (Annual)</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="budget-input" className="text-sm font-medium">
-                    Annual Budget (EUR)
-                  </Label>
-                  <div className="relative">
-                    <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <Input
-                      id="budget-input"
-                      type="number"
-                      value={customBudget}
-                      onChange={handleInputChange}
-                      className="pl-10 text-lg font-semibold"
-                      min="1000"
-                      max="100000"
-                      step="1000"
-                    />
-                  </div>
+      {/* Budget Sliders */}
+      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4">
+        {/* Tuition Budget */}
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-center justify-between">
+                <Label className="text-base sm:text-lg font-semibold flex items-center">
+                  <PiggyBank className="w-5 h-5 mr-2 text-blue-600" />
+                  Tuition Budget
+                </Label>
+                <Badge variant="outline" className="text-sm">
+                  {formatCurrency(tuitionBudget)}
+                </Badge>
+              </div>
+              <Slider
+                value={[tuitionBudget]}
+                onValueChange={handleTuitionChange}
+                max={budgetRanges.tuitionMax}
+                min={budgetRanges.tuitionMin}
+                step={500}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs sm:text-sm text-slate-500">
+                <span>{formatCurrency(budgetRanges.tuitionMin)}</span>
+                <span>{formatCurrency(budgetRanges.tuitionMax)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Service Fees Budget */}
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-center justify-between">
+                <Label className="text-base sm:text-lg font-semibold flex items-center">
+                  <CreditCard className="w-5 h-5 mr-2 text-green-600" />
+                  Service & Application Fees
+                </Label>
+                <Badge variant="outline" className="text-sm">
+                  {formatCurrency(serviceFeesBudget)}
+                </Badge>
+              </div>
+              <Slider
+                value={[serviceFeesBudget]}
+                onValueChange={handleServiceFeesChange}
+                max={budgetRanges.serviceFeeMax + budgetRanges.applicationFeeMax + budgetRanges.visaFeeMax}
+                min={0}
+                step={100}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs sm:text-sm text-slate-500">
+                <span>{formatCurrency(0)}</span>
+                <span>
+                  {formatCurrency(
+                    budgetRanges.serviceFeeMax + budgetRanges.applicationFeeMax + budgetRanges.visaFeeMax,
+                  )}
+                </span>
+              </div>
+              <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Plane className="w-4 h-4" />
+                  <span className="font-medium">Includes:</span>
                 </div>
-
-                <div className="space-y-4">
-                  <Slider
-                    value={[customBudget]}
-                    onValueChange={handleCustomBudgetChange}
-                    max={100000}
-                    min={1000}
-                    step={1000}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>€1,000</span>
-                    <span>€50,000</span>
-                    <span>€100,000+</span>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <span>• Service fees</span>
+                  <span>• Application fees</span>
+                  <span>• Visa processing fees</span>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Budget Breakdown */}
-      {selectedBudget > 0 && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto px-4">
-          <Card className="shadow-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 mr-2" />
-                    Budget Breakdown
-                  </h3>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    €{selectedBudget.toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {consultationType === "destinations" ? (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600 dark:text-slate-400">Max Tuition (50%)</span>
-                        <span className="font-semibold">€{breakdown.maxTuition.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600 dark:text-slate-400">Service Fee</span>
-                        <span className="font-semibold">€{breakdown.serviceFee.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600 dark:text-slate-400">Application Fee</span>
-                        <span className="font-semibold">€{breakdown.applicationFee.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600 dark:text-slate-400">Visa Fee</span>
-                        <span className="font-semibold">€{breakdown.visaFee.toLocaleString()}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600 dark:text-slate-400">Tuition (60%)</span>
-                        <span className="font-semibold">€{breakdown.tuition.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600 dark:text-slate-400">Living Expenses (30%)</span>
-                        <span className="font-semibold">€{breakdown.living.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600 dark:text-slate-400">Other Costs (10%)</span>
-                        <span className="font-semibold">€{breakdown.other.toLocaleString()}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center justify-center space-x-2 text-blue-700 dark:text-blue-300">
-                    <Info className="w-4 h-4" />
-                    <span className="text-sm">
-                      {consultationType === "destinations"
-                        ? "Budget calculated for destination consultation with fees"
-                        : "Estimated annual costs for program consultation"}
-                    </span>
-                  </div>
-                </div>
+        {/* Living Costs Budget */}
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="flex items-center justify-between">
+                <Label className="text-base sm:text-lg font-semibold flex items-center">
+                  <Home className="w-5 h-5 mr-2 text-purple-600" />
+                  Annual Living Costs
+                </Label>
+                <Badge variant="outline" className="text-sm">
+                  {formatCurrency(livingCostsBudget)}
+                </Badge>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+              <Slider
+                value={[livingCostsBudget]}
+                onValueChange={handleLivingCostsChange}
+                max={budgetRanges.livingCostMax * 12}
+                min={budgetRanges.livingCostMin * 12}
+                step={1000}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs sm:text-sm text-slate-500">
+                <span>{formatCurrency(budgetRanges.livingCostMin * 12)}</span>
+                <span>{formatCurrency(budgetRanges.livingCostMax * 12)}</span>
+              </div>
+              <div className="text-xs text-slate-500 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg">
+                <span className="font-medium">Includes accommodation, food, transportation, and personal expenses</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Budget Flexibility */}
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <div className="space-y-4">
+              <Label className="text-base sm:text-lg font-semibold">Budget Flexibility</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { id: "strict", label: "Strict", desc: "Stay within budget" },
+                  { id: "flexible", label: "Flexible", desc: "Up to 20% over" },
+                  { id: "very_flexible", label: "Very Flexible", desc: "Up to 50% over" },
+                ].map((option) => (
+                  <Button
+                    key={option.id}
+                    variant={data.budgetFlexibility === option.id ? "default" : "outline"}
+                    onClick={() => handleFlexibilityChange(option.id)}
+                    className="h-auto p-4 flex flex-col items-center space-y-2 text-center"
+                  >
+                    <span className="font-semibold text-sm sm:text-base">{option.label}</span>
+                    <span className="text-xs opacity-75">{option.desc}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
-
 

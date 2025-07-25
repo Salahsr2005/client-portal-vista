@@ -1,106 +1,170 @@
-import { useQuery } from "@tanstack/react-query"
-import { supabase } from "@/integrations/supabase/client"
-import { ProgramFilterService, type ProgramFilters } from "@/services/ProgramFilterService"
 
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from '@/contexts/AuthContext';
+import { getCountryFlagUrl } from '../services/ProgramMatchingService';
+import { ProgramFilterService } from '../services/ProgramFilterService';
+import { ProgramDataProcessor } from '../services/ProgramDataProcessor';
+
+// Define Program type
 export interface Program {
-  id: string
-  name: string
-  university: string
-  country: string
-  city: string
-  field: string
-  field_keywords?: string[]
-  study_level: string
-  program_language: string
-  secondary_language?: string
-  duration_months: number
-  tuition_min: number
-  tuition_max: number
-  living_cost_min: number
-  living_cost_max: number
-  description: string
-  admission_requirements: string
-  academic_requirements?: string
-  language_requirement: string
-  language_test?: string
-  language_test_score?: string
-  language_test_exemptions?: string
-  application_deadline?: string
-  application_fee?: number
-  visa_fee?: number
-  scholarship_available?: boolean
-  scholarship_amount?: number
-  scholarship_details?: string
-  scholarship_requirements?: string
-  scholarship_deadline?: string
-  religious_facilities?: boolean
-  halal_food_availability?: boolean
-  housing_availability?: string
-  housing_cost_min?: number
-  housing_cost_max?: number
-  north_african_community_size?: string
-  internship_opportunities?: boolean
-  exchange_opportunities?: boolean
-  employment_rate?: number
-  success_rate?: number
-  ranking?: number
-  advantages?: string
-  application_process?: string
-  gpa_requirement?: number
-  total_places?: number
-  available_places?: number
-  image_url?: string
-  video_url?: string
-  virtual_tour_url?: string
-  website_url?: string
-  status?: string
-  created_at?: string
-  updated_at?: string
+  id: string;
+  name: string;
+  university: string;
+  country: string;
+  city: string;
+  study_level: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
+  field: string;
+  field_keywords: string[];
+  duration_months: number;
+  program_language: string;
+  secondary_language: string;
+  tuition_min: number;
+  tuition_max: number;
+  living_cost_min: number;
+  living_cost_max: number;
+  description: string;
+  image_url: string;
+  status: "Active" | "Inactive" | "Full" | "Coming Soon";
+  ranking: number;
+  application_deadline: string;
+  scholarship_available: boolean;
+  location?: string; // Added for compatibility with ProgramCard component
+  duration?: string; // Added for compatibility with ProgramCard component
+  matchScore?: number; // Added for compatibility with ProgramCard component
+  isFavorite?: boolean;
+  religious_facilities?: boolean;
+  halal_food_availability?: boolean;
+  bgColorClass?: string; // Added for status-based background color
+  deadlinePassed?: boolean;
+  hasScholarship?: boolean;
+  hasReligiousFacilities?: boolean;
+  hasHalalFood?: boolean;
 }
 
-export const usePrograms = (filters?: ProgramFilters) => {
+export interface ProgramsQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  country?: string;
+  field?: string;
+  level?: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
+  language?: string;
+  maxBudget?: number;
+  withScholarship?: boolean;
+  preferences?: any; // User preferences for matching
+  calculateMatchScores?: boolean; // Whether to calculate match scores
+}
+
+export interface ProgramsData {
+  programs: Program[];
+  totalCount: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+// For compatibility with other components
+export interface ProgramFilter {
+  studyLevel?: string;
+  location?: string;
+  subjects?: string[];
+  budget?: string;
+  language?: string;
+}
+
+export const usePrograms = (params: ProgramsQueryParams = {}) => {
+  const { user } = useAuth();
+  const {
+    page = 1,
+    limit = 10,
+    preferences = null,
+    calculateMatchScores = false
+  } = params;
+  
   return useQuery({
-    queryKey: ["programs", filters],
-    queryFn: async () => {
-      if (filters && Object.keys(filters).length > 0) {
-        return await ProgramFilterService.getFilteredPrograms(filters)
-      }
-
-      const { data, error } = await supabase
-        .from("programs")
-        .select("*")
-        .eq("status", "Active")
-        .order("name", { ascending: true })
-
+    queryKey: ['programs', page, limit, params.search, params.country, params.field, params.level, params.language, params.maxBudget, params.withScholarship, preferences ? 'with-preferences' : 'no-preferences'],
+    queryFn: async (): Promise<ProgramsData> => {
+      // Build and execute query using the filter service
+      let query = ProgramFilterService.buildQuery(params);
+      query = ProgramFilterService.applyPagination(query, page, limit);
+      
+      const { data, error, count } = await query;
+      
       if (error) {
-        console.error("Error fetching programs:", error)
-        throw new Error(error.message)
+        console.error('Error fetching programs:', error);
+        throw new Error(error.message);
       }
-
-      return data as Program[]
+      
+      // Calculate total pages
+      const totalCount = count || 0;
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      // Get user favorites if logged in
+      let favorites: string[] = [];
+      if (user) {
+        favorites = await ProgramDataProcessor.getFavorites(user.id);
+      }
+      
+      // Process programs with additional information
+      const processedPrograms = (data || []).map((program) => 
+        ProgramDataProcessor.processProgram(program, favorites, preferences, calculateMatchScores)
+      );
+      
+      // Sort programs if needed
+      const sortedPrograms = ProgramDataProcessor.sortPrograms(
+        processedPrograms, 
+        calculateMatchScores, 
+        preferences
+      );
+      
+      return {
+        programs: sortedPrograms as Program[],
+        totalCount,
+        currentPage: page,
+        totalPages
+      };
     },
-  })
-}
+    staleTime: 1000 * 60 * 5 // 5 minutes
+  });
+};
 
-export const useAvailableFields = () => {
+// Hook to get a single program by ID
+export const useProgram = (id: string) => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ["available-fields"],
-    queryFn: () => ProgramFilterService.getAvailableFields(),
-  })
-}
-
-export const useAvailableCountries = () => {
-  return useQuery({
-    queryKey: ["available-countries"],
-    queryFn: () => ProgramFilterService.getAvailableCountries(),
-  })
-}
-
-export const useAvailableLanguages = () => {
-  return useQuery({
-    queryKey: ["available-languages"],
-    queryFn: () => ProgramFilterService.getAvailableLanguages(),
-  })
-}
-
-
+    queryKey: ['program', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('programs')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Check if user has favorited this program
+      let isFavorite = false;
+      if (user) {
+        const { data: favoriteData } = await supabase
+          .from('favorite_programs')
+          .select('program_id')
+          .eq('user_id', user.id)
+          .eq('program_id', id)
+          .single();
+        
+        isFavorite = !!favoriteData;
+      }
+      
+      // Process single program using the data processor
+      const favorites = isFavorite ? [id] : [];
+      const processedProgram = ProgramDataProcessor.processProgram(data, favorites);
+      
+      return { ...processedProgram, isFavorite } as Program & { isFavorite: boolean };
+    },
+    enabled: !!id,
+    staleTime: 1000 * 60 * 5 // 5 minutes
+  });
+};
