@@ -35,16 +35,15 @@ import { useToast } from "@/hooks/use-toast"
 import { useGuestRestrictions } from "@/components/layout/GuestModeWrapper"
 
 const STEPS = [
-  { id: 1, title: "Study Level & Field", icon: Globe, description: "Choose your academic preferences" },
+  { id: 1, title: "Study Level", icon: Globe, description: "Choose your academic level" },
   { id: 2, title: "Budget Planning", icon: DollarSign, description: "Set your financial preferences" },
   { id: 3, title: "Language & Timeline", icon: FileText, description: "Language and timeline preferences" },
   { id: 4, title: "Personal Preferences", icon: Settings, description: "Additional requirements" },
   { id: 5, title: "Your Matches", icon: Trophy, description: "Perfect destinations for you" },
 ]
 
-interface ConsultationData {
+interface DestinationConsultationData {
   studyLevel: string
-  fieldOfStudy: string
   tuitionBudget: number
   livingCostsBudget: number
   serviceFeesBudget: number
@@ -61,15 +60,15 @@ interface ConsultationData {
   priorityFactors: string[]
 }
 
-// Enhanced matching algorithm for destinations
-const calculateDestinationMatchScore = (destination: any, consultationData: ConsultationData) => {
+// Enhanced matching algorithm for destinations (removed field matching)
+const calculateDestinationMatchScore = (destination: any, consultationData: DestinationConsultationData) => {
   let totalScore = 0
   let maxPossibleScore = 0
   const reasons: string[] = []
   const warnings: string[] = []
 
-  // 1. Study Level match (20% weight)
-  const levelWeight = 20
+  // 1. Study Level match (30% weight - increased from 20%)
+  const levelWeight = 30
   maxPossibleScore += levelWeight
 
   const levelPrefix = consultationData.studyLevel?.toLowerCase() || "bachelor"
@@ -83,8 +82,8 @@ const calculateDestinationMatchScore = (destination: any, consultationData: Cons
     warnings.push(`Limited ${consultationData.studyLevel} program information`)
   }
 
-  // 2. Budget Analysis (30% weight)
-  const budgetWeight = 30
+  // 2. Budget Analysis (35% weight - increased from 30%)
+  const budgetWeight = 35
   maxPossibleScore += budgetWeight
 
   const tuitionMin = destination[tuitionMinKey] || 0
@@ -114,7 +113,7 @@ const calculateDestinationMatchScore = (destination: any, consultationData: Cons
     }
   }
 
-  // 3. Language Requirements (20% weight)
+  // 3. Language Requirements (20% weight - same as before)
   const languageWeight = 20
   maxPossibleScore += languageWeight
 
@@ -140,7 +139,7 @@ const calculateDestinationMatchScore = (destination: any, consultationData: Cons
     warnings.push("Language requirements may not match")
   }
 
-  // 4. Special Requirements (15% weight)
+  // 4. Special Requirements (15% weight - same as before)
   const specialWeight = 15
   maxPossibleScore += specialWeight
 
@@ -159,19 +158,6 @@ const calculateDestinationMatchScore = (destination: any, consultationData: Cons
   }
 
   totalScore += Math.min(specialWeight, specialScore)
-
-  // 5. Work Opportunities (15% weight)
-  const workWeight = 15
-  maxPossibleScore += workWeight
-
-  if (consultationData.workWhileStudying && destination.work_opportunities) {
-    totalScore += workWeight
-    reasons.push("Work opportunities available")
-  } else if (!consultationData.workWhileStudying) {
-    totalScore += workWeight
-  } else {
-    warnings.push("Limited work opportunities")
-  }
 
   // Calculate final percentage score
   const finalScore = Math.min(100, Math.round((totalScore / maxPossibleScore) * 100))
@@ -197,9 +183,8 @@ export default function DestinationConsultationFlow() {
   const { isRestricted, handleRestrictedAction } = useGuestRestrictions()
 
   const [currentStep, setCurrentStep] = useState(1)
-  const [consultationData, setConsultationData] = useState<ConsultationData>({
+  const [consultationData, setConsultationData] = useState<DestinationConsultationData>({
     studyLevel: "",
-    fieldOfStudy: "",
     tuitionBudget: 0,
     livingCostsBudget: 0,
     serviceFeesBudget: 0,
@@ -226,7 +211,7 @@ export default function DestinationConsultationFlow() {
   const progress = (currentStep / STEPS.length) * 100
   const currentStepInfo = STEPS[currentStep - 1]
 
-  const updateData = (updates: Partial<ConsultationData>) => {
+  const updateData = (updates: Partial<DestinationConsultationData>) => {
     const newData = { ...consultationData, ...updates }
 
     // Calculate total budget when individual budgets change
@@ -245,7 +230,7 @@ export default function DestinationConsultationFlow() {
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return !!consultationData.studyLevel && !!consultationData.fieldOfStudy
+        return !!consultationData.studyLevel
       case 2:
         return consultationData.totalBudget > 0
       case 3:
@@ -295,13 +280,12 @@ export default function DestinationConsultationFlow() {
         setMatchedDestinations(matches)
 
         if (user && !isRestricted) {
-          await supabase.from("destination_consultation_results").insert({
+          await supabase.from("consultation_results").insert({
             user_id: user.id,
             study_level: consultationData.studyLevel as any,
             budget: consultationData.totalBudget,
             language_preference: consultationData.language,
-            field_preference: consultationData.fieldOfStudy,
-            matched_destinations: matches.map((m) => ({
+            matched_programs: matches.map((m) => ({
               destination_id: m.id,
               name: m.name,
               country: m.country,
@@ -354,8 +338,10 @@ export default function DestinationConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">What do you want to study?</h2>
-              <p className="text-slate-600 dark:text-slate-400">Choose your academic level and field of interest</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">
+                What level do you want to study?
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400">Choose your academic level</p>
             </div>
 
             <div className="max-w-md mx-auto space-y-6">
@@ -383,30 +369,6 @@ export default function DestinationConsultationFlow() {
                     </Button>
                   ))}
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Field of Study</Label>
-                <Select
-                  value={consultationData.fieldOfStudy}
-                  onValueChange={(value) => updateData({ fieldOfStudy: value })}
-                >
-                  <SelectTrigger className="h-14 text-lg">
-                    <SelectValue placeholder="Select your field of interest" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Business & Management">Business & Management</SelectItem>
-                    <SelectItem value="Engineering & Technology">Engineering & Technology</SelectItem>
-                    <SelectItem value="Medicine & Health Sciences">Medicine & Health Sciences</SelectItem>
-                    <SelectItem value="Arts & Humanities">Arts & Humanities</SelectItem>
-                    <SelectItem value="Natural Sciences">Natural Sciences</SelectItem>
-                    <SelectItem value="Social Sciences">Social Sciences</SelectItem>
-                    <SelectItem value="Law">Law</SelectItem>
-                    <SelectItem value="Computer Science & IT">Computer Science & IT</SelectItem>
-                    <SelectItem value="Education">Education</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
@@ -777,7 +739,7 @@ export default function DestinationConsultationFlow() {
                     <p>Try adjusting:</p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>Increase your budget or flexibility</li>
-                      <li>Consider different fields of study</li>
+                      <li>Consider different study levels</li>
                       <li>Expand language preferences</li>
                     </ul>
                   </div>
@@ -1014,7 +976,6 @@ export default function DestinationConsultationFlow() {
                 setCurrentStep(1)
                 setConsultationData({
                   studyLevel: "",
-                  fieldOfStudy: "",
                   tuitionBudget: 0,
                   livingCostsBudget: 0,
                   serviceFeesBudget: 0,
@@ -1042,3 +1003,4 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
+
