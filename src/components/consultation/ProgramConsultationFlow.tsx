@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
+import { Input } from "@/components/ui/input"
 import {
   GraduationCap,
   DollarSign,
@@ -28,12 +29,19 @@ import {
   CreditCard,
   Home,
   Calculator,
+  Search,
+  Languages,
 } from "lucide-react"
 import { usePrograms } from "@/hooks/usePrograms"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useGuestRestrictions } from "@/components/layout/GuestModeWrapper"
+import { BilingualFieldService, type FieldTranslation } from "@/services/BilingualFieldService"
+import {
+  EnhancedProgramMatchingService,
+  type EnhancedConsultationData,
+} from "@/services/EnhancedProgramMatchingService"
 
 const STEPS = [
   { id: 1, title: "Study Level & Field", icon: GraduationCap, description: "Choose your academic preferences" },
@@ -43,263 +51,17 @@ const STEPS = [
   { id: 5, title: "Your Matches", icon: Trophy, description: "Perfect programs for you" },
 ]
 
-interface ConsultationData {
-  studyLevel: string
-  fieldOfStudy: string
-  subjects: string[]
-  tuitionBudget: number
-  livingCostsBudget: number
-  serviceFeesBudget: number
-  totalBudget: number
-  budgetFlexibility: "strict" | "flexible" | "very_flexible"
-  language: string
-  languageLevel: "beginner" | "intermediate" | "advanced" | "native"
-  currentGPA: string
-  previousEducationCountry: string
-  hasLanguageCertificate: boolean
-  intakePeriod: string
-  urgency: "asap" | "flexible" | "planning_ahead"
-  workWhileStudying: boolean
-  scholarshipRequired: boolean
-  religiousFacilities: boolean
-  halalFood: boolean
-  priorityFactors: string[]
-  duration: string
-}
-
-// Enhanced matching algorithm with detailed scoring
-const calculateMatchScore = (program: any, consultationData: ConsultationData) => {
-  let totalScore = 0
-  let maxPossibleScore = 0
-  const reasons: string[] = []
-  const warnings: string[] = []
-  const details: any = {}
-
-  // 1. Study Level match (25% weight)
-  const levelWeight = 25
-  maxPossibleScore += levelWeight
-
-  if (program.study_level === consultationData.studyLevel) {
-    totalScore += levelWeight
-    reasons.push(`Perfect match for ${consultationData.studyLevel} level`)
-  } else {
-    warnings.push(`Program is for ${program.study_level}, you selected ${consultationData.studyLevel}`)
-  }
-
-  // 2. Field/Subject match (25% weight)
-  const fieldWeight = 25
-  maxPossibleScore += fieldWeight
-
-  let fieldMatch = false
-  if (consultationData.subjects && consultationData.subjects.length > 0) {
-    const userSubjects = consultationData.subjects.map((s) => s.toLowerCase())
-
-    if (program.field_keywords && program.field_keywords.length > 0) {
-      const programKeywords = program.field_keywords.map((k: string) => k.toLowerCase())
-      fieldMatch = userSubjects.some((subject: string) =>
-        programKeywords.some((keyword) => keyword.includes(subject) || subject.includes(keyword)),
-      )
-    }
-
-    if (!fieldMatch && program.field) {
-      const programField = program.field.toLowerCase()
-      fieldMatch = userSubjects.some(
-        (subject: string) => programField.includes(subject) || subject.includes(programField),
-      )
-    }
-  }
-
-  if (fieldMatch) {
-    totalScore += fieldWeight
-    reasons.push("Field matches your interests")
-  } else if (consultationData.fieldOfStudy && program.field) {
-    if (
-      program.field.toLowerCase().includes(consultationData.fieldOfStudy.toLowerCase()) ||
-      consultationData.fieldOfStudy.toLowerCase().includes(program.field.toLowerCase())
-    ) {
-      totalScore += fieldWeight * 0.8
-      reasons.push("Field partially matches your interests")
-    } else {
-      warnings.push("Field may not match your interests")
-    }
-  }
-
-  // 3. Budget Analysis (20% weight)
-  const budgetWeight = 20
-  maxPossibleScore += budgetWeight
-
-  const tuitionMin = program.tuition_min || 0
-  const tuitionMax = program.tuition_max || 0
-  const livingCostAnnual = (program.living_cost_min || 0) * 12
-  const totalMinCost = tuitionMin + livingCostAnnual
-  const totalMaxCost = tuitionMax + (program.living_cost_max || program.living_cost_min || 0) * 12
-
-  details.costs = {
-    tuitionRange: [tuitionMin, tuitionMax],
-    livingCostAnnual,
-    totalRange: [totalMinCost, totalMaxCost],
-  }
-
-  if (consultationData.totalBudget >= totalMaxCost) {
-    totalScore += budgetWeight
-    reasons.push(
-      `Comfortably within budget (€${totalMaxCost.toLocaleString()} vs €${consultationData.totalBudget.toLocaleString()})`,
-    )
-  } else if (consultationData.totalBudget >= totalMinCost) {
-    const budgetRatio = (consultationData.totalBudget - totalMinCost) / (totalMaxCost - totalMinCost)
-    totalScore += budgetWeight * (0.5 + budgetRatio * 0.5)
-    reasons.push(`Within budget range`)
-    if (consultationData.budgetFlexibility === "strict") {
-      warnings.push(`May exceed strict budget by €${(totalMaxCost - consultationData.totalBudget).toLocaleString()}`)
-    }
-  } else {
-    const shortfall = totalMinCost - consultationData.totalBudget
-    if (consultationData.budgetFlexibility === "very_flexible" && shortfall <= consultationData.totalBudget * 0.2) {
-      totalScore += budgetWeight * 0.3
-      warnings.push(`Budget shortfall of €${shortfall.toLocaleString()}, but marked as very flexible`)
-    } else {
-      warnings.push(`Exceeds budget by €${shortfall.toLocaleString()}`)
-    }
-  }
-
-  // 4. Language Requirements (15% weight)
-  const languageWeight = 15
-  maxPossibleScore += languageWeight
-
-  const userLanguage = consultationData.language.toLowerCase()
-  const programLanguage = program.program_language?.toLowerCase() || ""
-
-  if (userLanguage === "any" || programLanguage.includes(userLanguage) || userLanguage.includes(programLanguage)) {
-    const proficiencyMultiplier =
-      {
-        native: 1.0,
-        advanced: 0.9,
-        intermediate: 0.8,
-        beginner: 0.6,
-      }[consultationData.languageLevel] || 0.8
-
-    totalScore += languageWeight * proficiencyMultiplier
-    reasons.push(`Language compatible (${consultationData.languageLevel} level)`)
-
-    if (consultationData.languageLevel === "beginner") {
-      warnings.push("May require language preparation")
-    }
-  } else {
-    warnings.push("Language requirements may not match")
-  }
-
-  // 5. Duration match (10% weight)
-  const durationWeight = 10
-  maxPossibleScore += durationWeight
-
-  let preferredMonths = 0
-  if (consultationData.duration === "semester") preferredMonths = 6
-  else if (consultationData.duration === "year") preferredMonths = 12
-  else if (consultationData.duration === "two_years") preferredMonths = 24
-  else if (consultationData.duration === "full") preferredMonths = 36
-
-  if (preferredMonths > 0 && program.duration_months) {
-    const durationDiff = Math.abs(program.duration_months - preferredMonths)
-    if (durationDiff <= 3) {
-      totalScore += durationWeight
-      reasons.push("Duration matches preference")
-    } else if (durationDiff <= 6) {
-      totalScore += durationWeight * 0.7
-      reasons.push("Duration close to preference")
-    }
-  }
-
-  // 6. GPA Requirements (5% weight)
-  const gpaWeight = 5
-  maxPossibleScore += gpaWeight
-
-  const gpaMapping = {
-    low: 11, // 10-12 average
-    intermediate: 13, // 12-14 average
-    high: 17, // 14-20 average
-  }
-
-  const userGPA = gpaMapping[consultationData.currentGPA as keyof typeof gpaMapping] || 15
-  const requiredGPA = program.minimum_gpa || 12
-
-  if (userGPA >= requiredGPA) {
-    totalScore += gpaWeight
-    reasons.push("Meets GPA requirements")
-  } else {
-    warnings.push("May not meet GPA requirements")
-  }
-
-  // Special requirements bonus
-  consultationData.priorityFactors.forEach((factor) => {
-    switch (factor) {
-      case "low_cost":
-        if (totalMinCost < consultationData.totalBudget * 0.8) {
-          totalScore += 3
-          reasons.push("Excellent value for money")
-        }
-        break
-      case "scholarship":
-        if (program.scholarship_available) {
-          totalScore += 5
-          reasons.push("Scholarship available")
-        }
-        break
-      case "religious_facilities":
-        if (program.religious_facilities) {
-          totalScore += 3
-          reasons.push("Religious facilities available")
-        }
-        break
-      case "halal_food":
-        if (program.halal_food_availability) {
-          totalScore += 3
-          reasons.push("Halal food available")
-        }
-        break
-    }
-  })
-
-  // Special requirements checks
-  if (consultationData.scholarshipRequired && !program.scholarship_available) {
-    warnings.push("Scholarship required but not available")
-  }
-
-  if (consultationData.religiousFacilities && !program.religious_facilities) {
-    warnings.push("Religious facilities required but not confirmed")
-  }
-
-  if (consultationData.halalFood && !program.halal_food_availability) {
-    warnings.push("Halal food required but not confirmed")
-  }
-
-  // Calculate final percentage score
-  const finalScore = Math.min(100, Math.round((totalScore / maxPossibleScore) * 100))
-
-  return {
-    score: finalScore,
-    reasons,
-    warnings,
-    details,
-    recommendation:
-      finalScore >= 80
-        ? "highly_recommended"
-        : finalScore >= 60
-          ? "recommended"
-          : finalScore >= 40
-            ? "consider"
-            : "not_recommended",
-  }
-}
-
 export default function ProgramConsultationFlow() {
   const { user } = useAuth()
   const { toast } = useToast()
   const { isRestricted, handleRestrictedAction } = useGuestRestrictions()
 
   const [currentStep, setCurrentStep] = useState(1)
-  const [consultationData, setConsultationData] = useState<ConsultationData>({
+  const [consultationData, setConsultationData] = useState<EnhancedConsultationData>({
     studyLevel: "",
     fieldOfStudy: "",
+    fieldSearchQuery: "",
+    userLanguage: "en",
     subjects: [],
     tuitionBudget: 0,
     livingCostsBudget: 0,
@@ -320,19 +82,22 @@ export default function ProgramConsultationFlow() {
     priorityFactors: [],
     duration: "",
   })
+
+  const [fieldSearchResults, setFieldSearchResults] = useState<FieldTranslation[]>([])
+  const [showFieldSuggestions, setShowFieldSuggestions] = useState(false)
   const [matchedPrograms, setMatchedPrograms] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
 
   // Fetch programs for matching
   const { data: programsData } = usePrograms({
-    limit: 50, // Get more programs for better matching
+    limit: 50,
     calculateMatchScores: false,
   })
 
   const progress = (currentStep / STEPS.length) * 100
   const currentStepInfo = STEPS[currentStep - 1]
 
-  const updateData = (updates: Partial<ConsultationData>) => {
+  const updateData = (updates: Partial<EnhancedConsultationData>) => {
     const newData = { ...consultationData, ...updates }
 
     // Calculate total budget when individual budgets change
@@ -348,10 +113,33 @@ export default function ProgramConsultationFlow() {
     setConsultationData(newData)
   }
 
+  const handleFieldSearch = (query: string) => {
+    updateData({ fieldSearchQuery: query })
+
+    if (query.length >= 2) {
+      const results = BilingualFieldService.searchFields(query, consultationData.userLanguage)
+      setFieldSearchResults(results.slice(0, 8)) // Limit to 8 suggestions
+      setShowFieldSuggestions(true)
+    } else {
+      setFieldSearchResults([])
+      setShowFieldSuggestions(false)
+    }
+  }
+
+  const selectFieldFromSuggestion = (field: FieldTranslation) => {
+    const fieldName = consultationData.userLanguage === "fr" ? field.french : field.english
+    updateData({
+      fieldOfStudy: field.english, // Always store English for database consistency
+      fieldSearchQuery: fieldName,
+    })
+    setShowFieldSuggestions(false)
+    setFieldSearchResults([])
+  }
+
   const isStepValid = () => {
     switch (currentStep) {
       case 1:
-        return !!consultationData.studyLevel && !!consultationData.fieldOfStudy
+        return !!consultationData.studyLevel && (!!consultationData.fieldOfStudy || !!consultationData.fieldSearchQuery)
       case 2:
         return consultationData.totalBudget > 0
       case 3:
@@ -368,13 +156,14 @@ export default function ProgramConsultationFlow() {
     if (!programsData?.programs) return []
 
     const scoredPrograms = programsData.programs.map((program) => {
-      const matchResult = calculateMatchScore(program, consultationData)
+      const matchResult = EnhancedProgramMatchingService.calculateEnhancedMatchScore(program, consultationData)
       return {
         ...program,
         matchScore: matchResult.score,
         matchReasons: matchResult.reasons,
         matchWarnings: matchResult.warnings,
         matchDetails: matchResult.details,
+        fieldMatchDetails: matchResult.fieldMatchDetails,
         recommendation: matchResult.recommendation,
       }
     })
@@ -385,14 +174,18 @@ export default function ProgramConsultationFlow() {
     return scoredPrograms
       .filter((program) => program.matchScore >= minScoreThreshold)
       .sort((a, b) => {
-        // Primary sort: recommendation level
+        // Primary sort: programs with exact field matches first
+        if (a.fieldMatchDetails?.matchType === "exact" && b.fieldMatchDetails?.matchType !== "exact") return -1
+        if (b.fieldMatchDetails?.matchType === "exact" && a.fieldMatchDetails?.matchType !== "exact") return 1
+
+        // Secondary sort: recommendation level
         const recommendationOrder = { highly_recommended: 4, recommended: 3, consider: 2, not_recommended: 1 }
         const aOrder = recommendationOrder[a.recommendation as keyof typeof recommendationOrder] || 0
         const bOrder = recommendationOrder[b.recommendation as keyof typeof recommendationOrder] || 0
 
         if (aOrder !== bOrder) return bOrder - aOrder
 
-        // Secondary sort: match score
+        // Tertiary sort: match score
         return b.matchScore - a.matchScore
       })
   }
@@ -414,6 +207,9 @@ export default function ProgramConsultationFlow() {
             budget: consultationData.totalBudget,
             language_preference: consultationData.language,
             field_preference: consultationData.fieldOfStudy,
+            field_keywords: consultationData.fieldSearchQuery
+              ? [consultationData.fieldSearchQuery]
+              : consultationData.subjects,
             matched_programs: matches.map((m) => ({
               program_id: m.id,
               name: m.name,
@@ -423,6 +219,7 @@ export default function ProgramConsultationFlow() {
               reasons: m.matchReasons,
               warnings: m.matchWarnings,
               recommendation: m.recommendation,
+              field_match_details: m.fieldMatchDetails,
             })),
             preferences_data: consultationData as any,
             work_while_studying: consultationData.workWhileStudying,
@@ -431,7 +228,7 @@ export default function ProgramConsultationFlow() {
 
           toast({
             title: "Consultation Complete",
-            description: `Found ${matches.length} matching programs with detailed analysis!`,
+            description: `Found ${matches.length} matching programs with enhanced bilingual analysis!`,
           })
         } else if (isRestricted) {
           toast({
@@ -480,6 +277,29 @@ export default function ProgramConsultationFlow() {
             </div>
 
             <div className="max-w-md mx-auto space-y-6">
+              {/* Language Selection */}
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">Search Language</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={consultationData.userLanguage === "en" ? "default" : "outline"}
+                    onClick={() => updateData({ userLanguage: "en" })}
+                    className="flex-1"
+                  >
+                    <Languages className="h-4 w-4 mr-2" />
+                    English
+                  </Button>
+                  <Button
+                    variant={consultationData.userLanguage === "fr" ? "default" : "outline"}
+                    onClick={() => updateData({ userLanguage: "fr" })}
+                    className="flex-1"
+                  >
+                    <Languages className="h-4 w-4 mr-2" />
+                    Français
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <Label className="text-slate-800 dark:text-slate-200">Study Level</Label>
                 <div className="grid grid-cols-1 gap-3">
@@ -506,30 +326,83 @@ export default function ProgramConsultationFlow() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Field of Study</Label>
-                <Select
-                  value={consultationData.fieldOfStudy}
-                  onValueChange={(value) => updateData({ fieldOfStudy: value })}
-                >
-                  <SelectTrigger className="h-14 text-lg">
-                    <SelectValue placeholder="Select your field of interest" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Business & Management">Business & Management</SelectItem>
-                    <SelectItem value="Engineering & Technology">Engineering & Technology</SelectItem>
-                    <SelectItem value="Medicine & Health Sciences">Medicine & Health Sciences</SelectItem>
-                    <SelectItem value="Arts & Humanities">Arts & Humanities</SelectItem>
-                    <SelectItem value="Natural Sciences">Natural Sciences</SelectItem>
-                    <SelectItem value="Social Sciences">Social Sciences</SelectItem>
-                    <SelectItem value="Law">Law</SelectItem>
-                    <SelectItem value="Computer Science & IT">Computer Science & IT</SelectItem>
-                    <SelectItem value="Education">Education</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Enhanced Field Search */}
+              <div className="space-y-4 relative">
+                <Label className="text-slate-800 dark:text-slate-200">
+                  Field of Study {consultationData.userLanguage === "fr" ? "(Français)" : "(English)"}
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 h-4 w-4" />
+                  <Input
+                    placeholder={
+                      consultationData.userLanguage === "fr"
+                        ? "Rechercher un domaine d'études..."
+                        : "Search for a field of study..."
+                    }
+                    value={consultationData.fieldSearchQuery}
+                    onChange={(e) => handleFieldSearch(e.target.value)}
+                    className="pl-10 h-14 text-lg"
+                    onFocus={() => {
+                      if (fieldSearchResults.length > 0) {
+                        setShowFieldSuggestions(true)
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Field Suggestions */}
+                {showFieldSuggestions && fieldSearchResults.length > 0 && (
+                  <Card className="absolute z-10 w-full mt-1 border-2 border-blue-200 dark:border-blue-800 shadow-lg">
+                    <CardContent className="p-2">
+                      <div className="space-y-1">
+                        {fieldSearchResults.map((field, index) => (
+                          <Button
+                            key={index}
+                            variant="ghost"
+                            className="w-full justify-start h-auto p-3 text-left"
+                            onClick={() => selectFieldFromSuggestion(field)}
+                          >
+                            <div>
+                              <div className="font-medium">
+                                {consultationData.userLanguage === "fr" ? field.french : field.english}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {field.category} •{" "}
+                                {consultationData.userLanguage === "fr" ? field.english : field.french}
+                              </div>
+                            </div>
+                          </Button>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Selected Field Display */}
+                {consultationData.fieldOfStudy && (
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-blue-900 dark:text-blue-100">
+                          Selected: {consultationData.fieldSearchQuery || consultationData.fieldOfStudy}
+                        </div>
+                        <div className="text-sm text-blue-700 dark:text-blue-300">
+                          {BilingualFieldService.getFieldTranslation(consultationData.fieldOfStudy)?.category}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => updateData({ fieldOfStudy: "", fieldSearchQuery: "" })}
+                      >
+                        <AlertCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
+              {/* Additional Subjects */}
               <div className="space-y-4">
                 <Label className="text-slate-800 dark:text-slate-200">Specific Subjects (Optional)</Label>
                 <div className="grid grid-cols-2 gap-2">
@@ -987,7 +860,7 @@ export default function ProgramConsultationFlow() {
                 Your Personalized Program Matches
               </h2>
               <p className="text-slate-600 dark:text-slate-400">
-                We found {matchedPrograms.length} programs ranked by compatibility
+                We found {matchedPrograms.length} programs ranked by compatibility with bilingual field matching
               </p>
             </div>
 
@@ -1042,7 +915,7 @@ export default function ProgramConsultationFlow() {
                                 <MapPin className="h-4 w-4 mr-1" />
                                 {program.city}, {program.country}
                               </p>
-                              <div className="flex items-center mt-1">
+                              <div className="flex items-center mt-1 space-x-2">
                                 {program.recommendation === "highly_recommended" && (
                                   <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 text-xs">
                                     <Trophy className="h-3 w-3 mr-1" />
@@ -1059,6 +932,12 @@ export default function ProgramConsultationFlow() {
                                   <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 text-xs">
                                     <Clock className="h-3 w-3 mr-1" />
                                     Consider
+                                  </Badge>
+                                )}
+                                {program.fieldMatchDetails?.matchType === "exact" && (
+                                  <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 text-xs">
+                                    <Languages className="h-3 w-3 mr-1" />
+                                    Exact Field Match
                                   </Badge>
                                 )}
                               </div>
@@ -1181,6 +1060,7 @@ export default function ProgramConsultationFlow() {
                     <li>Check language certificate requirements if applicable</li>
                     <li>Contact our consultants for personalized application guidance</li>
                     <li>Start preparing required documents for your top choices</li>
+                    <li>Programs with "Exact Field Match" are prioritized based on your bilingual search</li>
                   </ul>
                 </div>
               )}
@@ -1215,7 +1095,7 @@ export default function ProgramConsultationFlow() {
             Program Consultation
           </h1>
           <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Advanced algorithm analyzing your preferences to find your perfect study program
+            Advanced bilingual algorithm analyzing your preferences to find your perfect study program
           </p>
         </motion.div>
 
@@ -1294,6 +1174,8 @@ export default function ProgramConsultationFlow() {
                 setConsultationData({
                   studyLevel: "",
                   fieldOfStudy: "",
+                  fieldSearchQuery: "",
+                  userLanguage: "en",
                   subjects: [],
                   tuitionBudget: 0,
                   livingCostsBudget: 0,
@@ -1315,6 +1197,8 @@ export default function ProgramConsultationFlow() {
                   duration: "",
                 })
                 setMatchedPrograms([])
+                setFieldSearchResults([])
+                setShowFieldSuggestions(false)
               }}
               className="flex items-center space-x-2"
             >
@@ -1326,3 +1210,4 @@ export default function ProgramConsultationFlow() {
     </div>
   )
 }
+
