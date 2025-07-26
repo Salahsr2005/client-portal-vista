@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Slider } from "@/components/ui/slider"
 import {
   GraduationCap,
   DollarSign,
@@ -18,13 +18,16 @@ import {
   ChevronRight,
   ChevronLeft,
   Sparkles,
-  MapPin,
   Check,
   AlertCircle,
   TrendingUp,
   Clock,
   FileText,
-  Globe,
+  MapPin,
+  PiggyBank,
+  CreditCard,
+  Home,
+  Calculator,
 } from "lucide-react"
 import { usePrograms } from "@/hooks/usePrograms"
 import { supabase } from "@/integrations/supabase/client"
@@ -34,23 +37,23 @@ import { useGuestRestrictions } from "@/components/layout/GuestModeWrapper"
 
 const STEPS = [
   { id: 1, title: "Study Level & Field", icon: GraduationCap, description: "Choose your academic preferences" },
-  { id: 2, title: "Budget & Financial Info", icon: DollarSign, description: "Set your financial preferences" },
-  { id: 3, title: "Language & Location", icon: Globe, description: "Language and regional preferences" },
-  { id: 4, title: "Academic Profile", icon: FileText, description: "Your academic background" },
-  { id: 5, title: "Timeline & Preferences", icon: Settings, description: "Timeline and additional requirements" },
-  { id: 6, title: "Your Matches", icon: Trophy, description: "Perfect programs for you" },
+  { id: 2, title: "Budget Planning", icon: DollarSign, description: "Set your financial preferences" },
+  { id: 3, title: "Academic Profile", icon: FileText, description: "Your academic background" },
+  { id: 4, title: "Timeline & Preferences", icon: Settings, description: "Timeline and additional requirements" },
+  { id: 5, title: "Your Matches", icon: Trophy, description: "Perfect programs for you" },
 ]
 
 interface ConsultationData {
   studyLevel: string
   fieldOfStudy: string
   subjects: string[]
+  tuitionBudget: number
+  livingCostsBudget: number
+  serviceFeesBudget: number
   totalBudget: number
   budgetFlexibility: "strict" | "flexible" | "very_flexible"
-  includeServiceFees: boolean
   language: string
   languageLevel: "beginner" | "intermediate" | "advanced" | "native"
-  regionPreference: string[]
   currentGPA: string
   previousEducationCountry: string
   hasLanguageCertificate: boolean
@@ -185,23 +188,8 @@ const calculateMatchScore = (program: any, consultationData: ConsultationData) =
     warnings.push("Language requirements may not match")
   }
 
-  // 5. Location match (10% weight)
-  const locationWeight = 10
-  maxPossibleScore += locationWeight
-
-  if (
-    consultationData.regionPreference.length > 0 &&
-    !consultationData.regionPreference.includes("Any") &&
-    consultationData.regionPreference.some((region) => program.country?.toLowerCase().includes(region.toLowerCase()))
-  ) {
-    totalScore += locationWeight
-    reasons.push("Matches regional preference")
-  } else if (consultationData.regionPreference.includes("Any")) {
-    totalScore += locationWeight
-  }
-
-  // 6. Duration match (5% weight)
-  const durationWeight = 5
+  // 5. Duration match (10% weight)
+  const durationWeight = 10
   maxPossibleScore += durationWeight
 
   let preferredMonths = 0
@@ -219,6 +207,26 @@ const calculateMatchScore = (program: any, consultationData: ConsultationData) =
       totalScore += durationWeight * 0.7
       reasons.push("Duration close to preference")
     }
+  }
+
+  // 6. GPA Requirements (5% weight)
+  const gpaWeight = 5
+  maxPossibleScore += gpaWeight
+
+  const gpaMapping = {
+    low: 11, // 10-12 average
+    intermediate: 13, // 12-14 average
+    high: 17, // 14-20 average
+  }
+
+  const userGPA = gpaMapping[consultationData.currentGPA as keyof typeof gpaMapping] || 15
+  const requiredGPA = program.minimum_gpa || 12
+
+  if (userGPA >= requiredGPA) {
+    totalScore += gpaWeight
+    reasons.push("Meets GPA requirements")
+  } else {
+    warnings.push("May not meet GPA requirements")
   }
 
   // Special requirements bonus
@@ -293,12 +301,13 @@ export default function ProgramConsultationFlow() {
     studyLevel: "",
     fieldOfStudy: "",
     subjects: [],
+    tuitionBudget: 0,
+    livingCostsBudget: 0,
+    serviceFeesBudget: 0,
     totalBudget: 0,
     budgetFlexibility: "flexible",
-    includeServiceFees: true,
     language: "",
     languageLevel: "intermediate",
-    regionPreference: [],
     currentGPA: "",
     previousEducationCountry: "",
     hasLanguageCertificate: false,
@@ -324,7 +333,19 @@ export default function ProgramConsultationFlow() {
   const currentStepInfo = STEPS[currentStep - 1]
 
   const updateData = (updates: Partial<ConsultationData>) => {
-    setConsultationData((prev) => ({ ...prev, ...updates }))
+    const newData = { ...consultationData, ...updates }
+
+    // Calculate total budget when individual budgets change
+    if (
+      updates.tuitionBudget !== undefined ||
+      updates.livingCostsBudget !== undefined ||
+      updates.serviceFeesBudget !== undefined
+    ) {
+      newData.totalBudget =
+        (newData.tuitionBudget || 0) + (newData.livingCostsBudget || 0) + (newData.serviceFeesBudget || 0)
+    }
+
+    setConsultationData(newData)
   }
 
   const isStepValid = () => {
@@ -334,10 +355,8 @@ export default function ProgramConsultationFlow() {
       case 2:
         return consultationData.totalBudget > 0
       case 3:
-        return !!consultationData.language
-      case 4:
         return !!consultationData.currentGPA
-      case 5:
+      case 4:
         return !!consultationData.intakePeriod && !!consultationData.duration
       default:
         return true
@@ -379,9 +398,9 @@ export default function ProgramConsultationFlow() {
   }
 
   const handleNext = async () => {
-    if (currentStep < 5) {
+    if (currentStep < 4) {
       setCurrentStep((prev) => prev + 1)
-    } else if (currentStep === 5) {
+    } else if (currentStep === 4) {
       setIsProcessing(true)
       try {
         const matches = findMatches()
@@ -394,7 +413,6 @@ export default function ProgramConsultationFlow() {
             study_level: consultationData.studyLevel as any,
             budget: consultationData.totalBudget,
             language_preference: consultationData.language,
-            destination_preference: consultationData.regionPreference.join(", ") || "Any",
             field_preference: consultationData.fieldOfStudy,
             matched_programs: matches.map((m) => ({
               program_id: m.id,
@@ -422,7 +440,7 @@ export default function ProgramConsultationFlow() {
           })
         }
 
-        setCurrentStep(6)
+        setCurrentStep(5)
       } catch (error) {
         console.error("Error saving consultation:", error)
         toast({
@@ -442,19 +460,28 @@ export default function ProgramConsultationFlow() {
     }
   }
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">What do you want to study?</h2>
-              <p className="text-muted-foreground">Choose your academic level and field of interest</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">What do you want to study?</h2>
+              <p className="text-slate-600 dark:text-slate-400">Choose your academic level and field of interest</p>
             </div>
 
             <div className="max-w-md mx-auto space-y-6">
               <div className="space-y-4">
-                <Label>Study Level</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Study Level</Label>
                 <div className="grid grid-cols-1 gap-3">
                   {["Bachelor", "Master", "PhD"].map((level) => (
                     <Button
@@ -480,7 +507,7 @@ export default function ProgramConsultationFlow() {
               </div>
 
               <div className="space-y-4">
-                <Label>Field of Study</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Field of Study</Label>
                 <Select
                   value={consultationData.fieldOfStudy}
                   onValueChange={(value) => updateData({ fieldOfStudy: value })}
@@ -504,7 +531,7 @@ export default function ProgramConsultationFlow() {
               </div>
 
               <div className="space-y-4">
-                <Label>Specific Subjects (Optional)</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Specific Subjects (Optional)</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     "Marketing",
@@ -546,66 +573,167 @@ export default function ProgramConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">Budget & Financial Information</h2>
-              <p className="text-muted-foreground">Help us understand your financial situation</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Plan your budget</h2>
+              <p className="text-slate-600 dark:text-slate-400">
+                Set your budget for different categories to find options that fit your financial plan
+              </p>
             </div>
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="space-y-4">
-                <Label>Total Available Budget (EUR per year)</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { label: "€5,000 - €10,000", value: 10000 },
-                    { label: "€10,000 - €15,000", value: 15000 },
-                    { label: "€15,000 - €25,000", value: 25000 },
-                    { label: "€25,000+", value: 30000 },
-                  ].map((option) => (
-                    <Button
-                      key={option.value}
-                      variant={consultationData.totalBudget === option.value ? "default" : "outline"}
-                      onClick={() => updateData({ totalBudget: option.value })}
-                      className="h-16 text-sm"
-                    >
-                      {option.label}
-                    </Button>
-                  ))}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="custom-budget">Or enter custom amount:</Label>
-                  <Input
-                    id="custom-budget"
-                    type="number"
-                    placeholder="Enter amount in EUR"
-                    value={consultationData.totalBudget || ""}
-                    onChange={(e) => updateData({ totalBudget: Number.parseInt(e.target.value) || 0 })}
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                <Label>Budget Flexibility</Label>
-                <Select
-                  value={consultationData.budgetFlexibility}
-                  onValueChange={(value: any) => updateData({ budgetFlexibility: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="strict">Strict - Cannot exceed budget</SelectItem>
-                    <SelectItem value="flexible">Flexible - Can exceed by 10-15%</SelectItem>
-                    <SelectItem value="very_flexible">Very Flexible - Open to higher costs for quality</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Budget Summary */}
+            <Card className="max-w-4xl mx-auto bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-2 border-blue-200/20 dark:border-blue-800/20">
+              <CardContent className="p-6">
+                <div className="text-center mb-6">
+                  <div className="flex items-center justify-center space-x-3 mb-4">
+                    <Calculator className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Total Budget Overview</h3>
+                  </div>
+                  <div className="text-4xl font-bold mb-2 text-slate-800 dark:text-slate-100">
+                    {formatCurrency(consultationData.totalBudget)}
+                  </div>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="service-fees"
-                  checked={consultationData.includeServiceFees}
-                  onCheckedChange={(checked) => updateData({ includeServiceFees: !!checked })}
-                />
-                <Label htmlFor="service-fees">Include agency service fees in calculations</Label>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                    <PiggyBank className="w-8 h-8 mx-auto mb-2 text-blue-600 dark:text-blue-400" />
+                    <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                      {formatCurrency(consultationData.tuitionBudget)}
+                    </div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">Tuition Fees</div>
+                  </div>
+                  <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                    <Home className="w-8 h-8 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
+                    <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                      {formatCurrency(consultationData.livingCostsBudget)}
+                    </div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">Living Costs</div>
+                  </div>
+                  <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                    <CreditCard className="w-8 h-8 mx-auto mb-2 text-green-600 dark:text-green-400" />
+                    <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                      {formatCurrency(consultationData.serviceFeesBudget)}
+                    </div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">Service Fees</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Budget Sliders */}
+            <div className="max-w-4xl mx-auto space-y-6">
+              {/* Tuition Budget */}
+              <Card className="bg-white/80 dark:bg-slate-800/80">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
+                        <PiggyBank className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                        Tuition Budget
+                      </Label>
+                      <Badge variant="outline" className="text-sm">
+                        {formatCurrency(consultationData.tuitionBudget)}
+                      </Badge>
+                    </div>
+                    <Slider
+                      value={[consultationData.tuitionBudget]}
+                      onValueChange={(value) => updateData({ tuitionBudget: value[0] })}
+                      max={50000}
+                      min={0}
+                      step={500}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
+                      <span>€0</span>
+                      <span>€50,000</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Living Costs Budget */}
+              <Card className="bg-white/80 dark:bg-slate-800/80">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
+                        <Home className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                        Living Costs Budget
+                      </Label>
+                      <Badge variant="outline" className="text-sm">
+                        {formatCurrency(consultationData.livingCostsBudget)}
+                      </Badge>
+                    </div>
+                    <Slider
+                      value={[consultationData.livingCostsBudget]}
+                      onValueChange={(value) => updateData({ livingCostsBudget: value[0] })}
+                      max={30000}
+                      min={0}
+                      step={500}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
+                      <span>€0</span>
+                      <span>€30,000</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Service Fees Budget */}
+              <Card className="bg-white/80 dark:bg-slate-800/80">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
+                        <CreditCard className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
+                        Service Fees Budget
+                      </Label>
+                      <Badge variant="outline" className="text-sm">
+                        {formatCurrency(consultationData.serviceFeesBudget)}
+                      </Badge>
+                    </div>
+                    <Slider
+                      value={[consultationData.serviceFeesBudget]}
+                      onValueChange={(value) => updateData({ serviceFeesBudget: value[0] })}
+                      max={10000}
+                      min={0}
+                      step={100}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
+                      <span>€0</span>
+                      <span>€10,000</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Budget Flexibility */}
+              <Card className="bg-white/80 dark:bg-slate-800/80">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <Label className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+                      Budget Flexibility
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { id: "strict", label: "Strict", desc: "Stay within budget" },
+                        { id: "flexible", label: "Flexible", desc: "Up to 20% over" },
+                        { id: "very_flexible", label: "Very Flexible", desc: "Up to 50% over" },
+                      ].map((option) => (
+                        <Button
+                          key={option.id}
+                          variant={consultationData.budgetFlexibility === option.id ? "default" : "outline"}
+                          onClick={() => updateData({ budgetFlexibility: option.id as any })}
+                          className="h-auto p-4 flex flex-col items-center space-y-2 text-center"
+                        >
+                          <span className="font-semibold">{option.label}</span>
+                          <span className="text-xs opacity-75">{option.desc}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )
@@ -614,96 +742,14 @@ export default function ProgramConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">Language & Location Preferences</h2>
-              <p className="text-muted-foreground">Tell us about your language skills and location preferences</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Academic Profile</h2>
+              <p className="text-slate-600 dark:text-slate-400">
+                Tell us about your academic background and language skills
+              </p>
             </div>
             <div className="max-w-md mx-auto space-y-6">
               <div className="space-y-4">
-                <Label>Preferred Study Language</Label>
-                <Select value={consultationData.language} onValueChange={(value) => updateData({ language: value })}>
-                  <SelectTrigger className="h-14 text-lg">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="English">English</SelectItem>
-                    <SelectItem value="French">French</SelectItem>
-                    <SelectItem value="Dutch">Dutch</SelectItem>
-                    <SelectItem value="German">German</SelectItem>
-                    <SelectItem value="Spanish">Spanish</SelectItem>
-                    <SelectItem value="Italian">Italian</SelectItem>
-                    <SelectItem value="Any">Any Language</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Your Language Proficiency Level</Label>
-                <Select
-                  value={consultationData.languageLevel}
-                  onValueChange={(value: any) => updateData({ languageLevel: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                    <SelectItem value="native">Native Speaker</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Regional Preferences (Optional)</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {["Europe", "North America", "Asia", "Oceania", "Any"].map((region) => (
-                    <Button
-                      key={region}
-                      variant={consultationData.regionPreference.includes(region) ? "default" : "outline"}
-                      onClick={() => {
-                        const current = consultationData.regionPreference
-                        if (region === "Any") {
-                          updateData({ regionPreference: ["Any"] })
-                        } else {
-                          const filtered = current.filter((r) => r !== "Any")
-                          if (current.includes(region)) {
-                            updateData({ regionPreference: filtered.filter((r) => r !== region) })
-                          } else {
-                            updateData({ regionPreference: [...filtered, region] })
-                          }
-                        }
-                      }}
-                      className="h-12 text-sm"
-                    >
-                      {region}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="language-cert"
-                  checked={consultationData.hasLanguageCertificate}
-                  onCheckedChange={(checked) => updateData({ hasLanguageCertificate: !!checked })}
-                />
-                <Label htmlFor="language-cert">I have official language certificates</Label>
-              </div>
-            </div>
-          </div>
-        )
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">Academic Profile</h2>
-              <p className="text-muted-foreground">Tell us about your academic background</p>
-            </div>
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="space-y-4">
-                <Label>Current/Previous GPA Level</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Current/Previous GPA Level</Label>
                 <Select
                   value={consultationData.currentGPA}
                   onValueChange={(value) => updateData({ currentGPA: value })}
@@ -712,17 +758,15 @@ export default function ProgramConsultationFlow() {
                     <SelectValue placeholder="Select your academic performance" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="A">Excellent (A/90%+/First Class)</SelectItem>
-                    <SelectItem value="B">Very Good (B/80-89%/Upper Second)</SelectItem>
-                    <SelectItem value="C">Good (C/70-79%/Lower Second)</SelectItem>
-                    <SelectItem value="D">Satisfactory (D/60-69%/Third Class)</SelectItem>
-                    <SelectItem value="F">Below Average (Below 60%)</SelectItem>
+                    <SelectItem value="low">Low (10-12/20)</SelectItem>
+                    <SelectItem value="intermediate">Intermediate (12-14/20)</SelectItem>
+                    <SelectItem value="high">High (14-20/20)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label>Country of Previous Education</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Country of Previous Education</Label>
                 <Select
                   value={consultationData.previousEducationCountry}
                   onValueChange={(value) => updateData({ previousEducationCountry: value })}
@@ -741,20 +785,69 @@ export default function ProgramConsultationFlow() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">Preferred Study Language</Label>
+                <Select value={consultationData.language} onValueChange={(value) => updateData({ language: value })}>
+                  <SelectTrigger className="h-14 text-lg">
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="English">English</SelectItem>
+                    <SelectItem value="French">French</SelectItem>
+                    <SelectItem value="Dutch">Dutch</SelectItem>
+                    <SelectItem value="German">German</SelectItem>
+                    <SelectItem value="Spanish">Spanish</SelectItem>
+                    <SelectItem value="Italian">Italian</SelectItem>
+                    <SelectItem value="Any">Any Language</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">Your Language Proficiency Level</Label>
+                <Select
+                  value={consultationData.languageLevel}
+                  onValueChange={(value: any) => updateData({ languageLevel: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="advanced">Advanced</SelectItem>
+                    <SelectItem value="native">Native Speaker</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="language-cert"
+                  checked={consultationData.hasLanguageCertificate}
+                  onCheckedChange={(checked) => updateData({ hasLanguageCertificate: !!checked })}
+                />
+                <Label htmlFor="language-cert" className="text-slate-800 dark:text-slate-200">
+                  I have official language certificates
+                </Label>
+              </div>
             </div>
           </div>
         )
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">Timeline & Final Preferences</h2>
-              <p className="text-muted-foreground">When do you want to start and what's most important to you?</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Timeline & Final Preferences</h2>
+              <p className="text-slate-600 dark:text-slate-400">
+                When do you want to start and what's most important to you?
+              </p>
             </div>
             <div className="max-w-md mx-auto space-y-6">
               <div className="space-y-4">
-                <Label>Preferred Intake Period</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Preferred Intake Period</Label>
                 <Select
                   value={consultationData.intakePeriod}
                   onValueChange={(value) => updateData({ intakePeriod: value })}
@@ -774,7 +867,7 @@ export default function ProgramConsultationFlow() {
               </div>
 
               <div className="space-y-4">
-                <Label>Program Duration Preference</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Program Duration Preference</Label>
                 <Select value={consultationData.duration} onValueChange={(value) => updateData({ duration: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select duration preference" />
@@ -789,7 +882,7 @@ export default function ProgramConsultationFlow() {
               </div>
 
               <div className="space-y-4">
-                <Label>Application Urgency</Label>
+                <Label className="text-slate-800 dark:text-slate-200">Application Urgency</Label>
                 <Select value={consultationData.urgency} onValueChange={(value: any) => updateData({ urgency: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -803,7 +896,9 @@ export default function ProgramConsultationFlow() {
               </div>
 
               <div className="space-y-4">
-                <Label>What's Most Important to You? (Select all that apply)</Label>
+                <Label className="text-slate-800 dark:text-slate-200">
+                  What's Most Important to You? (Select all that apply)
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: "low_cost", label: "Low Cost" },
@@ -839,7 +934,9 @@ export default function ProgramConsultationFlow() {
                     checked={consultationData.workWhileStudying}
                     onCheckedChange={(checked) => updateData({ workWhileStudying: !!checked })}
                   />
-                  <Label htmlFor="work">I want to work while studying</Label>
+                  <Label htmlFor="work" className="text-slate-800 dark:text-slate-200">
+                    I want to work while studying
+                  </Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -848,7 +945,9 @@ export default function ProgramConsultationFlow() {
                     checked={consultationData.scholarshipRequired}
                     onCheckedChange={(checked) => updateData({ scholarshipRequired: !!checked })}
                   />
-                  <Label htmlFor="scholarship">I need scholarship opportunities</Label>
+                  <Label htmlFor="scholarship" className="text-slate-800 dark:text-slate-200">
+                    I need scholarship opportunities
+                  </Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -857,7 +956,9 @@ export default function ProgramConsultationFlow() {
                     checked={consultationData.religiousFacilities}
                     onCheckedChange={(checked) => updateData({ religiousFacilities: !!checked })}
                   />
-                  <Label htmlFor="religious">I need religious facilities</Label>
+                  <Label htmlFor="religious" className="text-slate-800 dark:text-slate-200">
+                    I need religious facilities
+                  </Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -866,22 +967,26 @@ export default function ProgramConsultationFlow() {
                     checked={consultationData.halalFood}
                     onCheckedChange={(checked) => updateData({ halalFood: !!checked })}
                   />
-                  <Label htmlFor="halal">I need halal food options</Label>
+                  <Label htmlFor="halal" className="text-slate-800 dark:text-slate-200">
+                    I need halal food options
+                  </Label>
                 </div>
               </div>
             </div>
           </div>
         )
 
-      case 6:
+      case 5:
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Your Personalized Program Matches</h2>
-              <p className="text-muted-foreground">
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">
+                Your Personalized Program Matches
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400">
                 We found {matchedPrograms.length} programs ranked by compatibility
               </p>
             </div>
@@ -889,14 +994,16 @@ export default function ProgramConsultationFlow() {
             <div className="space-y-4">
               {matchedPrograms.length === 0 ? (
                 <div className="text-center py-8">
-                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">No perfect matches found with your current criteria.</p>
-                  <div className="space-y-2 text-sm text-muted-foreground">
+                  <AlertCircle className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+                  <p className="text-slate-600 dark:text-slate-400 mb-4">
+                    No perfect matches found with your current criteria.
+                  </p>
+                  <div className="space-y-2 text-sm text-slate-500 dark:text-slate-500">
                     <p>Try adjusting:</p>
                     <ul className="list-disc list-inside space-y-1">
                       <li>Increase your budget or flexibility</li>
                       <li>Consider different fields of study</li>
-                      <li>Expand language or regional preferences</li>
+                      <li>Expand language preferences</li>
                     </ul>
                   </div>
                 </div>
@@ -911,12 +1018,12 @@ export default function ProgramConsultationFlow() {
                     <Card
                       className={`hover:shadow-lg transition-shadow ${
                         program.recommendation === "highly_recommended"
-                          ? "ring-2 ring-green-200 bg-green-50/30"
+                          ? "ring-2 ring-green-200 dark:ring-green-800 bg-green-50/30 dark:bg-green-950/20"
                           : program.recommendation === "recommended"
-                            ? "ring-1 ring-blue-200 bg-blue-50/30"
+                            ? "ring-1 ring-blue-200 dark:ring-blue-800 bg-blue-50/30 dark:bg-blue-950/20"
                             : program.recommendation === "consider"
-                              ? "ring-1 ring-yellow-200 bg-yellow-50/30"
-                              : "ring-1 ring-gray-200"
+                              ? "ring-1 ring-yellow-200 dark:ring-yellow-800 bg-yellow-50/30 dark:bg-yellow-950/20"
+                              : "ring-1 ring-gray-200 dark:ring-gray-700"
                       }`}
                     >
                       <CardContent className="p-6">
@@ -929,27 +1036,27 @@ export default function ProgramConsultationFlow() {
                               }}
                             />
                             <div>
-                              <h3 className="text-xl font-semibold">{program.name}</h3>
-                              <p className="text-muted-foreground">{program.university}</p>
-                              <p className="text-muted-foreground flex items-center">
+                              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">{program.name}</h3>
+                              <p className="text-slate-600 dark:text-slate-400">{program.university}</p>
+                              <p className="text-slate-600 dark:text-slate-400 flex items-center">
                                 <MapPin className="h-4 w-4 mr-1" />
                                 {program.city}, {program.country}
                               </p>
                               <div className="flex items-center mt-1">
                                 {program.recommendation === "highly_recommended" && (
-                                  <Badge className="bg-green-100 text-green-800 text-xs">
+                                  <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 text-xs">
                                     <Trophy className="h-3 w-3 mr-1" />
                                     Top Choice
                                   </Badge>
                                 )}
                                 {program.recommendation === "recommended" && (
-                                  <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                  <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 text-xs">
                                     <TrendingUp className="h-3 w-3 mr-1" />
                                     Recommended
                                   </Badge>
                                 )}
                                 {program.recommendation === "consider" && (
-                                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                                  <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 text-xs">
                                     <Clock className="h-3 w-3 mr-1" />
                                     Consider
                                   </Badge>
@@ -961,12 +1068,12 @@ export default function ProgramConsultationFlow() {
                             <Badge
                               className={`text-lg px-3 py-1 ${
                                 program.matchScore >= 80
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400"
                                   : program.matchScore >= 60
-                                    ? "bg-blue-100 text-blue-800"
+                                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400"
                                     : program.matchScore >= 40
-                                      ? "bg-yellow-100 text-yellow-800"
-                                      : "bg-gray-100 text-gray-800"
+                                      ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400"
+                                      : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400"
                               }`}
                             >
                               {program.matchScore}% Match
@@ -974,23 +1081,25 @@ export default function ProgramConsultationFlow() {
                           </div>
                         </div>
 
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{program.description}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
+                          {program.description}
+                        </p>
 
                         {/* Cost Breakdown */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4 p-3 bg-gray-50 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
                           <div>
-                            <span className="font-medium text-gray-700">Tuition:</span>
-                            <p className="text-gray-900">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Tuition:</span>
+                            <p className="text-gray-900 dark:text-gray-100">
                               €{program.tuition_min?.toLocaleString()} - €{program.tuition_max?.toLocaleString()}
                             </p>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Duration:</span>
-                            <p className="text-gray-900">{program.duration_months} months</p>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Duration:</span>
+                            <p className="text-gray-900 dark:text-gray-100">{program.duration_months} months</p>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700">Language:</span>
-                            <p className="text-gray-900">{program.program_language}</p>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Language:</span>
+                            <p className="text-gray-900 dark:text-gray-100">{program.program_language}</p>
                           </div>
                         </div>
 
@@ -998,7 +1107,7 @@ export default function ProgramConsultationFlow() {
                         <div className="space-y-3">
                           {program.matchReasons.length > 0 && (
                             <div>
-                              <p className="font-medium text-sm text-green-700 mb-2 flex items-center">
+                              <p className="font-medium text-sm text-green-700 dark:text-green-400 mb-2 flex items-center">
                                 <Check className="h-4 w-4 mr-1" />
                                 Why this matches:
                               </p>
@@ -1007,7 +1116,7 @@ export default function ProgramConsultationFlow() {
                                   <Badge
                                     key={i}
                                     variant="outline"
-                                    className="text-xs bg-green-50 text-green-700 border-green-200"
+                                    className="text-xs bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                                   >
                                     {reason}
                                   </Badge>
@@ -1018,7 +1127,7 @@ export default function ProgramConsultationFlow() {
 
                           {program.matchWarnings.length > 0 && (
                             <div>
-                              <p className="font-medium text-sm text-orange-700 mb-2 flex items-center">
+                              <p className="font-medium text-sm text-orange-700 dark:text-orange-400 mb-2 flex items-center">
                                 <AlertCircle className="h-4 w-4 mr-1" />
                                 Things to consider:
                               </p>
@@ -1027,7 +1136,7 @@ export default function ProgramConsultationFlow() {
                                   <Badge
                                     key={i}
                                     variant="outline"
-                                    className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                                    className="text-xs bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800"
                                   >
                                     {warning}
                                   </Badge>
@@ -1038,8 +1147,8 @@ export default function ProgramConsultationFlow() {
                         </div>
 
                         {/* Additional Information */}
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-muted-foreground">
+                        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-600 dark:text-slate-400">
                             <div>
                               <span className="font-medium">Level:</span>
                               <p>{program.study_level}</p>
@@ -1065,9 +1174,9 @@ export default function ProgramConsultationFlow() {
               )}
 
               {matchedPrograms.length > 0 && (
-                <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-900 mb-2">Next Steps:</h3>
-                  <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Next Steps:</h3>
+                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
                     <li>Review the detailed program information and requirements</li>
                     <li>Check language certificate requirements if applicable</li>
                     <li>Contact our consultants for personalized application guidance</li>
@@ -1085,35 +1194,46 @@ export default function ProgramConsultationFlow() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="container max-w-5xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/20 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]" />
+
+      {/* Floating Orbs */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 dark:bg-blue-600/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute top-40 right-10 w-96 h-96 bg-purple-400/20 dark:bg-purple-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
+      <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-pink-400/20 dark:bg-pink-600/20 rounded-full blur-3xl animate-pulse delay-2000" />
+
+      <div className="relative z-10 container max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
-            <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full">
+            <div className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 dark:from-indigo-400 dark:to-purple-500 rounded-full">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            AI-Powered Program Matching
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
+            Program Consultation
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
             Advanced algorithm analyzing your preferences to find your perfect study program
           </p>
         </motion.div>
 
         {/* Progress */}
-        <Card className="mb-8 border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+        <Card className="mb-8 border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center space-x-3">
-                <currentStepInfo.icon className="w-6 h-6 text-indigo-600" />
+                <currentStepInfo.icon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 <div>
-                  <h3 className="font-semibold text-lg">{currentStepInfo.title}</h3>
-                  <p className="text-sm text-muted-foreground">{currentStepInfo.description}</p>
+                  <h3 className="font-semibold text-lg text-slate-900 dark:text-white">{currentStepInfo.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{currentStepInfo.description}</p>
                 </div>
               </div>
-              <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+              <Badge
+                variant="outline"
+                className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+              >
                 Step {currentStep} of {STEPS.length}
               </Badge>
             </div>
@@ -1122,7 +1242,7 @@ export default function ProgramConsultationFlow() {
         </Card>
 
         {/* Main Content */}
-        <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm mb-8">
+        <Card className="border-0 shadow-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm mb-8">
           <CardContent className="p-8">
             <AnimatePresence mode="wait">
               <motion.div
@@ -1139,7 +1259,7 @@ export default function ProgramConsultationFlow() {
         </Card>
 
         {/* Navigation */}
-        {currentStep < 6 && (
+        {currentStep < 5 && (
           <div className="flex justify-between">
             <Button
               variant="outline"
@@ -1154,10 +1274,10 @@ export default function ProgramConsultationFlow() {
             <Button
               onClick={handleNext}
               disabled={!isStepValid() || isProcessing}
-              className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+              className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 dark:from-indigo-400 dark:to-purple-500 dark:hover:from-indigo-500 dark:hover:to-purple-600"
             >
               <span>
-                {isProcessing ? "Analyzing Matches..." : currentStep === 5 ? "Find My Perfect Programs" : "Continue"}
+                {isProcessing ? "Analyzing Matches..." : currentStep === 4 ? "Find My Perfect Programs" : "Continue"}
               </span>
               <ChevronRight className="w-4 h-4" />
             </Button>
@@ -1165,7 +1285,7 @@ export default function ProgramConsultationFlow() {
         )}
 
         {/* Restart Option for Results Page */}
-        {currentStep === 6 && (
+        {currentStep === 5 && (
           <div className="text-center">
             <Button
               variant="outline"
@@ -1175,12 +1295,13 @@ export default function ProgramConsultationFlow() {
                   studyLevel: "",
                   fieldOfStudy: "",
                   subjects: [],
+                  tuitionBudget: 0,
+                  livingCostsBudget: 0,
+                  serviceFeesBudget: 0,
                   totalBudget: 0,
                   budgetFlexibility: "flexible",
-                  includeServiceFees: true,
                   language: "",
                   languageLevel: "intermediate",
-                  regionPreference: [],
                   currentGPA: "",
                   previousEducationCountry: "",
                   hasLanguageCertificate: false,
