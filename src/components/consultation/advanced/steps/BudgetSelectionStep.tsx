@@ -55,7 +55,11 @@ export function BudgetSelectionStep({ data, updateData, onValidation }: BudgetSe
 
   useEffect(() => {
     const total = tuitionBudget + serviceFeesBudget + livingCostsBudget
-    updateData({ totalBudget: total })
+    updateData({
+      totalBudget: total,
+      budgetMin: Math.min(tuitionBudget, serviceFeesBudget, livingCostsBudget),
+      budgetMax: Math.max(tuitionBudget, serviceFeesBudget, livingCostsBudget),
+    })
     onValidation(total > 0)
   }, [tuitionBudget, serviceFeesBudget, livingCostsBudget, updateData, onValidation])
 
@@ -110,10 +114,6 @@ export function BudgetSelectionStep({ data, updateData, onValidation }: BudgetSe
           const serviceFees = destinations.map((d) => d.service_fee).filter(Boolean)
           const applicationFees = destinations.map((d) => d.application_fee).filter(Boolean)
           const visaFees = destinations.map((d) => d.visa_processing_fee).filter(Boolean)
-
-          // Calculate budget intervals as 1/2 of max_tuition + fees
-          const maxTuition = Math.max(...tuitionValues) || 50000
-          const budgetInterval = maxTuition / 2
 
           setBudgetRanges({
             tuitionMin: Math.min(...tuitionValues) || 0,
@@ -377,4 +377,5 @@ export function BudgetSelectionStep({ data, updateData, onValidation }: BudgetSe
     </div>
   )
 }
+
 
