@@ -204,7 +204,7 @@ export default function GuestPrograms() {
         {/* Hero Section */}
         <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white">
           <div className="absolute inset-0 bg-black/20" />
-         <div className="absolute inset-0 bg-[url('https://hips.hearstapps.com/hmg-prod/images/berry-college-historic-campus-at-twilight-royalty-free-image-1652127954.jpg?crop=1xw:0.84415xh\\;center,top&resize=1200:*?height=400&width=800&text=Programs')] bg-cover bg-center opacity-10" />
+         <div className="absolute inset-0 bg-[url('https://hips.hearstapps.com/hmg-prod/images/berry-college-historic-campus-at-twilight-royalty-free-image-1652127954.jpg?crop=1xw:0.84415xh\\;center,top&resize=1200:*?height=400&width=800&text=Programs')] bg-cover bg-center opacity-30" />
 
 
           <div className="relative container mx-auto px-4 py-16 sm:py-24">
