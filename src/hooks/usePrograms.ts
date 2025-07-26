@@ -1,170 +1,196 @@
+"use client"
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from '@/contexts/AuthContext';
-import { getCountryFlagUrl } from '../services/ProgramMatchingService';
-import { ProgramFilterService } from '../services/ProgramFilterService';
-import { ProgramDataProcessor } from '../services/ProgramDataProcessor';
+import { useState, useEffect } from "react"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
-// Define Program type
-export interface Program {
-  id: string;
-  name: string;
-  university: string;
-  country: string;
-  city: string;
-  study_level: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
-  field: string;
-  field_keywords: string[];
-  duration_months: number;
-  program_language: string;
-  secondary_language: string;
-  tuition_min: number;
-  tuition_max: number;
-  living_cost_min: number;
-  living_cost_max: number;
-  description: string;
-  image_url: string;
-  status: "Active" | "Inactive" | "Full" | "Coming Soon";
-  ranking: number;
-  application_deadline: string;
-  scholarship_available: boolean;
-  location?: string; // Added for compatibility with ProgramCard component
-  duration?: string; // Added for compatibility with ProgramCard component
-  matchScore?: number; // Added for compatibility with ProgramCard component
-  isFavorite?: boolean;
-  religious_facilities?: boolean;
-  halal_food_availability?: boolean;
-  bgColorClass?: string; // Added for status-based background color
-  deadlinePassed?: boolean;
-  hasScholarship?: boolean;
-  hasReligiousFacilities?: boolean;
-  hasHalalFood?: boolean;
+interface UsePrograms {
+  limit?: number
+  calculateMatchScores?: boolean
+  searchQuery?: string
+  filters?: {
+    studyLevel?: string
+    country?: string
+    field?: string
+    language?: string
+    budgetMin?: number
+    budgetMax?: number
+  }
 }
 
-export interface ProgramsQueryParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  country?: string;
-  field?: string;
-  level?: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma";
-  language?: string;
-  maxBudget?: number;
-  withScholarship?: boolean;
-  preferences?: any; // User preferences for matching
-  calculateMatchScores?: boolean; // Whether to calculate match scores
+interface Program {
+  id: string
+  name: string
+  university: string
+  country: string
+  city: string
+  study_level: string
+  field: string
+  program_language: string
+  secondary_language?: string
+  duration_months: number
+  tuition_min: number
+  tuition_max: number
+  living_cost_min: number
+  living_cost_max: number
+  application_fee: number
+  visa_fee?: number
+  description: string
+  image_url?: string
+  field_keywords?: string[]
+  scholarship_available: boolean
+  scholarship_amount?: number
+  scholarship_deadline?: string
+  scholarship_requirements?: string
+  scholarship_details?: string
+  admission_requirements: string
+  academic_requirements?: string
+  language_requirement: string
+  language_test?: string
+  language_test_score?: string
+  language_test_exemptions?: string
+  gpa_requirement?: number
+  application_deadline: string
+  application_process?: string
+  religious_facilities: boolean
+  halal_food_availability: boolean
+  housing_availability?: string
+  housing_cost_min?: number
+  housing_cost_max?: number
+  north_african_community_size?: string
+  internship_opportunities: boolean
+  exchange_opportunities: boolean
+  employment_rate?: number
+  ranking?: number
+  success_rate?: number
+  total_places?: number
+  available_places?: number
+  website_url?: string
+  virtual_tour_url?: string
+  video_url?: string
+  advantages?: string
+  status: string
 }
 
-export interface ProgramsData {
-  programs: Program[];
-  totalCount: number;
-  currentPage: number;
-  totalPages: number;
-}
+export function usePrograms(options: UsePrograms = {}) {
+  const [data, setData] = useState<{ programs: Program[] } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
-// For compatibility with other components
-export interface ProgramFilter {
-  studyLevel?: string;
-  location?: string;
-  subjects?: string[];
-  budget?: string;
-  language?: string;
-}
+  useEffect(() => {
+    fetchPrograms()
+  }, [options.limit, options.searchQuery, JSON.stringify(options.filters)])
 
-export const usePrograms = (params: ProgramsQueryParams = {}) => {
-  const { user } = useAuth();
-  const {
-    page = 1,
-    limit = 10,
-    preferences = null,
-    calculateMatchScores = false
-  } = params;
-  
-  return useQuery({
-    queryKey: ['programs', page, limit, params.search, params.country, params.field, params.level, params.language, params.maxBudget, params.withScholarship, preferences ? 'with-preferences' : 'no-preferences'],
-    queryFn: async (): Promise<ProgramsData> => {
-      // Build and execute query using the filter service
-      let query = ProgramFilterService.buildQuery(params);
-      query = ProgramFilterService.applyPagination(query, page, limit);
-      
-      const { data, error, count } = await query;
-      
+  const fetchPrograms = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      let query = supabase
+        .from("programs")
+        .select("*")
+        .eq("status", "Active")
+        .order("ranking", { ascending: true, nullsLast: true })
+
+      // Apply filters
+      if (options.filters) {
+        if (options.filters.studyLevel) {
+          query = query.eq("study_level", options.filters.studyLevel)
+        }
+        if (options.filters.country) {
+          query = query.eq("country", options.filters.country)
+        }
+        if (options.filters.field) {
+          query = query.ilike("field", `%${options.filters.field}%`)
+        }
+        if (options.filters.language) {
+          query = query.ilike("program_language", `%${options.filters.language}%`)
+        }
+        if (options.filters.budgetMin !== undefined) {
+          query = query.gte("tuition_min", options.filters.budgetMin)
+        }
+        if (options.filters.budgetMax !== undefined) {
+          query = query.lte("tuition_max", options.filters.budgetMax)
+        }
+      }
+
+      // Apply search query
+      if (options.searchQuery && options.searchQuery.trim()) {
+        const searchTerm = options.searchQuery.trim()
+        query = query.or(
+          `name.ilike.%${searchTerm}%,university.ilike.%${searchTerm}%,field.ilike.%${searchTerm}%,country.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%,field_keywords.cs.{${searchTerm}}`,
+        )
+      }
+
+      if (options.limit) {
+        query = query.limit(options.limit)
+      }
+
+      const { data: programs, error } = await query
+
       if (error) {
-        console.error('Error fetching programs:', error);
-        throw new Error(error.message);
+        throw error
       }
-      
-      // Calculate total pages
-      const totalCount = count || 0;
-      const totalPages = Math.ceil(totalCount / limit);
-      
-      // Get user favorites if logged in
-      let favorites: string[] = [];
-      if (user) {
-        favorites = await ProgramDataProcessor.getFavorites(user.id);
-      }
-      
-      // Process programs with additional information
-      const processedPrograms = (data || []).map((program) => 
-        ProgramDataProcessor.processProgram(program, favorites, preferences, calculateMatchScores)
-      );
-      
-      // Sort programs if needed
-      const sortedPrograms = ProgramDataProcessor.sortPrograms(
-        processedPrograms, 
-        calculateMatchScores, 
-        preferences
-      );
-      
-      return {
-        programs: sortedPrograms as Program[],
-        totalCount,
-        currentPage: page,
-        totalPages
-      };
-    },
-    staleTime: 1000 * 60 * 5 // 5 minutes
-  });
-};
 
-// Hook to get a single program by ID
-export const useProgram = (id: string) => {
-  const { user } = useAuth();
-  
-  return useQuery({
-    queryKey: ['program', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('programs')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
+      setData({ programs: programs || [] })
+    } catch (err) {
+      console.error("Error fetching programs:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch programs")
+      toast({
+        title: "Error",
+        description: "Failed to load programs. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { data, isLoading, error, refetch: fetchPrograms }
+}
+
+// Hook for fetching a single program
+export function useProgram(id: string) {
+  const [data, setData] = useState<Program | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false)
+      return
+    }
+
+    fetchProgram()
+  }, [id])
+
+  const fetchProgram = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const { data: program, error } = await supabase.from("programs").select("*").eq("id", id).single()
+
       if (error) {
-        throw new Error(error.message);
+        throw error
       }
-      
-      // Check if user has favorited this program
-      let isFavorite = false;
-      if (user) {
-        const { data: favoriteData } = await supabase
-          .from('favorite_programs')
-          .select('program_id')
-          .eq('user_id', user.id)
-          .eq('program_id', id)
-          .single();
-        
-        isFavorite = !!favoriteData;
-      }
-      
-      // Process single program using the data processor
-      const favorites = isFavorite ? [id] : [];
-      const processedProgram = ProgramDataProcessor.processProgram(data, favorites);
-      
-      return { ...processedProgram, isFavorite } as Program & { isFavorite: boolean };
-    },
-    enabled: !!id,
-    staleTime: 1000 * 60 * 5 // 5 minutes
-  });
-};
+
+      setData(program)
+    } catch (err) {
+      console.error("Error fetching program:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch program")
+      toast({
+        title: "Error",
+        description: "Failed to load program details. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { data, isLoading, error, refetch: fetchProgram }
+}
+
