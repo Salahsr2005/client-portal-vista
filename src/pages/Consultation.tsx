@@ -1,9 +1,5 @@
-import ProgramConsultationFlow from "@/components/consultation/ProgramConsultationFlow"
+import UnifiedConsultationFlow from "@/components/consultation/UnifiedConsultationFlow"
 
 export default function Consultation() {
-  return <ProgramConsultationFlow />
+  return <UnifiedConsultationFlow />
 }
-
-
-
-
