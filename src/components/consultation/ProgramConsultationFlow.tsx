@@ -51,6 +51,106 @@ const STEPS = [
   { id: 5, title: "Your Matches", icon: Trophy, description: "Perfect programs for you" },
 ]
 
+// Translations
+const translations = {
+  en: {
+    title: "Program Consultation",
+    subtitle: "Advanced bilingual algorithm analyzing your preferences to find your perfect study program",
+    searchLanguage: "Search Language",
+    studyLevel: "Study Level",
+    fieldOfStudy: "Field of Study",
+    searchPlaceholder: "Search for a field of study...",
+    selected: "Selected",
+    specificSubjects: "Specific Subjects (Optional)",
+    planBudget: "Plan your budget",
+    budgetSubtitle: "Set your budget for different categories to find options that fit your financial plan",
+    totalBudgetOverview: "Total Budget Overview",
+    tuitionFees: "Tuition Fees",
+    livingCosts: "Living Costs",
+    serviceFees: "Service & Application Fees",
+    budgetFlexibility: "Budget Flexibility",
+    strict: "Strict",
+    flexible: "Flexible",
+    veryFlexible: "Very Flexible",
+    stayWithinBudget: "Stay within budget",
+    upTo20Over: "Up to 20% over",
+    upTo50Over: "Up to 50% over",
+    academicProfile: "Academic Profile",
+    academicSubtitle: "Tell us about your academic background and language skills",
+    currentGPA: "Current/Previous GPA Level",
+    previousEducation: "Country of Previous Education",
+    preferredLanguage: "Preferred Study Language",
+    languageProficiency: "Your Language Proficiency Level",
+    languageCertificates: "I have official language certificates",
+    timelinePreferences: "Timeline & Final Preferences",
+    timelineSubtitle: "When do you want to start and what's most important to you?",
+    intakePeriod: "Preferred Intake Period",
+    durationPreference: "Program Duration Preference",
+    applicationUrgency: "Application Urgency",
+    mostImportant: "What's Most Important to You? (Select all that apply)",
+    workWhileStudying: "I want to work while studying",
+    needScholarship: "I need scholarship opportunities",
+    needReligious: "I need religious facilities",
+    needHalal: "I need halal food options",
+    yourMatches: "Your Personalized Program Matches",
+    matchesFound: "We found {count} programs ranked by compatibility with bilingual field matching",
+    nextSteps: "Next Steps:",
+    continue: "Continue",
+    findPrograms: "Find My Perfect Programs",
+    analyzing: "Analyzing Matches...",
+    startNew: "Start New Consultation",
+  },
+  fr: {
+    title: "Consultation de Programme",
+    subtitle: "Algorithme bilingue avancé analysant vos préférences pour trouver votre programme d'études parfait",
+    searchLanguage: "Langue de Recherche",
+    studyLevel: "Niveau d'Études",
+    fieldOfStudy: "Domaine d'Études",
+    searchPlaceholder: "Rechercher un domaine d'études...",
+    selected: "Sélectionné",
+    specificSubjects: "Matières Spécifiques (Optionnel)",
+    planBudget: "Planifiez votre budget",
+    budgetSubtitle:
+      "Définissez votre budget pour différentes catégories pour trouver des options qui correspondent à votre plan financier",
+    totalBudgetOverview: "Aperçu du Budget Total",
+    tuitionFees: "Frais de Scolarité",
+    livingCosts: "Coûts de la Vie",
+    serviceFees: "Frais de Service et de Candidature",
+    budgetFlexibility: "Flexibilité du Budget",
+    strict: "Strict",
+    flexible: "Flexible",
+    veryFlexible: "Très Flexible",
+    stayWithinBudget: "Rester dans le budget",
+    upTo20Over: "Jusqu'à 20% de plus",
+    upTo50Over: "Jusqu'à 50% de plus",
+    academicProfile: "Profil Académique",
+    academicSubtitle: "Parlez-nous de votre parcours académique et de vos compétences linguistiques",
+    currentGPA: "Niveau GPA Actuel/Précédent",
+    previousEducation: "Pays d'Éducation Précédente",
+    preferredLanguage: "Langue d'Études Préférée",
+    languageProficiency: "Votre Niveau de Maîtrise Linguistique",
+    languageCertificates: "J'ai des certificats de langue officiels",
+    timelinePreferences: "Chronologie et Préférences Finales",
+    timelineSubtitle: "Quand voulez-vous commencer et qu'est-ce qui est le plus important pour vous?",
+    intakePeriod: "Période d'Admission Préférée",
+    durationPreference: "Préférence de Durée du Programme",
+    applicationUrgency: "Urgence de la Candidature",
+    mostImportant: "Qu'est-ce qui est le Plus Important pour Vous? (Sélectionnez tout ce qui s'applique)",
+    workWhileStudying: "Je veux travailler pendant mes études",
+    needScholarship: "J'ai besoin d'opportunités de bourses",
+    needReligious: "J'ai besoin d'installations religieuses",
+    needHalal: "J'ai besoin d'options de nourriture halal",
+    yourMatches: "Vos Correspondances de Programmes Personnalisées",
+    matchesFound:
+      "Nous avons trouvé {count} programmes classés par compatibilité avec correspondance de domaine bilingue",
+    nextSteps: "Prochaines Étapes:",
+    continue: "Continuer",
+    findPrograms: "Trouvez Mes Programmes Parfaits",
+    analyzing: "Analyse des Correspondances...",
+    startNew: "Commencer une Nouvelle Consultation",
+  },
+}
+
 export default function ProgramConsultationFlow() {
   const { user } = useAuth()
   const { toast } = useToast()
@@ -88,9 +188,12 @@ export default function ProgramConsultationFlow() {
   const [matchedPrograms, setMatchedPrograms] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // Get translations based on user language
+  const t = translations[consultationData.userLanguage]
+
   // Fetch programs for matching
   const { data: programsData } = usePrograms({
-    limit: 50,
+    limit: 100,
     calculateMatchScores: false,
   })
 
@@ -151,43 +254,38 @@ export default function ProgramConsultationFlow() {
     }
   }
 
-  // Enhanced matching algorithm
+  // Enhanced matching algorithm with search and sorting
   const findMatches = () => {
     if (!programsData?.programs) return []
 
-    const scoredPrograms = programsData.programs.map((program) => {
-      const matchResult = EnhancedProgramMatchingService.calculateEnhancedMatchScore(program, consultationData)
-      return {
-        ...program,
-        matchScore: matchResult.score,
-        matchReasons: matchResult.reasons,
-        matchWarnings: matchResult.warnings,
-        matchDetails: matchResult.details,
-        fieldMatchDetails: matchResult.fieldMatchDetails,
-        recommendation: matchResult.recommendation,
-      }
-    })
+    // First, filter programs by search query if provided
+    let filteredPrograms = programsData.programs
+    if (consultationData.fieldSearchQuery) {
+      filteredPrograms = EnhancedProgramMatchingService.searchPrograms(
+        programsData.programs,
+        consultationData.fieldSearchQuery,
+        consultationData.userLanguage,
+      )
+    }
+
+    // Then sort by relevance using enhanced matching
+    const sortedPrograms = EnhancedProgramMatchingService.sortProgramsByRelevance(filteredPrograms, consultationData)
 
     // Filter programs with minimum score threshold
     const minScoreThreshold = consultationData.budgetFlexibility === "strict" ? 50 : 30
 
-    return scoredPrograms
-      .filter((program) => program.matchScore >= minScoreThreshold)
-      .sort((a, b) => {
-        // Primary sort: programs with exact field matches first
-        if (a.fieldMatchDetails?.matchType === "exact" && b.fieldMatchDetails?.matchType !== "exact") return -1
-        if (b.fieldMatchDetails?.matchType === "exact" && a.fieldMatchDetails?.matchType !== "exact") return 1
-
-        // Secondary sort: recommendation level
-        const recommendationOrder = { highly_recommended: 4, recommended: 3, consider: 2, not_recommended: 1 }
-        const aOrder = recommendationOrder[a.recommendation as keyof typeof recommendationOrder] || 0
-        const bOrder = recommendationOrder[b.recommendation as keyof typeof recommendationOrder] || 0
-
-        if (aOrder !== bOrder) return bOrder - aOrder
-
-        // Tertiary sort: match score
-        return b.matchScore - a.matchScore
-      })
+    return sortedPrograms
+      .filter((program) => program.matchResult.score >= minScoreThreshold)
+      .map((program) => ({
+        ...program,
+        matchScore: program.matchResult.score,
+        matchReasons: program.matchResult.reasons,
+        matchWarnings: program.matchResult.warnings,
+        matchDetails: program.matchResult.details,
+        fieldMatchDetails: program.matchResult.fieldMatchDetails,
+        recommendation: program.matchResult.recommendation,
+      }))
+      .slice(0, 20) // Limit to top 20 matches
   }
 
   const handleNext = async () => {
@@ -272,14 +370,20 @@ export default function ProgramConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">What do you want to study?</h2>
-              <p className="text-slate-600 dark:text-slate-400">Choose your academic level and field of interest</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">
+                {consultationData.userLanguage === "fr" ? "Que voulez-vous étudier?" : "What do you want to study?"}
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400">
+                {consultationData.userLanguage === "fr"
+                  ? "Choisissez votre niveau académique et domaine d'intérêt"
+                  : "Choose your academic level and field of interest"}
+              </p>
             </div>
 
             <div className="max-w-md mx-auto space-y-6">
               {/* Language Selection */}
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Search Language</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.searchLanguage}</Label>
                 <div className="flex gap-2">
                   <Button
                     variant={consultationData.userLanguage === "en" ? "default" : "outline"}
@@ -301,7 +405,7 @@ export default function ProgramConsultationFlow() {
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Study Level</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.studyLevel}</Label>
                 <div className="grid grid-cols-1 gap-3">
                   {["Bachelor", "Master", "PhD"].map((level) => (
                     <Button
@@ -315,9 +419,18 @@ export default function ProgramConsultationFlow() {
                         <div className="text-left">
                           <div className="font-semibold">{level}</div>
                           <div className="text-sm text-muted-foreground">
-                            {level === "Bachelor" && "Undergraduate degree (3-4 years)"}
-                            {level === "Master" && "Graduate degree (1-2 years)"}
-                            {level === "PhD" && "Doctoral degree (3-5 years)"}
+                            {level === "Bachelor" &&
+                              (consultationData.userLanguage === "fr"
+                                ? "Diplôme de premier cycle (3-4 ans)"
+                                : "Undergraduate degree (3-4 years)")}
+                            {level === "Master" &&
+                              (consultationData.userLanguage === "fr"
+                                ? "Diplôme d'études supérieures (1-2 ans)"
+                                : "Graduate degree (1-2 years)")}
+                            {level === "PhD" &&
+                              (consultationData.userLanguage === "fr"
+                                ? "Diplôme de doctorat (3-5 ans)"
+                                : "Doctoral degree (3-5 years)")}
                           </div>
                         </div>
                       </div>
@@ -329,16 +442,12 @@ export default function ProgramConsultationFlow() {
               {/* Enhanced Field Search */}
               <div className="space-y-4 relative">
                 <Label className="text-slate-800 dark:text-slate-200">
-                  Field of Study {consultationData.userLanguage === "fr" ? "(Français)" : "(English)"}
+                  {t.fieldOfStudy} {consultationData.userLanguage === "fr" ? "(Français)" : "(English)"}
                 </Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 h-4 w-4" />
                   <Input
-                    placeholder={
-                      consultationData.userLanguage === "fr"
-                        ? "Rechercher un domaine d'études..."
-                        : "Search for a field of study..."
-                    }
+                    placeholder={t.searchPlaceholder}
                     value={consultationData.fieldSearchQuery}
                     onChange={(e) => handleFieldSearch(e.target.value)}
                     className="pl-10 h-14 text-lg"
@@ -384,7 +493,7 @@ export default function ProgramConsultationFlow() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-blue-900 dark:text-blue-100">
-                          Selected: {consultationData.fieldSearchQuery || consultationData.fieldOfStudy}
+                          {t.selected}: {consultationData.fieldSearchQuery || consultationData.fieldOfStudy}
                         </div>
                         <div className="text-sm text-blue-700 dark:text-blue-300">
                           {BilingualFieldService.getFieldTranslation(consultationData.fieldOfStudy)?.category}
@@ -404,7 +513,7 @@ export default function ProgramConsultationFlow() {
 
               {/* Additional Subjects */}
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Specific Subjects (Optional)</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.specificSubjects}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     "Marketing",
@@ -446,10 +555,8 @@ export default function ProgramConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Plan your budget</h2>
-              <p className="text-slate-600 dark:text-slate-400">
-                Set your budget for different categories to find options that fit your financial plan
-              </p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.planBudget}</h2>
+              <p className="text-slate-600 dark:text-slate-400">{t.budgetSubtitle}</p>
             </div>
 
             {/* Budget Summary */}
@@ -458,7 +565,7 @@ export default function ProgramConsultationFlow() {
                 <div className="text-center mb-6">
                   <div className="flex items-center justify-center space-x-3 mb-4">
                     <Calculator className="w-6 h-6 text-slate-600 dark:text-slate-400" />
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Total Budget Overview</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t.totalBudgetOverview}</h3>
                   </div>
                   <div className="text-4xl font-bold mb-2 text-slate-800 dark:text-slate-100">
                     {formatCurrency(consultationData.totalBudget)}
@@ -471,21 +578,21 @@ export default function ProgramConsultationFlow() {
                     <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                       {formatCurrency(consultationData.tuitionBudget)}
                     </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">Tuition Fees</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.tuitionFees}</div>
                   </div>
                   <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                     <Home className="w-8 h-8 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
                     <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                       {formatCurrency(consultationData.livingCostsBudget)}
                     </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">Living Costs</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.livingCosts}</div>
                   </div>
                   <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                     <CreditCard className="w-8 h-8 mx-auto mb-2 text-green-600 dark:text-green-400" />
                     <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                       {formatCurrency(consultationData.serviceFeesBudget)}
                     </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">Service Fees</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.serviceFees}</div>
                   </div>
                 </div>
               </CardContent>
@@ -500,7 +607,7 @@ export default function ProgramConsultationFlow() {
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
                         <PiggyBank className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-                        Tuition Budget
+                        {t.tuitionFees}
                       </Label>
                       <Badge variant="outline" className="text-sm">
                         {formatCurrency(consultationData.tuitionBudget)}
@@ -529,7 +636,7 @@ export default function ProgramConsultationFlow() {
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
                         <Home className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        Living Costs Budget
+                        {t.livingCosts}
                       </Label>
                       <Badge variant="outline" className="text-sm">
                         {formatCurrency(consultationData.livingCostsBudget)}
@@ -558,7 +665,7 @@ export default function ProgramConsultationFlow() {
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
                         <CreditCard className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                        Service Fees Budget
+                        {t.serviceFees}
                       </Label>
                       <Badge variant="outline" className="text-sm">
                         {formatCurrency(consultationData.serviceFeesBudget)}
@@ -585,13 +692,13 @@ export default function ProgramConsultationFlow() {
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <Label className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                      Budget Flexibility
+                      {t.budgetFlexibility}
                     </Label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
-                        { id: "strict", label: "Strict", desc: "Stay within budget" },
-                        { id: "flexible", label: "Flexible", desc: "Up to 20% over" },
-                        { id: "very_flexible", label: "Very Flexible", desc: "Up to 50% over" },
+                        { id: "strict", label: t.strict, desc: t.stayWithinBudget },
+                        { id: "flexible", label: t.flexible, desc: t.upTo20Over },
+                        { id: "very_flexible", label: t.veryFlexible, desc: t.upTo50Over },
                       ].map((option) => (
                         <Button
                           key={option.id}
@@ -615,70 +722,108 @@ export default function ProgramConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Academic Profile</h2>
-              <p className="text-slate-600 dark:text-slate-400">
-                Tell us about your academic background and language skills
-              </p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.academicProfile}</h2>
+              <p className="text-slate-600 dark:text-slate-400">{t.academicSubtitle}</p>
             </div>
             <div className="max-w-md mx-auto space-y-6">
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Current/Previous GPA Level</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.currentGPA}</Label>
                 <Select
                   value={consultationData.currentGPA}
                   onValueChange={(value) => updateData({ currentGPA: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select your academic performance" />
+                    <SelectValue
+                      placeholder={
+                        consultationData.userLanguage === "fr"
+                          ? "Sélectionnez votre performance académique"
+                          : "Select your academic performance"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low (10-12/20)</SelectItem>
-                    <SelectItem value="intermediate">Intermediate (12-14/20)</SelectItem>
-                    <SelectItem value="high">High (14-20/20)</SelectItem>
+                    <SelectItem value="low">
+                      {consultationData.userLanguage === "fr" ? "Faible (10-12/20)" : "Low (10-12/20)"}
+                    </SelectItem>
+                    <SelectItem value="intermediate">
+                      {consultationData.userLanguage === "fr" ? "Intermédiaire (12-14/20)" : "Intermediate (12-14/20)"}
+                    </SelectItem>
+                    <SelectItem value="high">
+                      {consultationData.userLanguage === "fr" ? "Élevé (14-20/20)" : "High (14-20/20)"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Country of Previous Education</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.previousEducation}</Label>
                 <Select
                   value={consultationData.previousEducationCountry}
                   onValueChange={(value) => updateData({ previousEducationCountry: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select country" />
+                    <SelectValue
+                      placeholder={consultationData.userLanguage === "fr" ? "Sélectionnez le pays" : "Select country"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Algeria">Algeria</SelectItem>
+                    <SelectItem value="Algeria">
+                      {consultationData.userLanguage === "fr" ? "Algérie" : "Algeria"}
+                    </SelectItem>
                     <SelectItem value="France">France</SelectItem>
-                    <SelectItem value="UK">United Kingdom</SelectItem>
-                    <SelectItem value="US">United States</SelectItem>
+                    <SelectItem value="UK">
+                      {consultationData.userLanguage === "fr" ? "Royaume-Uni" : "United Kingdom"}
+                    </SelectItem>
+                    <SelectItem value="US">
+                      {consultationData.userLanguage === "fr" ? "États-Unis" : "United States"}
+                    </SelectItem>
                     <SelectItem value="Canada">Canada</SelectItem>
-                    <SelectItem value="Germany">Germany</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Germany">
+                      {consultationData.userLanguage === "fr" ? "Allemagne" : "Germany"}
+                    </SelectItem>
+                    <SelectItem value="Other">{consultationData.userLanguage === "fr" ? "Autre" : "Other"}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Preferred Study Language</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.preferredLanguage}</Label>
                 <Select value={consultationData.language} onValueChange={(value) => updateData({ language: value })}>
                   <SelectTrigger className="h-14 text-lg">
-                    <SelectValue placeholder="Select language" />
+                    <SelectValue
+                      placeholder={
+                        consultationData.userLanguage === "fr" ? "Sélectionnez la langue" : "Select language"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="English">English</SelectItem>
-                    <SelectItem value="French">French</SelectItem>
-                    <SelectItem value="Dutch">Dutch</SelectItem>
-                    <SelectItem value="German">German</SelectItem>
-                    <SelectItem value="Spanish">Spanish</SelectItem>
-                    <SelectItem value="Italian">Italian</SelectItem>
-                    <SelectItem value="Any">Any Language</SelectItem>
+                    <SelectItem value="English">
+                      {consultationData.userLanguage === "fr" ? "Anglais" : "English"}
+                    </SelectItem>
+                    <SelectItem value="French">
+                      {consultationData.userLanguage === "fr" ? "Français" : "French"}
+                    </SelectItem>
+                    <SelectItem value="Dutch">
+                      {consultationData.userLanguage === "fr" ? "Néerlandais" : "Dutch"}
+                    </SelectItem>
+                    <SelectItem value="German">
+                      {consultationData.userLanguage === "fr" ? "Allemand" : "German"}
+                    </SelectItem>
+                    <SelectItem value="Spanish">
+                      {consultationData.userLanguage === "fr" ? "Espagnol" : "Spanish"}
+                    </SelectItem>
+                    <SelectItem value="Italian">
+                      {consultationData.userLanguage === "fr" ? "Italien" : "Italian"}
+                    </SelectItem>
+                    <SelectItem value="Any">
+                      {consultationData.userLanguage === "fr" ? "Toute langue" : "Any Language"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Your Language Proficiency Level</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.languageProficiency}</Label>
                 <Select
                   value={consultationData.languageLevel}
                   onValueChange={(value: any) => updateData({ languageLevel: value })}
@@ -687,10 +832,18 @@ export default function ProgramConsultationFlow() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                    <SelectItem value="native">Native Speaker</SelectItem>
+                    <SelectItem value="beginner">
+                      {consultationData.userLanguage === "fr" ? "Débutant" : "Beginner"}
+                    </SelectItem>
+                    <SelectItem value="intermediate">
+                      {consultationData.userLanguage === "fr" ? "Intermédiaire" : "Intermediate"}
+                    </SelectItem>
+                    <SelectItem value="advanced">
+                      {consultationData.userLanguage === "fr" ? "Avancé" : "Advanced"}
+                    </SelectItem>
+                    <SelectItem value="native">
+                      {consultationData.userLanguage === "fr" ? "Langue maternelle" : "Native Speaker"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -702,7 +855,7 @@ export default function ProgramConsultationFlow() {
                   onCheckedChange={(checked) => updateData({ hasLanguageCertificate: !!checked })}
                 />
                 <Label htmlFor="language-cert" className="text-slate-800 dark:text-slate-200">
-                  I have official language certificates
+                  {t.languageCertificates}
                 </Label>
               </div>
             </div>
@@ -713,73 +866,126 @@ export default function ProgramConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Timeline & Final Preferences</h2>
-              <p className="text-slate-600 dark:text-slate-400">
-                When do you want to start and what's most important to you?
-              </p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.timelinePreferences}</h2>
+              <p className="text-slate-600 dark:text-slate-400">{t.timelineSubtitle}</p>
             </div>
             <div className="max-w-md mx-auto space-y-6">
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Preferred Intake Period</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.intakePeriod}</Label>
                 <Select
                   value={consultationData.intakePeriod}
                   onValueChange={(value) => updateData({ intakePeriod: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select intake period" />
+                    <SelectValue
+                      placeholder={
+                        consultationData.userLanguage === "fr"
+                          ? "Sélectionnez la période d'admission"
+                          : "Select intake period"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="September">September 2025</SelectItem>
-                    <SelectItem value="January">January 2026</SelectItem>
-                    <SelectItem value="February">February 2026</SelectItem>
-                    <SelectItem value="May">May 2026</SelectItem>
-                    <SelectItem value="Fall">Fall 2025</SelectItem>
-                    <SelectItem value="Any">Flexible / Any Time</SelectItem>
+                    <SelectItem value="September">
+                      {consultationData.userLanguage === "fr" ? "Septembre 2025" : "September 2025"}
+                    </SelectItem>
+                    <SelectItem value="January">
+                      {consultationData.userLanguage === "fr" ? "Janvier 2026" : "January 2026"}
+                    </SelectItem>
+                    <SelectItem value="February">
+                      {consultationData.userLanguage === "fr" ? "Février 2026" : "February 2026"}
+                    </SelectItem>
+                    <SelectItem value="May">
+                      {consultationData.userLanguage === "fr" ? "Mai 2026" : "May 2026"}
+                    </SelectItem>
+                    <SelectItem value="Fall">
+                      {consultationData.userLanguage === "fr" ? "Automne 2025" : "Fall 2025"}
+                    </SelectItem>
+                    <SelectItem value="Any">
+                      {consultationData.userLanguage === "fr" ? "Flexible / N'importe quand" : "Flexible / Any Time"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Program Duration Preference</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.durationPreference}</Label>
                 <Select value={consultationData.duration} onValueChange={(value) => updateData({ duration: value })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select duration preference" />
+                    <SelectValue
+                      placeholder={
+                        consultationData.userLanguage === "fr"
+                          ? "Sélectionnez la préférence de durée"
+                          : "Select duration preference"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="semester">Short-term (semester)</SelectItem>
-                    <SelectItem value="year">1 year</SelectItem>
-                    <SelectItem value="two_years">2 years</SelectItem>
-                    <SelectItem value="full">Full program (3+ years)</SelectItem>
+                    <SelectItem value="semester">
+                      {consultationData.userLanguage === "fr" ? "Court terme (semestre)" : "Short-term (semester)"}
+                    </SelectItem>
+                    <SelectItem value="year">{consultationData.userLanguage === "fr" ? "1 an" : "1 year"}</SelectItem>
+                    <SelectItem value="two_years">
+                      {consultationData.userLanguage === "fr" ? "2 ans" : "2 years"}
+                    </SelectItem>
+                    <SelectItem value="full">
+                      {consultationData.userLanguage === "fr"
+                        ? "Programme complet (3+ ans)"
+                        : "Full program (3+ years)"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Application Urgency</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.applicationUrgency}</Label>
                 <Select value={consultationData.urgency} onValueChange={(value: any) => updateData({ urgency: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="asap">ASAP - Need to apply within 1-2 months</SelectItem>
-                    <SelectItem value="flexible">Flexible - 3-6 months timeline</SelectItem>
-                    <SelectItem value="planning_ahead">Planning Ahead - 6+ months</SelectItem>
+                    <SelectItem value="asap">
+                      {consultationData.userLanguage === "fr"
+                        ? "ASAP - Besoin de postuler dans 1-2 mois"
+                        : "ASAP - Need to apply within 1-2 months"}
+                    </SelectItem>
+                    <SelectItem value="flexible">
+                      {consultationData.userLanguage === "fr"
+                        ? "Flexible - Délai de 3-6 mois"
+                        : "Flexible - 3-6 months timeline"}
+                    </SelectItem>
+                    <SelectItem value="planning_ahead">
+                      {consultationData.userLanguage === "fr"
+                        ? "Planification à l'avance - 6+ mois"
+                        : "Planning Ahead - 6+ months"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">
-                  What's Most Important to You? (Select all that apply)
-                </Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.mostImportant}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: "low_cost", label: "Low Cost" },
-                    { id: "scholarship", label: "Scholarship" },
-                    { id: "quality_education", label: "Education Quality" },
-                    { id: "location", label: "Specific Location" },
-                    { id: "religious_facilities", label: "Religious Facilities" },
-                    { id: "halal_food", label: "Halal Food" },
+                    { id: "low_cost", label: consultationData.userLanguage === "fr" ? "Coût faible" : "Low Cost" },
+                    { id: "scholarship", label: consultationData.userLanguage === "fr" ? "Bourse" : "Scholarship" },
+                    {
+                      id: "quality_education",
+                      label: consultationData.userLanguage === "fr" ? "Qualité de l'éducation" : "Education Quality",
+                    },
+                    {
+                      id: "location",
+                      label: consultationData.userLanguage === "fr" ? "Lieu spécifique" : "Specific Location",
+                    },
+                    {
+                      id: "religious_facilities",
+                      label:
+                        consultationData.userLanguage === "fr" ? "Installations religieuses" : "Religious Facilities",
+                    },
+                    {
+                      id: "halal_food",
+                      label: consultationData.userLanguage === "fr" ? "Nourriture halal" : "Halal Food",
+                    },
                   ].map((factor) => (
                     <Button
                       key={factor.id}
@@ -808,7 +1014,7 @@ export default function ProgramConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ workWhileStudying: !!checked })}
                   />
                   <Label htmlFor="work" className="text-slate-800 dark:text-slate-200">
-                    I want to work while studying
+                    {t.workWhileStudying}
                   </Label>
                 </div>
 
@@ -819,7 +1025,7 @@ export default function ProgramConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ scholarshipRequired: !!checked })}
                   />
                   <Label htmlFor="scholarship" className="text-slate-800 dark:text-slate-200">
-                    I need scholarship opportunities
+                    {t.needScholarship}
                   </Label>
                 </div>
 
@@ -830,7 +1036,7 @@ export default function ProgramConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ religiousFacilities: !!checked })}
                   />
                   <Label htmlFor="religious" className="text-slate-800 dark:text-slate-200">
-                    I need religious facilities
+                    {t.needReligious}
                   </Label>
                 </div>
 
@@ -841,7 +1047,7 @@ export default function ProgramConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ halalFood: !!checked })}
                   />
                   <Label htmlFor="halal" className="text-slate-800 dark:text-slate-200">
-                    I need halal food options
+                    {t.needHalal}
                   </Label>
                 </div>
               </div>
@@ -856,11 +1062,9 @@ export default function ProgramConsultationFlow() {
               <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">
-                Your Personalized Program Matches
-              </h2>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.yourMatches}</h2>
               <p className="text-slate-600 dark:text-slate-400">
-                We found {matchedPrograms.length} programs ranked by compatibility with bilingual field matching
+                {t.matchesFound.replace("{count}", matchedPrograms.length.toString())}
               </p>
             </div>
 
@@ -869,14 +1073,28 @@ export default function ProgramConsultationFlow() {
                 <div className="text-center py-8">
                   <AlertCircle className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-600 dark:text-slate-400 mb-4">
-                    No perfect matches found with your current criteria.
+                    {consultationData.userLanguage === "fr"
+                      ? "Aucune correspondance parfaite trouvée avec vos critères actuels."
+                      : "No perfect matches found with your current criteria."}
                   </p>
                   <div className="space-y-2 text-sm text-slate-500 dark:text-slate-500">
-                    <p>Try adjusting:</p>
+                    <p>{consultationData.userLanguage === "fr" ? "Essayez d'ajuster:" : "Try adjusting:"}</p>
                     <ul className="list-disc list-inside space-y-1">
-                      <li>Increase your budget or flexibility</li>
-                      <li>Consider different fields of study</li>
-                      <li>Expand language preferences</li>
+                      <li>
+                        {consultationData.userLanguage === "fr"
+                          ? "Augmentez votre budget ou flexibilité"
+                          : "Increase your budget or flexibility"}
+                      </li>
+                      <li>
+                        {consultationData.userLanguage === "fr"
+                          ? "Considérez différents domaines d'études"
+                          : "Consider different fields of study"}
+                      </li>
+                      <li>
+                        {consultationData.userLanguage === "fr"
+                          ? "Élargissez les préférences linguistiques"
+                          : "Expand language preferences"}
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -919,25 +1137,27 @@ export default function ProgramConsultationFlow() {
                                 {program.recommendation === "highly_recommended" && (
                                   <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 text-xs">
                                     <Trophy className="h-3 w-3 mr-1" />
-                                    Top Choice
+                                    {consultationData.userLanguage === "fr" ? "Premier Choix" : "Top Choice"}
                                   </Badge>
                                 )}
                                 {program.recommendation === "recommended" && (
                                   <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 text-xs">
                                     <TrendingUp className="h-3 w-3 mr-1" />
-                                    Recommended
+                                    {consultationData.userLanguage === "fr" ? "Recommandé" : "Recommended"}
                                   </Badge>
                                 )}
                                 {program.recommendation === "consider" && (
                                   <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 text-xs">
                                     <Clock className="h-3 w-3 mr-1" />
-                                    Consider
+                                    {consultationData.userLanguage === "fr" ? "À Considérer" : "Consider"}
                                   </Badge>
                                 )}
                                 {program.fieldMatchDetails?.matchType === "exact" && (
                                   <Badge className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 text-xs">
                                     <Languages className="h-3 w-3 mr-1" />
-                                    Exact Field Match
+                                    {consultationData.userLanguage === "fr"
+                                      ? "Correspondance Exacte"
+                                      : "Exact Field Match"}
                                   </Badge>
                                 )}
                               </div>
@@ -955,7 +1175,8 @@ export default function ProgramConsultationFlow() {
                                       : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400"
                               }`}
                             >
-                              {program.matchScore}% Match
+                              {program.matchScore}%{" "}
+                              {consultationData.userLanguage === "fr" ? "Correspondance" : "Match"}
                             </Badge>
                           </div>
                         </div>
@@ -967,17 +1188,25 @@ export default function ProgramConsultationFlow() {
                         {/* Cost Breakdown */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-4 p-3 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-300">Tuition:</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {consultationData.userLanguage === "fr" ? "Frais de scolarité:" : "Tuition:"}
+                            </span>
                             <p className="text-gray-900 dark:text-gray-100">
                               €{program.tuition_min?.toLocaleString()} - €{program.tuition_max?.toLocaleString()}
                             </p>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-300">Duration:</span>
-                            <p className="text-gray-900 dark:text-gray-100">{program.duration_months} months</p>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {consultationData.userLanguage === "fr" ? "Durée:" : "Duration:"}
+                            </span>
+                            <p className="text-gray-900 dark:text-gray-100">
+                              {program.duration_months} {consultationData.userLanguage === "fr" ? "mois" : "months"}
+                            </p>
                           </div>
                           <div>
-                            <span className="font-medium text-gray-700 dark:text-gray-300">Language:</span>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {consultationData.userLanguage === "fr" ? "Langue:" : "Language:"}
+                            </span>
                             <p className="text-gray-900 dark:text-gray-100">{program.program_language}</p>
                           </div>
                         </div>
@@ -988,7 +1217,9 @@ export default function ProgramConsultationFlow() {
                             <div>
                               <p className="font-medium text-sm text-green-700 dark:text-green-400 mb-2 flex items-center">
                                 <Check className="h-4 w-4 mr-1" />
-                                Why this matches:
+                                {consultationData.userLanguage === "fr"
+                                  ? "Pourquoi cela correspond:"
+                                  : "Why this matches:"}
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {program.matchReasons.map((reason: string, i: number) => (
@@ -1008,7 +1239,9 @@ export default function ProgramConsultationFlow() {
                             <div>
                               <p className="font-medium text-sm text-orange-700 dark:text-orange-400 mb-2 flex items-center">
                                 <AlertCircle className="h-4 w-4 mr-1" />
-                                Things to consider:
+                                {consultationData.userLanguage === "fr"
+                                  ? "Points à considérer:"
+                                  : "Things to consider:"}
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {program.matchWarnings.map((warning: string, i: number) => (
@@ -1029,19 +1262,35 @@ export default function ProgramConsultationFlow() {
                         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs text-slate-600 dark:text-slate-400">
                             <div>
-                              <span className="font-medium">Level:</span>
+                              <span className="font-medium">
+                                {consultationData.userLanguage === "fr" ? "Niveau:" : "Level:"}
+                              </span>
                               <p>{program.study_level}</p>
                             </div>
                             <div>
-                              <span className="font-medium">Field:</span>
+                              <span className="font-medium">
+                                {consultationData.userLanguage === "fr" ? "Domaine:" : "Field:"}
+                              </span>
                               <p>{program.field}</p>
                             </div>
                             <div>
-                              <span className="font-medium">Scholarship:</span>
-                              <p>{program.scholarship_available ? "Available" : "Not Available"}</p>
+                              <span className="font-medium">
+                                {consultationData.userLanguage === "fr" ? "Bourse:" : "Scholarship:"}
+                              </span>
+                              <p>
+                                {program.scholarship_available
+                                  ? consultationData.userLanguage === "fr"
+                                    ? "Disponible"
+                                    : "Available"
+                                  : consultationData.userLanguage === "fr"
+                                    ? "Non disponible"
+                                    : "Not Available"}
+                              </p>
                             </div>
                             <div>
-                              <span className="font-medium">Application Fee:</span>
+                              <span className="font-medium">
+                                {consultationData.userLanguage === "fr" ? "Frais de candidature:" : "Application Fee:"}
+                              </span>
                               <p>€{program.application_fee || 0}</p>
                             </div>
                           </div>
@@ -1054,13 +1303,33 @@ export default function ProgramConsultationFlow() {
 
               {matchedPrograms.length > 0 && (
                 <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Next Steps:</h3>
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">{t.nextSteps}</h3>
                   <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-                    <li>Review the detailed program information and requirements</li>
-                    <li>Check language certificate requirements if applicable</li>
-                    <li>Contact our consultants for personalized application guidance</li>
-                    <li>Start preparing required documents for your top choices</li>
-                    <li>Programs with "Exact Field Match" are prioritized based on your bilingual search</li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Examinez les informations détaillées du programme et les exigences"
+                        : "Review the detailed program information and requirements"}
+                    </li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Vérifiez les exigences de certificat de langue si applicable"
+                        : "Check language certificate requirements if applicable"}
+                    </li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Contactez nos consultants pour des conseils personnalisés de candidature"
+                        : "Contact our consultants for personalized application guidance"}
+                    </li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Commencez à préparer les documents requis pour vos meilleurs choix"
+                        : "Start preparing required documents for your top choices"}
+                    </li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Les programmes avec 'Correspondance Exacte' sont priorisés basés sur votre recherche bilingue"
+                        : "Programs with 'Exact Field Match' are prioritized based on your bilingual search"}
+                    </li>
                   </ul>
                 </div>
               )}
@@ -1092,11 +1361,9 @@ export default function ProgramConsultationFlow() {
             </div>
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
-            Program Consultation
+            {t.title}
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Advanced bilingual algorithm analyzing your preferences to find your perfect study program
-          </p>
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">{t.subtitle}</p>
         </motion.div>
 
         {/* Progress */}
@@ -1114,7 +1381,8 @@ export default function ProgramConsultationFlow() {
                 variant="outline"
                 className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
               >
-                Step {currentStep} of {STEPS.length}
+                {consultationData.userLanguage === "fr" ? "Étape" : "Step"} {currentStep}{" "}
+                {consultationData.userLanguage === "fr" ? "de" : "of"} {STEPS.length}
               </Badge>
             </div>
             <Progress value={progress} className="h-2" />
@@ -1148,7 +1416,7 @@ export default function ProgramConsultationFlow() {
               className="flex items-center space-x-2 bg-transparent"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
+              <span>{consultationData.userLanguage === "fr" ? "Précédent" : "Previous"}</span>
             </Button>
 
             <Button
@@ -1156,9 +1424,7 @@ export default function ProgramConsultationFlow() {
               disabled={!isStepValid() || isProcessing}
               className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 dark:from-indigo-400 dark:to-purple-500 dark:hover:from-indigo-500 dark:hover:to-purple-600"
             >
-              <span>
-                {isProcessing ? "Analyzing Matches..." : currentStep === 4 ? "Find My Perfect Programs" : "Continue"}
-              </span>
+              <span>{isProcessing ? t.analyzing : currentStep === 4 ? t.findPrograms : t.continue}</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -1202,7 +1468,7 @@ export default function ProgramConsultationFlow() {
               }}
               className="flex items-center space-x-2"
             >
-              <span>Start New Consultation</span>
+              <span>{t.startNew}</span>
             </Button>
           </div>
         )}
@@ -1210,4 +1476,5 @@ export default function ProgramConsultationFlow() {
     </div>
   )
 }
+
 
