@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next"
 import { GuestModeWrapper } from "@/components/layout/GuestModeWrapper"
 import { usePrograms, type Program } from "@/hooks/usePrograms"
 import { ModernProgramCard } from "@/components/programs/ModernProgramCard"
+import ComparePrograms from "@/components/programs/ComparePrograms"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,7 +16,18 @@ import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Search, Filter, MapPin, BookOpen, Award, X, SlidersHorizontal, ChevronDown, Sparkles } from "lucide-react"
+import {
+  Search,
+  Filter,
+  MapPin,
+  BookOpen,
+  Award,
+  X,
+  SlidersHorizontal,
+  ChevronDown,
+  Sparkles,
+  GitCompare,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -36,6 +48,10 @@ export default function GuestPrograms() {
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState("relevance")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+
+  // Comparison state
+  const [comparePrograms, setComparePrograms] = useState<Program[]>([])
+  const [showComparison, setShowComparison] = useState(false)
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
@@ -125,6 +141,42 @@ export default function GuestPrograms() {
     })
   }
 
+  // Comparison functions
+  const addToComparison = (program: Program) => {
+    if (comparePrograms.length >= 3) {
+      toast({
+        title: "Comparison Limit",
+        description: "You can compare up to 3 programs at a time.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (comparePrograms.find((p) => p.id === program.id)) {
+      toast({
+        title: "Already Added",
+        description: "This program is already in your comparison list.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setComparePrograms((prev) => [...prev, program])
+    toast({
+      title: "Added to Comparison",
+      description: `${program.name} has been added to comparison.`,
+    })
+  }
+
+  const removeFromComparison = (programId: string) => {
+    setComparePrograms((prev) => prev.filter((p) => p.id !== programId))
+  }
+
+  const clearComparison = () => {
+    setComparePrograms([])
+    setShowComparison(false)
+  }
+
   const clearFilters = () => {
     setSearchTerm("")
     setSelectedCountry("")
@@ -196,6 +248,83 @@ export default function GuestPrograms() {
 
         {/* Main Content */}
         <div className="container mx-auto px-4 py-8">
+          {/* Comparison Bar */}
+          <AnimatePresence>
+            {comparePrograms.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mb-6"
+              >
+                <Card className="border-2 border-blue-200 bg-blue-50/50 backdrop-blur-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <GitCompare className="w-5 h-5 text-blue-600" />
+                          <span className="font-medium text-blue-900">
+                            Compare Programs ({comparePrograms.length}/3)
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          {comparePrograms.map((program) => (
+                            <Badge key={program.id} variant="secondary" className="gap-1">
+                              {program.name.substring(0, 20)}...
+                              <X
+                                className="w-3 h-3 cursor-pointer hover:text-red-500"
+                                onClick={() => removeFromComparison(program.id)}
+                              />
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => setShowComparison(true)}
+                          disabled={comparePrograms.length < 2}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Compare Now
+                        </Button>
+                        <Button variant="outline" onClick={clearComparison}>
+                          Clear All
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Comparison Modal */}
+          <AnimatePresence>
+            {showComparison && comparePrograms.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                onClick={() => setShowComparison(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  className="bg-white dark:bg-gray-900 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ComparePrograms
+                    programs={comparePrograms}
+                    onClose={() => setShowComparison(false)}
+                    onRemoveProgram={removeFromComparison}
+                  />
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Search and Filters Bar */}
           <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
             <CardContent className="p-6">
@@ -435,8 +564,23 @@ export default function GuestPrograms() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
+                  className="relative group"
                 >
                   <ModernProgramCard program={program} onViewDetails={handleProgramView} onApply={handleProgramApply} />
+
+                  {/* Compare Button Overlay */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => addToComparison(program)}
+                      disabled={comparePrograms.find((p) => p.id === program.id) !== undefined}
+                      className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-lg"
+                    >
+                      <GitCompare className="w-4 h-4 mr-1" />
+                      {comparePrograms.find((p) => p.id === program.id) ? "Added" : "Compare"}
+                    </Button>
+                  </div>
                 </motion.div>
               ))}
             </motion.div>
@@ -687,5 +831,6 @@ const MobileFilters: React.FC<{
     </div>
   )
 }
+
 
 
