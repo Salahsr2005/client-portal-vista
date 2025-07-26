@@ -90,31 +90,59 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
 
       // Fetch Programs if consultation type is programs
       if (data.consultationType === "programs") {
-        let query = supabase.from("programs").select("*").eq("status", "Active")
+        // Start with a base query - get all active programs first
+        let query = supabase
+          .from("programs")
+          .select("*")
+          .eq("status", "Active")
 
-        // Apply filters based on consultation data
-        if (data.level) {
-          query = query.eq("study_level", data.level)
-        }
-
-        if (data.language) {
-          query = query.eq("program_language", data.language)
-        }
-
-        if (data.totalBudget > 0) {
-          query = query.lte("tuition_min", data.totalBudget)
-        }
-
-        const { data: programs, error: programsError } = await query.limit(20)
+        console.log("Fetching programs with consultation data:", data)
+        
+        const { data: programs, error: programsError } = await query.limit(50)
 
         if (programsError) {
           console.error("Programs error:", programsError)
+          setError("Failed to load programs: " + programsError.message)
         } else if (programs) {
-          const programMatches = programs.map((program: any) => ({
-            ...program,
-            type: "program" as const,
-            match_percentage: calculateProgramMatch(program, data),
-          }))
+          console.log(`Found ${programs.length} active programs`)
+          
+          // Calculate match for each program and filter client-side
+          const programMatches = programs
+            .map((program: any) => ({
+              ...program,
+              type: "program" as const,
+              match_percentage: calculateProgramMatch(program, data),
+            }))
+            .filter((program) => {
+              // Apply hard filters
+              let passes = true
+              
+              // Study level filter (strict)
+              if (data.level && program.study_level) {
+                passes = passes && program.study_level.toLowerCase() === data.level.toLowerCase()
+              }
+              
+              // Language filter (if specified)
+              if (data.language && program.program_language) {
+                passes = passes && program.program_language.toLowerCase().includes(data.language.toLowerCase())
+              }
+              
+              // Budget filter (allow some flexibility)
+              if (data.totalBudget > 0 && program.tuition_min) {
+                const totalCost = program.tuition_min + (program.living_cost_min || 0) * 12
+                const budgetMultiplier = data.budgetFlexibility === "strict" ? 1 : 
+                                      data.budgetFlexibility === "flexible" ? 1.2 : 1.5
+                passes = passes && totalCost <= data.totalBudget * budgetMultiplier
+              }
+              
+              // Only include programs with minimum match percentage
+              passes = passes && program.match_percentage >= 30
+              
+              return passes
+            })
+            .sort((a, b) => b.match_percentage - a.match_percentage)
+
+          console.log(`After filtering: ${programMatches.length} programs match criteria`)
           allMatches = [...allMatches, ...programMatches]
         }
       }
@@ -125,22 +153,27 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
           .from("destinations")
           .select("*")
           .eq("status", "Active")
-          .limit(20)
+          .limit(50)
 
         if (destinationsError) {
           console.error("Destinations error:", destinationsError)
+          setError("Failed to load destinations: " + destinationsError.message)
         } else if (destinations) {
-          const destinationMatches = destinations.map((destination: any) => ({
-            ...destination,
-            type: "destination" as const,
-            match_percentage: calculateDestinationMatch(destination, data),
-          }))
+          console.log(`Found ${destinations.length} active destinations`)
+          
+          const destinationMatches = destinations
+            .map((destination: any) => ({
+              ...destination,
+              type: "destination" as const,
+              match_percentage: calculateDestinationMatch(destination, data),
+            }))
+            .filter((destination) => destination.match_percentage >= 30)
+            .sort((a, b) => b.match_percentage - a.match_percentage)
+
+          console.log(`After filtering: ${destinationMatches.length} destinations match criteria`)
           allMatches = [...allMatches, ...destinationMatches]
         }
       }
-
-      // Sort by match percentage
-      allMatches.sort((a, b) => b.match_percentage - a.match_percentage)
 
       setMatchedItems(allMatches)
     } catch (err) {
@@ -153,80 +186,215 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
 
   const calculateProgramMatch = (program: any, preferences: any): number => {
     let score = 0
-    const maxScore = 100
+    let maxPossibleScore = 0
+    
+    console.log(`Calculating match for program: ${program.name}`)
+    console.log("Program data:", program)
+    console.log("Preferences:", preferences)
 
-    // Study level match (25%)
-    if (program.study_level === preferences.level) score += 25
-
-    // Field match (20%)
-    if (program.field && preferences.field) {
-      if (
-        program.field.toLowerCase().includes(preferences.field.toLowerCase()) ||
-        program.name.toLowerCase().includes(preferences.field.toLowerCase()) ||
-        preferences.fieldKeywords?.some(
-          (keyword: string) =>
-            program.field.toLowerCase().includes(keyword.toLowerCase()) ||
-            program.name.toLowerCase().includes(keyword.toLowerCase()),
-        )
-      ) {
-        score += 20
+    // Study level match (30 points - most important)
+    maxPossibleScore += 30
+    if (program.study_level && preferences.level) {
+      if (program.study_level.toLowerCase() === preferences.level.toLowerCase()) {
+        score += 30
+        console.log("✓ Study level match: +30")
+      } else {
+        console.log("✗ Study level mismatch:", program.study_level, "vs", preferences.level)
       }
     }
 
-    // Language match (20%)
-    if (program.program_language === preferences.language) score += 20
+    // Field/Program name match (25 points)
+    maxPossibleScore += 25
+    if (preferences.field && preferences.fieldKeywords) {
+      const programName = (program.name || "").toLowerCase()
+      const programField = (program.field || "").toLowerCase()
+      const description = (program.description || "").toLowerCase()
+      const searchText = `${programName} ${programField} ${description}`
+      
+      const fieldLower = preferences.field.toLowerCase()
+      let fieldMatch = false
+      
+      // Direct field match
+      if (programField.includes(fieldLower) || programName.includes(fieldLower)) {
+        fieldMatch = true
+        score += 25
+        console.log("✓ Direct field match: +25")
+      }
+      // Keyword match
+      else if (preferences.fieldKeywords.some((keyword: string) => 
+        searchText.includes(keyword.toLowerCase())
+      )) {
+        fieldMatch = true
+        score += 20
+        console.log("✓ Keyword field match: +20")
+      }
+      // Partial match
+      else if (preferences.fieldKeywords.some((keyword: string) => 
+        keyword.length > 4 && searchText.includes(keyword.toLowerCase())
+      )) {
+        fieldMatch = true
+        score += 15
+        console.log("✓ Partial field match: +15")
+      }
+      
+      if (!fieldMatch) {
+        console.log("✗ No field match found")
+      }
+    }
 
-    // Budget match (20%)
-    const totalCost = (program.tuition_min || 0) + (program.living_cost_min || 0) * 12
-    if (preferences.totalBudget >= totalCost) score += 20
-    else if (preferences.totalBudget >= totalCost * 0.8) score += 15
-    else if (preferences.totalBudget >= totalCost * 0.6) score += 10
+    // Language match (20 points)
+    maxPossibleScore += 20
+    if (preferences.language && program.program_language) {
+      const programLang = program.program_language.toLowerCase()
+      const prefLang = preferences.language.toLowerCase()
+      
+      if (programLang === prefLang || programLang.includes(prefLang)) {
+        score += 20
+        console.log("✓ Language match: +20")
+      } else {
+        console.log("✗ Language mismatch:", program.program_language, "vs", preferences.language)
+      }
+    }
 
-    // Special requirements (15%)
-    let specialScore = 15
-    if (preferences.scholarshipRequired && !program.scholarship_available) specialScore -= 5
-    if (preferences.religiousFacilities && !program.religious_facilities) specialScore -= 5
-    if (preferences.halalFood && !program.halal_food_availability) specialScore -= 5
-    score += Math.max(0, specialScore)
+    // Budget compatibility (15 points)
+    maxPossibleScore += 15
+    if (preferences.totalBudget > 0 && program.tuition_min) {
+      const tuitionCost = program.tuition_min || 0
+      const livingCost = (program.living_cost_min || 0) * 12
+      const totalCost = tuitionCost + livingCost
+      
+      console.log("Budget check:", {
+        totalBudget: preferences.totalBudget,
+        tuitionCost,
+        livingCost,
+        totalCost,
+        flexibility: preferences.budgetFlexibility
+      })
+      
+      if (preferences.totalBudget >= totalCost) {
+        score += 15
+        console.log("✓ Perfect budget fit: +15")
+      } else if (preferences.totalBudget >= totalCost * 0.8) {
+        score += 12
+        console.log("✓ Good budget fit: +12")
+      } else if (preferences.totalBudget >= totalCost * 0.6) {
+        score += 8
+        console.log("✓ Acceptable budget fit: +8")
+      } else {
+        console.log("✗ Budget too high")
+      }
+    }
 
-    return Math.min(100, Math.max(0, score))
+    // Special requirements bonus (10 points total)
+    let specialScore = 0
+    const maxSpecialScore = 10
+    
+    // Scholarship requirement
+    if (preferences.scholarshipRequired) {
+      if (program.scholarship_available) {
+        specialScore += 5
+        console.log("✓ Scholarship available: +5")
+      } else {
+        console.log("✗ Scholarship required but not available")
+      }
+    } else {
+      specialScore += 2 // Small bonus for not requiring scholarship
+    }
+    
+    // Religious facilities
+    if (preferences.religiousFacilities) {
+      if (program.religious_facilities) {
+        specialScore += 3
+        console.log("✓ Religious facilities available: +3")
+      }
+    } else {
+      specialScore += 1
+    }
+    
+    // Halal food
+    if (preferences.halalFood) {
+      if (program.halal_food_availability) {
+        specialScore += 2
+        console.log("✓ Halal food available: +2")
+      }
+    } else {
+      specialScore += 1
+    }
+    
+    score += Math.min(specialScore, maxSpecialScore)
+    maxPossibleScore += maxSpecialScore
+
+    // Calculate final percentage
+    const finalScore = maxPossibleScore > 0 ? Math.round((score / maxPossibleScore) * 100) : 0
+    
+    console.log(`Final score: ${score}/${maxPossibleScore} = ${finalScore}%`)
+    console.log("---")
+    
+    return Math.min(100, Math.max(0, finalScore))
   }
 
   const calculateDestinationMatch = (destination: any, preferences: any): number => {
     let score = 0
-    const maxScore = 100
+    let maxPossibleScore = 0
 
-    // Study level availability (25%)
-    if (destination.available_programs?.includes(preferences.level)) score += 25
-
-    // Language match (20%)
-    if (destination.language_requirements?.toLowerCase().includes(preferences.language?.toLowerCase())) {
-      score += 20
+    // Study level availability (25 points)
+    maxPossibleScore += 25
+    if (destination.available_programs && preferences.level) {
+      const availablePrograms = Array.isArray(destination.available_programs) 
+        ? destination.available_programs 
+        : destination.available_programs.split(',').map((p: string) => p.trim())
+      
+      if (availablePrograms.some((prog: string) => 
+        prog.toLowerCase().includes(preferences.level.toLowerCase())
+      )) {
+        score += 25
+      }
     }
 
-    // Budget match (25%)
-    const levelKey = `${preferences.level?.toLowerCase()}_tuition_min`
-    const tuitionMin = destination[levelKey] || 0
-    const totalCost =
-      tuitionMin +
-      (destination.service_fee || 0) +
-      (destination.application_fee || 0) +
-      (destination.visa_processing_fee || 0)
+    // Language compatibility (20 points)
+    maxPossibleScore += 20
+    if (destination.language_requirements && preferences.language) {
+      if (destination.language_requirements.toLowerCase().includes(preferences.language.toLowerCase())) {
+        score += 20
+      }
+    }
 
-    if (preferences.totalBudget >= totalCost) score += 25
-    else if (preferences.totalBudget >= totalCost * 0.8) score += 20
-    else if (preferences.totalBudget >= totalCost * 0.6) score += 15
+    // Budget compatibility (25 points)
+    maxPossibleScore += 25
+    if (preferences.totalBudget > 0 && preferences.level) {
+      const levelKey = `${preferences.level.toLowerCase()}_tuition_min`
+      const tuitionMin = destination[levelKey] || 0
+      const totalCost = tuitionMin + 
+                       (destination.service_fee || 0) + 
+                       (destination.application_fee || 0) + 
+                       (destination.visa_processing_fee || 0)
 
-    // Country preference (15%)
-    if (preferences.countryPreference?.length === 0 || preferences.countryPreference?.includes(destination.country)) {
+      if (preferences.totalBudget >= totalCost) {
+        score += 25
+      } else if (preferences.totalBudget >= totalCost * 0.8) {
+        score += 20
+      } else if (preferences.totalBudget >= totalCost * 0.6) {
+        score += 15
+      }
+    }
+
+    // Country preference (15 points)
+    maxPossibleScore += 15
+    if (!preferences.countryPreference || preferences.countryPreference.length === 0) {
+      score += 10 // No specific preference
+    } else if (preferences.countryPreference.includes(destination.country)) {
       score += 15
     }
 
-    // Success rates (15%)
-    const avgSuccessRate = ((destination.admission_success_rate || 0) + (destination.visa_success_rate || 0)) / 2
-    score += (avgSuccessRate / 100) * 15
+    // Success rates (15 points)
+    maxPossibleScore += 15
+    const admissionRate = destination.admission_success_rate || 0
+    const visaRate = destination.visa_success_rate || 0
+    const avgSuccessRate = (admissionRate + visaRate) / 2
+    score += Math.round((avgSuccessRate / 100) * 15)
 
-    return Math.min(100, Math.max(0, score))
+    const finalScore = maxPossibleScore > 0 ? Math.round((score / maxPossibleScore) * 100) : 0
+    return Math.min(100, Math.max(0, finalScore))
   }
 
   const getMatchColor = (percentage: number) => {
@@ -322,13 +490,19 @@ export function UnifiedResultsStep({ data, updateData, onValidation }: UnifiedRe
             : data.consultationType === "destinations"
               ? "destinations"
               : "items"}{" "}
-          that exactly match your requirements. Consider adjusting your preferences or exploring alternative options.
+          that exactly match your requirements. Try adjusting your preferences for more results.
         </p>
         <div className="space-y-3">
           <Button variant="outline" onClick={() => window.history.back()}>
             Adjust Preferences
           </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">Browse All Options</Button>
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => {
+            // Reset some filters and try again
+            updateData({ budgetFlexibility: "very_flexible" })
+            fetchMatchedItems()
+          }}>
+            Show More Flexible Results
+          </Button>
         </div>
       </div>
     )
