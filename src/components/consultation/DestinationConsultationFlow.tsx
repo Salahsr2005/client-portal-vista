@@ -11,18 +11,20 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
 import {
+  MapPin,
   DollarSign,
   Settings,
   Trophy,
   ChevronRight,
   ChevronLeft,
   Sparkles,
-  Globe,
   Check,
   AlertCircle,
   TrendingUp,
   Clock,
   FileText,
+  GraduationCap,
+  Languages,
   PiggyBank,
   CreditCard,
   Home,
@@ -33,17 +35,116 @@ import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/hooks/use-toast"
 import { useGuestRestrictions } from "@/components/layout/GuestModeWrapper"
+import { DestinationMatchingService } from "@/services/DestinationMatchingService"
 
 const STEPS = [
-  { id: 1, title: "Study Level", icon: Globe, description: "Choose your academic level" },
+  {
+    id: 1,
+    title: "Study Level & Country",
+    icon: MapPin,
+    description: "Choose your academic level and preferred destination",
+  },
   { id: 2, title: "Budget Planning", icon: DollarSign, description: "Set your financial preferences" },
-  { id: 3, title: "Language & Timeline", icon: FileText, description: "Language and timeline preferences" },
-  { id: 4, title: "Personal Preferences", icon: Settings, description: "Additional requirements" },
+  { id: 3, title: "Academic Profile", icon: FileText, description: "Your academic background" },
+  { id: 4, title: "Timeline & Preferences", icon: Settings, description: "Timeline and additional requirements" },
   { id: 5, title: "Your Matches", icon: Trophy, description: "Perfect destinations for you" },
 ]
 
+// Translations
+const translations = {
+  en: {
+    title: "Destination Consultation",
+    subtitle: "Find your perfect study destination with our advanced matching algorithm",
+    studyLevel: "Study Level",
+    preferredCountry: "Preferred Country",
+    anyCountry: "Any Country",
+    planBudget: "Plan your budget",
+    budgetSubtitle: "Set your budget for different categories to find destinations that fit your financial plan",
+    totalBudgetOverview: "Total Budget Overview",
+    tuitionFees: "Tuition Fees",
+    livingCosts: "Living Costs",
+    serviceFees: "Service & Application Fees",
+    budgetFlexibility: "Budget Flexibility",
+    strict: "Strict",
+    flexible: "Flexible",
+    veryFlexible: "Very Flexible",
+    stayWithinBudget: "Stay within budget",
+    upTo20Over: "Up to 20% over",
+    upTo50Over: "Up to 50% over",
+    academicProfile: "Academic Profile",
+    academicSubtitle: "Tell us about your academic background and language skills",
+    currentGPA: "Current/Previous GPA Level",
+    previousEducation: "Country of Previous Education",
+    preferredLanguage: "Preferred Study Language",
+    languageProficiency: "Your Language Proficiency Level",
+    languageCertificates: "I have official language certificates",
+    timelinePreferences: "Timeline & Final Preferences",
+    timelineSubtitle: "When do you want to start and what's most important to you?",
+    intakePeriod: "Preferred Intake Period",
+    applicationUrgency: "Application Urgency",
+    mostImportant: "What's Most Important to You? (Select all that apply)",
+    workWhileStudying: "I want to work while studying",
+    needScholarship: "I need scholarship opportunities",
+    needReligious: "I need religious facilities",
+    needHalal: "I need halal food options",
+    yourMatches: "Your Personalized Destination Matches",
+    matchesFound: "We found {count} destinations ranked by compatibility",
+    nextSteps: "Next Steps:",
+    continue: "Continue",
+    findDestinations: "Find My Perfect Destinations",
+    analyzing: "Analyzing Matches...",
+    startNew: "Start New Consultation",
+  },
+  fr: {
+    title: "Consultation de Destination",
+    subtitle: "Trouvez votre destination d'études parfaite avec notre algorithme de correspondance avancé",
+    studyLevel: "Niveau d'Études",
+    preferredCountry: "Pays Préféré",
+    anyCountry: "N'importe quel Pays",
+    planBudget: "Planifiez votre budget",
+    budgetSubtitle:
+      "Définissez votre budget pour différentes catégories pour trouver des destinations qui correspondent à votre plan financier",
+    totalBudgetOverview: "Aperçu du Budget Total",
+    tuitionFees: "Frais de Scolarité",
+    livingCosts: "Coûts de la Vie",
+    serviceFees: "Frais de Service et de Candidature",
+    budgetFlexibility: "Flexibilité du Budget",
+    strict: "Strict",
+    flexible: "Flexible",
+    veryFlexible: "Très Flexible",
+    stayWithinBudget: "Rester dans le budget",
+    upTo20Over: "Jusqu'à 20% de plus",
+    upTo50Over: "Jusqu'à 50% de plus",
+    academicProfile: "Profil Académique",
+    academicSubtitle: "Parlez-nous de votre parcours académique et de vos compétences linguistiques",
+    currentGPA: "Niveau GPA Actuel/Précédent",
+    previousEducation: "Pays d'Éducation Précédente",
+    preferredLanguage: "Langue d'Études Préférée",
+    languageProficiency: "Votre Niveau de Maîtrise Linguistique",
+    languageCertificates: "J'ai des certificats de langue officiels",
+    timelinePreferences: "Chronologie et Préférences Finales",
+    timelineSubtitle: "Quand voulez-vous commencer et qu'est-ce qui est le plus important pour vous?",
+    intakePeriod: "Période d'Admission Préférée",
+    applicationUrgency: "Urgence de la Candidature",
+    mostImportant: "Qu'est-ce qui est le Plus Important pour Vous? (Sélectionnez tout ce qui s'applique)",
+    workWhileStudying: "Je veux travailler pendant mes études",
+    needScholarship: "J'ai besoin d'opportunités de bourses",
+    needReligious: "J'ai besoin d'installations religieuses",
+    needHalal: "J'ai besoin d'options de nourriture halal",
+    yourMatches: "Vos Correspondances de Destinations Personnalisées",
+    matchesFound: "Nous avons trouvé {count} destinations classées par compatibilité",
+    nextSteps: "Prochaines Étapes:",
+    continue: "Continuer",
+    findDestinations: "Trouvez Mes Destinations Parfaites",
+    analyzing: "Analyse des Correspondances...",
+    startNew: "Commencer une Nouvelle Consultation",
+  },
+}
+
 interface DestinationConsultationData {
   studyLevel: string
+  preferredCountry: string
+  userLanguage: "en" | "fr"
   tuitionBudget: number
   livingCostsBudget: number
   serviceFeesBudget: number
@@ -51,6 +152,9 @@ interface DestinationConsultationData {
   budgetFlexibility: "strict" | "flexible" | "very_flexible"
   language: string
   languageLevel: "beginner" | "intermediate" | "advanced" | "native"
+  currentGPA: string
+  previousEducationCountry: string
+  hasLanguageCertificate: boolean
   intakePeriod: string
   urgency: "asap" | "flexible" | "planning_ahead"
   workWhileStudying: boolean
@@ -58,123 +162,6 @@ interface DestinationConsultationData {
   religiousFacilities: boolean
   halalFood: boolean
   priorityFactors: string[]
-}
-
-// Enhanced matching algorithm for destinations (removed field matching)
-const calculateDestinationMatchScore = (destination: any, consultationData: DestinationConsultationData) => {
-  let totalScore = 0
-  let maxPossibleScore = 0
-  const reasons: string[] = []
-  const warnings: string[] = []
-
-  // 1. Study Level match (30% weight - increased from 20%)
-  const levelWeight = 30
-  maxPossibleScore += levelWeight
-
-  const levelPrefix = consultationData.studyLevel?.toLowerCase() || "bachelor"
-  const tuitionMinKey = `${levelPrefix}_tuition_min`
-  const tuitionMaxKey = `${levelPrefix}_tuition_max`
-
-  if (destination[tuitionMinKey] && destination[tuitionMaxKey]) {
-    totalScore += levelWeight
-    reasons.push(`${consultationData.studyLevel} programs available`)
-  } else {
-    warnings.push(`Limited ${consultationData.studyLevel} program information`)
-  }
-
-  // 2. Budget Analysis (35% weight - increased from 30%)
-  const budgetWeight = 35
-  maxPossibleScore += budgetWeight
-
-  const tuitionMin = destination[tuitionMinKey] || 0
-  const tuitionMax = destination[tuitionMaxKey] || 0
-  const serviceFee = destination.service_fee || 0
-  const applicationFee = destination.application_fee || 0
-  const visaFee = destination.visa_processing_fee || 0
-  const totalFees = serviceFee + applicationFee + visaFee
-
-  const totalMinCost = tuitionMin + (consultationData.livingCostsBudget || 0) + totalFees
-  const totalMaxCost = tuitionMax + (consultationData.livingCostsBudget || 0) + totalFees
-
-  if (consultationData.totalBudget >= totalMaxCost) {
-    totalScore += budgetWeight
-    reasons.push(`Comfortably within budget`)
-  } else if (consultationData.totalBudget >= totalMinCost) {
-    const budgetRatio = (consultationData.totalBudget - totalMinCost) / (totalMaxCost - totalMinCost)
-    totalScore += budgetWeight * (0.5 + budgetRatio * 0.5)
-    reasons.push(`Within budget range`)
-  } else {
-    const shortfall = totalMinCost - consultationData.totalBudget
-    if (consultationData.budgetFlexibility === "very_flexible" && shortfall <= consultationData.totalBudget * 0.2) {
-      totalScore += budgetWeight * 0.3
-      warnings.push(`Budget shortfall but marked as flexible`)
-    } else {
-      warnings.push(`May exceed budget`)
-    }
-  }
-
-  // 3. Language Requirements (20% weight - same as before)
-  const languageWeight = 20
-  maxPossibleScore += languageWeight
-
-  const userLanguage = consultationData.language?.toLowerCase() || ""
-  const destinationLanguages = destination.languages_spoken?.map((l: string) => l.toLowerCase()) || []
-
-  if (
-    userLanguage === "any" ||
-    destinationLanguages.includes(userLanguage) ||
-    destinationLanguages.includes("english")
-  ) {
-    const proficiencyMultiplier =
-      {
-        native: 1.0,
-        advanced: 0.9,
-        intermediate: 0.8,
-        beginner: 0.6,
-      }[consultationData.languageLevel] || 0.8
-
-    totalScore += languageWeight * proficiencyMultiplier
-    reasons.push(`Language compatible`)
-  } else {
-    warnings.push("Language requirements may not match")
-  }
-
-  // 4. Special Requirements (15% weight - same as before)
-  const specialWeight = 15
-  maxPossibleScore += specialWeight
-
-  let specialScore = 0
-  if (consultationData.scholarshipRequired && destination.scholarship_opportunities) {
-    specialScore += 5
-    reasons.push("Scholarship opportunities available")
-  }
-  if (consultationData.religiousFacilities && destination.religious_facilities) {
-    specialScore += 5
-    reasons.push("Religious facilities available")
-  }
-  if (consultationData.halalFood && destination.halal_food_availability) {
-    specialScore += 5
-    reasons.push("Halal food available")
-  }
-
-  totalScore += Math.min(specialWeight, specialScore)
-
-  // Calculate final percentage score
-  const finalScore = Math.min(100, Math.round((totalScore / maxPossibleScore) * 100))
-
-  return {
-    score: finalScore,
-    reasons,
-    warnings,
-    recommendation:
-      finalScore >= 80
-        ? "highly_recommended"
-        : finalScore >= 60
-          ? "recommended"
-          : finalScore >= 40
-            ? "consider"
-            : "not_recommended",
-  }
 }
 
 export default function DestinationConsultationFlow() {
@@ -185,6 +172,8 @@ export default function DestinationConsultationFlow() {
   const [currentStep, setCurrentStep] = useState(1)
   const [consultationData, setConsultationData] = useState<DestinationConsultationData>({
     studyLevel: "",
+    preferredCountry: "",
+    userLanguage: "en",
     tuitionBudget: 0,
     livingCostsBudget: 0,
     serviceFeesBudget: 0,
@@ -192,6 +181,9 @@ export default function DestinationConsultationFlow() {
     budgetFlexibility: "flexible",
     language: "",
     languageLevel: "intermediate",
+    currentGPA: "",
+    previousEducationCountry: "",
+    hasLanguageCertificate: false,
     intakePeriod: "",
     urgency: "flexible",
     workWhileStudying: false,
@@ -200,8 +192,12 @@ export default function DestinationConsultationFlow() {
     halalFood: false,
     priorityFactors: [],
   })
+
   const [matchedDestinations, setMatchedDestinations] = useState<any[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Get translations based on user language
+  const t = translations[consultationData.userLanguage]
 
   // Fetch destinations for matching
   const { data: destinationsData } = useDestinations({
@@ -234,40 +230,47 @@ export default function DestinationConsultationFlow() {
       case 2:
         return consultationData.totalBudget > 0
       case 3:
-        return !!consultationData.language && !!consultationData.intakePeriod
+        return !!consultationData.currentGPA
       case 4:
-        return true // Optional preferences
+        return !!consultationData.intakePeriod
       default:
         return true
     }
   }
 
+  // Enhanced matching algorithm for destinations
   const findMatches = () => {
     if (!destinationsData?.destinations) return []
 
     const scoredDestinations = destinationsData.destinations.map((destination) => {
-      const matchResult = calculateDestinationMatchScore(destination, consultationData)
+      const matchResult = DestinationMatchingService.calculateMatchScore(destination, consultationData)
       return {
         ...destination,
         matchScore: matchResult.score,
         matchReasons: matchResult.reasons,
         matchWarnings: matchResult.warnings,
+        matchDetails: matchResult.details,
         recommendation: matchResult.recommendation,
       }
     })
 
+    // Filter destinations with minimum score threshold
     const minScoreThreshold = consultationData.budgetFlexibility === "strict" ? 50 : 30
 
     return scoredDestinations
       .filter((destination) => destination.matchScore >= minScoreThreshold)
       .sort((a, b) => {
+        // Primary sort: recommendation level
         const recommendationOrder = { highly_recommended: 4, recommended: 3, consider: 2, not_recommended: 1 }
         const aOrder = recommendationOrder[a.recommendation as keyof typeof recommendationOrder] || 0
         const bOrder = recommendationOrder[b.recommendation as keyof typeof recommendationOrder] || 0
 
         if (aOrder !== bOrder) return bOrder - aOrder
+
+        // Secondary sort: match score
         return b.matchScore - a.matchScore
       })
+      .slice(0, 15) // Limit to top 15 matches
   }
 
   const handleNext = async () => {
@@ -279,12 +282,14 @@ export default function DestinationConsultationFlow() {
         const matches = findMatches()
         setMatchedDestinations(matches)
 
+        // Save to database
         if (user && !isRestricted) {
           await supabase.from("consultation_results").insert({
             user_id: user.id,
             study_level: consultationData.studyLevel as any,
             budget: consultationData.totalBudget,
             language_preference: consultationData.language,
+            destination_preference: consultationData.preferredCountry,
             matched_programs: matches.map((m) => ({
               destination_id: m.id,
               name: m.name,
@@ -295,11 +300,18 @@ export default function DestinationConsultationFlow() {
               recommendation: m.recommendation,
             })),
             preferences_data: consultationData as any,
+            work_while_studying: consultationData.workWhileStudying,
+            scholarship_required: consultationData.scholarshipRequired,
           })
 
           toast({
             title: "Consultation Complete",
             description: `Found ${matches.length} matching destinations!`,
+          })
+        } else if (isRestricted) {
+          toast({
+            title: "Consultation Complete",
+            description: `Found ${matches.length} matching destinations! Sign up to save your results.`,
           })
         }
 
@@ -339,14 +351,43 @@ export default function DestinationConsultationFlow() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">
-                What level do you want to study?
+                {consultationData.userLanguage === "fr" ? "Où voulez-vous étudier?" : "Where do you want to study?"}
               </h2>
-              <p className="text-slate-600 dark:text-slate-400">Choose your academic level</p>
+              <p className="text-slate-600 dark:text-slate-400">
+                {consultationData.userLanguage === "fr"
+                  ? "Choisissez votre niveau académique et destination préférée"
+                  : "Choose your academic level and preferred destination"}
+              </p>
             </div>
 
             <div className="max-w-md mx-auto space-y-6">
+              {/* Language Selection */}
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Study Level</Label>
+                <Label className="text-slate-800 dark:text-slate-200">
+                  {consultationData.userLanguage === "fr" ? "Langue de Recherche" : "Search Language"}
+                </Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant={consultationData.userLanguage === "en" ? "default" : "outline"}
+                    onClick={() => updateData({ userLanguage: "en" })}
+                    className="flex-1"
+                  >
+                    <Languages className="h-4 w-4 mr-2" />
+                    English
+                  </Button>
+                  <Button
+                    variant={consultationData.userLanguage === "fr" ? "default" : "outline"}
+                    onClick={() => updateData({ userLanguage: "fr" })}
+                    className="flex-1"
+                  >
+                    <Languages className="h-4 w-4 mr-2" />
+                    Français
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">{t.studyLevel}</Label>
                 <div className="grid grid-cols-1 gap-3">
                   {["Bachelor", "Master", "PhD"].map((level) => (
                     <Button
@@ -356,19 +397,67 @@ export default function DestinationConsultationFlow() {
                       className="h-16 text-lg justify-start"
                     >
                       <div className="flex items-center">
-                        <Globe className="h-6 w-6 mr-3" />
+                        <GraduationCap className="h-6 w-6 mr-3" />
                         <div className="text-left">
                           <div className="font-semibold">{level}</div>
                           <div className="text-sm text-muted-foreground">
-                            {level === "Bachelor" && "Undergraduate degree (3-4 years)"}
-                            {level === "Master" && "Graduate degree (1-2 years)"}
-                            {level === "PhD" && "Doctoral degree (3-5 years)"}
+                            {level === "Bachelor" &&
+                              (consultationData.userLanguage === "fr"
+                                ? "Diplôme de premier cycle (3-4 ans)"
+                                : "Undergraduate degree (3-4 years)")}
+                            {level === "Master" &&
+                              (consultationData.userLanguage === "fr"
+                                ? "Diplôme d'études supérieures (1-2 ans)"
+                                : "Graduate degree (1-2 years)")}
+                            {level === "PhD" &&
+                              (consultationData.userLanguage === "fr"
+                                ? "Diplôme de doctorat (3-5 ans)"
+                                : "Doctoral degree (3-5 years)")}
                           </div>
                         </div>
                       </div>
                     </Button>
                   ))}
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">{t.preferredCountry}</Label>
+                <Select
+                  value={consultationData.preferredCountry}
+                  onValueChange={(value) => updateData({ preferredCountry: value })}
+                >
+                  <SelectTrigger className="h-14 text-lg">
+                    <SelectValue
+                      placeholder={consultationData.userLanguage === "fr" ? "Sélectionnez un pays" : "Select a country"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="France">France</SelectItem>
+                    <SelectItem value="Germany">
+                      {consultationData.userLanguage === "fr" ? "Allemagne" : "Germany"}
+                    </SelectItem>
+                    <SelectItem value="Spain">
+                      {consultationData.userLanguage === "fr" ? "Espagne" : "Spain"}
+                    </SelectItem>
+                    <SelectItem value="Italy">{consultationData.userLanguage === "fr" ? "Italie" : "Italy"}</SelectItem>
+                    <SelectItem value="Poland">
+                      {consultationData.userLanguage === "fr" ? "Pologne" : "Poland"}
+                    </SelectItem>
+                    <SelectItem value="Belgium">
+                      {consultationData.userLanguage === "fr" ? "Belgique" : "Belgium"}
+                    </SelectItem>
+                    <SelectItem value="Netherlands">
+                      {consultationData.userLanguage === "fr" ? "Pays-Bas" : "Netherlands"}
+                    </SelectItem>
+                    <SelectItem value="Sweden">
+                      {consultationData.userLanguage === "fr" ? "Suède" : "Sweden"}
+                    </SelectItem>
+                    <SelectItem value="Norway">
+                      {consultationData.userLanguage === "fr" ? "Norvège" : "Norway"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -378,10 +467,8 @@ export default function DestinationConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Plan your budget</h2>
-              <p className="text-slate-600 dark:text-slate-400">
-                Set your budget for different categories to find options that fit your financial plan
-              </p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.planBudget}</h2>
+              <p className="text-slate-600 dark:text-slate-400">{t.budgetSubtitle}</p>
             </div>
 
             {/* Budget Summary */}
@@ -390,7 +477,7 @@ export default function DestinationConsultationFlow() {
                 <div className="text-center mb-6">
                   <div className="flex items-center justify-center space-x-3 mb-4">
                     <Calculator className="w-6 h-6 text-slate-600 dark:text-slate-400" />
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Total Budget Overview</h3>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t.totalBudgetOverview}</h3>
                   </div>
                   <div className="text-4xl font-bold mb-2 text-slate-800 dark:text-slate-100">
                     {formatCurrency(consultationData.totalBudget)}
@@ -403,21 +490,21 @@ export default function DestinationConsultationFlow() {
                     <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                       {formatCurrency(consultationData.tuitionBudget)}
                     </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">Tuition Fees</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.tuitionFees}</div>
                   </div>
                   <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                     <Home className="w-8 h-8 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
                     <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                       {formatCurrency(consultationData.livingCostsBudget)}
                     </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">Living Costs</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.livingCosts}</div>
                   </div>
                   <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                     <CreditCard className="w-8 h-8 mx-auto mb-2 text-green-600 dark:text-green-400" />
                     <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
                       {formatCurrency(consultationData.serviceFeesBudget)}
                     </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">Service Fees</div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.serviceFees}</div>
                   </div>
                 </div>
               </CardContent>
@@ -432,7 +519,7 @@ export default function DestinationConsultationFlow() {
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
                         <PiggyBank className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
-                        Tuition Budget
+                        {t.tuitionFees}
                       </Label>
                       <Badge variant="outline" className="text-sm">
                         {formatCurrency(consultationData.tuitionBudget)}
@@ -461,7 +548,7 @@ export default function DestinationConsultationFlow() {
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
                         <Home className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        Living Costs Budget
+                        {t.livingCosts}
                       </Label>
                       <Badge variant="outline" className="text-sm">
                         {formatCurrency(consultationData.livingCostsBudget)}
@@ -490,7 +577,7 @@ export default function DestinationConsultationFlow() {
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
                         <CreditCard className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
-                        Service Fees Budget
+                        {t.serviceFees}
                       </Label>
                       <Badge variant="outline" className="text-sm">
                         {formatCurrency(consultationData.serviceFeesBudget)}
@@ -517,13 +604,13 @@ export default function DestinationConsultationFlow() {
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <Label className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                      Budget Flexibility
+                      {t.budgetFlexibility}
                     </Label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       {[
-                        { id: "strict", label: "Strict", desc: "Stay within budget" },
-                        { id: "flexible", label: "Flexible", desc: "Up to 20% over" },
-                        { id: "very_flexible", label: "Very Flexible", desc: "Up to 50% over" },
+                        { id: "strict", label: t.strict, desc: t.stayWithinBudget },
+                        { id: "flexible", label: t.flexible, desc: t.upTo20Over },
+                        { id: "very_flexible", label: t.veryFlexible, desc: t.upTo50Over },
                       ].map((option) => (
                         <Button
                           key={option.id}
@@ -547,30 +634,108 @@ export default function DestinationConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Language & Timeline</h2>
-              <p className="text-slate-600 dark:text-slate-400">Tell us about your language skills and timeline</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.academicProfile}</h2>
+              <p className="text-slate-600 dark:text-slate-400">{t.academicSubtitle}</p>
             </div>
             <div className="max-w-md mx-auto space-y-6">
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Preferred Study Language</Label>
-                <Select value={consultationData.language} onValueChange={(value) => updateData({ language: value })}>
-                  <SelectTrigger className="h-14 text-lg">
-                    <SelectValue placeholder="Select language" />
+                <Label className="text-slate-800 dark:text-slate-200">{t.currentGPA}</Label>
+                <Select
+                  value={consultationData.currentGPA}
+                  onValueChange={(value) => updateData({ currentGPA: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        consultationData.userLanguage === "fr"
+                          ? "Sélectionnez votre performance académique"
+                          : "Select your academic performance"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="English">English</SelectItem>
-                    <SelectItem value="French">French</SelectItem>
-                    <SelectItem value="Dutch">Dutch</SelectItem>
-                    <SelectItem value="German">German</SelectItem>
-                    <SelectItem value="Spanish">Spanish</SelectItem>
-                    <SelectItem value="Italian">Italian</SelectItem>
-                    <SelectItem value="Any">Any Language</SelectItem>
+                    <SelectItem value="low">
+                      {consultationData.userLanguage === "fr" ? "Faible (10-12/20)" : "Low (10-12/20)"}
+                    </SelectItem>
+                    <SelectItem value="intermediate">
+                      {consultationData.userLanguage === "fr" ? "Intermédiaire (12-14/20)" : "Intermediate (12-14/20)"}
+                    </SelectItem>
+                    <SelectItem value="high">
+                      {consultationData.userLanguage === "fr" ? "Élevé (14-20/20)" : "High (14-20/20)"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Your Language Proficiency Level</Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.previousEducation}</Label>
+                <Select
+                  value={consultationData.previousEducationCountry}
+                  onValueChange={(value) => updateData({ previousEducationCountry: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={consultationData.userLanguage === "fr" ? "Sélectionnez le pays" : "Select country"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Algeria">
+                      {consultationData.userLanguage === "fr" ? "Algérie" : "Algeria"}
+                    </SelectItem>
+                    <SelectItem value="France">France</SelectItem>
+                    <SelectItem value="UK">
+                      {consultationData.userLanguage === "fr" ? "Royaume-Uni" : "United Kingdom"}
+                    </SelectItem>
+                    <SelectItem value="US">
+                      {consultationData.userLanguage === "fr" ? "États-Unis" : "United States"}
+                    </SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
+                    <SelectItem value="Germany">
+                      {consultationData.userLanguage === "fr" ? "Allemagne" : "Germany"}
+                    </SelectItem>
+                    <SelectItem value="Other">{consultationData.userLanguage === "fr" ? "Autre" : "Other"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">{t.preferredLanguage}</Label>
+                <Select value={consultationData.language} onValueChange={(value) => updateData({ language: value })}>
+                  <SelectTrigger className="h-14 text-lg">
+                    <SelectValue
+                      placeholder={
+                        consultationData.userLanguage === "fr" ? "Sélectionnez la langue" : "Select language"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="English">
+                      {consultationData.userLanguage === "fr" ? "Anglais" : "English"}
+                    </SelectItem>
+                    <SelectItem value="French">
+                      {consultationData.userLanguage === "fr" ? "Français" : "French"}
+                    </SelectItem>
+                    <SelectItem value="Dutch">
+                      {consultationData.userLanguage === "fr" ? "Néerlandais" : "Dutch"}
+                    </SelectItem>
+                    <SelectItem value="German">
+                      {consultationData.userLanguage === "fr" ? "Allemand" : "German"}
+                    </SelectItem>
+                    <SelectItem value="Spanish">
+                      {consultationData.userLanguage === "fr" ? "Espagnol" : "Spanish"}
+                    </SelectItem>
+                    <SelectItem value="Italian">
+                      {consultationData.userLanguage === "fr" ? "Italien" : "Italian"}
+                    </SelectItem>
+                    <SelectItem value="Any">
+                      {consultationData.userLanguage === "fr" ? "Toute langue" : "Any Language"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">{t.languageProficiency}</Label>
                 <Select
                   value={consultationData.languageLevel}
                   onValueChange={(value: any) => updateData({ languageLevel: value })}
@@ -579,46 +744,31 @@ export default function DestinationConsultationFlow() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
-                    <SelectItem value="native">Native Speaker</SelectItem>
+                    <SelectItem value="beginner">
+                      {consultationData.userLanguage === "fr" ? "Débutant" : "Beginner"}
+                    </SelectItem>
+                    <SelectItem value="intermediate">
+                      {consultationData.userLanguage === "fr" ? "Intermédiaire" : "Intermediate"}
+                    </SelectItem>
+                    <SelectItem value="advanced">
+                      {consultationData.userLanguage === "fr" ? "Avancé" : "Advanced"}
+                    </SelectItem>
+                    <SelectItem value="native">
+                      {consultationData.userLanguage === "fr" ? "Langue maternelle" : "Native Speaker"}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Preferred Intake Period</Label>
-                <Select
-                  value={consultationData.intakePeriod}
-                  onValueChange={(value) => updateData({ intakePeriod: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select intake period" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="September">September 2025</SelectItem>
-                    <SelectItem value="January">January 2026</SelectItem>
-                    <SelectItem value="February">February 2026</SelectItem>
-                    <SelectItem value="May">May 2026</SelectItem>
-                    <SelectItem value="Fall">Fall 2025</SelectItem>
-                    <SelectItem value="Any">Flexible / Any Time</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">Application Urgency</Label>
-                <Select value={consultationData.urgency} onValueChange={(value: any) => updateData({ urgency: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="asap">ASAP - Need to apply within 1-2 months</SelectItem>
-                    <SelectItem value="flexible">Flexible - 3-6 months timeline</SelectItem>
-                    <SelectItem value="planning_ahead">Planning Ahead - 6+ months</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="language-cert"
+                  checked={consultationData.hasLanguageCertificate}
+                  onCheckedChange={(checked) => updateData({ hasLanguageCertificate: !!checked })}
+                />
+                <Label htmlFor="language-cert" className="text-slate-800 dark:text-slate-200">
+                  {t.languageCertificates}
+                </Label>
               </div>
             </div>
           </div>
@@ -628,22 +778,97 @@ export default function DestinationConsultationFlow() {
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Personal Preferences</h2>
-              <p className="text-slate-600 dark:text-slate-400">Tell us about your additional requirements</p>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.timelinePreferences}</h2>
+              <p className="text-slate-600 dark:text-slate-400">{t.timelineSubtitle}</p>
             </div>
             <div className="max-w-md mx-auto space-y-6">
               <div className="space-y-4">
-                <Label className="text-slate-800 dark:text-slate-200">
-                  What's Most Important to You? (Select all that apply)
-                </Label>
+                <Label className="text-slate-800 dark:text-slate-200">{t.intakePeriod}</Label>
+                <Select
+                  value={consultationData.intakePeriod}
+                  onValueChange={(value) => updateData({ intakePeriod: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        consultationData.userLanguage === "fr"
+                          ? "Sélectionnez la période d'admission"
+                          : "Select intake period"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="September">
+                      {consultationData.userLanguage === "fr" ? "Septembre 2025" : "September 2025"}
+                    </SelectItem>
+                    <SelectItem value="January">
+                      {consultationData.userLanguage === "fr" ? "Janvier 2026" : "January 2026"}
+                    </SelectItem>
+                    <SelectItem value="February">
+                      {consultationData.userLanguage === "fr" ? "Février 2026" : "February 2026"}
+                    </SelectItem>
+                    <SelectItem value="May">
+                      {consultationData.userLanguage === "fr" ? "Mai 2026" : "May 2026"}
+                    </SelectItem>
+                    <SelectItem value="Fall">
+                      {consultationData.userLanguage === "fr" ? "Automne 2025" : "Fall 2025"}
+                    </SelectItem>
+                    <SelectItem value="Any">
+                      {consultationData.userLanguage === "fr" ? "Flexible / N'importe quand" : "Flexible / Any Time"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">{t.applicationUrgency}</Label>
+                <Select value={consultationData.urgency} onValueChange={(value: any) => updateData({ urgency: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="asap">
+                      {consultationData.userLanguage === "fr"
+                        ? "ASAP - Besoin de postuler dans 1-2 mois"
+                        : "ASAP - Need to apply within 1-2 months"}
+                    </SelectItem>
+                    <SelectItem value="flexible">
+                      {consultationData.userLanguage === "fr"
+                        ? "Flexible - Délai de 3-6 mois"
+                        : "Flexible - 3-6 months timeline"}
+                    </SelectItem>
+                    <SelectItem value="planning_ahead">
+                      {consultationData.userLanguage === "fr"
+                        ? "Planification à l'avance - 6+ mois"
+                        : "Planning Ahead - 6+ months"}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <Label className="text-slate-800 dark:text-slate-200">{t.mostImportant}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: "low_cost", label: "Low Cost" },
-                    { id: "scholarship", label: "Scholarship" },
-                    { id: "quality_education", label: "Education Quality" },
-                    { id: "location", label: "Specific Location" },
-                    { id: "religious_facilities", label: "Religious Facilities" },
-                    { id: "halal_food", label: "Halal Food" },
+                    { id: "low_cost", label: consultationData.userLanguage === "fr" ? "Coût faible" : "Low Cost" },
+                    { id: "scholarship", label: consultationData.userLanguage === "fr" ? "Bourse" : "Scholarship" },
+                    {
+                      id: "quality_education",
+                      label: consultationData.userLanguage === "fr" ? "Qualité de l'éducation" : "Education Quality",
+                    },
+                    {
+                      id: "location",
+                      label: consultationData.userLanguage === "fr" ? "Lieu spécifique" : "Specific Location",
+                    },
+                    {
+                      id: "religious_facilities",
+                      label:
+                        consultationData.userLanguage === "fr" ? "Installations religieuses" : "Religious Facilities",
+                    },
+                    {
+                      id: "halal_food",
+                      label: consultationData.userLanguage === "fr" ? "Nourriture halal" : "Halal Food",
+                    },
                   ].map((factor) => (
                     <Button
                       key={factor.id}
@@ -672,7 +897,7 @@ export default function DestinationConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ workWhileStudying: !!checked })}
                   />
                   <Label htmlFor="work" className="text-slate-800 dark:text-slate-200">
-                    I want to work while studying
+                    {t.workWhileStudying}
                   </Label>
                 </div>
 
@@ -683,7 +908,7 @@ export default function DestinationConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ scholarshipRequired: !!checked })}
                   />
                   <Label htmlFor="scholarship" className="text-slate-800 dark:text-slate-200">
-                    I need scholarship opportunities
+                    {t.needScholarship}
                   </Label>
                 </div>
 
@@ -694,7 +919,7 @@ export default function DestinationConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ religiousFacilities: !!checked })}
                   />
                   <Label htmlFor="religious" className="text-slate-800 dark:text-slate-200">
-                    I need religious facilities
+                    {t.needReligious}
                   </Label>
                 </div>
 
@@ -705,7 +930,7 @@ export default function DestinationConsultationFlow() {
                     onCheckedChange={(checked) => updateData({ halalFood: !!checked })}
                   />
                   <Label htmlFor="halal" className="text-slate-800 dark:text-slate-200">
-                    I need halal food options
+                    {t.needHalal}
                   </Label>
                 </div>
               </div>
@@ -720,11 +945,9 @@ export default function DestinationConsultationFlow() {
               <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">
-                Your Personalized Destination Matches
-              </h2>
+              <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">{t.yourMatches}</h2>
               <p className="text-slate-600 dark:text-slate-400">
-                We found {matchedDestinations.length} destinations ranked by compatibility
+                {t.matchesFound.replace("{count}", matchedDestinations.length.toString())}
               </p>
             </div>
 
@@ -733,14 +956,28 @@ export default function DestinationConsultationFlow() {
                 <div className="text-center py-8">
                   <AlertCircle className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-600 dark:text-slate-400 mb-4">
-                    No perfect matches found with your current criteria.
+                    {consultationData.userLanguage === "fr"
+                      ? "Aucune correspondance parfaite trouvée avec vos critères actuels."
+                      : "No perfect matches found with your current criteria."}
                   </p>
                   <div className="space-y-2 text-sm text-slate-500 dark:text-slate-500">
-                    <p>Try adjusting:</p>
+                    <p>{consultationData.userLanguage === "fr" ? "Essayez d'ajuster:" : "Try adjusting:"}</p>
                     <ul className="list-disc list-inside space-y-1">
-                      <li>Increase your budget or flexibility</li>
-                      <li>Consider different study levels</li>
-                      <li>Expand language preferences</li>
+                      <li>
+                        {consultationData.userLanguage === "fr"
+                          ? "Augmentez votre budget ou flexibilité"
+                          : "Increase your budget or flexibility"}
+                      </li>
+                      <li>
+                        {consultationData.userLanguage === "fr"
+                          ? "Considérez différents pays"
+                          : "Consider different countries"}
+                      </li>
+                      <li>
+                        {consultationData.userLanguage === "fr"
+                          ? "Élargissez les préférences linguistiques"
+                          : "Expand language preferences"}
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -776,24 +1013,27 @@ export default function DestinationConsultationFlow() {
                               <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
                                 {destination.name}
                               </h3>
-                              <p className="text-slate-600 dark:text-slate-400">{destination.country}</p>
-                              <div className="flex items-center mt-1">
+                              <p className="text-slate-600 dark:text-slate-400 flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                {destination.country}
+                              </p>
+                              <div className="flex items-center mt-1 space-x-2">
                                 {destination.recommendation === "highly_recommended" && (
                                   <Badge className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 text-xs">
                                     <Trophy className="h-3 w-3 mr-1" />
-                                    Top Choice
+                                    {consultationData.userLanguage === "fr" ? "Premier Choix" : "Top Choice"}
                                   </Badge>
                                 )}
                                 {destination.recommendation === "recommended" && (
                                   <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 text-xs">
                                     <TrendingUp className="h-3 w-3 mr-1" />
-                                    Recommended
+                                    {consultationData.userLanguage === "fr" ? "Recommandé" : "Recommended"}
                                   </Badge>
                                 )}
                                 {destination.recommendation === "consider" && (
                                   <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 text-xs">
                                     <Clock className="h-3 w-3 mr-1" />
-                                    Consider
+                                    {consultationData.userLanguage === "fr" ? "À Considérer" : "Consider"}
                                   </Badge>
                                 )}
                               </div>
@@ -811,7 +1051,8 @@ export default function DestinationConsultationFlow() {
                                       : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-400"
                               }`}
                             >
-                              {destination.matchScore}% Match
+                              {destination.matchScore}%{" "}
+                              {consultationData.userLanguage === "fr" ? "Correspondance" : "Match"}
                             </Badge>
                           </div>
                         </div>
@@ -826,7 +1067,9 @@ export default function DestinationConsultationFlow() {
                             <div>
                               <p className="font-medium text-sm text-green-700 dark:text-green-400 mb-2 flex items-center">
                                 <Check className="h-4 w-4 mr-1" />
-                                Why this matches:
+                                {consultationData.userLanguage === "fr"
+                                  ? "Pourquoi cela correspond:"
+                                  : "Why this matches:"}
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {destination.matchReasons.map((reason: string, i: number) => (
@@ -846,7 +1089,9 @@ export default function DestinationConsultationFlow() {
                             <div>
                               <p className="font-medium text-sm text-orange-700 dark:text-orange-400 mb-2 flex items-center">
                                 <AlertCircle className="h-4 w-4 mr-1" />
-                                Things to consider:
+                                {consultationData.userLanguage === "fr"
+                                  ? "Points à considérer:"
+                                  : "Things to consider:"}
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {destination.matchWarnings.map((warning: string, i: number) => (
@@ -866,6 +1111,34 @@ export default function DestinationConsultationFlow() {
                     </Card>
                   </motion.div>
                 ))
+              )}
+
+              {matchedDestinations.length > 0 && (
+                <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                  <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">{t.nextSteps}</h3>
+                  <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Examinez les informations détaillées de destination et les exigences"
+                        : "Review the detailed destination information and requirements"}
+                    </li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Vérifiez les exigences de visa et de langue"
+                        : "Check visa and language requirements"}
+                    </li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Contactez nos consultants pour des conseils personnalisés"
+                        : "Contact our consultants for personalized guidance"}
+                    </li>
+                    <li>
+                      {consultationData.userLanguage === "fr"
+                        ? "Explorez les programmes disponibles dans vos destinations préférées"
+                        : "Explore available programs in your preferred destinations"}
+                    </li>
+                  </ul>
+                </div>
               )}
             </div>
           </div>
@@ -895,11 +1168,9 @@ export default function DestinationConsultationFlow() {
             </div>
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
-            Destination Consultation
+            {t.title}
           </h1>
-          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Find your perfect study destination with AI-powered matching
-          </p>
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">{t.subtitle}</p>
         </motion.div>
 
         {/* Progress */}
@@ -917,7 +1188,8 @@ export default function DestinationConsultationFlow() {
                 variant="outline"
                 className="bg-indigo-50 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
               >
-                Step {currentStep} of {STEPS.length}
+                {consultationData.userLanguage === "fr" ? "Étape" : "Step"} {currentStep}{" "}
+                {consultationData.userLanguage === "fr" ? "de" : "of"} {STEPS.length}
               </Badge>
             </div>
             <Progress value={progress} className="h-2" />
@@ -951,7 +1223,7 @@ export default function DestinationConsultationFlow() {
               className="flex items-center space-x-2 bg-transparent"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Previous</span>
+              <span>{consultationData.userLanguage === "fr" ? "Précédent" : "Previous"}</span>
             </Button>
 
             <Button
@@ -959,9 +1231,7 @@ export default function DestinationConsultationFlow() {
               disabled={!isStepValid() || isProcessing}
               className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 dark:from-indigo-400 dark:to-purple-500 dark:hover:from-indigo-500 dark:hover:to-purple-600"
             >
-              <span>
-                {isProcessing ? "Finding Matches..." : currentStep === 4 ? "Find My Perfect Destinations" : "Continue"}
-              </span>
+              <span>{isProcessing ? t.analyzing : currentStep === 4 ? t.findDestinations : t.continue}</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -976,6 +1246,8 @@ export default function DestinationConsultationFlow() {
                 setCurrentStep(1)
                 setConsultationData({
                   studyLevel: "",
+                  preferredCountry: "",
+                  userLanguage: "en",
                   tuitionBudget: 0,
                   livingCostsBudget: 0,
                   serviceFeesBudget: 0,
@@ -983,6 +1255,9 @@ export default function DestinationConsultationFlow() {
                   budgetFlexibility: "flexible",
                   language: "",
                   languageLevel: "intermediate",
+                  currentGPA: "",
+                  previousEducationCountry: "",
+                  hasLanguageCertificate: false,
                   intakePeriod: "",
                   urgency: "flexible",
                   workWhileStudying: false,
@@ -995,7 +1270,7 @@ export default function DestinationConsultationFlow() {
               }}
               className="flex items-center space-x-2"
             >
-              <span>Start New Consultation</span>
+              <span>{t.startNew}</span>
             </Button>
           </div>
         )}
@@ -1003,4 +1278,3 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
-
