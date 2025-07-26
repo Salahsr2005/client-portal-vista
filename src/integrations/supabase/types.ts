@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   // Allows to automatically instanciate createClient with right options
@@ -636,9 +630,7 @@ export type Database = {
           city: string | null
           client_id: string
           client_tier: Database["public"]["Enums"]["client_tier"] | null
-          contact_preference:
-            | Database["public"]["Enums"]["contact_preference"]
-            | null
+          contact_preference: Database["public"]["Enums"]["contact_preference"] | null
           country: string | null
           created_at: string | null
           date_of_birth: string | null
@@ -661,9 +653,7 @@ export type Database = {
           city?: string | null
           client_id?: string
           client_tier?: Database["public"]["Enums"]["client_tier"] | null
-          contact_preference?:
-            | Database["public"]["Enums"]["contact_preference"]
-            | null
+          contact_preference?: Database["public"]["Enums"]["contact_preference"] | null
           country?: string | null
           created_at?: string | null
           date_of_birth?: string | null
@@ -686,9 +676,7 @@ export type Database = {
           city?: string | null
           client_id?: string
           client_tier?: Database["public"]["Enums"]["client_tier"] | null
-          contact_preference?:
-            | Database["public"]["Enums"]["contact_preference"]
-            | null
+          contact_preference?: Database["public"]["Enums"]["contact_preference"] | null
           country?: string | null
           created_at?: string | null
           date_of_birth?: string | null
@@ -1029,7 +1017,7 @@ export type Database = {
           master_requirements?: string | null
           master_tuition_max?: number | null
           master_tuition_min?: number | null
-          name?: string
+          name: string
           phd_academic_level?: string | null
           phd_documents?: Json | null
           phd_requirements?: string | null
@@ -2162,12 +2150,7 @@ export type Database = {
         | "Completed"
         | "Cancelled"
       appointment_mode: "In-Person" | "Online" | "Phone"
-      appointment_status:
-        | "Available"
-        | "Reserved"
-        | "Completed"
-        | "Cancelled"
-        | "No-Show"
+      appointment_status: "Available" | "Reserved" | "Completed" | "Cancelled" | "No-Show"
       chat_participant_type: "admin" | "client" | "user"
       client_tier: "Basic" | "Applicant" | "Paid"
       contact_preference: "Email" | "Phone" | "Both"
@@ -2175,19 +2158,8 @@ export type Database = {
       language_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
       message_status: "sent" | "delivered" | "read" | "failed"
       message_type: "text" | "image" | "file" | "audio" | "video" | "system"
-      notification_type:
-        | "System"
-        | "Application"
-        | "Payment"
-        | "Appointment"
-        | "Document"
-        | "Chat"
-      payment_status:
-        | "Pending"
-        | "Partial"
-        | "Completed"
-        | "Failed"
-        | "Refunded"
+      notification_type: "System" | "Application" | "Payment" | "Appointment" | "Document" | "Chat"
+      payment_status: "Pending" | "Partial" | "Completed" | "Failed" | "Refunded"
       priority_level: "Low" | "Medium" | "High" | "Urgent"
       program_field:
         | "Business"
@@ -2349,19 +2321,11 @@ export type Database = {
         | "Sustainable Development"
         | "Blockchain Technology"
         | "Virtual Reality"
-      program_level:
-        | "Undergraduate"
-        | "Graduate"
-        | "PhD"
-        | "Certificate"
-        | "Diploma"
+      program_level: "Undergraduate" | "Graduate" | "PhD" | "Certificate" | "Diploma"
       program_status: "Active" | "Inactive" | "Full" | "Coming Soon"
       study_level: "Bachelor" | "Master" | "PhD" | "Certificate" | "Diploma"
       user_status: "Pending" | "Active" | "Suspended" | "Inactive"
       user_type: "Admin" | "Client"
-    }
-    CompositeTypes: {
-      [_ in never]: never
     }
   }
 }
@@ -2389,10 +2353,8 @@ export type Tables<
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -2400,9 +2362,7 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -2425,9 +2385,7 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -2450,9 +2408,7 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
@@ -2497,13 +2453,7 @@ export const Constants = {
         "Cancelled",
       ],
       appointment_mode: ["In-Person", "Online", "Phone"],
-      appointment_status: [
-        "Available",
-        "Reserved",
-        "Completed",
-        "Cancelled",
-        "No-Show",
-      ],
+      appointment_status: ["Available", "Reserved", "Completed", "Cancelled", "No-Show"],
       chat_participant_type: ["admin", "client", "user"],
       client_tier: ["Basic", "Applicant", "Paid"],
       contact_preference: ["Email", "Phone", "Both"],
@@ -2511,14 +2461,7 @@ export const Constants = {
       language_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
       message_status: ["sent", "delivered", "read", "failed"],
       message_type: ["text", "image", "file", "audio", "video", "system"],
-      notification_type: [
-        "System",
-        "Application",
-        "Payment",
-        "Appointment",
-        "Document",
-        "Chat",
-      ],
+      notification_type: ["System", "Application", "Payment", "Appointment", "Document", "Chat"],
       payment_status: ["Pending", "Partial", "Completed", "Failed", "Refunded"],
       priority_level: ["Low", "Medium", "High", "Urgent"],
       program_field: [
@@ -2682,13 +2625,7 @@ export const Constants = {
         "Blockchain Technology",
         "Virtual Reality",
       ],
-      program_level: [
-        "Undergraduate",
-        "Graduate",
-        "PhD",
-        "Certificate",
-        "Diploma",
-      ],
+      program_level: ["Undergraduate", "Graduate", "PhD", "Certificate", "Diploma"],
       program_status: ["Active", "Inactive", "Full", "Coming Soon"],
       study_level: ["Bachelor", "Master", "PhD", "Certificate", "Diploma"],
       user_status: ["Pending", "Active", "Suspended", "Inactive"],
