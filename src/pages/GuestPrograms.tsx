@@ -1,837 +1,497 @@
 "use client"
 
-import type React from "react"
 import { useState, useMemo } from "react"
-import { useTranslation } from "react-i18next"
-import { GuestModeWrapper } from "@/components/layout/GuestModeWrapper"
-import { usePrograms, type Program } from "@/hooks/usePrograms"
+import { usePrograms, type ProgramsQueryParams } from "@/hooks/usePrograms"
 import { ModernProgramCard } from "@/components/programs/ModernProgramCard"
-import ComparePrograms from "@/components/programs/ComparePrograms"
+import { MobileProgramCard } from "@/components/programs/MobileProgramCard"
+import MobileFilters from "@/components/programs/MobileFilters"
+import { ComparePrograms } from "@/components/programs/ComparePrograms"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Slider } from "@/components/ui/slider"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { useFavorites } from "@/hooks/useFavorites"
+import { useToast } from "@/hooks/use-toast"
 import {
   Search,
   Filter,
-  MapPin,
-  BookOpen,
-  Award,
-  X,
+  Grid3X3,
+  List,
   SlidersHorizontal,
-  ChevronDown,
-  Sparkles,
+  MapPin,
+  GraduationCap,
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
   GitCompare,
 } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import { useToast } from "@/hooks/use-toast"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
-export default function GuestPrograms() {
-  const { t } = useTranslation()
+export default function Programs() {
+  const isMobile = useIsMobile()
   const { toast } = useToast()
-
-  // Filter states
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCountry, setSelectedCountry] = useState("")
-  const [selectedField, setSelectedField] = useState("")
-  const [selectedLevel, setSelectedLevel] = useState("")
-  const [selectedLanguage, setSelectedLanguage] = useState("")
-  const [budgetRange, setBudgetRange] = useState([0, 100000])
-  const [withScholarship, setWithScholarship] = useState(false)
-  const [showFilters, setShowFilters] = useState(false)
-  const [sortBy, setSortBy] = useState("relevance")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-
-  // Comparison state
-  const [comparePrograms, setComparePrograms] = useState<Program[]>([])
-  const [showComparison, setShowComparison] = useState(false)
-
-  // Pagination
+  const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 12
+  const [compareList, setCompareList] = useState<string[]>([])
+  const [showCompareModal, setShowCompareModal] = useState(false)
 
-  // Fetch programs with filters
-  const {
-    data: programsData,
-    isLoading,
-    error,
-  } = usePrograms({
-    page: currentPage,
-    limit: itemsPerPage,
-    search: searchTerm,
-    country: selectedCountry,
-    field: selectedField,
-    level: selectedLevel as any,
-    language: selectedLanguage,
-    maxBudget: budgetRange[1],
-    withScholarship,
-  })
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedCountry, setSelectedCountry] = useState<string>("")
+  const [selectedLevel, setSelectedLevel] = useState<string>("")
+  const [selectedField, setSelectedField] = useState<string>("")
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("")
+  const [maxBudget, setMaxBudget] = useState<number | undefined>(undefined)
+  const [withScholarship, setWithScholarship] = useState(false)
 
-  // Filter and sort programs
-  const filteredPrograms = useMemo(() => {
-    if (!programsData?.programs) return []
+  const { favorites, toggleFavorite } = useFavorites()
 
-    let filtered = programsData.programs
-
-    // Apply budget filter
-    if (budgetRange[1] < 100000) {
-      filtered = filtered.filter(
-        (program) => program.tuition_min <= budgetRange[1] && program.tuition_max >= budgetRange[0],
-      )
-    }
-
-    // Sort programs
-    switch (sortBy) {
-      case "name":
-        filtered.sort((a, b) => a.name.localeCompare(b.name))
-        break
-      case "tuition_low":
-        filtered.sort((a, b) => a.tuition_min - b.tuition_min)
-        break
-      case "tuition_high":
-        filtered.sort((a, b) => b.tuition_min - a.tuition_min)
-        break
-      case "ranking":
-        filtered.sort((a, b) => (a.ranking || 999) - (b.ranking || 999))
-        break
-      default:
-        // Keep original order (relevance)
-        break
-    }
-
-    return filtered
-  }, [programsData?.programs, budgetRange, sortBy])
-
-  // Get unique values for filters
-  const countries = useMemo(() => {
-    if (!programsData?.programs) return []
-    return [...new Set(programsData.programs.map((p) => p.country))].sort()
-  }, [programsData?.programs])
-
-  const fields = useMemo(() => {
-    if (!programsData?.programs) return []
-    return [...new Set(programsData.programs.map((p) => p.field))].sort()
-  }, [programsData?.programs])
-
-  const languages = useMemo(() => {
-    if (!programsData?.programs) return []
-    return [...new Set(programsData.programs.map((p) => p.program_language))].sort()
-  }, [programsData?.programs])
-
-  const handleProgramView = (program: Program) => {
-    window.open(`/guest/programs/${program.id}`, "_blank")
-  }
-
-  const handleProgramApply = (program: Program) => {
-    toast({
-      title: t("programs.guestApply.title"),
-      description: t("programs.guestApply.description"),
-      action: (
-        <Button size="sm" onClick={() => window.open("/register", "_blank")}>
-          {t("programs.guestApply.action")}
-        </Button>
-      ),
-    })
-  }
-
-  // Comparison functions
-  const addToComparison = (program: Program) => {
-    if (comparePrograms.length >= 3) {
-      toast({
-        title: "Comparison Limit",
-        description: "You can compare up to 3 programs at a time.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    if (comparePrograms.find((p) => p.id === program.id)) {
-      toast({
-        title: "Already Added",
-        description: "This program is already in your comparison list.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setComparePrograms((prev) => [...prev, program])
-    toast({
-      title: "Added to Comparison",
-      description: `${program.name} has been added to comparison.`,
-    })
-  }
-
-  const removeFromComparison = (programId: string) => {
-    setComparePrograms((prev) => prev.filter((p) => p.id !== programId))
-  }
-
-  const clearComparison = () => {
-    setComparePrograms([])
-    setShowComparison(false)
-  }
-
-  const clearFilters = () => {
-    setSearchTerm("")
-    setSelectedCountry("")
-    setSelectedField("")
-    setSelectedLevel("")
-    setSelectedLanguage("")
-    setBudgetRange([0, 100000])
-    setWithScholarship(false)
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country)
     setCurrentPage(1)
   }
 
-  const activeFiltersCount = [
-    searchTerm,
-    selectedCountry,
-    selectedField,
-    selectedLevel,
-    selectedLanguage,
-    withScholarship,
-    budgetRange[1] < 100000,
-  ].filter(Boolean).length
+  const handleLevelChange = (level: string) => {
+    setSelectedLevel(level)
+    setCurrentPage(1)
+  }
+
+  const handleFieldChange = (field: string) => {
+    setSelectedField(field)
+    setCurrentPage(1)
+  }
+
+  const handleLanguageChange = (language: string) => {
+    setSelectedLanguage(language)
+    setCurrentPage(1)
+  }
+
+  const handleBudgetChange = (budget: number) => {
+    setMaxBudget(budget)
+    setCurrentPage(1)
+  }
+
+  const handleScholarshipChange = (scholarship: boolean) => {
+    setWithScholarship(scholarship)
+    setCurrentPage(1)
+  }
+
+  // Comparison functions
+  const addToCompare = (programId: string) => {
+    if (compareList.length >= 3) {
+      toast({
+        title: "Comparison Limit",
+        description: "You can compare up to 3 programs at once.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!compareList.includes(programId)) {
+      setCompareList([...compareList, programId])
+      toast({
+        title: "Added to Comparison",
+        description: "Program added to comparison list.",
+      })
+    }
+  }
+
+  const removeFromCompare = (programId: string) => {
+    setCompareList(compareList.filter((id) => id !== programId))
+    toast({
+      title: "Removed from Comparison",
+      description: "Program removed from comparison list.",
+    })
+  }
+
+  const clearCompareList = () => {
+    setCompareList([])
+  }
+
+  // Build query parameters
+  const queryParams: ProgramsQueryParams = useMemo(
+    () => ({
+      page: currentPage,
+      limit: isMobile ? 6 : 12,
+      search: searchQuery || undefined,
+      country: selectedCountry || undefined,
+      level: (selectedLevel as any) || undefined,
+      field: selectedField || undefined,
+      language: selectedLanguage || undefined,
+      maxBudget: maxBudget || undefined,
+      withScholarship: withScholarship || undefined,
+    }),
+    [
+      currentPage,
+      searchQuery,
+      selectedCountry,
+      selectedLevel,
+      selectedField,
+      selectedLanguage,
+      maxBudget,
+      withScholarship,
+      isMobile,
+    ],
+  )
+
+  const { data, isLoading, error } = usePrograms(queryParams)
+
+  const ProgramCardComponent = isMobile ? MobileProgramCard : ModernProgramCard
+
+  const handleViewDetails = (program: any) => {
+    // Check if we're in guest mode and navigate accordingly
+    const isGuestRoute = window.location.pathname.startsWith("/guest/")
+    const targetPath = isGuestRoute ? `/guest/programs/${program.id}` : `/programs/${program.id}`
+    window.open(targetPath, "_blank")
+  }
+
+  const handleApply = (program: any) => {
+    // Navigate to application page
+    window.open(`/apply/${program.id}`, "_blank")
+  }
 
   return (
-    <GuestModeWrapper>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/50">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white">
-          <div className="absolute inset-0 bg-black/20" />
-         <div className="absolute inset-0 bg-[url('https://hips.hearstapps.com/hmg-prod/images/berry-college-historic-campus-at-twilight-royalty-free-image-1652127954.jpg?crop=1xw:0.84415xh\\;center,top&resize=1200:*?height=400&width=800&text=Programs')] bg-cover bg-center opacity-30" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/20 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]" />
 
+      {/* Floating Orbs */}
+      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 dark:bg-blue-600/20 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute top-40 right-10 w-96 h-96 bg-purple-400/20 dark:bg-purple-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
+      <div className="absolute bottom-20 left-1/4 w-80 h-80 bg-pink-400/20 dark:bg-pink-600/20 rounded-full blur-3xl animate-pulse delay-2000" />
 
-          <div className="relative container mx-auto px-4 py-16 sm:py-24">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="text-center max-w-4xl mx-auto"
-            >
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
-                <Sparkles className="w-4 h-4" />
-                <span className="text-sm font-medium">{t("programs.hero.badge")}</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                {t("programs.hero.title")}
-              </h1>
-
-              <p className="text-xl sm:text-2xl text-blue-100 mb-8 leading-relaxed">{t("programs.hero.subtitle")}</p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <div className="flex items-center gap-6 text-blue-100">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5" />
-                    <span className="text-sm">
-                      {t("programs.hero.stats.programs", { count: programsData?.totalCount || 0 })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    <span className="text-sm">{t("programs.hero.stats.countries", { count: countries.length })}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5" />
-                    <span className="text-sm">{t("programs.hero.stats.scholarships")}</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="container mx-auto px-4 py-8">
-          {/* Comparison Bar */}
-          <AnimatePresence>
-            {comparePrograms.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="mb-6"
-              >
-                <Card className="border-2 border-blue-200 bg-blue-50/50 backdrop-blur-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <GitCompare className="w-5 h-5 text-blue-600" />
-                          <span className="font-medium text-blue-900">
-                            Compare Programs ({comparePrograms.length}/3)
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          {comparePrograms.map((program) => (
-                            <Badge key={program.id} variant="secondary" className="gap-1">
-                              {program.name.substring(0, 20)}...
-                              <X
-                                className="w-3 h-3 cursor-pointer hover:text-red-500"
-                                onClick={() => removeFromComparison(program.id)}
-                              />
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => setShowComparison(true)}
-                          disabled={comparePrograms.length < 2}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          Compare Now
-                        </Button>
-                        <Button variant="outline" onClick={clearComparison}>
-                          Clear All
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Comparison Modal */}
-          <AnimatePresence>
-            {showComparison && comparePrograms.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                onClick={() => setShowComparison(false)}
-              >
-                <motion.div
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  className="bg-white dark:bg-gray-900 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ComparePrograms
-                    programs={comparePrograms}
-                    onClose={() => setShowComparison(false)}
-                    onRemoveProgram={removeFromComparison}
-                  />
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Search and Filters Bar */}
-          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row gap-4 items-center">
-                {/* Search */}
-                <div className="relative flex-1 w-full lg:max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input
-                    placeholder={t("programs.search.placeholder")}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 border-2 focus:border-blue-500 transition-colors"
-                  />
-                </div>
-
-                {/* Quick Filters */}
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder={t("programs.filters.country")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("programs.filters.allCountries")}</SelectItem>
-                      {countries.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder={t("programs.filters.level")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("programs.filters.allLevels")}</SelectItem>
-                      <SelectItem value="Bachelor">{t("programs.levels.bachelor")}</SelectItem>
-                      <SelectItem value="Master">{t("programs.levels.master")}</SelectItem>
-                      <SelectItem value="PhD">{t("programs.levels.phd")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {/* Mobile Filters Button */}
-                  <Sheet open={showFilters} onOpenChange={setShowFilters}>
-                    <SheetTrigger asChild>
-                      <Button variant="outline" className="lg:hidden bg-transparent">
-                        <SlidersHorizontal className="w-4 h-4 mr-2" />
-                        {t("programs.filters.title")}
-                        {activeFiltersCount > 0 && (
-                          <Badge variant="secondary" className="ml-2">
-                            {activeFiltersCount}
-                          </Badge>
-                        )}
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-80">
-                      <SheetHeader>
-                        <SheetTitle>{t("programs.filters.title")}</SheetTitle>
-                      </SheetHeader>
-                      <div className="py-6">
-                        <MobileFilters
-                          selectedField={selectedField}
-                          setSelectedField={setSelectedField}
-                          selectedLanguage={selectedLanguage}
-                          setSelectedLanguage={setSelectedLanguage}
-                          budgetRange={budgetRange}
-                          setBudgetRange={setBudgetRange}
-                          withScholarship={withScholarship}
-                          setWithScholarship={setWithScholarship}
-                          fields={fields}
-                          languages={languages}
-                          clearFilters={clearFilters}
-                          activeFiltersCount={activeFiltersCount}
-                        />
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-
-                  {/* Desktop Advanced Filters */}
-                  <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="hidden lg:flex">
-                    <Filter className="w-4 h-4 mr-2" />
-                    {t("programs.filters.advanced")}
-                    {activeFiltersCount > 0 && (
-                      <Badge variant="secondary" className="ml-2">
-                        {activeFiltersCount}
-                      </Badge>
-                    )}
-                    <ChevronDown className={`w-4 h-4 ml-2 transition-transform ${showFilters ? "rotate-180" : ""}`} />
-                  </Button>
-
-                  {/* Sort */}
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="relevance">{t("programs.sort.relevance")}</SelectItem>
-                      <SelectItem value="name">{t("programs.sort.name")}</SelectItem>
-                      <SelectItem value="tuition_low">{t("programs.sort.tuitionLow")}</SelectItem>
-                      <SelectItem value="tuition_high">{t("programs.sort.tuitionHigh")}</SelectItem>
-                      <SelectItem value="ranking">{t("programs.sort.ranking")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Desktop Advanced Filters Panel */}
-              <AnimatePresence>
-                {showFilters && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="hidden lg:block mt-6 pt-6 border-t"
-                  >
-                    <DesktopFilters
-                      selectedField={selectedField}
-                      setSelectedField={setSelectedField}
-                      selectedLanguage={selectedLanguage}
-                      setSelectedLanguage={setSelectedLanguage}
-                      budgetRange={budgetRange}
-                      setBudgetRange={setBudgetRange}
-                      withScholarship={withScholarship}
-                      setWithScholarship={setWithScholarship}
-                      fields={fields}
-                      languages={languages}
-                      clearFilters={clearFilters}
-                      activeFiltersCount={activeFiltersCount}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </CardContent>
-          </Card>
-
-          {/* Results Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className={cn("relative z-10", isMobile ? "p-2" : "p-6")}>
+        <div className="max-w-7xl mx-auto space-y-4">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t("programs.results.title")}</h2>
-              <p className="text-muted-foreground">
-                {isLoading
-                  ? t("programs.results.loading")
-                  : t("programs.results.found", {
-                      count: filteredPrograms.length,
-                      total: programsData?.totalCount || 0,
-                    })}
+              <h1
+                className={cn(
+                  "font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent",
+                  isMobile ? "text-2xl" : "text-4xl",
+                )}
+              >
+                Study Programs
+              </h1>
+              <p className={cn("text-slate-600 dark:text-slate-400 mt-1", isMobile ? "text-sm" : "text-lg")}>
+                Discover your perfect educational journey
               </p>
             </div>
 
-            {/* Active Filters */}
-            {activeFiltersCount > 0 && (
-              <div className="flex flex-wrap gap-2 items-center">
-                <span className="text-sm text-muted-foreground">{t("programs.filters.active")}:</span>
-                {searchTerm && (
-                  <Badge variant="secondary" className="gap-1">
-                    {searchTerm}
-                    <X className="w-3 h-3 cursor-pointer" onClick={() => setSearchTerm("")} />
-                  </Badge>
-                )}
-                {selectedCountry && (
-                  <Badge variant="secondary" className="gap-1">
-                    {selectedCountry}
-                    <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedCountry("")} />
-                  </Badge>
-                )}
-                {selectedField && (
-                  <Badge variant="secondary" className="gap-1">
-                    {selectedField}
-                    <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedField("")} />
-                  </Badge>
-                )}
-                {selectedLevel && (
-                  <Badge variant="secondary" className="gap-1">
-                    {t(`programs.levels.${selectedLevel.toLowerCase()}`)}
-                    <X className="w-3 h-3 cursor-pointer" onClick={() => setSelectedLevel("")} />
-                  </Badge>
-                )}
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
-                  {t("programs.filters.clear")}
+            {!isMobile && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === "grid" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="h-4 w-4" />
                 </Button>
               </div>
             )}
           </div>
 
+          {/* Search and Filters */}
+          <Card className="border-0 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+            <CardContent className={isMobile ? "p-4" : "p-6"}>
+              <div className="flex flex-col lg:flex-row gap-4">
+                {/* Search */}
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search programs, universities, or fields..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 bg-white dark:bg-slate-700 border-2 focus:border-blue-500 dark:focus:border-blue-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Filters - Desktop */}
+                {!isMobile && (
+                  <div className="flex gap-2">
+                    <Select
+                      value={selectedCountry || "all"}
+                      onValueChange={(value) => setSelectedCountry(value === "all" ? "" : value)}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Countries</SelectItem>
+                        <SelectItem value="France">France</SelectItem>
+                        <SelectItem value="Germany">Germany</SelectItem>
+                        <SelectItem value="Spain">Spain</SelectItem>
+                        <SelectItem value="Italy">Italy</SelectItem>
+                        <SelectItem value="Poland">Poland</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={selectedLevel || "all"}
+                      onValueChange={(value) => setSelectedLevel(value === "all" ? "" : value)}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Levels</SelectItem>
+                        <SelectItem value="Bachelor">Bachelor</SelectItem>
+                        <SelectItem value="Master">Master</SelectItem>
+                        <SelectItem value="PhD">PhD</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      More Filters
+                    </Button>
+                  </div>
+                )}
+
+                {/* Mobile Filter Button */}
+                {isMobile && (
+                  <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="w-full gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters & Sort
+                  </Button>
+                )}
+              </div>
+
+              {/* Active Filters */}
+              {(selectedCountry || selectedLevel || selectedField || withScholarship) && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {selectedCountry && (
+                    <Badge variant="secondary" className="gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {selectedCountry}
+                    </Badge>
+                  )}
+                  {selectedLevel && (
+                    <Badge variant="secondary" className="gap-1">
+                      <GraduationCap className="h-3 w-3" />
+                      {selectedLevel}
+                    </Badge>
+                  )}
+                  {withScholarship && <Badge variant="secondary">Scholarship Available</Badge>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Mobile Filters */}
+          {isMobile && showFilters && (
+            <MobileFilters
+              selectedCountry={selectedCountry}
+              selectedLevel={selectedLevel}
+              selectedField={selectedField}
+              selectedLanguage={selectedLanguage}
+              maxBudget={maxBudget}
+              withScholarship={withScholarship}
+              onCountryChange={handleCountryChange}
+              onLevelChange={handleLevelChange}
+              onFieldChange={handleFieldChange}
+              onLanguageChange={handleLanguageChange}
+              onBudgetChange={handleBudgetChange}
+              onScholarshipChange={handleScholarshipChange}
+              onClose={() => setShowFilters(false)}
+            />
+          )}
+
+          {/* Comparison Bar */}
+          {compareList.length > 0 && (
+            <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 backdrop-blur-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <GitCompare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <span className="font-medium text-slate-800 dark:text-slate-200">
+                      {compareList.length} program{compareList.length > 1 ? "s" : ""} selected for comparison
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => setShowCompareModal(true)}
+                      disabled={compareList.length < 2}
+                      className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    >
+                      Compare ({compareList.length})
+                    </Button>
+                    <Button variant="outline" onClick={clearCompareList} size="sm">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Results Header */}
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              {data ? `${data.totalCount} programs found` : "Loading..."}
+            </div>
+          </div>
+
           {/* Programs Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...Array(12)].map((_, i) => (
-                <Card key={i} className="border-0 shadow-lg">
-                  <div className="h-48 bg-gray-200 dark:bg-gray-700 animate-pulse" />
-                  <CardContent className="p-6 space-y-4">
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                    <div className="flex gap-2">
-                      <Skeleton className="h-6 w-16" />
-                      <Skeleton className="h-6 w-20" />
+            <div
+              className={cn(
+                "grid gap-6",
+                isMobile
+                  ? "grid-cols-1"
+                  : viewMode === "grid"
+                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    : "grid-cols-1",
+              )}
+            >
+              {Array.from({ length: isMobile ? 3 : 6 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden bg-white/80 dark:bg-slate-800/80">
+                  <Skeleton className="h-48 w-full" />
+                  <CardContent className="p-6">
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2 mb-4" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
                     </div>
-                    <Skeleton className="h-10 w-full" />
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : error ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <div className="text-red-500 mb-4">
-                  <BookOpen className="w-16 h-16 mx-auto" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{t("programs.error.title")}</h3>
-                <p className="text-muted-foreground">{t("programs.error.message")}</p>
+            <Card className="bg-white/80 dark:bg-slate-800/80">
+              <CardContent className="text-center py-12">
+                <p className="text-slate-600 dark:text-slate-400">Error loading programs. Please try again.</p>
               </CardContent>
             </Card>
-          ) : filteredPrograms.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="p-12 text-center">
-                <div className="text-muted-foreground mb-4">
-                  <Search className="w-16 h-16 mx-auto" />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">{t("programs.empty.title")}</h3>
-                <p className="text-muted-foreground mb-4">{t("programs.empty.message")}</p>
-                <Button onClick={clearFilters} variant="outline">
-                  {t("programs.empty.clearFilters")}
-                </Button>
+          ) : data?.programs.length === 0 ? (
+            <Card className="bg-white/80 dark:bg-slate-800/80">
+              <CardContent className="text-center py-12">
+                <p className="text-slate-600 dark:text-slate-400">No programs found matching your criteria.</p>
               </CardContent>
             </Card>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            >
-              {filteredPrograms.map((program, index) => (
-                <motion.div
-                  key={program.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative group"
-                >
-                  <ModernProgramCard program={program} onViewDetails={handleProgramView} onApply={handleProgramApply} />
+            <>
+              <div
+                className={cn(
+                  "grid gap-6",
+                  isMobile
+                    ? "grid-cols-1"
+                    : viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1",
+                )}
+              >
+                {data?.programs.map((program) => (
+                  <div key={program.id} className="relative group">
+                    <ProgramCardComponent program={program} onViewDetails={handleViewDetails} onApply={handleApply} />
 
-                  {/* Compare Button Overlay */}
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => addToComparison(program)}
-                      disabled={comparePrograms.find((p) => p.id === program.id) !== undefined}
-                      className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-lg"
-                    >
-                      <GitCompare className="w-4 h-4 mr-1" />
-                      {comparePrograms.find((p) => p.id === program.id) ? "Added" : "Compare"}
-                    </Button>
+                    {/* Compare Button Overlay */}
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {compareList.includes(program.id) ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => removeFromCompare(program.id)}
+                          className="bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => addToCompare(program.id)}
+                          disabled={compareList.length >= 3}
+                          className="bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Compare
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-
-          {/* Pagination */}
-          {programsData && programsData.totalPages > 1 && (
-            <div className="flex justify-center mt-12">
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                >
-                  {t("programs.pagination.previous")}
-                </Button>
-
-                {[...Array(Math.min(5, programsData.totalPages))].map((_, i) => {
-                  const page = i + 1
-                  return (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </Button>
-                  )
-                })}
-
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(Math.min(programsData.totalPages, currentPage + 1))}
-                  disabled={currentPage === programsData.totalPages}
-                >
-                  {t("programs.pagination.next")}
-                </Button>
+                ))}
               </div>
-            </div>
+
+              {/* Pagination */}
+              {data && data.totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-8">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="bg-white/80 dark:bg-slate-800/80"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    {!isMobile && "Previous"}
+                  </Button>
+
+                  <div className="flex gap-1">
+                    {Array.from({ length: Math.min(5, data.totalPages) }, (_, i) => {
+                      const page = i + 1
+                      return (
+                        <Button
+                          key={page}
+                          variant={page === currentPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(page)}
+                          className={page === currentPage ? "" : "bg-white/80 dark:bg-slate-800/80"}
+                        >
+                          {page}
+                        </Button>
+                      )
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(Math.min(data.totalPages, currentPage + 1))}
+                    disabled={currentPage === data.totalPages}
+                    className="bg-white/80 dark:bg-slate-800/80"
+                  >
+                    {!isMobile && "Next"}
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
-    </GuestModeWrapper>
-  )
-}
 
-// Desktop Filters Component
-const DesktopFilters: React.FC<{
-  selectedField: string
-  setSelectedField: (field: string) => void
-  selectedLanguage: string
-  setSelectedLanguage: (language: string) => void
-  budgetRange: number[]
-  setBudgetRange: (range: number[]) => void
-  withScholarship: boolean
-  setWithScholarship: (value: boolean) => void
-  fields: string[]
-  languages: string[]
-  clearFilters: () => void
-  activeFiltersCount: number
-}> = ({
-  selectedField,
-  setSelectedField,
-  selectedLanguage,
-  setSelectedLanguage,
-  budgetRange,
-  setBudgetRange,
-  withScholarship,
-  setWithScholarship,
-  fields,
-  languages,
-  clearFilters,
-  activeFiltersCount,
-}) => {
-  const { t } = useTranslation()
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {/* Field Filter */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">{t("programs.filters.field")}</Label>
-        <Select value={selectedField} onValueChange={setSelectedField}>
-          <SelectTrigger>
-            <SelectValue placeholder={t("programs.filters.allFields")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("programs.filters.allFields")}</SelectItem>
-            {fields.map((field) => (
-              <SelectItem key={field} value={field}>
-                {field}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Language Filter */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">{t("programs.filters.language")}</Label>
-        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-          <SelectTrigger>
-            <SelectValue placeholder={t("programs.filters.allLanguages")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("programs.filters.allLanguages")}</SelectItem>
-            {languages.map((language) => (
-              <SelectItem key={language} value={language}>
-                {language}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Budget Filter */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">
-          {t("programs.filters.budget")}: €{budgetRange[0].toLocaleString()} - €{budgetRange[1].toLocaleString()}
-        </Label>
-        <Slider
-          value={budgetRange}
-          onValueChange={setBudgetRange}
-          max={100000}
-          min={0}
-          step={1000}
-          className="w-full"
-        />
-      </div>
-
-      {/* Scholarship Filter */}
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Switch id="scholarship" checked={withScholarship} onCheckedChange={setWithScholarship} />
-          <Label htmlFor="scholarship" className="text-sm font-medium">
-            {t("programs.filters.withScholarship")}
-          </Label>
-        </div>
-
-        {activeFiltersCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full">
-            {t("programs.filters.clear")} ({activeFiltersCount})
-          </Button>
-        )}
-      </div>
+      {/* Compare Modal */}
+      <Dialog open={showCompareModal} onOpenChange={setShowCompareModal}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Compare Programs</DialogTitle>
+          </DialogHeader>
+          {data && (
+            <ComparePrograms
+              programs={data.programs.filter((p) => compareList.includes(p.id))}
+              onClose={() => setShowCompareModal(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-
-// Mobile Filters Component
-const MobileFilters: React.FC<{
-  selectedField: string
-  setSelectedField: (field: string) => void
-  selectedLanguage: string
-  setSelectedLanguage: (language: string) => void
-  budgetRange: number[]
-  setBudgetRange: (range: number[]) => void
-  withScholarship: boolean
-  setWithScholarship: (value: boolean) => void
-  fields: string[]
-  languages: string[]
-  clearFilters: () => void
-  activeFiltersCount: number
-}> = ({
-  selectedField,
-  setSelectedField,
-  selectedLanguage,
-  setSelectedLanguage,
-  budgetRange,
-  setBudgetRange,
-  withScholarship,
-  setWithScholarship,
-  fields,
-  languages,
-  clearFilters,
-  activeFiltersCount,
-}) => {
-  const { t } = useTranslation()
-
-  return (
-    <div className="space-y-6">
-      {/* Field Filter */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">{t("programs.filters.field")}</Label>
-        <Select value={selectedField} onValueChange={setSelectedField}>
-          <SelectTrigger>
-            <SelectValue placeholder={t("programs.filters.allFields")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("programs.filters.allFields")}</SelectItem>
-            {fields.map((field) => (
-              <SelectItem key={field} value={field}>
-                {field}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Language Filter */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">{t("programs.filters.language")}</Label>
-        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-          <SelectTrigger>
-            <SelectValue placeholder={t("programs.filters.allLanguages")} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("programs.filters.allLanguages")}</SelectItem>
-            {languages.map((language) => (
-              <SelectItem key={language} value={language}>
-                {language}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Budget Filter */}
-      <div className="space-y-4">
-        <Label className="text-sm font-medium">
-          {t("programs.filters.budget")}: €{budgetRange[0].toLocaleString()} - €{budgetRange[1].toLocaleString()}
-        </Label>
-        <Slider
-          value={budgetRange}
-          onValueChange={setBudgetRange}
-          max={100000}
-          min={0}
-          step={1000}
-          className="w-full"
-        />
-      </div>
-
-      {/* Scholarship Filter */}
-      <div className="flex items-center space-x-2">
-        <Switch id="scholarship-mobile" checked={withScholarship} onCheckedChange={setWithScholarship} />
-        <Label htmlFor="scholarship-mobile" className="text-sm font-medium">
-          {t("programs.filters.withScholarship")}
-        </Label>
-      </div>
-
-      <Separator />
-
-      {/* Clear Filters */}
-      {activeFiltersCount > 0 && (
-        <Button variant="outline" onClick={clearFilters} className="w-full bg-transparent">
-          {t("programs.filters.clear")} ({activeFiltersCount})
-        </Button>
-      )}
-    </div>
-  )
-}
-
-
-
