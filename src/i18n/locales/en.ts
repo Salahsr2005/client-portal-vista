@@ -425,4 +425,70 @@ export default {
     subtitle: "Professional assistance for your visa needs",
     viewAll: "See All Services",
   },
+    programs: {
+    hero: {
+      badge: "Discover Your Future",
+      title: "Study Programs Worldwide",
+      subtitle: "Explore thousands of academic programs from top universities around the globe",
+      stats: {
+        programs: "{{count}} Programs",
+        countries: "{{count}} Countries",
+        scholarships: "Scholarships Available",
+      },
+    },
+    search: {
+      placeholder: "Search programs, universities, or fields...",
+    },
+    filters: {
+      title: "Filters",
+      advanced: "Advanced Filters",
+      active: "Active filters",
+      clear: "Clear All",
+      country: "Country",
+      allCountries: "All Countries",
+      level: "Level",
+      allLevels: "All Levels",
+      field: "Field",
+      allFields: "All Fields",
+      language: "Language",
+      allLanguages: "All Languages",
+      budget: "Budget Range",
+      withScholarship: "With Scholarship",
+    },
+    levels: {
+      bachelor: "Bachelor",
+      master: "Master",
+      phd: "PhD",
+    },
+    sort: {
+      relevance: "Relevance",
+      name: "Name A-Z",
+      tuitionLow: "Tuition: Low to High",
+      tuitionHigh: "Tuition: High to Low",
+      ranking: "University Ranking",
+    },
+    results: {
+      title: "Available Programs",
+      loading: "Loading programs...",
+      found: "Showing {{count}} of {{total}} programs",
+    },
+    error: {
+      title: "Error Loading Programs",
+      message: "We couldn't load the programs. Please try again later.",
+    },
+    empty: {
+      title: "No Programs Found",
+      message: "Try adjusting your search criteria or filters.",
+      clearFilters: "Clear Filters",
+    },
+    pagination: {
+      previous: "Previous",
+      next: "Next",
+    },
+    guestApply: {
+      title: "Sign Up Required",
+      description: "Please create an account to apply for programs.",
+      action: "Sign Up",
+    },
+  },
 }
