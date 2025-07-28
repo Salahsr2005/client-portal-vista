@@ -60,7 +60,15 @@ const useAnimatedCounter = (end: number, duration = 2000, start = 0) => {
 }
 
 // Elegant Button Component
-const ElegantButton = ({ children, variant = "primary", className = "", onClick, icon: Icon, ...props }) => {
+const ElegantButton = ({
+  children,
+  variant = "primary",
+  className = "",
+  onClick,
+  icon: Icon,
+  disabled = false,
+  ...props
+}) => {
   const variants = {
     primary: `
       relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-700 
@@ -68,17 +76,24 @@ const ElegantButton = ({ children, variant = "primary", className = "", onClick,
       px-8 py-4 rounded-lg shadow-lg hover:shadow-xl
       transition-all duration-300 transform hover:scale-[1.02]
       border border-blue-500/20
+      ${disabled ? "opacity-50 cursor-not-allowed hover:scale-100" : ""}
     `,
     guest: `
       relative overflow-hidden bg-slate-800/50 backdrop-blur-sm border border-slate-600/30
       hover:bg-slate-700/50 text-slate-200 font-semibold
       px-8 py-4 rounded-lg transition-all duration-300
       transform hover:scale-[1.02] group
+      ${disabled ? "opacity-50 cursor-not-allowed hover:scale-100" : ""}
     `,
   }
 
   return (
-    <button className={`${variants[variant]} ${className}`} onClick={onClick} {...props}>
+    <button
+      className={`${variants[variant]} ${className}`}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      {...props}
+    >
       <span className="relative z-10 flex items-center gap-3">
         {Icon && <Icon className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />}
         {children}
@@ -342,13 +357,32 @@ export const ModernHeroSection = () => {
             <p className="text-lg text-slate-300 leading-relaxed max-w-2xl">{t("modernHero.description")}</p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <ElegantButton variant="guest" onClick={handleGuestMode} icon={User}>
-                {t("modernHero.guestMode")}
-              </ElegantButton>
-              <ElegantButton variant="primary" onClick={handleJoinUs} icon={ArrowRight}>
-                {t("modernHero.joinUs")}
-              </ElegantButton>
+            <div className="flex flex-col items-center space-y-6">
+              {/* Application Season Countdown */}
+              <div className="text-center">
+                <h3 className="text-xl sm:text-2xl font-bold text-slate-200 mb-4">{t("modernHero.countdown.title")}</h3>
+                <CountdownTimer targetDate="2025-09-01T00:00:00" />
+              </div>
+
+              {/* Disabled Buttons with Explanation */}
+              <div className="flex flex-col sm:flex-row gap-4 opacity-60">
+                <ElegantButton variant="guest" onClick={() => {}} icon={User} disabled className="cursor-not-allowed">
+                  {t("modernHero.guestMode")} - Coming Soon
+                </ElegantButton>
+                <ElegantButton
+                  variant="primary"
+                  onClick={() => {}}
+                  icon={ArrowRight}
+                  disabled
+                  className="cursor-not-allowed"
+                >
+                  {t("modernHero.joinUs")} - Coming Soon
+                </ElegantButton>
+              </div>
+
+              <p className="text-sm text-slate-400 text-center max-w-md">
+                Registration and applications will open on September 1st, 2025. Get ready for the new academic season!
+              </p>
             </div>
           </div>
 
@@ -386,6 +420,7 @@ export const ModernHeroSection = () => {
 
 // Default export for compatibility
 export default ModernHeroSection
+
 
 
 
