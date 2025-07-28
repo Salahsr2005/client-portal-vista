@@ -52,7 +52,7 @@ import { useGuestRestrictions } from "@/components/layout/GuestModeWrapper"
 import {
   DestinationMatchingService,
   type ConsultationPreferences,
-  type MatchResult,
+  type MatchedDestination,
 } from "@/services/DestinationMatchingService"
 
 const CONSULTATION_STEPS = [
@@ -127,7 +127,7 @@ const translations = {
     previous: "Previous",
     startNew: "Start New Consultation",
     nextSteps: "Recommended Next Steps",
-    compatibility: "Compatibility",
+    compatibility: "Match Score",
     budgetAnalysis: "Budget Analysis",
     requirements: "Requirements",
     whyRecommended: "Why this destination matches you:",
@@ -182,7 +182,7 @@ const translations = {
     previous: "Précédent",
     startNew: "Commencer une Nouvelle Consultation",
     nextSteps: "Prochaines Étapes Recommandées",
-    compatibility: "Compatibilité",
+    compatibility: "Score de Correspondance",
     budgetAnalysis: "Analyse Budgétaire",
     requirements: "Exigences",
     whyRecommended: "Pourquoi cette destination vous correspond:",
@@ -228,7 +228,7 @@ export default function DestinationConsultationFlow() {
     avoidRegions: [],
   })
 
-  const [matchedDestinations, setMatchedDestinations] = useState<MatchResult[]>([])
+  const [matchedDestinations, setMatchedDestinations] = useState<MatchedDestination[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
 
   const t = translations[preferences.userLanguage]
@@ -263,15 +263,18 @@ export default function DestinationConsultationFlow() {
   }, [currentStep, preferences])
 
   const findMatches = useCallback(() => {
-    if (!destinationsData?.destinations) {
-      console.warn("No destinations data available for matching")
+    console.log("🚀 Starting destination consultation analysis...")
+    console.log("📋 User preferences:", preferences)
+    console.log("🏛️ Available destinations:", destinationsData?.destinations?.length || 0)
+
+    if (!destinationsData?.destinations || destinationsData.destinations.length === 0) {
+      console.warn("❌ No destinations data available")
       return []
     }
 
-    console.log("Starting destination matching process...")
-    const results = DestinationMatchingService.findBestDestinations(destinationsData.destinations, preferences)
-    console.log("Matching completed, results:", results.length)
+    const results = DestinationMatchingService.findMatchingDestinations(destinationsData.destinations, preferences)
 
+    console.log("✅ Matching completed. Results:", results.length)
     return results
   }, [destinationsData, preferences])
 
@@ -281,15 +284,16 @@ export default function DestinationConsultationFlow() {
     } else if (currentStep === 4) {
       setIsProcessing(true)
       try {
-        console.log("Starting destination analysis...")
+        console.log("🔄 Starting destination analysis...")
         const matches = findMatches()
-        console.log("Found matches:", matches.length)
+        console.log("📊 Found matches:", matches.length)
 
         setMatchedDestinations(matches)
 
-        if (user && !isRestricted) {
+        // Save consultation results if user is logged in
+        if (user && !isRestricted && matches.length > 0) {
           try {
-            await supabase.from("consultation_results").insert({
+            const consultationResult = {
               user_id: user.id,
               study_level: preferences.studyLevel as any,
               budget:
@@ -310,22 +314,25 @@ export default function DestinationConsultationFlow() {
               preferences_data: preferences as any,
               work_while_studying: preferences.workWhileStudying,
               scholarship_required: preferences.scholarshipRequired,
-            })
-            console.log("Consultation results saved to database")
+              notes: `Found ${matches.length} matching destinations`,
+            }
+
+            await supabase.from("consultation_results").insert(consultationResult)
+            console.log("💾 Consultation results saved to database")
           } catch (dbError) {
-            console.error("Error saving to database:", dbError)
-            // Don't block the user experience for database errors
+            console.error("❌ Error saving to database:", dbError)
+            // Don't block user experience for database errors
           }
         }
 
         toast({
           title: "Analysis Complete!",
-          description: `Found ${matches.length} perfectly matched destinations for you!`,
+          description: `Found ${matches.length} destinations matched to your profile!`,
         })
 
         setCurrentStep(5)
       } catch (error) {
-        console.error("Error in consultation:", error)
+        console.error("❌ Error in consultation:", error)
         toast({
           title: "Analysis Error",
           description: "Please try again or contact support.",
@@ -375,6 +382,21 @@ export default function DestinationConsultationFlow() {
         return <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
       default:
         return <Info className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+    }
+  }, [])
+
+  const getBudgetFitColor = useCallback((budgetFit: string) => {
+    switch (budgetFit) {
+      case "excellent":
+        return "text-green-600 dark:text-green-400"
+      case "good":
+        return "text-blue-600 dark:text-blue-400"
+      case "acceptable":
+        return "text-yellow-600 dark:text-yellow-400"
+      case "challenging":
+        return "text-red-600 dark:text-red-400"
+      default:
+        return "text-gray-600 dark:text-gray-400"
     }
   }, [])
 
@@ -894,6 +916,8 @@ export default function DestinationConsultationFlow() {
                       { id: "Dutch", label: preferences.userLanguage === "fr" ? "Néerlandais" : "Dutch" },
                       { id: "Portuguese", label: preferences.userLanguage === "fr" ? "Portugais" : "Portuguese" },
                       { id: "Any", label: preferences.userLanguage === "fr" ? "Toute langue" : "Any Language" },
+
+                      { id: "Any", label: preferences.userLanguage === "fr" ? "Toute langue" : "Any Language" },
                     ].map((lang) => (
                       <Button
                         key={lang.id}
@@ -1256,91 +1280,66 @@ export default function DestinationConsultationFlow() {
                               </p>
                             )}
 
-                            {/* Compatibility Breakdown */}
-                            {match.compatibilityBreakdown && (
-                              <div className="mb-4 sm:mb-6">
-                                <h4 className="font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center text-sm sm:text-base">
-                                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                                  {preferences.userLanguage === "fr"
-                                    ? "Analyse de Compatibilité"
-                                    : "Compatibility Analysis"}
-                                </h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
-                                  {Object.entries(match.compatibilityBreakdown).map(([key, value]) => (
-                                    <div
-                                      key={key}
-                                      className="text-center p-2 sm:p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg"
-                                    >
-                                      <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                                        {Math.round(value as number)}%
-                                      </div>
-                                      <div className="text-xs text-slate-600 dark:text-slate-400 capitalize truncate">
-                                        {key === "budget" && (preferences.userLanguage === "fr" ? "Budget" : "Budget")}
-                                        {key === "academic" &&
-                                          (preferences.userLanguage === "fr" ? "Académique" : "Academic")}
-                                        {key === "language" &&
-                                          (preferences.userLanguage === "fr" ? "Langue" : "Language")}
-                                        {key === "timeline" &&
-                                          (preferences.userLanguage === "fr" ? "Chronologie" : "Timeline")}
-                                        {key === "requirements" &&
-                                          (preferences.userLanguage === "fr" ? "Exigences" : "Requirements")}
-                                        {key === "opportunities" &&
-                                          (preferences.userLanguage === "fr" ? "Opportunités" : "Opportunities")}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+                            {/* Budget Fit */}
+                            <div className="mb-4 sm:mb-6">
+                              <h4 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center text-sm sm:text-base">
+                                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                                {t.budgetAnalysis}
+                              </h4>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-sm text-slate-600 dark:text-slate-400">Budget Fit:</span>
+                                <Badge variant="outline" className={getBudgetFitColor(match.budgetFit)}>
+                                  {match.budgetFit.charAt(0).toUpperCase() + match.budgetFit.slice(1)}
+                                </Badge>
                               </div>
-                            )}
+                            </div>
 
                             {/* Estimated Costs */}
-                            {match.details?.estimatedCosts && (
-                              <div className="mb-4 sm:mb-6">
-                                <h4 className="font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center text-sm sm:text-base">
-                                  <Calculator className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                                  {t.estimatedCosts}
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                                  <div className="text-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                                    <PiggyBank className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                                    <div className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
-                                      {formatCurrency(match.details.estimatedCosts.tuitionRange[0])} -{" "}
-                                      {formatCurrency(match.details.estimatedCosts.tuitionRange[1])}
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                                      {t.tuitionRange}
-                                    </div>
-                                  </div>
-                                  <div className="text-center p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
-                                    <Home className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
-                                    <div className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
-                                      {formatCurrency(match.details.estimatedCosts.livingCosts)}
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                                      {preferences.userLanguage === "fr" ? "Coûts de Vie" : "Living Costs"}
-                                    </div>
-                                  </div>
-                                  <div className="text-center p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
-                                    <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2 text-green-600 dark:text-green-400" />
-                                    <div className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
-                                      {formatCurrency(match.details.estimatedCosts.serviceFees)}
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                                      {preferences.userLanguage === "fr" ? "Frais de Service" : "Service Fees"}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="mt-3 sm:mt-4 text-center p-3 sm:p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 rounded-lg">
-                                  <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-                                    {formatCurrency(match.details.estimatedCosts.totalRange[0])} -{" "}
-                                    {formatCurrency(match.details.estimatedCosts.totalRange[1])}
+                            <div className="mb-4 sm:mb-6">
+                              <h4 className="font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4 flex items-center text-sm sm:text-base">
+                                <Calculator className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                                {t.estimatedCosts}
+                              </h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                                <div className="text-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                                  <PiggyBank className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2 text-blue-600 dark:text-blue-400" />
+                                  <div className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+                                    {formatCurrency(match.estimatedCosts.tuitionRange[0])} -{" "}
+                                    {formatCurrency(match.estimatedCosts.tuitionRange[1])}
                                   </div>
                                   <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-                                    {t.totalRange}
+                                    {t.tuitionRange}
+                                  </div>
+                                </div>
+                                <div className="text-center p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                                  <Home className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
+                                  <div className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+                                    {formatCurrency(match.estimatedCosts.livingCosts)}
+                                  </div>
+                                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                                    {preferences.userLanguage === "fr" ? "Coûts de Vie" : "Living Costs"}
+                                  </div>
+                                </div>
+                                <div className="text-center p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                                  <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-2 text-green-600 dark:text-green-400" />
+                                  <div className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">
+                                    {formatCurrency(match.estimatedCosts.serviceFees)}
+                                  </div>
+                                  <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                                    {preferences.userLanguage === "fr" ? "Frais de Service" : "Service Fees"}
                                   </div>
                                 </div>
                               </div>
-                            )}
+                              <div className="mt-3 sm:mt-4 text-center p-3 sm:p-4 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 rounded-lg">
+                                <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                                  {formatCurrency(match.estimatedCosts.totalRange[0])} -{" "}
+                                  {formatCurrency(match.estimatedCosts.totalRange[1])}
+                                </div>
+                                <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+                                  {t.totalRange}
+                                </div>
+                              </div>
+                            </div>
 
                             {/* Match Reasons and Warnings */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -1587,6 +1586,7 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
+
 
 
 
