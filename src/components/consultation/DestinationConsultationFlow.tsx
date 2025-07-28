@@ -251,17 +251,25 @@ export default function DestinationConsultationFlow() {
         matchWarnings: matchResult.warnings,
         matchDetails: matchResult.details,
         recommendation: matchResult.recommendation,
+        budgetBreakdown: matchResult.budgetBreakdown,
+        requirements: matchResult.requirements,
       }
     })
 
-    // Filter destinations with minimum score threshold
-    const minScoreThreshold = consultationData.budgetFlexibility === "strict" ? 50 : 30
+    // Filter destinations with minimum score threshold based on budget flexibility
+    const minScoreThreshold =
+      consultationData.budgetFlexibility === "strict" ? 40 : consultationData.budgetFlexibility === "flexible" ? 30 : 20
 
     return scoredDestinations
       .filter((destination) => destination.matchScore >= minScoreThreshold)
       .sort((a, b) => {
         // Primary sort: recommendation level
-        const recommendationOrder = { highly_recommended: 4, recommended: 3, consider: 2, not_recommended: 1 }
+        const recommendationOrder = {
+          highly_recommended: 4,
+          recommended: 3,
+          consider: 2,
+          not_recommended: 1,
+        }
         const aOrder = recommendationOrder[a.recommendation as keyof typeof recommendationOrder] || 0
         const bOrder = recommendationOrder[b.recommendation as keyof typeof recommendationOrder] || 0
 
@@ -270,7 +278,7 @@ export default function DestinationConsultationFlow() {
         // Secondary sort: match score
         return b.matchScore - a.matchScore
       })
-      .slice(0, 15) // Limit to top 15 matches
+      .slice(0, 20) // Increased to top 20 matches for better variety
   }
 
   const handleNext = async () => {
@@ -1278,3 +1286,4 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
+
