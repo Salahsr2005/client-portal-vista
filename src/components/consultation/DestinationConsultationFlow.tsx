@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
@@ -32,8 +31,6 @@ import {
   Home,
   Calculator,
   Target,
-  Globe,
-  BookOpen,
   Calendar,
   Award,
   Zap,
@@ -70,18 +67,12 @@ const CONSULTATION_STEPS = [
   },
   {
     id: 3,
-    title: "Academic Profile",
-    icon: BookOpen,
-    description: "Your educational background and language skills",
+    title: "Language & Timeline",
+    icon: Languages,
+    description: "Your language skills and preferred timing",
   },
   {
     id: 4,
-    title: "Timeline & Priorities",
-    icon: Calendar,
-    description: "When you want to start and what matters most",
-  },
-  {
-    id: 5,
     title: "Your Perfect Matches",
     icon: Award,
     description: "Discover your ideal study destinations",
@@ -102,15 +93,12 @@ const translations = {
     strict: "Strict - Stay within budget",
     flexible: "Flexible - Up to 20% over",
     veryFlexible: "Very Flexible - Up to 50% over",
-    academicProfile: "Academic Profile",
-    academicSubtitle: "Help us understand your academic background and language capabilities",
+    languageAndTimeline: "Language & Timeline",
+    languageSubtitle: "Tell us about your language skills and when you want to start",
     currentGPA: "Academic Performance Level",
-    previousEducation: "Previous Education Country",
     preferredLanguages: "Preferred Study Languages",
     languageLevel: "Language Proficiency Level",
     hasLanguageCertificate: "I have official language certificates",
-    timelinePreferences: "Timeline & Priorities",
-    timelineSubtitle: "When do you want to start and what's most important to you?",
     intakePeriods: "Preferred Intake Periods",
     applicationUrgency: "Application Timeline",
     priorityFactors: "Priority Factors (Select all that apply)",
@@ -157,15 +145,12 @@ const translations = {
     strict: "Strict - Rester dans le budget",
     flexible: "Flexible - Jusqu'à 20% de plus",
     veryFlexible: "Très Flexible - Jusqu'à 50% de plus",
-    academicProfile: "Profil Académique",
-    academicSubtitle: "Aidez-nous à comprendre votre parcours académique et vos capacités linguistiques",
+    languageAndTimeline: "Langue et Chronologie",
+    languageSubtitle: "Parlez-nous de vos compétences linguistiques et de quand vous voulez commencer",
     currentGPA: "Niveau de Performance Académique",
-    previousEducation: "Pays d'Éducation Précédente",
     preferredLanguages: "Langues d'Études Préférées",
     languageLevel: "Niveau de Maîtrise Linguistique",
     hasLanguageCertificate: "J'ai des certificats de langue officiels",
-    timelinePreferences: "Chronologie et Priorités",
-    timelineSubtitle: "Quand voulez-vous commencer et qu'est-ce qui est le plus important pour vous?",
     intakePeriods: "Périodes d'Admission Préférées",
     applicationUrgency: "Chronologie de Candidature",
     priorityFactors: "Facteurs Prioritaires (Sélectionnez tout ce qui s'applique)",
@@ -213,7 +198,6 @@ export default function DestinationConsultationFlow() {
     serviceFeesBudgetRange: [200, 800],
     budgetFlexibility: "flexible",
     currentGPA: "intermediate",
-    previousEducationCountry: "",
     preferredLanguages: [],
     languageLevel: "intermediate",
     hasLanguageCertificate: false,
@@ -233,12 +217,13 @@ export default function DestinationConsultationFlow() {
 
   const t = translations[preferences.userLanguage]
 
+  // Use the destinations hook with proper error handling
   const {
     data: destinationsData,
     isLoading: destinationsLoading,
     error: destinationsError,
     refetch,
-  } = useDestinations({ limit: 100 })
+  } = useDestinations()
 
   const progress = useMemo(() => (currentStep / CONSULTATION_STEPS.length) * 100, [currentStep])
   const currentStepInfo = useMemo(() => CONSULTATION_STEPS[currentStep - 1], [currentStep])
@@ -254,9 +239,7 @@ export default function DestinationConsultationFlow() {
       case 2:
         return preferences.tuitionBudgetRange[1] > 0
       case 3:
-        return preferences.preferredLanguages.length > 0
-      case 4:
-        return preferences.intakePeriods.length > 0
+        return preferences.preferredLanguages.length > 0 && preferences.intakePeriods.length > 0
       default:
         return true
     }
@@ -265,12 +248,16 @@ export default function DestinationConsultationFlow() {
   const findMatches = useCallback(() => {
     console.log("🚀 Starting destination consultation analysis...")
     console.log("📋 User preferences:", preferences)
-    console.log("🏛️ Available destinations:", destinationsData?.destinations?.length || 0)
 
-    if (!destinationsData?.destinations || destinationsData.destinations.length === 0) {
+    // Check if we have destinations data
+    if (!destinationsData?.destinations) {
       console.warn("❌ No destinations data available")
+      console.log("📊 Destinations data structure:", destinationsData)
       return []
     }
+
+    console.log("🏛️ Available destinations:", destinationsData.destinations.length)
+    console.log("📋 First destination sample:", destinationsData.destinations[0])
 
     const results = DestinationMatchingService.findMatchingDestinations(destinationsData.destinations, preferences)
 
@@ -279,9 +266,9 @@ export default function DestinationConsultationFlow() {
   }, [destinationsData, preferences])
 
   const handleNext = useCallback(async () => {
-    if (currentStep < 4) {
+    if (currentStep < 3) {
       setCurrentStep((prev) => prev + 1)
-    } else if (currentStep === 4) {
+    } else if (currentStep === 3) {
       setIsProcessing(true)
       try {
         console.log("🔄 Starting destination analysis...")
@@ -321,7 +308,6 @@ export default function DestinationConsultationFlow() {
             console.log("💾 Consultation results saved to database")
           } catch (dbError) {
             console.error("❌ Error saving to database:", dbError)
-            // Don't block user experience for database errors
           }
         }
 
@@ -330,7 +316,7 @@ export default function DestinationConsultationFlow() {
           description: `Found ${matches.length} destinations matched to your profile!`,
         })
 
-        setCurrentStep(5)
+        setCurrentStep(4)
       } catch (error) {
         console.error("❌ Error in consultation:", error)
         toast({
@@ -404,13 +390,12 @@ export default function DestinationConsultationFlow() {
     setCurrentStep(1)
     setPreferences({
       studyLevel: "",
-      userLanguage: preferences.userLanguage, // Keep language preference
+      userLanguage: preferences.userLanguage,
       tuitionBudgetRange: [0, 6000],
       livingCostsBudgetRange: [800, 2500],
       serviceFeesBudgetRange: [200, 800],
       budgetFlexibility: "flexible",
       currentGPA: "intermediate",
-      previousEducationCountry: "",
       preferredLanguages: [],
       languageLevel: "intermediate",
       hasLanguageCertificate: false,
@@ -560,6 +545,55 @@ export default function DestinationConsultationFlow() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Academic Performance */}
+              <Card>
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Award className="h-5 w-5" />
+                    {t.currentGPA}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {[
+                      {
+                        id: "low",
+                        label: preferences.userLanguage === "fr" ? "Satisfaisant" : "Satisfactory",
+                        desc: preferences.userLanguage === "fr" ? "10-12/20 ou équivalent" : "10-12/20 or equivalent",
+                        color: "from-yellow-500 to-orange-500",
+                      },
+                      {
+                        id: "intermediate",
+                        label: preferences.userLanguage === "fr" ? "Bien" : "Good",
+                        desc: preferences.userLanguage === "fr" ? "12-14/20 ou équivalent" : "12-14/20 or equivalent",
+                        color: "from-blue-500 to-indigo-500",
+                      },
+                      {
+                        id: "high",
+                        label: preferences.userLanguage === "fr" ? "Très Bien" : "Excellent",
+                        desc: preferences.userLanguage === "fr" ? "14-20/20 ou équivalent" : "14-20/20 or equivalent",
+                        color: "from-green-500 to-emerald-500",
+                      },
+                    ].map((level) => (
+                      <Button
+                        key={level.id}
+                        variant={preferences.currentGPA === level.id ? "default" : "outline"}
+                        onClick={() => updatePreferences({ currentGPA: level.id as any })}
+                        className="h-20 sm:h-24 flex flex-col items-center justify-center space-y-2 text-center"
+                      >
+                        <div
+                          className={`w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r ${level.color} rounded-full flex items-center justify-center`}
+                        >
+                          <Star className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                        </div>
+                        <div className="font-semibold text-sm sm:text-base">{level.label}</div>
+                        <div className="text-xs opacity-75 leading-tight">{level.desc}</div>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )
@@ -640,12 +674,12 @@ export default function DestinationConsultationFlow() {
                     <div className="space-y-4">
                       <div className="flex justify-between text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         <span>€0</span>
-                        <span>€12,000</span>
+                        <span>€15,000</span>
                       </div>
                       <Slider
                         value={preferences.tuitionBudgetRange}
                         onValueChange={(value) => updatePreferences({ tuitionBudgetRange: value as [number, number] })}
-                        max={12000}
+                        max={15000}
                         min={0}
                         step={250}
                         className="w-full"
@@ -706,14 +740,14 @@ export default function DestinationConsultationFlow() {
                     <div className="space-y-4">
                       <div className="flex justify-between text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                         <span>€100</span>
-                        <span>€1,000</span>
+                        <span>€1,500</span>
                       </div>
                       <Slider
                         value={preferences.serviceFeesBudgetRange}
                         onValueChange={(value) =>
                           updatePreferences({ serviceFeesBudgetRange: value as [number, number] })
                         }
-                        max={1000}
+                        max={1500}
                         min={100}
                         step={50}
                         className="w-full"
@@ -790,113 +824,17 @@ export default function DestinationConsultationFlow() {
           <div className="space-y-6 sm:space-y-8">
             <div className="text-center">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                <Languages className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-slate-900 dark:text-white">
-                {t.academicProfile}
+                {t.languageAndTimeline}
               </h2>
               <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto px-4">
-                {t.academicSubtitle}
+                {t.languageSubtitle}
               </p>
             </div>
 
             <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4">
-              {/* Academic Performance */}
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Award className="h-5 w-5" />
-                    {t.currentGPA}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                    {[
-                      {
-                        id: "low",
-                        label: preferences.userLanguage === "fr" ? "Satisfaisant" : "Satisfactory",
-                        desc: preferences.userLanguage === "fr" ? "10-12/20 ou équivalent" : "10-12/20 or equivalent",
-                        color: "from-yellow-500 to-orange-500",
-                      },
-                      {
-                        id: "intermediate",
-                        label: preferences.userLanguage === "fr" ? "Bien" : "Good",
-                        desc: preferences.userLanguage === "fr" ? "12-14/20 ou équivalent" : "12-14/20 or equivalent",
-                        color: "from-blue-500 to-indigo-500",
-                      },
-                      {
-                        id: "high",
-                        label: preferences.userLanguage === "fr" ? "Très Bien" : "Excellent",
-                        desc: preferences.userLanguage === "fr" ? "14-20/20 ou équivalent" : "14-20/20 or equivalent",
-                        color: "from-green-500 to-emerald-500",
-                      },
-                    ].map((level) => (
-                      <Button
-                        key={level.id}
-                        variant={preferences.currentGPA === level.id ? "default" : "outline"}
-                        onClick={() => updatePreferences({ currentGPA: level.id as any })}
-                        className="h-20 sm:h-24 flex flex-col items-center justify-center space-y-2 text-center"
-                      >
-                        <div
-                          className={`w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r ${level.color} rounded-full flex items-center justify-center`}
-                        >
-                          <Star className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
-                        </div>
-                        <div className="font-semibold text-sm sm:text-base">{level.label}</div>
-                        <div className="text-xs opacity-75 leading-tight">{level.desc}</div>
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Previous Education */}
-              <Card>
-                <CardHeader className="pb-4">
-                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                    <Globe className="h-5 w-5" />
-                    {t.previousEducation}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select
-                    value={preferences.previousEducationCountry}
-                    onValueChange={(value) => updatePreferences({ previousEducationCountry: value })}
-                  >
-                    <SelectTrigger className="h-12 sm:h-14 text-base sm:text-lg">
-                      <SelectValue
-                        placeholder={
-                          preferences.userLanguage === "fr"
-                            ? "Sélectionnez votre pays d'éducation"
-                            : "Select your education country"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Algeria">
-                        {preferences.userLanguage === "fr" ? "Algérie" : "Algeria"}
-                      </SelectItem>
-                      <SelectItem value="France">France</SelectItem>
-                      <SelectItem value="Morocco">{preferences.userLanguage === "fr" ? "Maroc" : "Morocco"}</SelectItem>
-                      <SelectItem value="Tunisia">
-                        {preferences.userLanguage === "fr" ? "Tunisie" : "Tunisia"}
-                      </SelectItem>
-                      <SelectItem value="UK">
-                        {preferences.userLanguage === "fr" ? "Royaume-Uni" : "United Kingdom"}
-                      </SelectItem>
-                      <SelectItem value="US">
-                        {preferences.userLanguage === "fr" ? "États-Unis" : "United States"}
-                      </SelectItem>
-                      <SelectItem value="Canada">Canada</SelectItem>
-                      <SelectItem value="Germany">
-                        {preferences.userLanguage === "fr" ? "Allemagne" : "Germany"}
-                      </SelectItem>
-                      <SelectItem value="Other">{preferences.userLanguage === "fr" ? "Autre" : "Other"}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-
               {/* Language Preferences */}
               <Card>
                 <CardHeader className="pb-4">
@@ -906,17 +844,10 @@ export default function DestinationConsultationFlow() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 sm:space-y-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                     {[
                       { id: "English", label: preferences.userLanguage === "fr" ? "Anglais" : "English" },
                       { id: "French", label: preferences.userLanguage === "fr" ? "Français" : "French" },
-                      { id: "German", label: preferences.userLanguage === "fr" ? "Allemand" : "German" },
-                      { id: "Spanish", label: preferences.userLanguage === "fr" ? "Espagnol" : "Spanish" },
-                      { id: "Italian", label: preferences.userLanguage === "fr" ? "Italien" : "Italian" },
-                      { id: "Dutch", label: preferences.userLanguage === "fr" ? "Néerlandais" : "Dutch" },
-                      { id: "Portuguese", label: preferences.userLanguage === "fr" ? "Portugais" : "Portuguese" },
-                      { id: "Any", label: preferences.userLanguage === "fr" ? "Toute langue" : "Any Language" },
-
                       { id: "Any", label: preferences.userLanguage === "fr" ? "Toute langue" : "Any Language" },
                     ].map((lang) => (
                       <Button
@@ -930,11 +861,11 @@ export default function DestinationConsultationFlow() {
                             updatePreferences({ preferredLanguages: [...current, lang.id] })
                           }
                         }}
-                        className="h-10 sm:h-12 text-xs sm:text-sm"
+                        className="h-12 sm:h-14 text-sm sm:text-base"
                       >
                         <span className="truncate">{lang.label}</span>
                         {preferences.preferredLanguages.includes(lang.id) && (
-                          <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 ml-1 flex-shrink-0" />
+                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 ml-2 flex-shrink-0" />
                         )}
                       </Button>
                     ))}
@@ -945,28 +876,26 @@ export default function DestinationConsultationFlow() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-3 sm:space-y-4">
                       <Label className="text-base font-semibold">{t.languageLevel}</Label>
-                      <Select
-                        value={preferences.languageLevel}
-                        onValueChange={(value: any) => updatePreferences({ languageLevel: value })}
-                      >
-                        <SelectTrigger className="h-12">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="beginner">
-                            {preferences.userLanguage === "fr" ? "Débutant" : "Beginner"}
-                          </SelectItem>
-                          <SelectItem value="intermediate">
-                            {preferences.userLanguage === "fr" ? "Intermédiaire" : "Intermediate"}
-                          </SelectItem>
-                          <SelectItem value="advanced">
-                            {preferences.userLanguage === "fr" ? "Avancé" : "Advanced"}
-                          </SelectItem>
-                          <SelectItem value="native">
-                            {preferences.userLanguage === "fr" ? "Langue maternelle" : "Native Speaker"}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: "beginner", label: preferences.userLanguage === "fr" ? "Débutant" : "Beginner" },
+                          {
+                            id: "intermediate",
+                            label: preferences.userLanguage === "fr" ? "Intermédiaire" : "Intermediate",
+                          },
+                          { id: "advanced", label: preferences.userLanguage === "fr" ? "Avancé" : "Advanced" },
+                          { id: "native", label: preferences.userLanguage === "fr" ? "Langue maternelle" : "Native" },
+                        ].map((level) => (
+                          <Button
+                            key={level.id}
+                            variant={preferences.languageLevel === level.id ? "default" : "outline"}
+                            onClick={() => updatePreferences({ languageLevel: level.id as any })}
+                            className="h-10 text-xs sm:text-sm"
+                          >
+                            {level.label}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="space-y-3 sm:space-y-4">
@@ -987,26 +916,7 @@ export default function DestinationConsultationFlow() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
-        )
 
-      case 4:
-        return (
-          <div className="space-y-6 sm:space-y-8">
-            <div className="text-center">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-slate-900 dark:text-white">
-                {t.timelinePreferences}
-              </h2>
-              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto px-4">
-                {t.timelineSubtitle}
-              </p>
-            </div>
-
-            <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8 px-4">
               {/* Intake Periods */}
               <Card>
                 <CardHeader className="pb-4">
@@ -1192,7 +1102,7 @@ export default function DestinationConsultationFlow() {
           </div>
         )
 
-      case 5:
+      case 4:
         return (
           <div className="space-y-6 sm:space-y-8">
             <div className="text-center">
@@ -1531,7 +1441,7 @@ export default function DestinationConsultationFlow() {
         </Card>
 
         {/* Navigation */}
-        {currentStep < 5 && (
+        {currentStep < 4 && (
           <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
             <Button
               variant="outline"
@@ -1563,7 +1473,7 @@ export default function DestinationConsultationFlow() {
                 {isProcessing && (
                   <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                <span>{isProcessing ? t.analyzing : currentStep === 4 ? t.findDestinations : t.continue}</span>
+                <span>{isProcessing ? t.analyzing : currentStep === 3 ? t.findDestinations : t.continue}</span>
                 {!isProcessing && <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />}
               </Button>
             </div>
@@ -1571,7 +1481,7 @@ export default function DestinationConsultationFlow() {
         )}
 
         {/* Restart Option for Results Page */}
-        {currentStep === 5 && (
+        {currentStep === 4 && (
           <div className="text-center">
             <Button
               variant="outline"
@@ -1586,6 +1496,7 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
+
 
 
 
