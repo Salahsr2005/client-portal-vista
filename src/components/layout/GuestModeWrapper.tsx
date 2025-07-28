@@ -1,26 +1,27 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useGuestMode } from '@/contexts/GuestModeContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Lock, ArrowLeft, User, CreditCard } from 'lucide-react';
-import { motion } from 'framer-motion';
+"use client"
+
+import type React from "react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { useGuestMode } from "@/contexts/GuestModeContext"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, User } from "lucide-react"
+import { motion } from "framer-motion"
 
 interface GuestModeWrapperProps {
-  children: React.ReactNode;
-  showGuestBanner?: boolean;
+  children: React.ReactNode
+  showGuestBanner?: boolean
 }
 
 export function GuestModeWrapper({ children, showGuestBanner = true }: GuestModeWrapperProps) {
-  const { isGuestMode } = useGuestMode();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { isGuestMode } = useGuestMode()
+  const location = useLocation()
+  const navigate = useNavigate()
 
-  const isGuestRoute = location.pathname.startsWith('/guest/');
+  const isGuestRoute = location.pathname.startsWith("/guest/")
 
   if (!isGuestMode && !isGuestRoute) {
-    return <>{children}</>;
+    return <>{children}</>
   }
 
   return (
@@ -38,28 +39,18 @@ export function GuestModeWrapper({ children, showGuestBanner = true }: GuestMode
                 <Badge variant="outline" className="border-primary/20 text-primary">
                   Guest Mode
                 </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Browsing in read-only mode
-                </span>
+                <span className="text-sm text-muted-foreground">Browsing in read-only mode</span>
               </div>
-              
+
               <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/guest')}
-                  className="gap-2"
-                >
+                <Button variant="outline" size="sm" onClick={() => navigate("/guest")} className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
                   Back to Guest Home
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/register')}
-                  className="gap-2"
-                >
+                {/* Disabled buttons for application season */}
+                <Button size="sm" disabled className="gap-2 opacity-50 cursor-not-allowed">
                   <User className="h-4 w-4" />
-                  Sign Up Free
+                  Opens Sept 1st
                 </Button>
               </div>
             </div>
@@ -70,14 +61,16 @@ export function GuestModeWrapper({ children, showGuestBanner = true }: GuestMode
       {/* Main Content */}
       <div className="relative">
         {children}
-        
-        {/* Guest Mode Restrictions Overlay */}
-        <GuestModeRestrictionsOverlay />
+
+        {/* Removed Guest Mode Restrictions Overlay */}
+        {/* <GuestModeRestrictionsOverlay /> */}
       </div>
     </div>
-  );
+  )
 }
 
+// Comment out or remove the GuestModeRestrictionsOverlay component
+/*
 function GuestModeRestrictionsOverlay() {
   const navigate = useNavigate();
   
@@ -122,29 +115,30 @@ function GuestModeRestrictionsOverlay() {
     </motion.div>
   );
 }
+*/
 
 // Hook to check if user can perform restricted actions
 export function useGuestRestrictions() {
-  const { isGuestMode } = useGuestMode();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { isGuestMode } = useGuestMode()
+  const location = useLocation()
+  const navigate = useNavigate()
 
-  const isGuestRoute = location.pathname.startsWith('/guest/');
-  const isRestricted = isGuestMode || isGuestRoute;
+  const isGuestRoute = location.pathname.startsWith("/guest/")
+  const isRestricted = isGuestMode || isGuestRoute
 
-  const handleRestrictedAction = (action: 'apply' | 'payment' | 'profile' | 'appointment') => {
+  const handleRestrictedAction = (action: "apply" | "payment" | "profile" | "appointment") => {
     if (isRestricted) {
       // Show upgrade prompt
-      navigate('/register', { 
-        state: { 
+      navigate("/register", {
+        state: {
           returnTo: location.pathname,
-          action: action 
-        } 
-      });
-      return false;
+          action: action,
+        },
+      })
+      return false
     }
-    return true;
-  };
+    return true
+  }
 
   return {
     isRestricted,
@@ -152,6 +146,6 @@ export function useGuestRestrictions() {
     canApply: !isRestricted,
     canMakePayments: !isRestricted,
     canAccessProfile: !isRestricted,
-    canBookAppointments: !isRestricted
-  };
+    canBookAppointments: !isRestricted,
+  }
 }
