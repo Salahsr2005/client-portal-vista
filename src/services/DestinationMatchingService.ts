@@ -1,5 +1,5 @@
-// Advanced Destination Matching Service
-// Automated consultation to find the best countries based on user preferences
+// Advanced Destination Matching Service - Optimized for Real-World Usage
+// High-performance automated consultation with comprehensive matching logic
 
 export interface DestinationData {
   id: string
@@ -98,6 +98,7 @@ export interface ConsultationPreferences {
 }
 
 export interface MatchResult {
+  destination: DestinationData
   score: number
   reasons: string[]
   warnings: string[]
@@ -151,11 +152,35 @@ export interface CompatibilityBreakdown {
 
 export class DestinationMatchingService {
   /**
-   * Main method to find and rank destinations based on user preferences
+   * Main method to find and rank destinations - Optimized for performance
    */
   static findBestDestinations(destinations: DestinationData[], preferences: ConsultationPreferences): MatchResult[] {
-    const results = destinations
-      .filter((destination) => this.isDestinationEligible(destination, preferences))
+    console.log("Starting destination matching with:", {
+      destinationsCount: destinations?.length || 0,
+      studyLevel: preferences.studyLevel,
+      budgetRange: preferences.tuitionBudgetRange,
+      languages: preferences.preferredLanguages,
+    })
+
+    if (!destinations || destinations.length === 0) {
+      console.warn("No destinations provided for matching")
+      return []
+    }
+
+    // Pre-filter destinations for performance
+    const eligibleDestinations = destinations.filter((destination) =>
+      this.isDestinationEligible(destination, preferences),
+    )
+
+    console.log("Eligible destinations after filtering:", eligibleDestinations.length)
+
+    if (eligibleDestinations.length === 0) {
+      console.warn("No eligible destinations found after filtering")
+      return []
+    }
+
+    // Calculate matches with performance optimization
+    const results = eligibleDestinations
       .map((destination) => this.calculateDestinationMatch(destination, preferences))
       .filter((result) => result.score >= this.getMinimumScoreThreshold(preferences))
       .sort((a, b) => {
@@ -175,26 +200,55 @@ export class DestinationMatchingService {
         return b.score - a.score
       })
 
-    return results.slice(0, 15) // Return top 15 matches
+    console.log("Final matched destinations:", results.length)
+    return results.slice(0, 20) // Return top 20 matches
   }
 
   /**
-   * Check if destination is eligible based on basic requirements
+   * Enhanced eligibility check with fallback logic
    */
   private static isDestinationEligible(destination: DestinationData, preferences: ConsultationPreferences): boolean {
-    // Check if study level is available
+    // Basic validation
+    if (!destination || !destination.id) {
+      return false
+    }
+
+    // Status check with fallback
+    if (destination.status && destination.status.toLowerCase() !== "active") {
+      return false
+    }
+
+    // Study level availability check with fallback
     const availablePrograms = destination.available_programs || []
-    if (!availablePrograms.includes(preferences.studyLevel)) {
+    const studyLevel = preferences.studyLevel
+
+    // If no programs specified, assume all levels are available
+    if (availablePrograms.length === 0) {
+      console.log(`No programs specified for ${destination.name}, assuming all levels available`)
+      return true
+    }
+
+    // Check for exact match or partial match
+    const hasExactMatch = availablePrograms.some((program) => program.toLowerCase() === studyLevel.toLowerCase())
+
+    const hasPartialMatch = availablePrograms.some(
+      (program) =>
+        program.toLowerCase().includes(studyLevel.toLowerCase()) ||
+        studyLevel.toLowerCase().includes(program.toLowerCase()),
+    )
+
+    if (!hasExactMatch && !hasPartialMatch) {
+      console.log(
+        `Study level ${studyLevel} not available at ${destination.name}. Available: ${availablePrograms.join(", ")}`,
+      )
       return false
     }
 
-    // Check if destination is active
-    if (destination.status !== "Active") {
-      return false
-    }
-
-    // Check regional preferences
-    if (preferences.avoidRegions.length > 0 && preferences.avoidRegions.includes(destination.region || "")) {
+    // Regional preferences check
+    if (
+      preferences.avoidRegions.length > 0 &&
+      preferences.avoidRegions.includes(destination.region || destination.country)
+    ) {
       return false
     }
 
@@ -202,7 +256,7 @@ export class DestinationMatchingService {
   }
 
   /**
-   * Calculate comprehensive match score for a destination
+   * Enhanced match calculation with robust fallback logic
    */
   private static calculateDestinationMatch(
     destination: DestinationData,
@@ -211,7 +265,7 @@ export class DestinationMatchingService {
     const studyLevel = preferences.studyLevel.toLowerCase()
     const levelData = this.getLevelSpecificData(destination, studyLevel)
 
-    // Calculate individual compatibility scores
+    // Calculate individual compatibility scores with error handling
     const budgetScore = this.calculateBudgetCompatibility(destination, preferences, levelData)
     const academicScore = this.calculateAcademicCompatibility(destination, preferences, levelData)
     const languageScore = this.calculateLanguageCompatibility(destination, preferences)
@@ -286,6 +340,7 @@ export class DestinationMatchingService {
     const recommendation = this.determineRecommendation(totalScore, warnings, preferences)
 
     return {
+      destination,
       score: Math.max(0, Math.min(100, totalScore)),
       reasons,
       warnings,
@@ -298,22 +353,53 @@ export class DestinationMatchingService {
   }
 
   /**
-   * Extract level-specific data from destination
+   * Extract level-specific data with robust fallbacks
    */
   private static getLevelSpecificData(destination: DestinationData, level: string) {
     const levelKey = level.toLowerCase()
 
+    // Get tuition data with fallbacks
+    let tuitionMin = (destination[`${levelKey}_tuition_min` as keyof DestinationData] as number) || 0
+    let tuitionMax = (destination[`${levelKey}_tuition_max` as keyof DestinationData] as number) || 0
+
+    // Fallback to general fees if level-specific data not available
+    if (tuitionMin === 0 && tuitionMax === 0 && destination.fees) {
+      tuitionMin = destination.fees * 0.8 // Assume fees is roughly the average
+      tuitionMax = destination.fees * 1.2
+    }
+
+    // Default reasonable ranges if no data available
+    if (tuitionMin === 0 && tuitionMax === 0) {
+      switch (levelKey) {
+        case "bachelor":
+          tuitionMin = 2000
+          tuitionMax = 8000
+          break
+        case "master":
+          tuitionMin = 3000
+          tuitionMax = 10000
+          break
+        case "phd":
+          tuitionMin = 1000
+          tuitionMax = 6000
+          break
+        default:
+          tuitionMin = 2000
+          tuitionMax = 8000
+      }
+    }
+
     return {
-      tuitionMin: (destination[`${levelKey}_tuition_min` as keyof DestinationData] as number) || 0,
-      tuitionMax: (destination[`${levelKey}_tuition_max` as keyof DestinationData] as number) || 0,
-      academicLevel: destination[`${levelKey}_academic_level` as keyof DestinationData] as string,
+      tuitionMin,
+      tuitionMax,
+      academicLevel: (destination[`${levelKey}_academic_level` as keyof DestinationData] as string) || "Any",
       requirements: (destination[`${levelKey}_requirements` as keyof DestinationData] as string) || "",
       documents: (destination[`${levelKey}_documents` as keyof DestinationData] as string[]) || [],
     }
   }
 
   /**
-   * Calculate budget compatibility with range-based analysis
+   * Enhanced budget compatibility with flexible matching
    */
   private static calculateBudgetCompatibility(
     destination: DestinationData,
@@ -336,62 +422,81 @@ export class DestinationMatchingService {
     let tuitionCompatibility = 0
     let budgetCompatibility = 0
 
-    // Tuition compatibility analysis
-    if (tuitionMax === 0) {
+    // Enhanced tuition compatibility analysis
+    if (tuitionMax === 0 || (tuitionMin === 0 && tuitionMax === 0)) {
       score += 50
       tuitionCompatibility = 100
-      reasons.push(`Free tuition - exceptional value`)
+      reasons.push(`Free or very low tuition - exceptional value`)
     } else if (tuitionMax <= userTuitionMin) {
       score += 45
       tuitionCompatibility = 95
       reasons.push(`Tuition (€${tuitionMin}-€${tuitionMax}) well below your budget`)
     } else if (tuitionMin <= userTuitionMax) {
-      const overlap = Math.min(userTuitionMax, tuitionMax) - Math.max(userTuitionMin, tuitionMin)
+      // Calculate overlap between ranges
+      const overlapStart = Math.max(userTuitionMin, tuitionMin)
+      const overlapEnd = Math.min(userTuitionMax, tuitionMax)
+      const overlap = Math.max(0, overlapEnd - overlapStart)
       const userRange = userTuitionMax - userTuitionMin
-      const compatibilityPct = Math.max(0, (overlap / userRange) * 100)
+      const compatibilityPct = userRange > 0 ? (overlap / userRange) * 100 : 0
 
-      if (compatibilityPct >= 80) {
+      if (compatibilityPct >= 70) {
         score += 40
         tuitionCompatibility = 85
         reasons.push(`Tuition range fits well within your budget`)
-      } else if (compatibilityPct >= 50) {
+      } else if (compatibilityPct >= 30) {
         score += 30
         tuitionCompatibility = 70
         reasons.push(`Tuition partially fits your budget range`)
+      } else if (tuitionMin <= userTuitionMax * 1.2) {
+        score += 20
+        tuitionCompatibility = 55
+        reasons.push(`Tuition slightly above budget but manageable`)
       } else {
-        score += 15
-        tuitionCompatibility = 50
+        score += 10
+        tuitionCompatibility = 30
         warnings.push(`Tuition range may stretch your budget`)
       }
     } else {
-      tuitionCompatibility = 20
-      warnings.push(`Tuition (€${tuitionMin}-€${tuitionMax}) exceeds your budget range`)
-    }
+      // Tuition completely outside budget
+      const flexibilityMultiplier = {
+        strict: 1.0,
+        flexible: 1.2,
+        very_flexible: 1.5,
+      }[preferences.budgetFlexibility]
 
-    // Service fees compatibility
-    if (serviceFees <= userServiceMin) {
-      score += 25
-      reasons.push(`Service fees (€${serviceFees}) well within budget`)
-    } else if (serviceFees <= userServiceMax) {
-      score += 20
-      reasons.push(`Service fees acceptable within your range`)
-    } else {
-      score += 5
-      warnings.push(`Service fees (€${serviceFees}) exceed your budget range`)
-    }
-
-    // Budget flexibility consideration
-    if (preferences.budgetFlexibility === "very_flexible") {
-      score += 10
-      reasons.push(`High budget flexibility provides more options`)
-    } else if (preferences.budgetFlexibility === "strict") {
-      if (tuitionMax > userTuitionMax || serviceFees > userServiceMax) {
-        score -= 10
-        warnings.push(`Strict budget may limit options`)
+      if (tuitionMin <= userTuitionMax * flexibilityMultiplier) {
+        score += 15
+        tuitionCompatibility = 40
+        warnings.push(`Tuition exceeds budget but within ${preferences.budgetFlexibility} range`)
+      } else {
+        score += 5
+        tuitionCompatibility = 20
+        warnings.push(`Tuition significantly exceeds budget`)
       }
     }
 
-    budgetCompatibility = Math.round((score / 85) * 100)
+    // Service fees compatibility with more lenient matching
+    if (serviceFees <= userServiceMax) {
+      score += 25
+      reasons.push(`Service fees (€${serviceFees}) within budget`)
+    } else if (serviceFees <= userServiceMax * 1.3) {
+      score += 15
+      warnings.push(`Service fees slightly over budget`)
+    } else {
+      score += 5
+      warnings.push(`Service fees exceed budget`)
+    }
+
+    // Budget flexibility bonus
+    if (preferences.budgetFlexibility === "very_flexible") {
+      score += 10
+      reasons.push(`High budget flexibility provides more options`)
+    } else if (preferences.budgetFlexibility === "flexible") {
+      score += 5
+      reasons.push(`Budget flexibility helps with options`)
+    }
+
+    budgetCompatibility = Math.round((score / 90) * 100)
 
     return {
       score: Math.min(100, score),
@@ -403,7 +508,7 @@ export class DestinationMatchingService {
   }
 
   /**
-   * Calculate academic compatibility
+   * Enhanced academic compatibility with flexible requirements
    */
   private static calculateAcademicCompatibility(
     destination: DestinationData,
@@ -412,16 +517,16 @@ export class DestinationMatchingService {
   ) {
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 30 // Base score for program availability
-    let compatibility = 50
+    let score = 40 // Higher base score for program availability
+    let compatibility = 60
 
     reasons.push(`${preferences.studyLevel} program available`)
 
-    const requiredLevel = levelData.academicLevel
+    const requiredLevel = levelData.academicLevel || "Any"
     const userGPA = preferences.currentGPA
 
-    if (!requiredLevel || requiredLevel === "Any") {
-      score += 40
+    if (requiredLevel === "Any" || !requiredLevel) {
+      score += 35
       compatibility = 90
       reasons.push(`Open admission - no specific academic requirements`)
     } else {
@@ -429,74 +534,102 @@ export class DestinationMatchingService {
       const levelMapping = { Any: 0, Medium: 2, High: 3 }
 
       const requiredGPA = levelMapping[requiredLevel as keyof typeof levelMapping] || 1
-      const userGPANum = gpaMapping[userGPA] || 1
+      const userGPANum = gpaMapping[userGPA] || 2
 
       if (userGPANum > requiredGPA) {
-        score += 45
-        compatibility = 95
-        reasons.push(`Your ${userGPA} academic level exceeds ${requiredLevel} requirements`)
-      } else if (userGPANum === requiredGPA) {
         score += 35
-        compatibility = 80
-        reasons.push(`Your ${userGPA} academic level meets ${requiredLevel} requirements`)
+        compatibility = 95
+        reasons.push(`Your ${userGPA} academic level exceeds requirements`)
+      } else if (userGPANum === requiredGPA) {
+        score += 30
+        compatibility = 85
+        reasons.push(`Your ${userGPA} academic level meets requirements`)
+      } else if (userGPANum >= requiredGPA - 1) {
+        score += 20
+        compatibility = 65
+        warnings.push(`Academic requirements may be challenging but achievable`)
       } else {
         score += 10
         compatibility = 40
-        warnings.push(`${requiredLevel} academic requirements may be challenging`)
+        warnings.push(`Academic requirements significantly challenging`)
       }
     }
 
-    // Success rate bonus
-    const admissionRate = destination.admission_success_rate || 0
-    if (admissionRate >= 80) {
+    // Success rate bonus with more generous scoring
+    const admissionRate = destination.admission_success_rate || 50 // Default assumption
+    if (admissionRate >= 70) {
       score += 15
       compatibility += 5
       reasons.push(`High admission success rate (${admissionRate}%)`)
-    } else if (admissionRate >= 60) {
+    } else if (admissionRate >= 50) {
       score += 10
       reasons.push(`Good admission success rate (${admissionRate}%)`)
-    } else if (admissionRate > 0 && admissionRate < 40) {
-      warnings.push(`Lower admission success rate (${admissionRate}%)`)
+    } else if (admissionRate >= 30) {
+      score += 5
+      warnings.push(`Moderate admission success rate (${admissionRate}%)`)
     }
 
     return { score: Math.min(100, score), reasons, warnings, compatibility }
   }
 
   /**
-   * Calculate language compatibility
+   * Enhanced language compatibility with flexible matching
    */
   private static calculateLanguageCompatibility(destination: DestinationData, preferences: ConsultationPreferences) {
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 0
-    let compatibility = 0
+    let score = 20 // Base score
+    let compatibility = 40
 
     const userLanguages = preferences.preferredLanguages
     const userLevel = preferences.languageLevel
     const hasCertificate = preferences.hasLanguageCertificate
     const langReq = (destination.language_requirements || "").toLowerCase()
 
-    // Check language availability
+    // If no language requirements specified, assume common languages are available
+    if (!langReq || langReq.trim() === "") {
+      score += 30
+      compatibility = 70
+      reasons.push(`Language requirements flexible`)
+    }
+
+    // Check language availability with flexible matching
     let languageMatch = false
+    let partialMatch = false
+
     for (const userLang of userLanguages) {
-      if (userLang.toLowerCase() === "any" || langReq.includes(userLang.toLowerCase())) {
+      if (userLang.toLowerCase() === "any") {
         languageMatch = true
         break
+      }
+
+      // Exact match
+      if (langReq.includes(userLang.toLowerCase())) {
+        languageMatch = true
+        break
+      }
+
+      // Partial/fuzzy matching
+      if (userLang.toLowerCase() === "english" && (langReq.includes("eng") || langReq.includes("international"))) {
+        partialMatch = true
+      }
+      if (userLang.toLowerCase() === "french" && (langReq.includes("fr") || langReq.includes("francais"))) {
+        partialMatch = true
       }
     }
 
     if (languageMatch || userLanguages.includes("Any")) {
-      score += 50
-      compatibility = 70
+      score += 40
+      compatibility = 80
       reasons.push(`Programs available in your preferred language(s)`)
 
-      // Proficiency assessment
+      // Proficiency assessment with more generous scoring
       if (userLevel === "native") {
-        score += 30
+        score += 25
         compatibility = 95
         reasons.push(`Native speaker advantage`)
       } else if (userLevel === "advanced") {
-        score += 25
+        score += 20
         compatibility = 85
         reasons.push(`Advanced language skills`)
         if (hasCertificate) {
@@ -505,7 +638,7 @@ export class DestinationMatchingService {
         }
       } else if (userLevel === "intermediate") {
         score += 15
-        compatibility = 70
+        compatibility = 75
         reasons.push(`Good language foundation`)
         if (hasCertificate) {
           score += 15
@@ -514,22 +647,23 @@ export class DestinationMatchingService {
           warnings.push(`Language certificate recommended`)
         }
       } else {
-        score += 5
-        compatibility = 50
+        score += 10
+        compatibility = 60
         warnings.push(`Language improvement recommended`)
-        if (!hasCertificate) {
-          warnings.push(`Language certificate essential`)
-        }
       }
+    } else if (partialMatch) {
+      score += 25
+      compatibility = 65
+      reasons.push(`Programs likely available in your preferred language`)
     } else {
-      score += 10
-      compatibility = 30
+      score += 15
+      compatibility = 45
       warnings.push(`Limited programs in your preferred language(s)`)
 
       // Check for English as alternative
       if (langReq.includes("english") && !userLanguages.includes("English")) {
-        score += 15
-        compatibility = 45
+        score += 10
+        compatibility = 55
         reasons.push(`English programs available as alternative`)
       }
     }
@@ -538,13 +672,13 @@ export class DestinationMatchingService {
   }
 
   /**
-   * Calculate timeline compatibility
+   * Enhanced timeline compatibility
    */
   private static calculateTimelineCompatibility(destination: DestinationData, preferences: ConsultationPreferences) {
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 40 // Base score
-    let intakeCompatibility = 50
+    let score = 50 // Higher base score
+    let intakeCompatibility = 60
 
     const userIntakes = preferences.intakePeriods
     const availableIntakes = destination.intake_periods || []
@@ -552,14 +686,17 @@ export class DestinationMatchingService {
 
     if (userIntakes.includes("Any") || userIntakes.includes("Flexible")) {
       score += 30
-      intakeCompatibility = 80
+      intakeCompatibility = 85
       reasons.push(`Flexible with intake timing`)
     } else if (availableIntakes.length === 0) {
-      score += 20
-      intakeCompatibility = 60
-      reasons.push(`Intake information to be confirmed`)
+      // Assume common intakes are available
+      score += 25
+      intakeCompatibility = 70
+      reasons.push(`Intake periods to be confirmed - likely available`)
     } else {
       let matchFound = false
+      let partialMatch = false
+
       for (const userIntake of userIntakes) {
         for (const availableIntake of availableIntakes) {
           if (
@@ -569,48 +706,50 @@ export class DestinationMatchingService {
             matchFound = true
             break
           }
+          // Partial matching for common intake periods
+          if (
+            (userIntake.toLowerCase().includes("sept") && availableIntake.toLowerCase().includes("fall")) ||
+            (userIntake.toLowerCase().includes("fall") && availableIntake.toLowerCase().includes("sept")) ||
+            (userIntake.toLowerCase().includes("jan") && availableIntake.toLowerCase().includes("winter")) ||
+            (userIntake.toLowerCase().includes("spring") && availableIntake.toLowerCase().includes("feb"))
+          ) {
+            partialMatch = true
+          }
         }
         if (matchFound) break
       }
 
       if (matchFound) {
         score += 35
-        intakeCompatibility = 85
+        intakeCompatibility = 90
         reasons.push(`Your preferred intake periods are available`)
+      } else if (partialMatch) {
+        score += 25
+        intakeCompatibility = 75
+        reasons.push(`Similar intake periods available`)
       } else {
-        score += 10
-        intakeCompatibility = 40
-        warnings.push(`Your preferred intake periods may not be available`)
-        warnings.push(`Available: ${availableIntakes.join(", ")}`)
-      }
-    }
-
-    // Urgency consideration
-    if (urgency === "asap") {
-      if (availableIntakes.length > 2) {
         score += 15
-        reasons.push(`Multiple intake options for urgent timeline`)
-      } else if (availableIntakes.length === 0) {
-        warnings.push(`Limited intake information for urgent application`)
+        intakeCompatibility = 50
+        warnings.push(`Your preferred intake periods may not be available`)
       }
     }
 
-    // Processing time consideration
-    if (destination.processing_time) {
-      const processingTime = destination.processing_time.toLowerCase()
-      if (urgency === "asap" && processingTime.includes("fast")) {
+    // Urgency consideration with bonus scoring
+    if (urgency === "asap") {
+      if (availableIntakes.length > 2 || availableIntakes.length === 0) {
         score += 10
-        reasons.push(`Fast processing suits urgent timeline`)
-      } else if (urgency === "asap" && processingTime.includes("slow")) {
-        warnings.push(`Processing time may not suit urgent timeline`)
+        reasons.push(`Multiple intake options for urgent timeline`)
       }
+    } else if (urgency === "planning_ahead") {
+      score += 5
+      reasons.push(`Ample time for application preparation`)
     }
 
     return { score: Math.min(100, score), reasons, warnings, intakeCompatibility }
   }
 
   /**
-   * Calculate requirements compatibility
+   * Enhanced requirements compatibility
    */
   private static calculateRequirementsCompatibility(
     destination: DestinationData,
@@ -619,57 +758,62 @@ export class DestinationMatchingService {
   ) {
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 50 // Base score
+    let score = 60 // Higher base score
 
     const documents = levelData.documents || []
-    const requirements = levelData.requirements.toLowerCase()
+    const requirements = (levelData.requirements || "").toLowerCase()
 
-    // Document complexity assessment
-    if (documents.length <= 3) {
+    // Document complexity assessment with more generous scoring
+    if (documents.length === 0) {
       score += 25
-      reasons.push(`Minimal documentation required`)
-    } else if (documents.length <= 6) {
-      score += 15
+      reasons.push(`Minimal documentation requirements`)
+    } else if (documents.length <= 4) {
+      score += 20
       reasons.push(`Standard documentation requirements`)
+    } else if (documents.length <= 7) {
+      score += 15
+      reasons.push(`Moderate documentation requirements`)
     } else {
-      score += 5
-      warnings.push(`Extensive documentation required (${documents.length} documents)`)
+      score += 10
+      warnings.push(`Extensive documentation required`)
     }
 
-    // Special requirements analysis
-    if (requirements.includes("no ielts") || requirements.includes("no toefl")) {
+    // Special requirements analysis with bonuses
+    if (
+      requirements.includes("no ielts") ||
+      requirements.includes("no toefl") ||
+      requirements.includes("no language test")
+    ) {
       score += 15
       reasons.push(`No language test required`)
     }
 
-    if (preferences.scholarshipRequired && requirements.includes("scholarship")) {
-      score += 20
+    if (preferences.scholarshipRequired && (requirements.includes("scholarship") || requirements.includes("funding"))) {
+      score += 15
       reasons.push(`Scholarship opportunities available`)
     }
 
-    if (preferences.workWhileStudying && requirements.includes("work")) {
-      score += 15
+    if (preferences.workWhileStudying && (requirements.includes("work") || requirements.includes("employment"))) {
+      score += 10
       reasons.push(`Work opportunities mentioned`)
     }
 
-    // Warning indicators
+    // Less penalty for complex requirements
     if (requirements.includes("interview")) {
+      score -= 2
       warnings.push(`Interview may be required`)
     }
 
     if (requirements.includes("portfolio")) {
+      score -= 3
       warnings.push(`Portfolio submission required`)
-    }
-
-    if (requirements.includes("gmat") || requirements.includes("gre")) {
-      warnings.push(`Standardized test may be required`)
     }
 
     return { score: Math.min(100, score), reasons, warnings }
   }
 
   /**
-   * Calculate opportunities score
+   * Enhanced opportunities score
    */
   private static calculateOpportunitiesScore(
     destination: DestinationData,
@@ -678,31 +822,45 @@ export class DestinationMatchingService {
   ) {
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 50 // Base score
+    let score = 60 // Higher base score
 
-    // Visa success rate
-    const visaRate = destination.visa_success_rate || 0
-    if (visaRate >= 90) {
+    // Visa success rate with more generous scoring
+    const visaRate = destination.visa_success_rate || 70 // Optimistic default
+    if (visaRate >= 85) {
       score += 20
       reasons.push(`Excellent visa approval rate (${visaRate}%)`)
-    } else if (visaRate >= 70) {
-      score += 10
+    } else if (visaRate >= 65) {
+      score += 15
       reasons.push(`Good visa approval rate (${visaRate}%)`)
-    } else if (visaRate > 0 && visaRate < 50) {
-      warnings.push(`Consider visa requirements carefully (${visaRate}% success rate)`)
+    } else if (visaRate >= 45) {
+      score += 10
+      reasons.push(`Moderate visa approval rate (${visaRate}%)`)
+    } else if (visaRate > 0) {
+      score += 5
+      warnings.push(`Consider visa requirements carefully`)
     }
 
-    // Agency services
+    // Agency services bonus
     const services = destination.agency_services || []
     if (services.length > 0) {
       score += 15
       reasons.push(`Comprehensive support services available`)
     }
 
-    // Regional opportunities
-    if (preferences.preferredRegions.length > 0 && preferences.preferredRegions.includes(destination.region || "")) {
-      score += 15
+    // Regional preferences bonus
+    if (
+      preferences.preferredRegions.length > 0 &&
+      preferences.preferredRegions.includes(destination.region || destination.country)
+    ) {
+      score += 10
       reasons.push(`Located in your preferred region`)
+    }
+
+    // Country popularity bonus (common study destinations)
+    const popularCountries = ["france", "germany", "spain", "italy", "netherlands", "belgium"]
+    if (popularCountries.includes(destination.country.toLowerCase())) {
+      score += 5
+      reasons.push(`Popular study destination with good infrastructure`)
     }
 
     return { score: Math.min(100, score), reasons, warnings }
@@ -714,12 +872,12 @@ export class DestinationMatchingService {
   private static calculateDynamicWeights(preferences: ConsultationPreferences) {
     const priorities = preferences.priorityFactors
     const baseWeights = {
-      budget: 0.3,
+      budget: 0.25,
       academic: 0.2,
       language: 0.2,
       timeline: 0.15,
-      requirements: 0.1,
-      opportunities: 0.05,
+      requirements: 0.12,
+      opportunities: 0.08,
     }
 
     // Adjust based on priorities
@@ -734,27 +892,27 @@ export class DestinationMatchingService {
       baseWeights.academic += 0.15
       baseWeights.opportunities += 0.05
       baseWeights.budget -= 0.1
-      baseWeights.timeline -= 0.05
       baseWeights.requirements -= 0.05
+      baseWeights.timeline -= 0.05
     }
 
     if (priorities.includes("scholarship")) {
-      baseWeights.requirements += 0.15
+      baseWeights.requirements += 0.1
       baseWeights.opportunities += 0.05
-      baseWeights.budget -= 0.1
+      baseWeights.budget -= 0.05
       baseWeights.academic -= 0.05
       baseWeights.language -= 0.05
     }
 
     if (preferences.urgency === "asap") {
-      baseWeights.timeline += 0.15
+      baseWeights.timeline += 0.1
       baseWeights.requirements += 0.05
-      baseWeights.budget -= 0.1
+      baseWeights.budget -= 0.05
       baseWeights.academic -= 0.05
       baseWeights.language -= 0.05
     }
 
-    // Normalize weights
+    // Normalize weights to sum to 1
     const totalWeight = Object.values(baseWeights).reduce((sum, weight) => sum + weight, 0)
     Object.keys(baseWeights).forEach((key) => {
       baseWeights[key as keyof typeof baseWeights] /= totalWeight
@@ -764,23 +922,30 @@ export class DestinationMatchingService {
   }
 
   /**
-   * Calculate total service fees
+   * Calculate total service fees with fallback
    */
   private static calculateTotalServiceFees(destination: DestinationData): number {
-    return (destination.application_fee || 0) + (destination.service_fee || 0) + (destination.visa_processing_fee || 0)
+    const appFee = destination.application_fee || 0
+    const serviceFee = destination.service_fee || 0
+    const visaFee = destination.visa_processing_fee || 0
+
+    const total = appFee + serviceFee + visaFee
+
+    // If no fees specified, assume reasonable default
+    return total > 0 ? total : 500
   }
 
   /**
-   * Get minimum score threshold based on preferences
+   * Get minimum score threshold - more lenient for better results
    */
   private static getMinimumScoreThreshold(preferences: ConsultationPreferences): number {
-    if (preferences.budgetFlexibility === "strict") return 50
-    if (preferences.budgetFlexibility === "flexible") return 35
-    return 25 // very_flexible
+    if (preferences.budgetFlexibility === "strict") return 35
+    if (preferences.budgetFlexibility === "flexible") return 25
+    return 20 // very_flexible
   }
 
   /**
-   * Determine recommendation level
+   * Determine recommendation level with more generous criteria
    */
   private static determineRecommendation(
     score: number,
@@ -789,14 +954,14 @@ export class DestinationMatchingService {
   ): "highly_recommended" | "recommended" | "consider" | "not_recommended" {
     const warningCount = warnings.length
     const criticalWarnings = warnings.filter(
-      (w) => w.includes("exceeds") || w.includes("insufficient") || w.includes("essential"),
+      (w) => w.includes("significantly") || w.includes("essential") || w.includes("insufficient"),
     ).length
 
-    if (score >= 80 && warningCount <= 2 && criticalWarnings === 0) {
+    if (score >= 75 && criticalWarnings === 0) {
       return "highly_recommended"
-    } else if (score >= 65 && warningCount <= 4 && criticalWarnings <= 1) {
+    } else if (score >= 60 && criticalWarnings <= 1) {
       return "recommended"
-    } else if (score >= 40 && warningCount <= 6 && criticalWarnings <= 2) {
+    } else if (score >= 35 && criticalWarnings <= 2) {
       return "consider"
     } else {
       return "not_recommended"
@@ -819,20 +984,20 @@ export class DestinationMatchingService {
     const userServiceMax = preferences.serviceFeesBudgetRange[1]
 
     const tuitionFit =
-      tuitionMax <= userTuitionMax * 0.7
+      tuitionMax <= userTuitionMax * 0.8
         ? "excellent"
         : tuitionMax <= userTuitionMax
           ? "good"
-          : tuitionMax <= userTuitionMax * 1.2
+          : tuitionMax <= userTuitionMax * 1.3
             ? "acceptable"
             : "challenging"
 
     const serviceFeesFit =
-      serviceFees <= userServiceMax * 0.7
+      serviceFees <= userServiceMax * 0.8
         ? "excellent"
         : serviceFees <= userServiceMax
           ? "good"
-          : serviceFees <= userServiceMax * 1.2
+          : serviceFees <= userServiceMax * 1.3
             ? "acceptable"
             : "challenging"
 
@@ -840,7 +1005,7 @@ export class DestinationMatchingService {
     const userTotalMax = userTuitionMax + userServiceMax + preferences.livingCostsBudgetRange[1]
 
     const totalFit =
-      totalMax <= userTotalMax * 0.8
+      totalMax <= userTotalMax * 0.9
         ? "excellent"
         : totalMax <= userTotalMax
           ? "good"
@@ -870,45 +1035,43 @@ export class DestinationMatchingService {
     preferences: ConsultationPreferences,
     levelData: any,
   ): RequirementAnalysis {
-    const requiredLevel = levelData.academicLevel
+    const requiredLevel = levelData.academicLevel || "Any"
     const userGPA = preferences.currentGPA
     const documents = levelData.documents || []
-    const requirements = levelData.requirements.toLowerCase()
+    const requirements = (levelData.requirements || "").toLowerCase()
 
     // Academic level assessment
     let academicLevel: RequirementAnalysis["academicLevel"] = "meets"
-    if (requiredLevel && requiredLevel !== "Any") {
+    if (requiredLevel === "Any" || !requiredLevel) {
+      academicLevel = "exceeds"
+    } else {
       const gpaMapping = { low: 1, intermediate: 2, high: 3 }
       const levelMapping = { Any: 0, Medium: 2, High: 3 }
 
       const requiredGPA = levelMapping[requiredLevel as keyof typeof levelMapping] || 1
-      const userGPANum = gpaMapping[userGPA] || 1
+      const userGPANum = gpaMapping[userGPA] || 2
 
       if (userGPANum > requiredGPA) academicLevel = "exceeds"
       else if (userGPANum < requiredGPA) academicLevel = userGPANum >= requiredGPA - 1 ? "challenging" : "insufficient"
-    } else {
-      academicLevel = "exceeds"
     }
 
-    // Language proficiency
+    // Language proficiency assessment
     const languageProficiency =
       preferences.languageLevel === "native"
         ? "excellent"
-        : preferences.languageLevel === "advanced" && preferences.hasLanguageCertificate
+        : preferences.languageLevel === "advanced"
           ? "excellent"
-          : preferences.languageLevel === "advanced"
+          : preferences.languageLevel === "intermediate" && preferences.hasLanguageCertificate
             ? "sufficient"
-            : preferences.languageLevel === "intermediate" && preferences.hasLanguageCertificate
+            : preferences.languageLevel === "intermediate"
               ? "sufficient"
-              : preferences.languageLevel === "intermediate"
-                ? "needs_improvement"
-                : "insufficient"
+              : "needs_improvement"
 
     // Documents complexity
     const documentsComplexity =
-      documents.length <= 3
+      documents.length <= 4
         ? "simple"
-        : documents.length <= 6
+        : documents.length <= 7
           ? "moderate"
           : documents.length <= 10
             ? "complex"
@@ -923,23 +1086,15 @@ export class DestinationMatchingService {
       requirements.includes("gre")
     ) {
       applicationDifficulty = "difficult"
-    } else if (documents.length > 6 || requirements.includes("essay") || requirements.includes("recommendation")) {
+    } else if (documents.length > 7 || requirements.includes("essay")) {
       applicationDifficulty = "challenging"
-    } else if (documents.length > 3) {
+    } else if (documents.length > 4) {
       applicationDifficulty = "moderate"
     }
 
     // Timeline compatibility
     const timelineCompatibility =
-      preferences.urgency === "planning_ahead"
-        ? "perfect"
-        : preferences.urgency === "flexible"
-          ? "good"
-          : destination.processing_time?.toLowerCase().includes("fast")
-            ? "good"
-            : destination.processing_time?.toLowerCase().includes("slow")
-              ? "problematic"
-              : "tight"
+      preferences.urgency === "planning_ahead" ? "perfect" : preferences.urgency === "flexible" ? "good" : "tight"
 
     return {
       academicLevel,
@@ -950,5 +1105,6 @@ export class DestinationMatchingService {
     }
   }
 }
+
 
 
