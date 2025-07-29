@@ -117,7 +117,7 @@ const StudyLevelStep = ({
   )
 }
 
-// Step 2: Budget Selection with Sliders
+// Step 2: Budget Selection with Sliders - Updated with 12k max tuition
 const BudgetStep = ({
   budgetData,
   onUpdate,
@@ -154,7 +154,7 @@ const BudgetStep = ({
       </div>
 
       <div className="space-y-8">
-        {/* Tuition Budget Slider */}
+        {/* Tuition Budget Slider - Updated to max 12,000 EUR */}
         <div>
           <h3 className="font-semibold mb-4 flex items-center">
             <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
@@ -163,17 +163,20 @@ const BudgetStep = ({
           <div className="space-y-4">
             <div className="px-4">
               <Slider
-                value={budgetData.tuitionBudgetRange || [0, 50000]}
+                value={budgetData.tuitionBudgetRange || [0, 8000]}
                 onValueChange={(value) => onUpdate({ ...budgetData, tuitionBudgetRange: value })}
-                max={100000}
+                max={12000}
                 min={0}
-                step={1000}
+                step={500}
                 className="w-full"
               />
             </div>
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{formatCurrency((budgetData.tuitionBudgetRange || [0, 50000])[0])}</span>
-              <span>{formatCurrency((budgetData.tuitionBudgetRange || [0, 50000])[1])}</span>
+              <span>{formatCurrency((budgetData.tuitionBudgetRange || [0, 8000])[0])}</span>
+              <span>{formatCurrency((budgetData.tuitionBudgetRange || [0, 8000])[1])}</span>
+            </div>
+            <div className="text-xs text-muted-foreground text-center">
+              Most European programs range from €2,000 - €12,000 per year
             </div>
           </div>
         </div>
@@ -199,6 +202,9 @@ const BudgetStep = ({
               <span>{formatCurrency((budgetData.livingCostsBudgetRange || [400, 1200])[0])}</span>
               <span>{formatCurrency((budgetData.livingCostsBudgetRange || [400, 1200])[1])}</span>
             </div>
+            <div className="text-xs text-muted-foreground text-center">
+              Includes accommodation, food, transport, and personal expenses
+            </div>
           </div>
         </div>
 
@@ -222,6 +228,9 @@ const BudgetStep = ({
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>{formatCurrency((budgetData.serviceFeesBudgetRange || [100, 1000])[0])}</span>
               <span>{formatCurrency((budgetData.serviceFeesBudgetRange || [100, 1000])[1])}</span>
+            </div>
+            <div className="text-xs text-muted-foreground text-center">
+              Application fees, visa processing, and consultation services
             </div>
           </div>
         </div>
@@ -274,7 +283,7 @@ const BudgetStep = ({
   )
 }
 
-// Step 3: Language & Timeline with Multi-language Support
+// Step 3: Language & Timeline - Updated to remove unavailable languages
 const LanguageTimelineStep = ({
   preferences,
   onUpdate,
@@ -288,13 +297,14 @@ const LanguageTimelineStep = ({
   onBack: () => void
   t: any
 }) => {
+  // Only available languages - removed Italian, Spanish, German
   const languages = [
-    { id: "English", label: "English", flag: "🇬🇧" },
-    { id: "French", label: "French", flag: "🇫🇷" },
-    { id: "German", label: "German", flag: "🇩🇪" },
-    { id: "Spanish", label: "Spanish", flag: "🇪🇸" },
-    { id: "Italian", label: "Italian", flag: "🇮🇹" },
-    { id: "Dutch", label: "Dutch", flag: "🇳🇱" },
+    { id: "English", label: "English", flag: "🇬🇧", available: true },
+    { id: "French", label: "French", flag: "🇫🇷", available: true },
+    { id: "Dutch", label: "Dutch", flag: "🇳🇱", available: true },
+    { id: "German", label: "German", flag: "🇩🇪", available: false, comingSoon: true },
+    { id: "Spanish", label: "Spanish", flag: "🇪🇸", available: false, comingSoon: true },
+    { id: "Italian", label: "Italian", flag: "🇮🇹", available: false, comingSoon: true },
   ]
 
   const languageLevels = [
@@ -317,6 +327,9 @@ const LanguageTimelineStep = ({
   ]
 
   const toggleLanguage = (langId: string) => {
+    const language = languages.find((l) => l.id === langId)
+    if (!language?.available) return // Don't allow selection of unavailable languages
+
     const current = preferences.preferredLanguages || []
     const updated = current.includes(langId) ? current.filter((l: string) => l !== langId) : [...current, langId]
     onUpdate({ ...preferences, preferredLanguages: updated })
@@ -348,12 +361,22 @@ const LanguageTimelineStep = ({
                 key={lang.id}
                 variant={preferences.preferredLanguages?.includes(lang.id) ? "default" : "outline"}
                 onClick={() => toggleLanguage(lang.id)}
-                className="h-auto p-4 text-left justify-start"
+                disabled={!lang.available}
+                className={cn(
+                  "h-auto p-4 text-left justify-start relative",
+                  !lang.available && "opacity-50 cursor-not-allowed",
+                )}
               >
                 <span className="mr-2">{lang.flag}</span>
-                {lang.label}
+                <div className="flex flex-col items-start">
+                  <span>{lang.label}</span>
+                  {lang.comingSoon && <span className="text-xs text-muted-foreground">Coming Soon</span>}
+                </div>
               </Button>
             ))}
+          </div>
+          <div className="text-xs text-muted-foreground mt-2">
+            More languages will be available soon. Currently supporting English, French, and Dutch programs.
           </div>
         </div>
 
@@ -480,7 +503,7 @@ const LanguageTimelineStep = ({
   )
 }
 
-// Step 4: Additional Preferences
+// Step 4: Additional Preferences - Updated GPA scale to /20
 const AdditionalPreferencesStep = ({
   preferences,
   onUpdate,
@@ -527,11 +550,12 @@ const AdditionalPreferencesStep = ({
     },
   ]
 
+  // Updated GPA levels for /20 scale
   const gpaLevels = [
-    { id: "excellent", label: "Excellent (3.7-4.0)", description: "Top academic performance" },
-    { id: "good", label: "Good (3.0-3.6)", description: "Above average performance" },
-    { id: "intermediate", label: "Intermediate (2.5-2.9)", description: "Average performance" },
-    { id: "improving", label: "Improving (2.0-2.4)", description: "Working to improve grades" },
+    { id: "excellent", label: "Excellent (16-20/20)", description: "Top academic performance" },
+    { id: "good", label: "Good (14-15/20)", description: "Above average performance" },
+    { id: "intermediate", label: "Intermediate (12-13/20)", description: "Average performance" },
+    { id: "improving", label: "Improving (10-11/20)", description: "Working to improve grades" },
   ]
 
   const toggleRequirement = (reqId: string) => {
@@ -573,6 +597,9 @@ const AdditionalPreferencesStep = ({
                 </CardContent>
               </Card>
             ))}
+          </div>
+          <div className="text-xs text-muted-foreground mt-2">
+            Based on the French grading system (out of 20). We'll convert this for other countries' requirements.
           </div>
         </div>
 
@@ -1034,6 +1061,7 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
+
 
 
 
