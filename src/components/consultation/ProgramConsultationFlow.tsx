@@ -28,7 +28,6 @@ import {
   PiggyBank,
   CreditCard,
   Home,
-  Calculator,
   Search,
   Languages,
 } from "lucide-react"
@@ -44,18 +43,61 @@ import {
 } from "@/services/EnhancedProgramMatchingService"
 
 const STEPS = [
-  { id: 1, title: "Study Level & Field", icon: GraduationCap, description: "Choose your academic preferences" },
+  { id: 1, title: "Study Field & Level", icon: GraduationCap, description: "Choose your academic preferences" },
   { id: 2, title: "Budget Planning", icon: DollarSign, description: "Set your financial preferences" },
   { id: 3, title: "Academic Profile", icon: FileText, description: "Your academic background" },
   { id: 4, title: "Timeline & Preferences", icon: Settings, description: "Timeline and additional requirements" },
   { id: 5, title: "Your Matches", icon: Trophy, description: "Perfect programs for you" },
 ]
 
+// Budget intervals configuration
+const BUDGET_INTERVALS = {
+  tuition: {
+    min: 0,
+    max: 12000,
+    step: 500,
+    intervals: [
+      { label: "Free", value: [0, 0] },
+      { label: "€1,000 - €3,000", value: [1000, 3000] },
+      { label: "€3,000 - €6,000", value: [3000, 6000] },
+      { label: "€6,000 - €9,000", value: [6000, 9000] },
+      { label: "€9,000 - €12,000", value: [9000, 12000] },
+      { label: "Custom Range", value: "custom" },
+    ],
+  },
+  housing: {
+    min: 0,
+    max: 2000,
+    step: 100,
+    intervals: [
+      { label: "€200 - €500/month", value: [200, 500] },
+      { label: "€500 - €800/month", value: [500, 800] },
+      { label: "€800 - €1,200/month", value: [800, 1200] },
+      { label: "€1,200 - €1,600/month", value: [1200, 1600] },
+      { label: "€1,600 - €2,000/month", value: [1600, 2000] },
+      { label: "Custom Range", value: "custom" },
+    ],
+  },
+  service: {
+    min: 0,
+    max: 1000,
+    step: 50,
+    intervals: [
+      { label: "Free", value: [0, 0] },
+      { label: "€100 - €300", value: [100, 300] },
+      { label: "€300 - €500", value: [300, 500] },
+      { label: "€500 - €750", value: [500, 750] },
+      { label: "€750 - €1,000", value: [750, 1000] },
+      { label: "Custom Range", value: "custom" },
+    ],
+  },
+}
+
 // Translations
 const translations = {
   en: {
     title: "Program Consultation",
-    subtitle: "Advanced bilingual algorithm analyzing your preferences to find your perfect study program",
+    subtitle: "Advanced field-matching algorithm to find your perfect study program",
     searchLanguage: "Search Language",
     studyLevel: "Study Level",
     fieldOfStudy: "Field of Study",
@@ -63,10 +105,9 @@ const translations = {
     selected: "Selected",
     specificSubjects: "Specific Subjects (Optional)",
     planBudget: "Plan your budget",
-    budgetSubtitle: "Set your budget for different categories to find options that fit your financial plan",
-    totalBudgetOverview: "Total Budget Overview",
-    tuitionFees: "Tuition Fees",
-    livingCosts: "Living Costs",
+    budgetSubtitle: "Set your budget intervals for different categories",
+    tuitionFees: "Tuition Fees (Annual)",
+    housingCosts: "Housing Costs (Monthly)",
     serviceFees: "Service & Application Fees",
     budgetFlexibility: "Budget Flexibility",
     strict: "Strict",
@@ -93,16 +134,18 @@ const translations = {
     needReligious: "I need religious facilities",
     needHalal: "I need halal food options",
     yourMatches: "Your Personalized Program Matches",
-    matchesFound: "We found {count} programs ranked by compatibility with bilingual field matching",
+    matchesFound: "We found {count} programs ranked by field compatibility",
     nextSteps: "Next Steps:",
     continue: "Continue",
     findPrograms: "Find My Perfect Programs",
     analyzing: "Analyzing Matches...",
     startNew: "Start New Consultation",
+    customRange: "Custom Range",
+    selectInterval: "Select an interval or set custom range",
   },
   fr: {
     title: "Consultation de Programme",
-    subtitle: "Algorithme bilingue avancé analysant vos préférences pour trouver votre programme d'études parfait",
+    subtitle: "Algorithme avancé de correspondance de domaine pour trouver votre programme d'études parfait",
     searchLanguage: "Langue de Recherche",
     studyLevel: "Niveau d'Études",
     fieldOfStudy: "Domaine d'Études",
@@ -110,11 +153,9 @@ const translations = {
     selected: "Sélectionné",
     specificSubjects: "Matières Spécifiques (Optionnel)",
     planBudget: "Planifiez votre budget",
-    budgetSubtitle:
-      "Définissez votre budget pour différentes catégories pour trouver des options qui correspondent à votre plan financier",
-    totalBudgetOverview: "Aperçu du Budget Total",
-    tuitionFees: "Frais de Scolarité",
-    livingCosts: "Coûts de la Vie",
+    budgetSubtitle: "Définissez vos intervalles de budget pour différentes catégories",
+    tuitionFees: "Frais de Scolarité (Annuel)",
+    housingCosts: "Coûts de Logement (Mensuel)",
     serviceFees: "Frais de Service et de Candidature",
     budgetFlexibility: "Flexibilité du Budget",
     strict: "Strict",
@@ -141,13 +182,14 @@ const translations = {
     needReligious: "J'ai besoin d'installations religieuses",
     needHalal: "J'ai besoin d'options de nourriture halal",
     yourMatches: "Vos Correspondances de Programmes Personnalisées",
-    matchesFound:
-      "Nous avons trouvé {count} programmes classés par compatibilité avec correspondance de domaine bilingue",
+    matchesFound: "Nous avons trouvé {count} programmes classés par compatibilité de domaine",
     nextSteps: "Prochaines Étapes:",
     continue: "Continuer",
     findPrograms: "Trouvez Mes Programmes Parfaits",
     analyzing: "Analyse des Correspondances...",
     startNew: "Commencer une Nouvelle Consultation",
+    customRange: "Plage Personnalisée",
+    selectInterval: "Sélectionnez un intervalle ou définissez une plage personnalisée",
   },
 }
 
@@ -183,6 +225,14 @@ export default function ProgramConsultationFlow() {
     duration: "",
   })
 
+  // Budget interval states
+  const [tuitionInterval, setTuitionInterval] = useState<string>("")
+  const [housingInterval, setHousingInterval] = useState<string>("")
+  const [serviceInterval, setServiceInterval] = useState<string>("")
+  const [customTuitionRange, setCustomTuitionRange] = useState([0, 12000])
+  const [customHousingRange, setCustomHousingRange] = useState([0, 2000])
+  const [customServiceRange, setCustomServiceRange] = useState([0, 1000])
+
   const [fieldSearchResults, setFieldSearchResults] = useState<FieldTranslation[]>([])
   const [showFieldSuggestions, setShowFieldSuggestions] = useState(false)
   const [matchedPrograms, setMatchedPrograms] = useState<any[]>([])
@@ -191,9 +241,9 @@ export default function ProgramConsultationFlow() {
   // Get translations based on user language
   const t = translations[consultationData.userLanguage]
 
-  // Fetch programs for matching
+  // Fetch programs for matching with field priority
   const { data: programsData } = usePrograms({
-    limit: 100,
+    limit: 1000,
     calculateMatchScores: false,
   })
 
@@ -201,19 +251,7 @@ export default function ProgramConsultationFlow() {
   const currentStepInfo = STEPS[currentStep - 1]
 
   const updateData = (updates: Partial<EnhancedConsultationData>) => {
-    const newData = { ...consultationData, ...updates }
-
-    // Calculate total budget when individual budgets change
-    if (
-      updates.tuitionBudget !== undefined ||
-      updates.livingCostsBudget !== undefined ||
-      updates.serviceFeesBudget !== undefined
-    ) {
-      newData.totalBudget =
-        (newData.tuitionBudget || 0) + (newData.livingCostsBudget || 0) + (newData.serviceFeesBudget || 0)
-    }
-
-    setConsultationData(newData)
+    setConsultationData((prev) => ({ ...prev, ...updates }))
   }
 
   const handleFieldSearch = (query: string) => {
@@ -221,7 +259,7 @@ export default function ProgramConsultationFlow() {
 
     if (query.length >= 2) {
       const results = BilingualFieldService.searchFields(query, consultationData.userLanguage)
-      setFieldSearchResults(results.slice(0, 8)) // Limit to 8 suggestions
+      setFieldSearchResults(results.slice(0, 8))
       setShowFieldSuggestions(true)
     } else {
       setFieldSearchResults([])
@@ -232,11 +270,40 @@ export default function ProgramConsultationFlow() {
   const selectFieldFromSuggestion = (field: FieldTranslation) => {
     const fieldName = consultationData.userLanguage === "fr" ? field.french : field.english
     updateData({
-      fieldOfStudy: field.english, // Always store English for database consistency
+      fieldOfStudy: field.english,
       fieldSearchQuery: fieldName,
     })
     setShowFieldSuggestions(false)
     setFieldSearchResults([])
+  }
+
+  // Handle budget interval selection
+  const handleBudgetIntervalChange = (type: "tuition" | "housing" | "service", value: string) => {
+    if (type === "tuition") {
+      setTuitionInterval(value)
+      if (value !== "custom") {
+        const interval = BUDGET_INTERVALS.tuition.intervals.find((i) => i.label === value)
+        if (interval && Array.isArray(interval.value)) {
+          updateData({ tuitionBudget: interval.value[1] })
+        }
+      }
+    } else if (type === "housing") {
+      setHousingInterval(value)
+      if (value !== "custom") {
+        const interval = BUDGET_INTERVALS.housing.intervals.find((i) => i.label === value)
+        if (interval && Array.isArray(interval.value)) {
+          updateData({ livingCostsBudget: interval.value[1] * 12 }) // Convert monthly to annual
+        }
+      }
+    } else if (type === "service") {
+      setServiceInterval(value)
+      if (value !== "custom") {
+        const interval = BUDGET_INTERVALS.service.intervals.find((i) => i.label === value)
+        if (interval && Array.isArray(interval.value)) {
+          updateData({ serviceFeesBudget: interval.value[1] })
+        }
+      }
+    }
   }
 
   const isStepValid = () => {
@@ -244,9 +311,9 @@ export default function ProgramConsultationFlow() {
       case 1:
         return !!consultationData.studyLevel && (!!consultationData.fieldOfStudy || !!consultationData.fieldSearchQuery)
       case 2:
-        return consultationData.totalBudget > 0
+        return tuitionInterval && housingInterval && serviceInterval
       case 3:
-        return !!consultationData.currentGPA
+        return !!consultationData.currentGPA && !!consultationData.language
       case 4:
         return !!consultationData.intakePeriod && !!consultationData.duration
       default:
@@ -254,28 +321,53 @@ export default function ProgramConsultationFlow() {
     }
   }
 
-  // Enhanced matching algorithm with search and sorting
+  // Enhanced matching algorithm with field priority
   const findMatches = () => {
     if (!programsData?.programs) return []
 
-    // First, filter programs by search query if provided
-    let filteredPrograms = programsData.programs
-    if (consultationData.fieldSearchQuery) {
-      filteredPrograms = EnhancedProgramMatchingService.searchPrograms(
-        programsData.programs,
-        consultationData.fieldSearchQuery,
-        consultationData.userLanguage,
-      )
+    // Filter programs by field first (highest priority)
+    let fieldMatchedPrograms = programsData.programs
+
+    if (consultationData.fieldSearchQuery || consultationData.fieldOfStudy) {
+      fieldMatchedPrograms = programsData.programs.filter((program) => {
+        // Use bilingual field matching service
+        const fieldMatch = BilingualFieldService.matchProgramField(
+          program,
+          consultationData.fieldSearchQuery || consultationData.fieldOfStudy,
+          consultationData.userLanguage,
+        )
+        return fieldMatch.exactMatch || fieldMatch.partialMatch
+      })
     }
 
-    // Then sort by relevance using enhanced matching
-    const sortedPrograms = EnhancedProgramMatchingService.sortProgramsByRelevance(filteredPrograms, consultationData)
+    // If no field matches found, return empty array (strict field matching)
+    if (fieldMatchedPrograms.length === 0) {
+      return []
+    }
 
-    // Filter programs with minimum score threshold
-    const minScoreThreshold = consultationData.budgetFlexibility === "strict" ? 50 : 30
+    // Sort by enhanced matching with field priority
+    const sortedPrograms = EnhancedProgramMatchingService.sortProgramsByRelevance(
+      fieldMatchedPrograms,
+      consultationData,
+    )
 
-    return sortedPrograms
-      .filter((program) => program.matchResult.score >= minScoreThreshold)
+    // Apply budget and language filters as secondary priority
+    const filteredPrograms = sortedPrograms.filter((program) => {
+      const tuitionMax = program.tuition_max || 0
+      const budgetMatch =
+        consultationData.budgetFlexibility === "strict"
+          ? tuitionMax <= consultationData.tuitionBudget
+          : tuitionMax <= consultationData.tuitionBudget * 1.5 // Allow some flexibility
+
+      const languageMatch =
+        !consultationData.language ||
+        consultationData.language === "Any" ||
+        program.program_language?.toLowerCase().includes(consultationData.language.toLowerCase())
+
+      return budgetMatch && languageMatch
+    })
+
+    return filteredPrograms
       .map((program) => ({
         ...program,
         matchScore: program.matchResult.score,
@@ -285,7 +377,7 @@ export default function ProgramConsultationFlow() {
         fieldMatchDetails: program.matchResult.fieldMatchDetails,
         recommendation: program.matchResult.recommendation,
       }))
-      .slice(0, 20) // Limit to top 20 matches
+      .slice(0, 20)
   }
 
   const handleNext = async () => {
@@ -297,7 +389,7 @@ export default function ProgramConsultationFlow() {
         const matches = findMatches()
         setMatchedPrograms(matches)
 
-        // Save to database with enhanced data
+        // Save to database
         if (user && !isRestricted) {
           await supabase.from("consultation_results").insert({
             user_id: user.id,
@@ -326,7 +418,7 @@ export default function ProgramConsultationFlow() {
 
           toast({
             title: "Consultation Complete",
-            description: `Found ${matches.length} matching programs with enhanced bilingual analysis!`,
+            description: `Found ${matches.length} matching programs with field-priority matching!`,
           })
         } else if (isRestricted) {
           toast({
@@ -559,46 +651,6 @@ export default function ProgramConsultationFlow() {
               <p className="text-slate-600 dark:text-slate-400">{t.budgetSubtitle}</p>
             </div>
 
-            {/* Budget Summary */}
-            <Card className="max-w-4xl mx-auto bg-gradient-to-br from-blue-50/50 to-indigo-50/50 dark:from-blue-950/20 dark:to-indigo-950/20 border-2 border-blue-200/20 dark:border-blue-800/20">
-              <CardContent className="p-6">
-                <div className="text-center mb-6">
-                  <div className="flex items-center justify-center space-x-3 mb-4">
-                    <Calculator className="w-6 h-6 text-slate-600 dark:text-slate-400" />
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t.totalBudgetOverview}</h3>
-                  </div>
-                  <div className="text-4xl font-bold mb-2 text-slate-800 dark:text-slate-100">
-                    {formatCurrency(consultationData.totalBudget)}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                    <PiggyBank className="w-8 h-8 mx-auto mb-2 text-blue-600 dark:text-blue-400" />
-                    <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                      {formatCurrency(consultationData.tuitionBudget)}
-                    </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.tuitionFees}</div>
-                  </div>
-                  <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                    <Home className="w-8 h-8 mx-auto mb-2 text-purple-600 dark:text-purple-400" />
-                    <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                      {formatCurrency(consultationData.livingCostsBudget)}
-                    </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.livingCosts}</div>
-                  </div>
-                  <div className="text-center p-4 bg-white/80 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                    <CreditCard className="w-8 h-8 mx-auto mb-2 text-green-600 dark:text-green-400" />
-                    <div className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                      {formatCurrency(consultationData.serviceFeesBudget)}
-                    </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">{t.serviceFees}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Budget Sliders */}
             <div className="max-w-4xl mx-auto space-y-6">
               {/* Tuition Budget */}
               <Card className="bg-white/80 dark:bg-slate-800/80">
@@ -610,50 +662,98 @@ export default function ProgramConsultationFlow() {
                         {t.tuitionFees}
                       </Label>
                       <Badge variant="outline" className="text-sm">
-                        {formatCurrency(consultationData.tuitionBudget)}
+                        Max: €12,000
                       </Badge>
                     </div>
-                    <Slider
-                      value={[consultationData.tuitionBudget]}
-                      onValueChange={(value) => updateData({ tuitionBudget: value[0] })}
-                      max={50000}
-                      min={0}
-                      step={500}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
-                      <span>€0</span>
-                      <span>€50,000</span>
-                    </div>
+
+                    <Select
+                      value={tuitionInterval}
+                      onValueChange={(value) => handleBudgetIntervalChange("tuition", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t.selectInterval} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BUDGET_INTERVALS.tuition.intervals.map((interval) => (
+                          <SelectItem key={interval.label} value={interval.label}>
+                            {interval.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {tuitionInterval === "Custom Range" && (
+                      <div className="space-y-2">
+                        <Slider
+                          value={customTuitionRange}
+                          onValueChange={(value) => {
+                            setCustomTuitionRange(value)
+                            updateData({ tuitionBudget: value[1] })
+                          }}
+                          max={BUDGET_INTERVALS.tuition.max}
+                          min={BUDGET_INTERVALS.tuition.min}
+                          step={BUDGET_INTERVALS.tuition.step}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
+                          <span>{formatCurrency(customTuitionRange[0])}</span>
+                          <span>{formatCurrency(customTuitionRange[1])}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Living Costs Budget */}
+              {/* Housing Budget */}
               <Card className="bg-white/80 dark:bg-slate-800/80">
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Label className="text-lg font-semibold flex items-center text-slate-800 dark:text-slate-200">
                         <Home className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
-                        {t.livingCosts}
+                        {t.housingCosts}
                       </Label>
                       <Badge variant="outline" className="text-sm">
-                        {formatCurrency(consultationData.livingCostsBudget)}
+                        Max: €2,000/month
                       </Badge>
                     </div>
-                    <Slider
-                      value={[consultationData.livingCostsBudget]}
-                      onValueChange={(value) => updateData({ livingCostsBudget: value[0] })}
-                      max={30000}
-                      min={0}
-                      step={500}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
-                      <span>€0</span>
-                      <span>€30,000</span>
-                    </div>
+
+                    <Select
+                      value={housingInterval}
+                      onValueChange={(value) => handleBudgetIntervalChange("housing", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t.selectInterval} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BUDGET_INTERVALS.housing.intervals.map((interval) => (
+                          <SelectItem key={interval.label} value={interval.label}>
+                            {interval.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {housingInterval === "Custom Range" && (
+                      <div className="space-y-2">
+                        <Slider
+                          value={customHousingRange}
+                          onValueChange={(value) => {
+                            setCustomHousingRange(value)
+                            updateData({ livingCostsBudget: value[1] * 12 })
+                          }}
+                          max={BUDGET_INTERVALS.housing.max}
+                          min={BUDGET_INTERVALS.housing.min}
+                          step={BUDGET_INTERVALS.housing.step}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
+                          <span>{formatCurrency(customHousingRange[0])}/month</span>
+                          <span>{formatCurrency(customHousingRange[1])}/month</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -668,21 +768,45 @@ export default function ProgramConsultationFlow() {
                         {t.serviceFees}
                       </Label>
                       <Badge variant="outline" className="text-sm">
-                        {formatCurrency(consultationData.serviceFeesBudget)}
+                        Max: €1,000
                       </Badge>
                     </div>
-                    <Slider
-                      value={[consultationData.serviceFeesBudget]}
-                      onValueChange={(value) => updateData({ serviceFeesBudget: value[0] })}
-                      max={10000}
-                      min={0}
-                      step={100}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
-                      <span>€0</span>
-                      <span>€10,000</span>
-                    </div>
+
+                    <Select
+                      value={serviceInterval}
+                      onValueChange={(value) => handleBudgetIntervalChange("service", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t.selectInterval} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BUDGET_INTERVALS.service.intervals.map((interval) => (
+                          <SelectItem key={interval.label} value={interval.label}>
+                            {interval.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {serviceInterval === "Custom Range" && (
+                      <div className="space-y-2">
+                        <Slider
+                          value={customServiceRange}
+                          onValueChange={(value) => {
+                            setCustomServiceRange(value)
+                            updateData({ serviceFeesBudget: value[1] })
+                          }}
+                          max={BUDGET_INTERVALS.service.max}
+                          min={BUDGET_INTERVALS.service.min}
+                          step={BUDGET_INTERVALS.service.step}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-sm text-slate-500 dark:text-slate-400">
+                          <span>{formatCurrency(customServiceRange[0])}</span>
+                          <span>{formatCurrency(customServiceRange[1])}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1074,12 +1198,17 @@ export default function ProgramConsultationFlow() {
                   <AlertCircle className="h-12 w-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-600 dark:text-slate-400 mb-4">
                     {consultationData.userLanguage === "fr"
-                      ? "Aucune correspondance parfaite trouvée avec vos critères actuels."
-                      : "No perfect matches found with your current criteria."}
+                      ? "Aucun programme trouvé correspondant exactement à votre domaine d'études."
+                      : "No programs found that exactly match your field of study."}
                   </p>
                   <div className="space-y-2 text-sm text-slate-500 dark:text-slate-500">
                     <p>{consultationData.userLanguage === "fr" ? "Essayez d'ajuster:" : "Try adjusting:"}</p>
                     <ul className="list-disc list-inside space-y-1">
+                      <li>
+                        {consultationData.userLanguage === "fr"
+                          ? "Élargissez votre recherche de domaine d'études"
+                          : "Broaden your field of study search"}
+                      </li>
                       <li>
                         {consultationData.userLanguage === "fr"
                           ? "Augmentez votre budget ou flexibilité"
@@ -1087,13 +1216,8 @@ export default function ProgramConsultationFlow() {
                       </li>
                       <li>
                         {consultationData.userLanguage === "fr"
-                          ? "Considérez différents domaines d'études"
-                          : "Consider different fields of study"}
-                      </li>
-                      <li>
-                        {consultationData.userLanguage === "fr"
-                          ? "Élargissez les préférences linguistiques"
-                          : "Expand language preferences"}
+                          ? "Considérez différentes langues d'études"
+                          : "Consider different study languages"}
                       </li>
                     </ul>
                   </div>
@@ -1327,8 +1451,8 @@ export default function ProgramConsultationFlow() {
                     </li>
                     <li>
                       {consultationData.userLanguage === "fr"
-                        ? "Les programmes avec 'Correspondance Exacte' sont priorisés basés sur votre recherche bilingue"
-                        : "Programs with 'Exact Field Match' are prioritized based on your bilingual search"}
+                        ? "Les programmes avec 'Correspondance Exacte' sont priorisés basés sur votre domaine d'études"
+                        : "Programs with 'Exact Field Match' are prioritized based on your field of study"}
                     </li>
                   </ul>
                 </div>
@@ -1465,6 +1589,12 @@ export default function ProgramConsultationFlow() {
                 setMatchedPrograms([])
                 setFieldSearchResults([])
                 setShowFieldSuggestions(false)
+                setTuitionInterval("")
+                setHousingInterval("")
+                setServiceInterval("")
+                setCustomTuitionRange([0, 12000])
+                setCustomHousingRange([0, 2000])
+                setCustomServiceRange([0, 1000])
               }}
               className="flex items-center space-x-2"
             >
@@ -1476,5 +1606,6 @@ export default function ProgramConsultationFlow() {
     </div>
   )
 }
+
 
 
