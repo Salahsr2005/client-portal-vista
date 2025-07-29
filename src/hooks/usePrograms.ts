@@ -1,113 +1,225 @@
-import { useQuery } from "@tanstack/react-query"
-import { supabase } from "@/integrations/supabase/client"
-import type { Tables } from "@/integrations/supabase/types"
+"use client"
 
-export interface ProgramsQueryParams {
-  page?: number
-  limit?: number
+import { useState } from "react"
+import { supabase } from "@/integrations/supabase/client"
+
+export interface Program {
+  id: string
+  name: string
+  university: string
+  country: string
+  level: string
+  field: string
+  language: string
+  tuition_fee: number
+  duration: string
+  description: string
+  requirements: string[]
+  application_deadline: string
+  intake_periods: string[]
+  scholarship_available: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProgramFilters {
   search?: string
   country?: string
-  level?: Tables<"programs">["study_level"]
-  field?: Tables<"programs">["field"]
+  level?: string
+  field?: string
   language?: string
-  maxBudget?: number
+  minTuition?: number
+  maxTuition?: number
   withScholarship?: boolean
 }
 
 export interface ProgramsResponse {
-  programs: Tables<"programs">[]
-  totalCount: number
-  totalPages: number
-  currentPage: number
+  programs: Program[]
+  total: number
+  hasMore: boolean
 }
 
-export const usePrograms = (params: ProgramsQueryParams = {}) => {
-  return useQuery({
-    queryKey: ["programs", params],
-    queryFn: async (): Promise<ProgramsResponse> => {
-      let query = supabase.from("programs").select("*", { count: "exact" }).eq("status", "Active")
+export function usePrograms() {
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+
+  const fetchPrograms = async (
+    filters: ProgramFilters = {},
+    page = 1,
+    limit = 12,
+    sortBy = "name",
+    sortOrder: "asc" | "desc" = "asc",
+  ): Promise<ProgramsResponse> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      console.log("🔍 Fetching programs with filters:", filters)
+
+      let query = supabase.from("programs").select("*", { count: "exact" })
 
       // Apply filters
-      if (params.search) {
+      if (filters.search) {
         query = query.or(
-          `name.ilike.%${params.search}%,university.ilike.%${params.search}%,description.ilike.%${params.search}%`,
+          `name.ilike.%${filters.search}%,university.ilike.%${filters.search}%,field.ilike.%${filters.search}%`,
         )
       }
 
-      if (params.country) {
-        query = query.eq("country", params.country)
+      if (filters.country && filters.country !== "all") {
+        query = query.eq("country", filters.country)
       }
 
-      if (params.level) {
-        query = query.eq("study_level", params.level)
+      if (filters.level && filters.level !== "all") {
+        query = query.eq("level", filters.level)
       }
 
-      if (params.field) {
-        query = query.eq("field", params.field)
+      if (filters.field && filters.field !== "all") {
+        query = query.eq("field", filters.field)
       }
 
-      if (params.language) {
-        query = query.eq("program_language", params.language)
+      if (filters.language && filters.language !== "all") {
+        query = query.eq("language", filters.language)
       }
 
-      if (params.maxBudget) {
-        query = query.lte("tuition_max", params.maxBudget)
+      if (filters.minTuition !== undefined) {
+        query = query.gte("tuition_fee", filters.minTuition)
       }
 
-      if (params.withScholarship) {
+      if (filters.maxTuition !== undefined) {
+        query = query.lte("tuition_fee", filters.maxTuition)
+      }
+
+      if (filters.withScholarship) {
         query = query.eq("scholarship_available", true)
       }
 
-      // Pagination
-      const page = params.page || 1
-      const limit = params.limit || 12
+      // Apply sorting
+      query = query.order(sortBy, { ascending: sortOrder === "asc" })
+
+      // Apply pagination
       const from = (page - 1) * limit
       const to = from + limit - 1
-
       query = query.range(from, to)
 
-      const { data, error, count } = await query
+      const { data, error: fetchError, count } = await query
 
-      if (error) {
-        console.error("Error fetching programs:", error)
-        throw error
+      if (fetchError) {
+        console.error("❌ Error fetching programs:", fetchError)
+        throw fetchError
       }
 
-      const totalCount = count || 0
-      const totalPages = Math.ceil(totalCount / limit)
+      const fetchedPrograms = (data || []).map((program) => ({
+        ...program,
+        requirements: this.parseJsonField(program.requirements, []),
+        intake_periods: this.parseJsonField(program.intake_periods, []),
+      }))
+
+      console.log(`✅ Fetched ${fetchedPrograms.length} programs (total: ${count})`)
+
+      setPrograms(page === 1 ? fetchedPrograms : [...programs, ...fetchedPrograms])
+      setTotal(count || 0)
+      setHasMore(fetchedPrograms.length === limit)
 
       return {
-        programs: data || [],
-        totalCount,
-        totalPages,
-        currentPage: page,
+        programs: fetchedPrograms,
+        total: count || 0,
+        hasMore: fetchedPrograms.length === limit,
       }
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
-  })
+    } catch (err) {
+      console.error("❌ Error in fetchPrograms:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch programs"
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchProgramById = async (id: string): Promise<Program | null> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      console.log("🔍 Fetching program by ID:", id)
+
+      const { data, error: fetchError } = await supabase.from("programs").select("*").eq("id", id).single()
+
+      if (fetchError) {
+        console.error("❌ Error fetching program:", fetchError)
+        throw fetchError
+      }
+
+      if (!data) {
+        console.warn("⚠️ Program not found:", id)
+        return null
+      }
+
+      const program = {
+        ...data,
+        requirements: this.parseJsonField(data.requirements, []),
+        intake_periods: this.parseJsonField(data.intake_periods, []),
+      }
+
+      console.log("✅ Fetched program:", program.name)
+      return program
+    } catch (err) {
+      console.error("❌ Error in fetchProgramById:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch program"
+      setError(errorMessage)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getUniqueValues = async (column: string): Promise<string[]> => {
+    try {
+      const { data, error } = await supabase.from("programs").select(column).not(column, "is", null)
+
+      if (error) throw error
+
+      const uniqueValues = [...new Set(data?.map((item) => item[column]).filter(Boolean))]
+      return uniqueValues.sort()
+    } catch (err) {
+      console.error(`❌ Error fetching unique ${column}:`, err)
+      return []
+    }
+  }
+
+  // Helper method to safely parse JSON fields
+  const parseJsonField = (field: any, fallback: any = []): any => {
+    if (!field) return fallback
+    if (typeof field === "string") {
+      try {
+        return JSON.parse(field)
+      } catch {
+        // If JSON parsing fails, try to split by comma
+        return field
+          .split(",")
+          .map((item: string) => item.trim())
+          .filter(Boolean)
+      }
+    }
+    return Array.isArray(field) ? field : fallback
+  }
+
+  return {
+    programs,
+    loading,
+    error,
+    total,
+    hasMore,
+    fetchPrograms,
+    fetchProgramById,
+    getUniqueValues,
+    clearPrograms: () => setPrograms([]),
+    clearError: () => setError(null),
+  }
 }
 
-export const useProgram = (id: string) => {
-  return useQuery({
-    queryKey: ["program", id],
-    queryFn: async () => {
-      if (!id) return null
-
-      const { data, error } = await supabase.from("programs").select("*").eq("id", id).single()
-
-      if (error) {
-        console.error("Error fetching program:", error)
-        throw error
-      }
-
-      return data
-    },
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
-  })
-}
 
 
 
