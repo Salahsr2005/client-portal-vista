@@ -1,11 +1,10 @@
+import i18n from "i18next"
+import { initReactI18next, useTranslation } from "react-i18next"
+import LanguageDetector from "i18next-browser-languagedetector"
 
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
-
-import enTranslation from './locales/en';
-import frTranslation from './locales/fr';
-import arTranslation from './locales/ar';
+import enTranslation from "./locales/en"
+import frTranslation from "./locales/fr"
+import arTranslation from "./locales/ar"
 
 i18n
   .use(LanguageDetector)
@@ -13,24 +12,27 @@ i18n
   .init({
     resources: {
       en: {
-        translation: enTranslation
+        translation: enTranslation,
       },
       fr: {
-        translation: frTranslation
+        translation: frTranslation,
       },
       ar: {
-        translation: arTranslation
-      }
+        translation: arTranslation,
+      },
     },
-    fallbackLng: 'en',
+    fallbackLng: "en",
     debug: false,
     interpolation: {
-      escapeValue: false
+      escapeValue: false,
     },
     detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage']
-    }
-  });
+      order: ["localStorage", "navigator"],
+      caches: ["localStorage"],
+    },
+  })
 
-export default i18n;
+// Export the useTranslation hook
+export { useTranslation }
+export default i18n
+
