@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
 import { useDestinationConsultation } from "@/hooks/useDestinationConsultation"
+import { useTranslation } from "@/i18n"
 import {
   ArrowLeft,
   ArrowRight,
@@ -38,30 +40,32 @@ const StudyLevelStep = ({
   selectedLevel,
   onSelect,
   onNext,
+  t,
 }: {
   selectedLevel: string
   onSelect: (level: string) => void
   onNext: () => void
+  t: any
 }) => {
   const levels = [
     {
       id: "Bachelor",
-      title: "Bachelor's Degree",
-      description: "Undergraduate programs (3-4 years)",
+      title: t.consultation.levels.bachelor,
+      description: t.consultation.levels.bachelorDesc,
       icon: BookOpen,
       color: "bg-blue-500",
     },
     {
       id: "Master",
-      title: "Master's Degree",
-      description: "Graduate programs (1-2 years)",
+      title: t.consultation.levels.master,
+      description: t.consultation.levels.masterDesc,
       icon: GraduationCap,
       color: "bg-purple-500",
     },
     {
       id: "PhD",
-      title: "PhD / Doctorate",
-      description: "Doctoral programs (3-5 years)",
+      title: t.consultation.levels.phd,
+      description: t.consultation.levels.phdDesc,
       icon: Award,
       color: "bg-green-500",
     },
@@ -70,8 +74,8 @@ const StudyLevelStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">What level of study are you interested in?</h2>
-        <p className="text-muted-foreground">Choose the academic level that matches your goals</p>
+        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.studyLevel.title}</h2>
+        <p className="text-muted-foreground">{t.consultation.steps.studyLevel.description}</p>
       </div>
 
       <div className="grid gap-4">
@@ -106,133 +110,129 @@ const StudyLevelStep = ({
 
       <div className="flex justify-end">
         <Button onClick={onNext} disabled={!selectedLevel} className="min-w-32">
-          Next <ArrowRight className="ml-2 h-4 w-4" />
+          {t.common.next} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
   )
 }
 
-// Step 2: Budget Selection
+// Step 2: Budget Selection with Sliders
 const BudgetStep = ({
   budgetData,
   onUpdate,
   onNext,
   onBack,
+  t,
 }: {
   budgetData: any
   onUpdate: (data: any) => void
   onNext: () => void
   onBack: () => void
+  t: any
 }) => {
-  const budgetRanges = {
-    tuition: [
-      { label: "€0 - €5,000", value: [0, 5000] },
-      { label: "€5,000 - €15,000", value: [5000, 15000] },
-      { label: "€15,000 - €30,000", value: [15000, 30000] },
-      { label: "€30,000+", value: [30000, 100000] },
-    ],
-    living: [
-      { label: "€400 - €800", value: [400, 800] },
-      { label: "€800 - €1,200", value: [800, 1200] },
-      { label: "€1,200 - €2,000", value: [1200, 2000] },
-      { label: "€2,000+", value: [2000, 5000] },
-    ],
-    services: [
-      { label: "€100 - €500", value: [100, 500] },
-      { label: "€500 - €1,000", value: [500, 1000] },
-      { label: "€1,000 - €2,000", value: [1000, 2000] },
-      { label: "€2,000+", value: [2000, 5000] },
-    ],
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
   }
 
   const flexibilityOptions = [
-    { id: "strict", label: "Strict Budget", description: "Must stay within range" },
-    { id: "flexible", label: "Somewhat Flexible", description: "Can go 10-20% over" },
-    { id: "very_flexible", label: "Very Flexible", description: "Budget is just a guideline" },
+    { id: "strict", label: t.consultation.budget.strict, description: t.consultation.budget.strictDesc },
+    { id: "flexible", label: t.consultation.budget.flexible, description: t.consultation.budget.flexibleDesc },
+    {
+      id: "very_flexible",
+      label: t.consultation.budget.veryFlexible,
+      description: t.consultation.budget.veryFlexibleDesc,
+    },
   ]
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">What's your budget?</h2>
-        <p className="text-muted-foreground">Help us find destinations within your financial range</p>
+        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.budget.title}</h2>
+        <p className="text-muted-foreground">{t.consultation.steps.budget.description}</p>
       </div>
 
-      <div className="space-y-6">
-        {/* Tuition Budget */}
+      <div className="space-y-8">
+        {/* Tuition Budget Slider */}
         <div>
-          <h3 className="font-semibold mb-3 flex items-center">
+          <h3 className="font-semibold mb-4 flex items-center">
             <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
-            Annual Tuition Budget
+            {t.consultation.budget.tuition}
           </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {budgetRanges.tuition.map((range, index) => (
-              <Button
-                key={index}
-                variant={
-                  JSON.stringify(budgetData.tuitionBudgetRange) === JSON.stringify(range.value) ? "default" : "outline"
-                }
-                onClick={() => onUpdate({ ...budgetData, tuitionBudgetRange: range.value })}
-                className="h-auto p-4 text-left justify-start"
-              >
-                {range.label}
-              </Button>
-            ))}
+          <div className="space-y-4">
+            <div className="px-4">
+              <Slider
+                value={budgetData.tuitionBudgetRange || [0, 50000]}
+                onValueChange={(value) => onUpdate({ ...budgetData, tuitionBudgetRange: value })}
+                max={100000}
+                min={0}
+                step={1000}
+                className="w-full"
+              />
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{formatCurrency((budgetData.tuitionBudgetRange || [0, 50000])[0])}</span>
+              <span>{formatCurrency((budgetData.tuitionBudgetRange || [0, 50000])[1])}</span>
+            </div>
           </div>
         </div>
 
-        {/* Living Costs Budget */}
+        {/* Living Costs Budget Slider */}
         <div>
-          <h3 className="font-semibold mb-3 flex items-center">
+          <h3 className="font-semibold mb-4 flex items-center">
             <Home className="h-5 w-5 mr-2 text-green-600" />
-            Monthly Living Costs Budget
+            {t.consultation.budget.living}
           </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {budgetRanges.living.map((range, index) => (
-              <Button
-                key={index}
-                variant={
-                  JSON.stringify(budgetData.livingCostsBudgetRange) === JSON.stringify(range.value)
-                    ? "default"
-                    : "outline"
-                }
-                onClick={() => onUpdate({ ...budgetData, livingCostsBudgetRange: range.value })}
-                className="h-auto p-4 text-left justify-start"
-              >
-                {range.label}
-              </Button>
-            ))}
+          <div className="space-y-4">
+            <div className="px-4">
+              <Slider
+                value={budgetData.livingCostsBudgetRange || [400, 1200]}
+                onValueChange={(value) => onUpdate({ ...budgetData, livingCostsBudgetRange: value })}
+                max={3000}
+                min={200}
+                step={50}
+                className="w-full"
+              />
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{formatCurrency((budgetData.livingCostsBudgetRange || [400, 1200])[0])}</span>
+              <span>{formatCurrency((budgetData.livingCostsBudgetRange || [400, 1200])[1])}</span>
+            </div>
           </div>
         </div>
 
-        {/* Service Fees Budget */}
+        {/* Service Fees Budget Slider */}
         <div>
-          <h3 className="font-semibold mb-3 flex items-center">
+          <h3 className="font-semibold mb-4 flex items-center">
             <Building2 className="h-5 w-5 mr-2 text-purple-600" />
-            Service Fees Budget
+            {t.consultation.budget.services}
           </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {budgetRanges.services.map((range, index) => (
-              <Button
-                key={index}
-                variant={
-                  JSON.stringify(budgetData.serviceFeesBudgetRange) === JSON.stringify(range.value)
-                    ? "default"
-                    : "outline"
-                }
-                onClick={() => onUpdate({ ...budgetData, serviceFeesBudgetRange: range.value })}
-                className="h-auto p-4 text-left justify-start"
-              >
-                {range.label}
-              </Button>
-            ))}
+          <div className="space-y-4">
+            <div className="px-4">
+              <Slider
+                value={budgetData.serviceFeesBudgetRange || [100, 1000]}
+                onValueChange={(value) => onUpdate({ ...budgetData, serviceFeesBudgetRange: value })}
+                max={5000}
+                min={50}
+                step={50}
+                className="w-full"
+              />
+            </div>
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{formatCurrency((budgetData.serviceFeesBudgetRange || [100, 1000])[0])}</span>
+              <span>{formatCurrency((budgetData.serviceFeesBudgetRange || [100, 1000])[1])}</span>
+            </div>
           </div>
         </div>
 
         {/* Budget Flexibility */}
         <div>
-          <h3 className="font-semibold mb-3">Budget Flexibility</h3>
+          <h3 className="font-semibold mb-3">{t.consultation.budget.flexibility}</h3>
           <div className="space-y-2">
             {flexibilityOptions.map((option) => (
               <Card
@@ -260,7 +260,7 @@ const BudgetStep = ({
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t.common.back}
         </Button>
         <Button
           onClick={onNext}
@@ -271,47 +271,57 @@ const BudgetStep = ({
             !budgetData.budgetFlexibility
           }
         >
-          Next <ArrowRight className="ml-2 h-4 w-4" />
+          {t.common.next} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
   )
 }
 
-// Step 3: Language & Timeline
+// Step 3: Language & Timeline with Multi-language Support
 const LanguageTimelineStep = ({
   preferences,
   onUpdate,
   onNext,
   onBack,
+  t,
 }: {
   preferences: any
   onUpdate: (data: any) => void
   onNext: () => void
   onBack: () => void
+  t: any
 }) => {
   const languages = [
-    { id: "English", label: "English", flag: "🇬🇧" },
-    { id: "French", label: "French", flag: "🇫🇷" },
+    { id: "English", label: t.consultation.languages.english, flag: "🇬🇧" },
+    { id: "French", label: t.consultation.languages.french, flag: "🇫🇷" },
+    { id: "German", label: t.consultation.languages.german, flag: "🇩🇪" },
+    { id: "Spanish", label: t.consultation.languages.spanish, flag: "🇪🇸" },
+    { id: "Italian", label: t.consultation.languages.italian, flag: "🇮🇹" },
+    { id: "Dutch", label: t.consultation.languages.dutch, flag: "🇳🇱" },
   ]
 
   const languageLevels = [
-    { id: "beginner", label: "Beginner (A1-A2)", description: "Basic understanding" },
-    { id: "intermediate", label: "Intermediate (B1-B2)", description: "Conversational level" },
-    { id: "advanced", label: "Advanced (C1-C2)", description: "Near-native fluency" },
+    { id: "beginner", label: t.consultation.levels.beginner, description: t.consultation.levels.beginnerDesc },
+    {
+      id: "intermediate",
+      label: t.consultation.levels.intermediate,
+      description: t.consultation.levels.intermediateDesc,
+    },
+    { id: "advanced", label: t.consultation.levels.advanced, description: t.consultation.levels.advancedDesc },
   ]
 
   const intakePeriods = [
-    { id: "September", label: "September", description: "Fall semester" },
-    { id: "January", label: "January", description: "Spring semester" },
-    { id: "May", label: "May", description: "Summer semester" },
-    { id: "Any", label: "Any Time", description: "Flexible start date" },
+    { id: "September", label: t.consultation.intakes.september, description: t.consultation.intakes.septemberDesc },
+    { id: "January", label: t.consultation.intakes.january, description: t.consultation.intakes.januaryDesc },
+    { id: "May", label: t.consultation.intakes.may, description: t.consultation.intakes.mayDesc },
+    { id: "Any", label: t.consultation.intakes.any, description: t.consultation.intakes.anyDesc },
   ]
 
   const urgencyOptions = [
-    { id: "urgent", label: "Urgent", description: "Need to start within 6 months" },
-    { id: "moderate", label: "Moderate", description: "Planning for next academic year" },
-    { id: "flexible", label: "Flexible", description: "No specific timeline" },
+    { id: "urgent", label: t.consultation.urgency.urgent, description: t.consultation.urgency.urgentDesc },
+    { id: "moderate", label: t.consultation.urgency.moderate, description: t.consultation.urgency.moderateDesc },
+    { id: "flexible", label: t.consultation.urgency.flexible, description: t.consultation.urgency.flexibleDesc },
   ]
 
   const toggleLanguage = (langId: string) => {
@@ -329,8 +339,8 @@ const LanguageTimelineStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Language & Timeline Preferences</h2>
-        <p className="text-muted-foreground">Tell us about your language skills and timeline</p>
+        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.language.title}</h2>
+        <p className="text-muted-foreground">{t.consultation.steps.language.description}</p>
       </div>
 
       <div className="space-y-6">
@@ -338,7 +348,7 @@ const LanguageTimelineStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <Languages className="h-5 w-5 mr-2 text-blue-600" />
-            Preferred Study Languages
+            {t.consultation.language.preferred}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {languages.map((lang) => (
@@ -357,7 +367,7 @@ const LanguageTimelineStep = ({
 
         {/* Language Level */}
         <div>
-          <h3 className="font-semibold mb-3">Your Language Level</h3>
+          <h3 className="font-semibold mb-3">{t.consultation.language.level}</h3>
           <div className="space-y-2">
             {languageLevels.map((level) => (
               <Card
@@ -384,14 +394,15 @@ const LanguageTimelineStep = ({
 
         {/* Language Certificate */}
         <div>
-          <h3 className="font-semibold mb-3">Language Certificate</h3>
+          <h3 className="font-semibold mb-3">{t.consultation.language.certificate}</h3>
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant={preferences.hasLanguageCertificate === true ? "default" : "outline"}
               onClick={() => onUpdate({ ...preferences, hasLanguageCertificate: true })}
               className="h-auto p-4"
             >
-              <CheckCircle className="h-5 w-5 mr-2" />I have certificates
+              <CheckCircle className="h-5 w-5 mr-2" />
+              {t.consultation.language.hasCertificate}
             </Button>
             <Button
               variant={preferences.hasLanguageCertificate === false ? "default" : "outline"}
@@ -399,7 +410,7 @@ const LanguageTimelineStep = ({
               className="h-auto p-4"
             >
               <AlertCircle className="h-5 w-5 mr-2" />
-              No certificates yet
+              {t.consultation.language.noCertificate}
             </Button>
           </div>
         </div>
@@ -408,7 +419,7 @@ const LanguageTimelineStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <Calendar className="h-5 w-5 mr-2 text-green-600" />
-            Preferred Start Times
+            {t.consultation.timeline.intakes}
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {intakePeriods.map((intake) => (
@@ -431,7 +442,7 @@ const LanguageTimelineStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <Clock className="h-5 w-5 mr-2 text-orange-600" />
-            Timeline Urgency
+            {t.consultation.timeline.urgency}
           </h3>
           <div className="space-y-2">
             {urgencyOptions.map((option) => (
@@ -460,7 +471,7 @@ const LanguageTimelineStep = ({
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t.common.back}
         </Button>
         <Button
           onClick={onNext}
@@ -471,7 +482,7 @@ const LanguageTimelineStep = ({
             !preferences.urgency
           }
         >
-          Next <ArrowRight className="ml-2 h-4 w-4" />
+          {t.common.next} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -485,49 +496,51 @@ const AdditionalPreferencesStep = ({
   onAnalyze,
   onBack,
   isAnalyzing,
+  t,
 }: {
   preferences: any
   onUpdate: (data: any) => void
   onAnalyze: () => void
   onBack: () => void
   isAnalyzing: boolean
+  t: any
 }) => {
   const specialRequirements = [
     {
       id: "scholarshipRequired",
-      label: "Scholarship Required",
-      description: "I need financial aid to study",
+      label: t.consultation.requirements.scholarship,
+      description: t.consultation.requirements.scholarshipDesc,
       icon: Award,
       color: "text-yellow-600",
     },
     {
       id: "religiousFacilities",
-      label: "Religious Facilities",
-      description: "Access to prayer rooms/religious services",
+      label: t.consultation.requirements.religious,
+      description: t.consultation.requirements.religiousDesc,
       icon: Building2,
       color: "text-purple-600",
     },
     {
       id: "halalFood",
-      label: "Halal Food Options",
-      description: "Halal dining options on campus",
+      label: t.consultation.requirements.halal,
+      description: t.consultation.requirements.halalDesc,
       icon: Utensils,
       color: "text-green-600",
     },
     {
       id: "workWhileStudying",
-      label: "Work While Studying",
-      description: "Ability to work part-time during studies",
+      label: t.consultation.requirements.work,
+      description: t.consultation.requirements.workDesc,
       icon: Users,
       color: "text-blue-600",
     },
   ]
 
   const gpaLevels = [
-    { id: "excellent", label: "Excellent (3.7-4.0)", description: "Top academic performance" },
-    { id: "good", label: "Good (3.0-3.6)", description: "Above average performance" },
-    { id: "intermediate", label: "Intermediate (2.5-2.9)", description: "Average performance" },
-    { id: "improving", label: "Improving (2.0-2.4)", description: "Working to improve grades" },
+    { id: "excellent", label: t.consultation.gpa.excellent, description: t.consultation.gpa.excellentDesc },
+    { id: "good", label: t.consultation.gpa.good, description: t.consultation.gpa.goodDesc },
+    { id: "intermediate", label: t.consultation.gpa.intermediate, description: t.consultation.gpa.intermediateDesc },
+    { id: "improving", label: t.consultation.gpa.improving, description: t.consultation.gpa.improvingDesc },
   ]
 
   const toggleRequirement = (reqId: string) => {
@@ -537,8 +550,8 @@ const AdditionalPreferencesStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Additional Preferences</h2>
-        <p className="text-muted-foreground">Help us personalize your destination recommendations</p>
+        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.preferences.title}</h2>
+        <p className="text-muted-foreground">{t.consultation.steps.preferences.description}</p>
       </div>
 
       <div className="space-y-6">
@@ -546,7 +559,7 @@ const AdditionalPreferencesStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
-            Current Academic Performance
+            {t.consultation.academic.performance}
           </h3>
           <div className="space-y-2">
             {gpaLevels.map((level) => (
@@ -574,7 +587,7 @@ const AdditionalPreferencesStep = ({
 
         {/* Special Requirements */}
         <div>
-          <h3 className="font-semibold mb-3">Special Requirements</h3>
+          <h3 className="font-semibold mb-3">{t.consultation.requirements.title}</h3>
           <div className="grid grid-cols-1 gap-3">
             {specialRequirements.map((req) => {
               const Icon = req.icon
@@ -608,18 +621,18 @@ const AdditionalPreferencesStep = ({
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t.common.back}
         </Button>
         <Button onClick={onAnalyze} disabled={!preferences.currentGPA || isAnalyzing} className="min-w-40">
           {isAnalyzing ? (
             <>
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Analyzing...
+              {t.consultation.analyzing}
             </>
           ) : (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              Find Destinations
+              {t.consultation.findDestinations}
             </>
           )}
         </Button>
@@ -634,11 +647,13 @@ const ResultsStep = ({
   onRestart,
   onBack,
   isLoading,
+  t,
 }: {
   matches: any[]
   onRestart: () => void
   onBack: () => void
   isLoading: boolean
+  t: any
 }) => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -653,8 +668,8 @@ const ResultsStep = ({
     return (
       <div className="text-center py-12">
         <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-        <h3 className="text-xl font-semibold mb-2">Analyzing Destinations...</h3>
-        <p className="text-muted-foreground">Finding the best matches for your preferences</p>
+        <h3 className="text-xl font-semibold mb-2">{t.consultation.analyzing}</h3>
+        <p className="text-muted-foreground">{t.consultation.analyzingDesc}</p>
       </div>
     )
   }
@@ -663,18 +678,16 @@ const ResultsStep = ({
     return (
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-orange-500" />
-        <h3 className="text-xl font-semibold mb-2">No Matches Found</h3>
-        <p className="text-muted-foreground mb-6">
-          We couldn't find destinations that match your current criteria. Try adjusting your preferences.
-        </p>
+        <h3 className="text-xl font-semibold mb-2">{t.consultation.noMatches}</h3>
+        <p className="text-muted-foreground mb-6">{t.consultation.noMatchesDesc}</p>
         <div className="flex gap-3 justify-center">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Adjust Preferences
+            {t.consultation.adjustPreferences}
           </Button>
           <Button onClick={onRestart}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            Start Over
+            {t.consultation.startOver}
           </Button>
         </div>
       </div>
@@ -684,9 +697,9 @@ const ResultsStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Your Destination Matches</h2>
+        <h2 className="text-2xl font-bold mb-2">{t.consultation.results.title}</h2>
         <p className="text-muted-foreground">
-          Found {matches.length} destination{matches.length !== 1 ? "s" : ""} that match your preferences
+          {t.consultation.results.found.replace("{count}", matches.length.toString())}
         </p>
       </div>
 
@@ -707,20 +720,20 @@ const ResultsStep = ({
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-bold">{destination.name}</h3>
                         <Badge variant="secondary" className="bg-primary/10 text-primary">
-                          {match.score}% Match
+                          {match.score}% {t.consultation.results.match}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-muted-foreground mb-3">
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
-                          <span>
-                            {destination.city}, {destination.country}
-                          </span>
+                          <span>{destination.country}</span>
                         </div>
-                        {destination.ranking && (
+                        {destination.success_rate && (
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4" />
-                            <span>Rank #{destination.ranking}</span>
+                            <span>
+                              {destination.success_rate}% {t.consultation.results.successRate}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -728,14 +741,14 @@ const ResultsStep = ({
                       <p className="text-muted-foreground mb-4 line-clamp-2">{destination.description}</p>
 
                       {/* Match Reasons */}
-                      {match.matchReasons && match.matchReasons.length > 0 && (
+                      {match.reasons && match.reasons.length > 0 && (
                         <div className="mb-3">
                           <h4 className="font-medium text-green-700 dark:text-green-300 mb-2 flex items-center">
                             <CheckCircle className="h-4 w-4 mr-1" />
-                            Why it matches:
+                            {t.consultation.results.whyMatches}
                           </h4>
                           <div className="flex flex-wrap gap-1">
-                            {match.matchReasons.slice(0, 3).map((reason: string, idx: number) => (
+                            {match.reasons.slice(0, 3).map((reason: string, idx: number) => (
                               <Badge
                                 key={idx}
                                 variant="outline"
@@ -748,21 +761,21 @@ const ResultsStep = ({
                         </div>
                       )}
 
-                      {/* Concerns */}
-                      {match.concerns && match.concerns.length > 0 && (
+                      {/* Warnings */}
+                      {match.warnings && match.warnings.length > 0 && (
                         <div className="mb-3">
                           <h4 className="font-medium text-orange-700 dark:text-orange-300 mb-2 flex items-center">
                             <AlertCircle className="h-4 w-4 mr-1" />
-                            Consider:
+                            {t.consultation.results.consider}
                           </h4>
                           <div className="flex flex-wrap gap-1">
-                            {match.concerns.slice(0, 2).map((concern: string, idx: number) => (
+                            {match.warnings.slice(0, 2).map((warning: string, idx: number) => (
                               <Badge
                                 key={idx}
                                 variant="outline"
                                 className="text-xs bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-300"
                               >
-                                {concern}
+                                {warning}
                               </Badge>
                             ))}
                           </div>
@@ -772,7 +785,7 @@ const ResultsStep = ({
 
                     <div className="text-right">
                       <div className="text-2xl font-bold text-primary mb-1">{match.score}%</div>
-                      <div className="text-sm text-muted-foreground">Match Score</div>
+                      <div className="text-sm text-muted-foreground">{t.consultation.results.matchScore}</div>
                     </div>
                   </div>
 
@@ -780,31 +793,27 @@ const ResultsStep = ({
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
                     <div className="text-center">
                       <div className="font-semibold text-blue-600">
-                        {destination.bachelor_tuition_min ? formatCurrency(destination.bachelor_tuition_min) : "N/A"}
+                        {match.estimatedCosts?.tuitionRange?.[0]
+                          ? formatCurrency(match.estimatedCosts.tuitionRange[0])
+                          : "N/A"}
                       </div>
-                      <div className="text-xs text-muted-foreground">Min Tuition</div>
+                      <div className="text-xs text-muted-foreground">{t.consultation.results.minTuition}</div>
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-green-600">
-                        {destination.living_cost_min ? formatCurrency(destination.living_cost_min) : "N/A"}
+                        {match.estimatedCosts?.livingCosts ? formatCurrency(match.estimatedCosts.livingCosts) : "N/A"}
                       </div>
-                      <div className="text-xs text-muted-foreground">Living Cost</div>
+                      <div className="text-xs text-muted-foreground">{t.consultation.results.livingCost}</div>
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-purple-600">
-                        {destination.program_languages
-                          ? JSON.parse(destination.program_languages).join(", ")
-                          : "Multiple"}
+                        {destination.language_requirements || "Multiple"}
                       </div>
-                      <div className="text-xs text-muted-foreground">Languages</div>
+                      <div className="text-xs text-muted-foreground">{t.consultation.results.languages}</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-semibold text-orange-600">
-                        {destination.available_programs
-                          ? JSON.parse(destination.available_programs).join(", ")
-                          : "Various"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Programs</div>
+                      <div className="font-semibold text-orange-600">{destination.processing_time || "4-6 weeks"}</div>
+                      <div className="text-xs text-muted-foreground">{t.consultation.results.processing}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -817,11 +826,11 @@ const ResultsStep = ({
       <div className="flex justify-between pt-6">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Adjust Preferences
+          {t.consultation.adjustPreferences}
         </Button>
         <Button onClick={onRestart}>
           <RefreshCw className="mr-2 h-4 w-4" />
-          Start New Search
+          {t.consultation.startOver}
         </Button>
       </div>
     </div>
@@ -856,6 +865,7 @@ export default function DestinationConsultationFlow() {
 
   const { analyzeDestinations, matches, isLoading } = useDestinationConsultation()
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   const totalSteps = 4
   const progress = (currentStep / totalSteps) * 100
@@ -863,7 +873,7 @@ export default function DestinationConsultationFlow() {
   const handleAnalyze = async () => {
     const fullPreferences = {
       studyLevel,
-      userLanguage: "en", // Default to English for now
+      userLanguage: "en" as const, // Default to English for now
       ...budgetData,
       ...preferences,
     }
@@ -877,8 +887,8 @@ export default function DestinationConsultationFlow() {
     } catch (error) {
       console.error("❌ Error during analysis:", error)
       toast({
-        title: "Analysis Failed",
-        description: "There was an error analyzing destinations. Please try again.",
+        title: t.consultation.error.title,
+        description: t.consultation.error.description,
         variant: "destructive",
       })
     }
@@ -917,18 +927,18 @@ export default function DestinationConsultationFlow() {
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-2xl flex items-center">
               <Target className="h-6 w-6 mr-2 text-primary" />
-              Destination Consultation
+              {t.consultation.title}
             </CardTitle>
             {currentStep <= totalSteps && (
               <Badge variant="outline">
-                Step {currentStep} of {totalSteps}
+                {t.consultation.step} {currentStep} {t.consultation.of} {totalSteps}
               </Badge>
             )}
           </div>
           {currentStep <= totalSteps && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Progress</span>
+                <span>{t.consultation.progress}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
@@ -946,7 +956,12 @@ export default function DestinationConsultationFlow() {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                <StudyLevelStep selectedLevel={studyLevel} onSelect={setStudyLevel} onNext={() => setCurrentStep(2)} />
+                <StudyLevelStep
+                  selectedLevel={studyLevel}
+                  onSelect={setStudyLevel}
+                  onNext={() => setCurrentStep(2)}
+                  t={t}
+                />
               </motion.div>
             )}
 
@@ -963,6 +978,7 @@ export default function DestinationConsultationFlow() {
                   onUpdate={setBudgetData}
                   onNext={() => setCurrentStep(3)}
                   onBack={() => setCurrentStep(1)}
+                  t={t}
                 />
               </motion.div>
             )}
@@ -980,6 +996,7 @@ export default function DestinationConsultationFlow() {
                   onUpdate={setPreferences}
                   onNext={() => setCurrentStep(4)}
                   onBack={() => setCurrentStep(2)}
+                  t={t}
                 />
               </motion.div>
             )}
@@ -998,6 +1015,7 @@ export default function DestinationConsultationFlow() {
                   onAnalyze={handleAnalyze}
                   onBack={() => setCurrentStep(3)}
                   isAnalyzing={isLoading}
+                  t={t}
                 />
               </motion.div>
             )}
@@ -1015,6 +1033,7 @@ export default function DestinationConsultationFlow() {
                   onRestart={handleRestart}
                   onBack={() => setCurrentStep(4)}
                   isLoading={isLoading}
+                  t={t}
                 />
               </motion.div>
             )}
@@ -1024,6 +1043,7 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
+
 
 
 
