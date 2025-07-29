@@ -1,85 +1,20 @@
-// Enhanced Destination Matching Service - Fixed and Fully Functional
-// Properly matches Supabase destination table structure
+import type { Tables } from "@/integrations/supabase/types"
 
-export interface DestinationData {
-  id: string
-  name: string
-  country: string
-  region?: string
-  fees: number
-  visa_requirements?: string
-  processing_time?: string
-  success_rate?: number
-  description?: string
-  image_url?: string
-  status?: string
-  procedure_type?: string
-
-  // Dynamic tuition fields by level
-  bachelor_tuition_min?: number
-  bachelor_tuition_max?: number
-  master_tuition_min?: number
-  master_tuition_max?: number
-  phd_tuition_min?: number
-  phd_tuition_max?: number
-
-  // Academic level requirements
-  bachelor_academic_level?: string
-  master_academic_level?: string
-  phd_academic_level?: string
-
-  // Requirements by level
-  bachelor_requirements?: string
-  master_requirements?: string
-  phd_requirements?: string
-
-  // Documents by level (JSONB arrays)
-  bachelor_documents?: string[]
-  master_documents?: string[]
-  phd_documents?: string[]
-
-  // Success rates
-  admission_success_rate?: number
-  visa_success_rate?: number
-
-  // Available programs (JSONB array)
-  available_programs?: string[]
-
-  // Services and fees
-  agency_services?: string[]
-  application_fee?: number
-  service_fee?: number
-  visa_processing_fee?: number
-
-  // Language and intake (JSONB arrays)
-  language_requirements?: string
-  intake_periods?: string[]
-
-  // Media
-  logo_url?: string
-  cover_image_url?: string
-
-  // Additional fields for compatibility
-  program_languages?: string[]
-  religious_facilities?: boolean
-  halal_food_availability?: boolean
-  living_cost_min?: number
-  living_cost_max?: number
-}
+export type DestinationData = Tables<"destinations">
 
 export interface ConsultationPreferences {
   studyLevel: string
-  userLanguage: "en" | "fr"
+  userLanguage: "en" | "fr" | "ar"
   tuitionBudgetRange: [number, number]
   livingCostsBudgetRange: [number, number]
   serviceFeesBudgetRange: [number, number]
   budgetFlexibility: "strict" | "flexible" | "very_flexible"
-  currentGPA: "low" | "intermediate" | "high"
+  currentGPA: "excellent" | "good" | "intermediate" | "improving"
   preferredLanguages: string[]
-  languageLevel: "beginner" | "intermediate" | "advanced" | "native"
+  languageLevel: "beginner" | "intermediate" | "advanced"
   hasLanguageCertificate: boolean
   intakePeriods: string[]
-  urgency: "asap" | "flexible" | "planning_ahead"
+  urgency: "urgent" | "moderate" | "flexible"
   workWhileStudying: boolean
   scholarshipRequired: boolean
   religiousFacilities: boolean
@@ -106,13 +41,41 @@ export interface MatchedDestination {
 
 export class DestinationMatchingService {
   /**
-   * Main matching function - Fixed to work with actual data
+   * Safely parse JSON field with fallback
+   */
+  private static parseJsonField(field: any): string[] {
+    if (!field) return []
+    if (Array.isArray(field)) return field
+    if (typeof field === "string") {
+      // Handle comma-separated values
+      if (field.includes(",") && !field.startsWith("[")) {
+        return field
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      }
+      try {
+        const parsed = JSON.parse(field)
+        return Array.isArray(parsed) ? parsed : [field]
+      } catch {
+        // If JSON parsing fails, treat as comma-separated string
+        return field
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      }
+    }
+    return []
+  }
+
+  /**
+   * Main matching function - Works with real Supabase data only
    */
   static findMatchingDestinations(
     destinations: DestinationData[],
     preferences: ConsultationPreferences,
   ): MatchedDestination[] {
-    console.log("🔍 Starting destination matching with enhanced logic...")
+    console.log("🔍 Starting destination matching with real data...")
     console.log("📊 Destinations received:", destinations?.length || 0)
     console.log("⚙️ User preferences:", preferences)
 
@@ -121,7 +84,7 @@ export class DestinationMatchingService {
       return []
     }
 
-    // Filter active destinations first
+    // Filter active destinations only
     const activeDestinations = destinations.filter((dest) => !dest.status || dest.status.toLowerCase() === "active")
 
     console.log("✅ Active destinations:", activeDestinations.length)
@@ -219,48 +182,57 @@ export class DestinationMatchingService {
     let score = 0
 
     const studyLevel = preferences.studyLevel.toLowerCase()
-    const availablePrograms = destination.available_programs || []
+    const availablePrograms = this.parseJsonField(destination.available_programs)
 
     console.log(`  📚 Checking study level: ${studyLevel}`)
     console.log(`  📋 Available programs:`, availablePrograms)
 
-    // If no programs specified, assume all levels available (common case)
-    if (!availablePrograms || availablePrograms.length === 0) {
-      score += 25
+    // Check if the destination has programs for the requested level
+    const hasLevelData = this.hasDataForLevel(destination, studyLevel)
+
+    if (hasLevelData) {
+      score += 30
       reasons.push(`${preferences.studyLevel} programs available`)
-      console.log(`  ✅ No specific programs listed - assuming available (+25)`)
+      console.log(`  ✅ Level data found (+30)`)
+    } else if (availablePrograms.length === 0) {
+      // If no specific programs listed, check if we have tuition data for the level
+      score += 20
+      reasons.push(`Programs likely available (contact for confirmation)`)
+      console.log(`  ⚠️ No specific programs listed (+20)`)
     } else {
-      // Check for exact or partial match
-      const hasDirectMatch = availablePrograms.some(
+      // Check for partial matches
+      const hasPartialMatch = availablePrograms.some(
         (program) => program.toLowerCase().includes(studyLevel) || studyLevel.includes(program.toLowerCase()),
       )
 
-      if (hasDirectMatch) {
-        score += 30
-        reasons.push(`${preferences.studyLevel} programs confirmed available`)
-        console.log(`  ✅ Direct program match found (+30)`)
+      if (hasPartialMatch) {
+        score += 25
+        reasons.push(`${preferences.studyLevel} programs may be available`)
+        console.log(`  ⚠️ Partial match found (+25)`)
       } else {
-        // Check for general university programs
-        const hasGeneralPrograms = availablePrograms.some(
-          (program) =>
-            program.toLowerCase().includes("university") ||
-            program.toLowerCase().includes("degree") ||
-            program.toLowerCase().includes("studies"),
-        )
-
-        if (hasGeneralPrograms) {
-          score += 20
-          reasons.push(`University programs available, ${preferences.studyLevel} likely offered`)
-          console.log(`  ⚠️ General programs found (+20)`)
-        } else {
-          score += 10
-          warnings.push(`${preferences.studyLevel} programs may not be available`)
-          console.log(`  ❌ No matching programs found (+10)`)
-        }
+        score += 10
+        warnings.push(`${preferences.studyLevel} programs may not be available`)
+        console.log(`  ❌ No matching programs found (+10)`)
       }
     }
 
     return { score, reasons, warnings }
+  }
+
+  /**
+   * Check if destination has data for specific study level
+   */
+  private static hasDataForLevel(destination: DestinationData, level: string): boolean {
+    switch (level) {
+      case "bachelor":
+        return !!(destination.bachelor_tuition_min !== null || destination.bachelor_requirements)
+      case "master":
+        return !!(destination.master_tuition_min !== null || destination.master_requirements)
+      case "phd":
+        return !!(destination.phd_tuition_min !== null || destination.phd_requirements)
+      default:
+        return false
+    }
   }
 
   /**
@@ -281,37 +253,34 @@ export class DestinationMatchingService {
     let tuitionMin = 0
     let tuitionMax = 0
 
-    if (studyLevel === "bachelor") {
-      tuitionMin = destination.bachelor_tuition_min || 0
-      tuitionMax = destination.bachelor_tuition_max || 0
-    } else if (studyLevel === "master") {
-      tuitionMin = destination.master_tuition_min || 0
-      tuitionMax = destination.master_tuition_max || 0
-    } else if (studyLevel === "phd") {
-      tuitionMin = destination.phd_tuition_min || 0
-      tuitionMax = destination.phd_tuition_max || 0
+    switch (studyLevel) {
+      case "bachelor":
+        tuitionMin = destination.bachelor_tuition_min || 0
+        tuitionMax = destination.bachelor_tuition_max || 0
+        break
+      case "master":
+        tuitionMin = destination.master_tuition_min || 0
+        tuitionMax = destination.master_tuition_max || 0
+        break
+      case "phd":
+        tuitionMin = destination.phd_tuition_min || 0
+        tuitionMax = destination.phd_tuition_max || 0
+        break
     }
 
-    // Fallback to general fees if no specific tuition data
+    // If no specific tuition data, use general fees as fallback
     if (tuitionMin === 0 && tuitionMax === 0 && destination.fees) {
       tuitionMin = Math.round(destination.fees * 0.8)
       tuitionMax = Math.round(destination.fees * 1.2)
       console.log(`  📊 Using general fees as fallback: €${tuitionMin}-€${tuitionMax}`)
     }
 
-    // Default reasonable ranges if still no data
+    // If still no data, skip budget scoring but don't penalize
     if (tuitionMin === 0 && tuitionMax === 0) {
-      if (studyLevel === "bachelor") {
-        tuitionMin = 2000
-        tuitionMax = 8000
-      } else if (studyLevel === "master") {
-        tuitionMin = 3000
-        tuitionMax = 10000
-      } else if (studyLevel === "phd") {
-        tuitionMin = 1000
-        tuitionMax = 6000
-      }
-      console.log(`  🔧 Using default ranges: €${tuitionMin}-€${tuitionMax}`)
+      score += 15 // Neutral score
+      warnings.push("Tuition information not available - contact for details")
+      console.log(`  ⚠️ No tuition data available (+15)`)
+      return { score, reasons, warnings }
     }
 
     console.log(`  💸 Destination tuition: €${tuitionMin}-€${tuitionMax}`)
@@ -384,10 +353,12 @@ export class DestinationMatchingService {
       }
 
       // Check for direct matches
+      const langLower = userLang.toLowerCase()
       if (
-        langReq.includes(userLang.toLowerCase()) ||
-        (userLang.toLowerCase() === "english" && (langReq.includes("eng") || langReq.includes("international"))) ||
-        (userLang.toLowerCase() === "french" && (langReq.includes("fr") || langReq.includes("français")))
+        langReq.includes(langLower) ||
+        (langLower === "english" && (langReq.includes("eng") || langReq.includes("international"))) ||
+        (langLower === "french" && (langReq.includes("fr") || langReq.includes("français"))) ||
+        (langLower === "german" && (langReq.includes("deutsch") || langReq.includes("german")))
       ) {
         hasMatch = true
         score += 20
@@ -405,7 +376,7 @@ export class DestinationMatchingService {
 
     // Bonus for language proficiency
     if (hasMatch) {
-      if (preferences.languageLevel === "native" || preferences.languageLevel === "advanced") {
+      if (preferences.languageLevel === "advanced") {
         score += 5
         reasons.push("Strong language skills advantage")
         console.log(`  🌟 Language proficiency bonus (+5)`)
@@ -430,7 +401,7 @@ export class DestinationMatchingService {
     let score = 10 // Base score
 
     const userIntakes = preferences.intakePeriods
-    const availableIntakes = destination.intake_periods || []
+    const availableIntakes = this.parseJsonField(destination.intake_periods)
 
     console.log(`  📅 Checking timeline compatibility`)
     console.log(`  👤 User preferred intakes:`, userIntakes)
@@ -503,23 +474,9 @@ export class DestinationMatchingService {
       }
     }
 
-    // Religious facilities
-    if (preferences.religiousFacilities && destination.religious_facilities) {
-      score += 3
-      reasons.push("Religious facilities available")
-      console.log(`  🕌 Religious facilities (+3)`)
-    }
-
-    // Halal food
-    if (preferences.halalFood && destination.halal_food_availability) {
-      score += 3
-      reasons.push("Halal food options available")
-      console.log(`  🥘 Halal food available (+3)`)
-    }
-
     // Success rate bonus
     const successRate = destination.admission_success_rate || destination.success_rate || 50
-    if (successRate >= 70) {
+    if (successRate && successRate >= 70) {
       score += 3
       reasons.push(`High success rate (${successRate}%)`)
       console.log(`  📈 High success rate (+3)`)
@@ -537,15 +494,19 @@ export class DestinationMatchingService {
     let tuitionMin = 0
     let tuitionMax = 0
 
-    if (studyLevel === "bachelor") {
-      tuitionMin = destination.bachelor_tuition_min || 0
-      tuitionMax = destination.bachelor_tuition_max || 0
-    } else if (studyLevel === "master") {
-      tuitionMin = destination.master_tuition_min || 0
-      tuitionMax = destination.master_tuition_max || 0
-    } else if (studyLevel === "phd") {
-      tuitionMin = destination.phd_tuition_min || 0
-      tuitionMax = destination.phd_tuition_max || 0
+    switch (studyLevel) {
+      case "bachelor":
+        tuitionMin = destination.bachelor_tuition_min || 0
+        tuitionMax = destination.bachelor_tuition_max || 0
+        break
+      case "master":
+        tuitionMin = destination.master_tuition_min || 0
+        tuitionMax = destination.master_tuition_max || 0
+        break
+      case "phd":
+        tuitionMin = destination.phd_tuition_min || 0
+        tuitionMax = destination.phd_tuition_max || 0
+        break
     }
 
     // Fallback to general fees
@@ -554,17 +515,21 @@ export class DestinationMatchingService {
       tuitionMax = Math.round(destination.fees * 1.2)
     }
 
-    // Default ranges if no data
+    // If still no data, use reasonable defaults based on level
     if (tuitionMin === 0 && tuitionMax === 0) {
-      if (studyLevel === "bachelor") {
-        tuitionMin = 2000
-        tuitionMax = 8000
-      } else if (studyLevel === "master") {
-        tuitionMin = 3000
-        tuitionMax = 10000
-      } else {
-        tuitionMin = 1000
-        tuitionMax = 6000
+      switch (studyLevel) {
+        case "bachelor":
+          tuitionMin = 2000
+          tuitionMax = 8000
+          break
+        case "master":
+          tuitionMin = 3000
+          tuitionMax = 10000
+          break
+        case "phd":
+          tuitionMin = 1000
+          tuitionMax = 6000
+          break
       }
     }
 
@@ -621,6 +586,7 @@ export class DestinationMatchingService {
     }
   }
 }
+
 
 
 
