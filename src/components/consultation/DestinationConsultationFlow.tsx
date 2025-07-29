@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
 import { useDestinationConsultation } from "@/hooks/useDestinationConsultation"
-import { useTranslation } from "@/i18n"
+import { useTranslation } from "react-i18next"
 import {
   ArrowLeft,
   ArrowRight,
@@ -50,22 +50,22 @@ const StudyLevelStep = ({
   const levels = [
     {
       id: "Bachelor",
-      title: t.consultation.levels.bachelor,
-      description: t.consultation.levels.bachelorDesc,
+      title: "Bachelor's Degree",
+      description: "Undergraduate programs (3-4 years)",
       icon: BookOpen,
       color: "bg-blue-500",
     },
     {
       id: "Master",
-      title: t.consultation.levels.master,
-      description: t.consultation.levels.masterDesc,
+      title: "Master's Degree",
+      description: "Graduate programs (1-2 years)",
       icon: GraduationCap,
       color: "bg-purple-500",
     },
     {
       id: "PhD",
-      title: t.consultation.levels.phd,
-      description: t.consultation.levels.phdDesc,
+      title: "PhD / Doctorate",
+      description: "Doctoral programs (3-5 years)",
       icon: Award,
       color: "bg-green-500",
     },
@@ -74,8 +74,8 @@ const StudyLevelStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.studyLevel.title}</h2>
-        <p className="text-muted-foreground">{t.consultation.steps.studyLevel.description}</p>
+        <h2 className="text-2xl font-bold mb-2">What level of study are you interested in?</h2>
+        <p className="text-muted-foreground">Choose the academic level that matches your goals</p>
       </div>
 
       <div className="grid gap-4">
@@ -110,7 +110,7 @@ const StudyLevelStep = ({
 
       <div className="flex justify-end">
         <Button onClick={onNext} disabled={!selectedLevel} className="min-w-32">
-          {t.common.next} <ArrowRight className="ml-2 h-4 w-4" />
+          Next <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -141,20 +141,16 @@ const BudgetStep = ({
   }
 
   const flexibilityOptions = [
-    { id: "strict", label: t.consultation.budget.strict, description: t.consultation.budget.strictDesc },
-    { id: "flexible", label: t.consultation.budget.flexible, description: t.consultation.budget.flexibleDesc },
-    {
-      id: "very_flexible",
-      label: t.consultation.budget.veryFlexible,
-      description: t.consultation.budget.veryFlexibleDesc,
-    },
+    { id: "strict", label: "Strict Budget", description: "Must stay within range" },
+    { id: "flexible", label: "Somewhat Flexible", description: "Can go 10-20% over" },
+    { id: "very_flexible", label: "Very Flexible", description: "Budget is just a guideline" },
   ]
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.budget.title}</h2>
-        <p className="text-muted-foreground">{t.consultation.steps.budget.description}</p>
+        <h2 className="text-2xl font-bold mb-2">What's your budget?</h2>
+        <p className="text-muted-foreground">Help us find destinations within your financial range</p>
       </div>
 
       <div className="space-y-8">
@@ -162,7 +158,7 @@ const BudgetStep = ({
         <div>
           <h3 className="font-semibold mb-4 flex items-center">
             <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
-            {t.consultation.budget.tuition}
+            Annual Tuition Budget
           </h3>
           <div className="space-y-4">
             <div className="px-4">
@@ -186,7 +182,7 @@ const BudgetStep = ({
         <div>
           <h3 className="font-semibold mb-4 flex items-center">
             <Home className="h-5 w-5 mr-2 text-green-600" />
-            {t.consultation.budget.living}
+            Monthly Living Costs Budget
           </h3>
           <div className="space-y-4">
             <div className="px-4">
@@ -210,7 +206,7 @@ const BudgetStep = ({
         <div>
           <h3 className="font-semibold mb-4 flex items-center">
             <Building2 className="h-5 w-5 mr-2 text-purple-600" />
-            {t.consultation.budget.services}
+            Service Fees Budget
           </h3>
           <div className="space-y-4">
             <div className="px-4">
@@ -232,7 +228,7 @@ const BudgetStep = ({
 
         {/* Budget Flexibility */}
         <div>
-          <h3 className="font-semibold mb-3">{t.consultation.budget.flexibility}</h3>
+          <h3 className="font-semibold mb-3">Budget Flexibility</h3>
           <div className="space-y-2">
             {flexibilityOptions.map((option) => (
               <Card
@@ -260,7 +256,7 @@ const BudgetStep = ({
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t.common.back}
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <Button
           onClick={onNext}
@@ -271,7 +267,7 @@ const BudgetStep = ({
             !budgetData.budgetFlexibility
           }
         >
-          {t.common.next} <ArrowRight className="ml-2 h-4 w-4" />
+          Next <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -293,35 +289,31 @@ const LanguageTimelineStep = ({
   t: any
 }) => {
   const languages = [
-    { id: "English", label: t.consultation.languages.english, flag: "🇬🇧" },
-    { id: "French", label: t.consultation.languages.french, flag: "🇫🇷" },
-    { id: "German", label: t.consultation.languages.german, flag: "🇩🇪" },
-    { id: "Spanish", label: t.consultation.languages.spanish, flag: "🇪🇸" },
-    { id: "Italian", label: t.consultation.languages.italian, flag: "🇮🇹" },
-    { id: "Dutch", label: t.consultation.languages.dutch, flag: "🇳🇱" },
+    { id: "English", label: "English", flag: "🇬🇧" },
+    { id: "French", label: "French", flag: "🇫🇷" },
+    { id: "German", label: "German", flag: "🇩🇪" },
+    { id: "Spanish", label: "Spanish", flag: "🇪🇸" },
+    { id: "Italian", label: "Italian", flag: "🇮🇹" },
+    { id: "Dutch", label: "Dutch", flag: "🇳🇱" },
   ]
 
   const languageLevels = [
-    { id: "beginner", label: t.consultation.levels.beginner, description: t.consultation.levels.beginnerDesc },
-    {
-      id: "intermediate",
-      label: t.consultation.levels.intermediate,
-      description: t.consultation.levels.intermediateDesc,
-    },
-    { id: "advanced", label: t.consultation.levels.advanced, description: t.consultation.levels.advancedDesc },
+    { id: "beginner", label: "Beginner (A1-A2)", description: "Basic understanding" },
+    { id: "intermediate", label: "Intermediate (B1-B2)", description: "Conversational level" },
+    { id: "advanced", label: "Advanced (C1-C2)", description: "Near-native fluency" },
   ]
 
   const intakePeriods = [
-    { id: "September", label: t.consultation.intakes.september, description: t.consultation.intakes.septemberDesc },
-    { id: "January", label: t.consultation.intakes.january, description: t.consultation.intakes.januaryDesc },
-    { id: "May", label: t.consultation.intakes.may, description: t.consultation.intakes.mayDesc },
-    { id: "Any", label: t.consultation.intakes.any, description: t.consultation.intakes.anyDesc },
+    { id: "September", label: "September", description: "Fall semester" },
+    { id: "January", label: "January", description: "Spring semester" },
+    { id: "May", label: "May", description: "Summer semester" },
+    { id: "Any", label: "Any Time", description: "Flexible start date" },
   ]
 
   const urgencyOptions = [
-    { id: "urgent", label: t.consultation.urgency.urgent, description: t.consultation.urgency.urgentDesc },
-    { id: "moderate", label: t.consultation.urgency.moderate, description: t.consultation.urgency.moderateDesc },
-    { id: "flexible", label: t.consultation.urgency.flexible, description: t.consultation.urgency.flexibleDesc },
+    { id: "urgent", label: "Urgent", description: "Need to start within 6 months" },
+    { id: "moderate", label: "Moderate", description: "Planning for next academic year" },
+    { id: "flexible", label: "Flexible", description: "No specific timeline" },
   ]
 
   const toggleLanguage = (langId: string) => {
@@ -339,8 +331,8 @@ const LanguageTimelineStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.language.title}</h2>
-        <p className="text-muted-foreground">{t.consultation.steps.language.description}</p>
+        <h2 className="text-2xl font-bold mb-2">Language & Timeline Preferences</h2>
+        <p className="text-muted-foreground">Tell us about your language skills and timeline</p>
       </div>
 
       <div className="space-y-6">
@@ -348,7 +340,7 @@ const LanguageTimelineStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <Languages className="h-5 w-5 mr-2 text-blue-600" />
-            {t.consultation.language.preferred}
+            Preferred Study Languages
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {languages.map((lang) => (
@@ -367,7 +359,7 @@ const LanguageTimelineStep = ({
 
         {/* Language Level */}
         <div>
-          <h3 className="font-semibold mb-3">{t.consultation.language.level}</h3>
+          <h3 className="font-semibold mb-3">Your Language Level</h3>
           <div className="space-y-2">
             {languageLevels.map((level) => (
               <Card
@@ -394,15 +386,14 @@ const LanguageTimelineStep = ({
 
         {/* Language Certificate */}
         <div>
-          <h3 className="font-semibold mb-3">{t.consultation.language.certificate}</h3>
+          <h3 className="font-semibold mb-3">Language Certificate</h3>
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant={preferences.hasLanguageCertificate === true ? "default" : "outline"}
               onClick={() => onUpdate({ ...preferences, hasLanguageCertificate: true })}
               className="h-auto p-4"
             >
-              <CheckCircle className="h-5 w-5 mr-2" />
-              {t.consultation.language.hasCertificate}
+              <CheckCircle className="h-5 w-5 mr-2" />I have certificates
             </Button>
             <Button
               variant={preferences.hasLanguageCertificate === false ? "default" : "outline"}
@@ -410,7 +401,7 @@ const LanguageTimelineStep = ({
               className="h-auto p-4"
             >
               <AlertCircle className="h-5 w-5 mr-2" />
-              {t.consultation.language.noCertificate}
+              No certificates yet
             </Button>
           </div>
         </div>
@@ -419,7 +410,7 @@ const LanguageTimelineStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <Calendar className="h-5 w-5 mr-2 text-green-600" />
-            {t.consultation.timeline.intakes}
+            Preferred Start Times
           </h3>
           <div className="grid grid-cols-2 gap-3">
             {intakePeriods.map((intake) => (
@@ -442,7 +433,7 @@ const LanguageTimelineStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <Clock className="h-5 w-5 mr-2 text-orange-600" />
-            {t.consultation.timeline.urgency}
+            Timeline Urgency
           </h3>
           <div className="space-y-2">
             {urgencyOptions.map((option) => (
@@ -471,7 +462,7 @@ const LanguageTimelineStep = ({
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t.common.back}
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <Button
           onClick={onNext}
@@ -482,7 +473,7 @@ const LanguageTimelineStep = ({
             !preferences.urgency
           }
         >
-          {t.common.next} <ArrowRight className="ml-2 h-4 w-4" />
+          Next <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
@@ -508,39 +499,39 @@ const AdditionalPreferencesStep = ({
   const specialRequirements = [
     {
       id: "scholarshipRequired",
-      label: t.consultation.requirements.scholarship,
-      description: t.consultation.requirements.scholarshipDesc,
+      label: "Scholarship Required",
+      description: "I need financial aid to study",
       icon: Award,
       color: "text-yellow-600",
     },
     {
       id: "religiousFacilities",
-      label: t.consultation.requirements.religious,
-      description: t.consultation.requirements.religiousDesc,
+      label: "Religious Facilities",
+      description: "Access to prayer rooms/religious services",
       icon: Building2,
       color: "text-purple-600",
     },
     {
       id: "halalFood",
-      label: t.consultation.requirements.halal,
-      description: t.consultation.requirements.halalDesc,
+      label: "Halal Food Options",
+      description: "Halal dining options on campus",
       icon: Utensils,
       color: "text-green-600",
     },
     {
       id: "workWhileStudying",
-      label: t.consultation.requirements.work,
-      description: t.consultation.requirements.workDesc,
+      label: "Work While Studying",
+      description: "Ability to work part-time during studies",
       icon: Users,
       color: "text-blue-600",
     },
   ]
 
   const gpaLevels = [
-    { id: "excellent", label: t.consultation.gpa.excellent, description: t.consultation.gpa.excellentDesc },
-    { id: "good", label: t.consultation.gpa.good, description: t.consultation.gpa.goodDesc },
-    { id: "intermediate", label: t.consultation.gpa.intermediate, description: t.consultation.gpa.intermediateDesc },
-    { id: "improving", label: t.consultation.gpa.improving, description: t.consultation.gpa.improvingDesc },
+    { id: "excellent", label: "Excellent (3.7-4.0)", description: "Top academic performance" },
+    { id: "good", label: "Good (3.0-3.6)", description: "Above average performance" },
+    { id: "intermediate", label: "Intermediate (2.5-2.9)", description: "Average performance" },
+    { id: "improving", label: "Improving (2.0-2.4)", description: "Working to improve grades" },
   ]
 
   const toggleRequirement = (reqId: string) => {
@@ -550,8 +541,8 @@ const AdditionalPreferencesStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">{t.consultation.steps.preferences.title}</h2>
-        <p className="text-muted-foreground">{t.consultation.steps.preferences.description}</p>
+        <h2 className="text-2xl font-bold mb-2">Additional Preferences</h2>
+        <p className="text-muted-foreground">Help us personalize your destination recommendations</p>
       </div>
 
       <div className="space-y-6">
@@ -559,7 +550,7 @@ const AdditionalPreferencesStep = ({
         <div>
           <h3 className="font-semibold mb-3 flex items-center">
             <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
-            {t.consultation.academic.performance}
+            Current Academic Performance
           </h3>
           <div className="space-y-2">
             {gpaLevels.map((level) => (
@@ -587,7 +578,7 @@ const AdditionalPreferencesStep = ({
 
         {/* Special Requirements */}
         <div>
-          <h3 className="font-semibold mb-3">{t.consultation.requirements.title}</h3>
+          <h3 className="font-semibold mb-3">Special Requirements</h3>
           <div className="grid grid-cols-1 gap-3">
             {specialRequirements.map((req) => {
               const Icon = req.icon
@@ -621,18 +612,18 @@ const AdditionalPreferencesStep = ({
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t.common.back}
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <Button onClick={onAnalyze} disabled={!preferences.currentGPA || isAnalyzing} className="min-w-40">
           {isAnalyzing ? (
             <>
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              {t.consultation.analyzing}
+              Analyzing...
             </>
           ) : (
             <>
               <Sparkles className="mr-2 h-4 w-4" />
-              {t.consultation.findDestinations}
+              Find Destinations
             </>
           )}
         </Button>
@@ -668,8 +659,8 @@ const ResultsStep = ({
     return (
       <div className="text-center py-12">
         <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-        <h3 className="text-xl font-semibold mb-2">{t.consultation.analyzing}</h3>
-        <p className="text-muted-foreground">{t.consultation.analyzingDesc}</p>
+        <h3 className="text-xl font-semibold mb-2">Analyzing Destinations...</h3>
+        <p className="text-muted-foreground">Finding the best matches for your preferences</p>
       </div>
     )
   }
@@ -678,16 +669,18 @@ const ResultsStep = ({
     return (
       <div className="text-center py-12">
         <AlertCircle className="h-12 w-12 mx-auto mb-4 text-orange-500" />
-        <h3 className="text-xl font-semibold mb-2">{t.consultation.noMatches}</h3>
-        <p className="text-muted-foreground mb-6">{t.consultation.noMatchesDesc}</p>
+        <h3 className="text-xl font-semibold mb-2">No Matches Found</h3>
+        <p className="text-muted-foreground mb-6">
+          We couldn't find destinations that match your current criteria. Try adjusting your preferences.
+        </p>
         <div className="flex gap-3 justify-center">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            {t.consultation.adjustPreferences}
+            Adjust Preferences
           </Button>
           <Button onClick={onRestart}>
             <RefreshCw className="mr-2 h-4 w-4" />
-            {t.consultation.startOver}
+            Start Over
           </Button>
         </div>
       </div>
@@ -697,9 +690,9 @@ const ResultsStep = ({
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">{t.consultation.results.title}</h2>
+        <h2 className="text-2xl font-bold mb-2">Your Destination Matches</h2>
         <p className="text-muted-foreground">
-          {t.consultation.results.found.replace("{count}", matches.length.toString())}
+          Found {matches.length} destination{matches.length !== 1 ? "s" : ""} that match your preferences
         </p>
       </div>
 
@@ -720,7 +713,7 @@ const ResultsStep = ({
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-bold">{destination.name}</h3>
                         <Badge variant="secondary" className="bg-primary/10 text-primary">
-                          {match.score}% {t.consultation.results.match}
+                          {match.score}% Match
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-muted-foreground mb-3">
@@ -731,9 +724,7 @@ const ResultsStep = ({
                         {destination.success_rate && (
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4" />
-                            <span>
-                              {destination.success_rate}% {t.consultation.results.successRate}
-                            </span>
+                            <span>{destination.success_rate}% Success Rate</span>
                           </div>
                         )}
                       </div>
@@ -745,7 +736,7 @@ const ResultsStep = ({
                         <div className="mb-3">
                           <h4 className="font-medium text-green-700 dark:text-green-300 mb-2 flex items-center">
                             <CheckCircle className="h-4 w-4 mr-1" />
-                            {t.consultation.results.whyMatches}
+                            Why it matches:
                           </h4>
                           <div className="flex flex-wrap gap-1">
                             {match.reasons.slice(0, 3).map((reason: string, idx: number) => (
@@ -766,7 +757,7 @@ const ResultsStep = ({
                         <div className="mb-3">
                           <h4 className="font-medium text-orange-700 dark:text-orange-300 mb-2 flex items-center">
                             <AlertCircle className="h-4 w-4 mr-1" />
-                            {t.consultation.results.consider}
+                            Consider:
                           </h4>
                           <div className="flex flex-wrap gap-1">
                             {match.warnings.slice(0, 2).map((warning: string, idx: number) => (
@@ -785,7 +776,7 @@ const ResultsStep = ({
 
                     <div className="text-right">
                       <div className="text-2xl font-bold text-primary mb-1">{match.score}%</div>
-                      <div className="text-sm text-muted-foreground">{t.consultation.results.matchScore}</div>
+                      <div className="text-sm text-muted-foreground">Match Score</div>
                     </div>
                   </div>
 
@@ -797,23 +788,23 @@ const ResultsStep = ({
                           ? formatCurrency(match.estimatedCosts.tuitionRange[0])
                           : "N/A"}
                       </div>
-                      <div className="text-xs text-muted-foreground">{t.consultation.results.minTuition}</div>
+                      <div className="text-xs text-muted-foreground">Min Tuition</div>
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-green-600">
                         {match.estimatedCosts?.livingCosts ? formatCurrency(match.estimatedCosts.livingCosts) : "N/A"}
                       </div>
-                      <div className="text-xs text-muted-foreground">{t.consultation.results.livingCost}</div>
+                      <div className="text-xs text-muted-foreground">Living Cost</div>
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-purple-600">
                         {destination.language_requirements || "Multiple"}
                       </div>
-                      <div className="text-xs text-muted-foreground">{t.consultation.results.languages}</div>
+                      <div className="text-xs text-muted-foreground">Languages</div>
                     </div>
                     <div className="text-center">
                       <div className="font-semibold text-orange-600">{destination.processing_time || "4-6 weeks"}</div>
-                      <div className="text-xs text-muted-foreground">{t.consultation.results.processing}</div>
+                      <div className="text-xs text-muted-foreground">Processing</div>
                     </div>
                   </div>
                 </CardContent>
@@ -826,11 +817,11 @@ const ResultsStep = ({
       <div className="flex justify-between pt-6">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {t.consultation.adjustPreferences}
+          Adjust Preferences
         </Button>
         <Button onClick={onRestart}>
           <RefreshCw className="mr-2 h-4 w-4" />
-          {t.consultation.startOver}
+          Start New Search
         </Button>
       </div>
     </div>
@@ -873,7 +864,7 @@ export default function DestinationConsultationFlow() {
   const handleAnalyze = async () => {
     const fullPreferences = {
       studyLevel,
-      userLanguage: "en" as const, // Default to English for now
+      userLanguage: "en" as const,
       ...budgetData,
       ...preferences,
     }
@@ -883,12 +874,12 @@ export default function DestinationConsultationFlow() {
 
     try {
       await analyzeDestinations(fullPreferences)
-      setCurrentStep(5) // Move to results step
+      setCurrentStep(5)
     } catch (error) {
       console.error("❌ Error during analysis:", error)
       toast({
-        title: t.consultation.error.title,
-        description: t.consultation.error.description,
+        title: "Analysis Failed",
+        description: "There was an error analyzing destinations. Please try again.",
         variant: "destructive",
       })
     }
@@ -927,18 +918,18 @@ export default function DestinationConsultationFlow() {
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-2xl flex items-center">
               <Target className="h-6 w-6 mr-2 text-primary" />
-              {t.consultation.title}
+              Destination Consultation
             </CardTitle>
             {currentStep <= totalSteps && (
               <Badge variant="outline">
-                {t.consultation.step} {currentStep} {t.consultation.of} {totalSteps}
+                Step {currentStep} of {totalSteps}
               </Badge>
             )}
           </div>
           {currentStep <= totalSteps && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{t.consultation.progress}</span>
+                <span>Progress</span>
                 <span>{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
@@ -1043,6 +1034,7 @@ export default function DestinationConsultationFlow() {
     </div>
   )
 }
+
 
 
 
