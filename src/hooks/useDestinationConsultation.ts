@@ -8,8 +8,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useDestinations } from "@/hooks/useDestinations"
 import {
   DestinationMatchingService,
-  type ConsultationPreferences,
-  type MatchedDestination,
+  type DestinationPreferences,
+  type DestinationMatch,
 } from "@/services/DestinationMatchingService"
 
 export interface ConsultationStep {
@@ -19,20 +19,20 @@ export interface ConsultationStep {
   completed: boolean
 }
 
-export const useDestinationConsultation = () => {
+export function useDestinationConsultation() {
   const { user } = useAuth()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const { data: destinations, isLoading: destinationsLoading, error: destinationsError } = useDestinations()
 
-  const [consultationData, setConsultationData] = useState<Partial<ConsultationPreferences>>({})
+  const [consultationData, setConsultationData] = useState<Partial<DestinationPreferences>>({})
   const [currentStep, setCurrentStep] = useState(1)
-  const [matchedDestinations, setMatchedDestinations] = useState<MatchedDestination[]>([])
+  const [matches, setMatches] = useState<DestinationMatch[]>([])
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false)
-  const [analysisError, setAnalysisError] = useState<Error | null>(null)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
 
   // Find matching destinations - Only works with real data
-  const findMatches = async (preferences: ConsultationPreferences): Promise<MatchedDestination[]> => {
+  const findMatches = async (preferences: DestinationPreferences): Promise<DestinationMatch[]> => {
     console.log("🔍 Starting destination matching process...")
     console.log("📊 Available destinations:", destinations?.destinations?.length || 0)
     console.log("⚙️ User preferences:", preferences)
@@ -42,18 +42,21 @@ export const useDestinationConsultation = () => {
       throw new Error("No destinations available. Please try again later.")
     }
 
-    const matches = DestinationMatchingService.findMatchingDestinations(destinations.destinations, preferences)
+    const matchedDestinations = DestinationMatchingService.findMatchingDestinations(
+      destinations.destinations,
+      preferences,
+    )
 
-    console.log("✅ Matching completed. Found:", matches.length, "matches")
-    setMatchedDestinations(matches)
-    return matches
+    console.log("✅ Matching completed. Found:", matchedDestinations.length, "matches")
+    setMatches(matchedDestinations)
+    return matchedDestinations
   }
 
   // Save consultation result
   const saveConsultationMutation = useMutation({
     mutationFn: async (data: {
-      preferences: ConsultationPreferences
-      matches: MatchedDestination[]
+      preferences: DestinationPreferences
+      matches: DestinationMatch[]
     }) => {
       if (!user) {
         console.log("👤 User not authenticated, skipping save")
@@ -131,7 +134,7 @@ export const useDestinationConsultation = () => {
     enabled: !!user,
   })
 
-  const updateConsultationData = (updates: Partial<ConsultationPreferences>) => {
+  const updateConsultationData = (updates: Partial<DestinationPreferences>) => {
     setConsultationData((prev) => ({ ...prev, ...updates }))
   }
 
@@ -146,7 +149,7 @@ export const useDestinationConsultation = () => {
   const resetConsultation = () => {
     setConsultationData({})
     setCurrentStep(1)
-    setMatchedDestinations([])
+    setMatches([])
     setIsLoadingAnalysis(false)
     setAnalysisError(null)
   }
@@ -179,65 +182,52 @@ export const useDestinationConsultation = () => {
       throw new Error("Please complete all required fields")
     }
 
-    const fullPreferences = consultationData as ConsultationPreferences
-    const matches = await findMatches(fullPreferences)
+    const fullPreferences = consultationData as DestinationPreferences
+    const matchedDestinations = await findMatches(fullPreferences)
 
     if (user) {
       await saveConsultationMutation.mutateAsync({
         preferences: fullPreferences,
-        matches,
+        matches: matchedDestinations,
       })
     }
 
-    return matches
+    return matchedDestinations
   }
 
-  const analyzeDestinations = async (preferences: ConsultationPreferences) => {
-    console.log("🔄 Starting destination analysis...")
+  const analyzeDestinations = async (preferences: DestinationPreferences) => {
     setIsLoadingAnalysis(true)
     setAnalysisError(null)
 
     try {
-      // Wait for destinations to load if they're still loading
-      if (destinationsLoading) {
-        console.log("⏳ Waiting for destinations to load...")
-        return
-      }
+      console.log("🚀 Starting destination analysis with preferences:", preferences)
 
-      if (destinationsError) {
-        console.error("❌ Destinations loading error:", destinationsError)
-        throw destinationsError
-      }
+      const results = await DestinationMatchingService.findMatches(preferences)
 
-      console.log("🏛️ Available destinations:", destinations?.destinations?.length || 0)
+      console.log("✅ Analysis complete, found matches:", results.length)
+      setMatches(results)
 
-      if (!destinations || !destinations.destinations || destinations.destinations.length === 0) {
-        console.log("❌ No destinations data available")
-        setMatchedDestinations([])
-        throw new Error("No destinations data available. Please try again later.")
-      }
-
-      // Analyze destinations using the matching service
-      const results = DestinationMatchingService.findMatchingDestinations(destinations.destinations, preferences)
-
-      console.log("📊 Found matches:", results.length)
-      setMatchedDestinations(results)
+      return results
     } catch (err) {
       console.error("❌ Error in destination analysis:", err)
-      setAnalysisError(err as Error)
-      setMatchedDestinations([])
+      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred"
+      setAnalysisError(errorMessage)
       throw err
     } finally {
       setIsLoadingAnalysis(false)
     }
   }
 
+  const clearResults = () => {
+    setMatches([])
+    setAnalysisError(null)
+  }
+
   return {
     // State
     consultationData,
     currentStep,
-    matchedDestinations,
-    matches: matchedDestinations, // Alias for compatibility
+    matches,
 
     // Loading states
     isLoading: destinationsLoading || saveConsultationMutation.isPending || isLoadingAnalysis,
@@ -257,11 +247,13 @@ export const useDestinationConsultation = () => {
     completeConsultation,
     isStepValid,
     analyzeDestinations,
+    clearResults,
 
     // Mutations
     saveConsultation: saveConsultationMutation.mutate,
     isSaving: saveConsultationMutation.isPending,
   }
 }
+
 
 
