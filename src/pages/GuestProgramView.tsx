@@ -9,36 +9,34 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { usePrograms } from "@/hooks/usePrograms"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/integrations/supabase/client"
 import {
   ArrowLeft,
   MapPin,
   Clock,
-  GraduationCap,
   BookOpen,
   Share2,
   Heart,
-  Calendar,
   Award,
   Globe,
   CheckCircle,
   AlertCircle,
-  Info,
-  Euro,
   Building2,
-  FileText,
-  ExternalLink,
-  Download,
   Star,
   ChevronLeft,
   ChevronRight,
   X,
   Loader2,
-  Phone,
-  Mail,
-  MapPinIcon,
+  Users,
+  CircleDollarSign,
+  Languages,
+  Check,
+  FileCheck,
+  CalendarDays,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +67,7 @@ interface ProgramData {
   requirements?: string[] | string
   intake_periods?: string[] | string
   ranking?: number
+  success_rate?: number
   image_url?: string
   status?: string
   application_fee?: number
@@ -79,20 +78,37 @@ interface ProgramData {
   language_test_score?: string
   created_at?: string
   updated_at?: string
+  academic_requirements?: string
+  language_test_exemptions?: string
+  housing_availability?: string
+  housing_cost_min?: number
+  housing_cost_max?: number
+  north_african_community_size?: string
+  visa_fee?: number
+  scholarship_details?: string
+  scholarship_amount?: number
+  scholarship_deadline?: string
+  application_process?: string
+  available_places?: number
+  total_places?: number
+  internship_opportunities?: boolean
+  exchange_opportunities?: boolean
 }
 
 export default function GuestProgramView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { fetchProgramById, loading, error } = usePrograms()
   const isMobile = useIsMobile()
   const { toast } = useToast()
 
   const [program, setProgram] = useState<ProgramData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isFavorited, setIsFavorited] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showImageModal, setShowImageModal] = useState(false)
-  const [activeTab, setActiveTab] = useState("overview")
+  const [showDialog, setShowDialog] = useState(false)
+  const [dialogContent, setDialogContent] = useState("requirements")
   const [isSharing, setIsSharing] = useState(false)
 
   // Mock gallery images - in real app, these would come from the program data
@@ -129,16 +145,31 @@ export default function GuestProgramView() {
 
   useEffect(() => {
     if (id) {
-      loadProgram(id)
+      fetchProgramDetails()
     }
   }, [id])
 
-  const loadProgram = async (programId: string) => {
+  const fetchProgramDetails = async () => {
+    if (!id) return
+
+    setLoading(true)
+    setError(null)
+
     try {
-      const programData = await fetchProgramById(programId)
-      setProgram(programData)
+      const { data, error: fetchError } = await supabase.from("programs").select("*").eq("id", id).single()
+
+      if (fetchError) {
+        throw fetchError
+      }
+
+      if (data) {
+        setProgram(data)
+      }
     } catch (err) {
-      console.error("Error loading program:", err)
+      console.error("Error fetching program details:", err)
+      setError("Failed to load program details. Please try again.")
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -226,6 +257,11 @@ export default function GuestProgramView() {
     }
   }
 
+  const openDialog = (content: string) => {
+    setDialogContent(content)
+    setShowDialog(true)
+  }
+
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % mockGalleryImages.length)
   }
@@ -238,20 +274,22 @@ export default function GuestProgramView() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <div className="animate-pulse space-y-6">
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-10 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
                 <div className="flex-1 h-8 bg-gray-200 dark:bg-gray-700 rounded"></div>
               </div>
               <div className="h-64 sm:h-80 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-              <div className="space-y-4">
-                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-2 space-y-4">
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
                   <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+                <div className="space-y-4">
                   <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
                 </div>
               </div>
             </div>
@@ -265,7 +303,7 @@ export default function GuestProgramView() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <Button variant="ghost" onClick={handleBack} className="mb-6">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Programs
@@ -288,20 +326,14 @@ export default function GuestProgramView() {
   const programLevel = program.study_level || program.level || "Not specified"
   const programLanguage = program.program_language || program.language || "Not specified"
   const programLocation = program.location || `${program.city || "Unknown"}, ${program.country}`
+  const programImage = program.image_url || "/placeholder.svg?height=400&width=800&text=University+Campus"
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]" />
-
-      {/* Floating Orbs */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 dark:bg-blue-600/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute top-40 right-10 w-96 h-96 bg-purple-400/20 dark:bg-purple-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-
-      {/* Header */}
-      <div className="relative z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200/50 dark:border-slate-700/50 sticky top-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="container mx-auto px-4 py-6 sm:py-8 max-w-6xl">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <Button variant="ghost" onClick={handleBack} className="flex items-center gap-2 self-start">
               <ArrowLeft className="h-4 w-4" />
               Back to Programs
@@ -332,580 +364,694 @@ export default function GuestProgramView() {
               </Button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-6 sm:space-y-8"
-        >
-          {/* Hero Section */}
-          <Card className="overflow-hidden border-0 shadow-xl">
-            {/* Image Gallery */}
-            <div className="relative h-48 sm:h-64 lg:h-80 overflow-hidden bg-gradient-to-br from-blue-600 to-purple-600">
-              {program.image_url ? (
-                <img
-                  src={program.image_url || "/placeholder.svg"}
-                  alt={program.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                  <GraduationCap className="w-16 h-16 sm:w-20 sm:h-20 text-white/60" />
-                </div>
-              )}
-
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-              {/* Top Badges */}
-              <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="bg-white/90 text-gray-800 backdrop-blur-sm border-0">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    {program.country}
-                  </Badge>
+          {/* Hero Image */}
+          <div className="relative h-48 sm:h-64 lg:h-80 w-full rounded-lg overflow-hidden mb-6">
+            <img src={programImage || "/placeholder.svg"} alt={program.name} className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4 sm:p-6">
+              <div className="text-white w-full">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <Badge className="bg-primary text-primary-foreground">{programLevel}</Badge>
                   {program.ranking && (
-                    <Badge className="bg-yellow-500/90 text-white backdrop-blur-sm border-0">
+                    <Badge className="bg-yellow-500 text-white">
                       <Star className="w-3 h-3 mr-1 fill-current" />#{program.ranking}
                     </Badge>
                   )}
+                  {program.scholarship_available && (
+                    <Badge className="bg-green-500 text-white">
+                      <Award className="w-3 h-3 mr-1" />
+                      Scholarship
+                    </Badge>
+                  )}
                 </div>
-                {program.scholarship_available && (
-                  <Badge className="bg-green-500/90 text-white backdrop-blur-sm border-0">
-                    <Award className="w-3 h-3 mr-1" />
-                    Scholarship
-                  </Badge>
-                )}
-              </div>
-
-              {/* Program Title */}
-              <div className="absolute bottom-4 left-4 right-4">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-2 drop-shadow-lg">
-                  {program.name}
-                </h1>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white/90">
-                  <div className="flex items-center gap-1">
-                    <Building2 className="h-4 w-4" />
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">{program.name}</h1>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <div className="flex items-center">
+                    <Building2 className="h-4 w-4 mr-1" />
                     <span className="text-sm sm:text-base">{program.university}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <MapPinIcon className="h-4 w-4" />
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1" />
                     <span className="text-sm sm:text-base">{programLocation}</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Quick Info Bar */}
-            <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-              <div className="p-4 sm:p-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-lg sm:text-xl font-bold text-green-600">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+          {/* Main Content */}
+          <div className="md:col-span-2">
+            <Card className="mb-6">
+              <CardHeader className="border-b">
+                <div className="flex flex-wrap justify-between gap-2 items-start">
+                  <div>
+                    <CardTitle className="text-xl sm:text-2xl">{program.name}</CardTitle>
+                    <div className="flex items-center mt-1 text-muted-foreground">
+                      <Building2 className="h-4 w-4 mr-1" />
+                      {program.university}
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                  <div className="flex items-center">
+                    <MapPin className="h-5 w-5 text-muted-foreground mr-2" />
+                    <span className="text-sm">{programLocation}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Languages className="h-5 w-5 text-muted-foreground mr-2" />
+                    <span className="text-sm">{programLanguage}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-5 w-5 text-muted-foreground mr-2" />
+                    <span className="text-sm">{program.duration || `${program.duration_months || "N/A"} months`}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <CircleDollarSign className="h-5 w-5 text-muted-foreground mr-2" />
+                    <span className="text-sm">
                       {tuitionMax > tuitionFee
                         ? `${formatCurrency(tuitionFee)} - ${formatCurrency(tuitionMax)}`
                         : formatCurrency(tuitionFee)}
-                    </div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Annual Tuition</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg sm:text-xl font-bold text-blue-600">{programLevel}</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Study Level</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg sm:text-xl font-bold text-purple-600">
-                      {program.duration || `${program.duration_months || "N/A"} months`}
-                    </div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Duration</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg sm:text-xl font-bold text-orange-600">{programLanguage}</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Language</div>
+                    </span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </Card>
 
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-            {/* Left Column - Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4 h-auto p-1">
-                  <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">
-                    Overview
-                  </TabsTrigger>
-                  <TabsTrigger value="requirements" className="text-xs sm:text-sm py-2">
-                    Requirements
-                  </TabsTrigger>
-                  <TabsTrigger value="application" className="text-xs sm:text-sm py-2">
-                    Application
-                  </TabsTrigger>
-                  <TabsTrigger value="details" className="text-xs sm:text-sm py-2">
-                    Details
-                  </TabsTrigger>
-                </TabsList>
+                {/* Program description */}
+                <div className="mb-6">
+                  <h3 className="font-semibold text-lg mb-2">Program Description</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {program.description ||
+                      "Detailed program description will be available soon. Contact the university for more information about this program."}
+                  </p>
+                </div>
 
-                <div className="mt-6">
-                  <TabsContent value="overview" className="space-y-6">
-                    {/* Program Description */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <BookOpen className="h-5 w-5 text-blue-600" />
-                          Program Overview
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="prose max-w-none dark:prose-invert">
-                          <p className="text-muted-foreground leading-relaxed">
-                            {program.description ||
-                              "Detailed program description will be available soon. Contact the university for more information about this program."}
-                          </p>
-                        </div>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {program.scholarship_available && (
+                    <Badge
+                      variant="outline"
+                      className="bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
+                    >
+                      <Award className="h-3.5 w-3.5 mr-1" /> Scholarship Available
+                    </Badge>
+                  )}
+                  {program.internship_opportunities && (
+                    <Badge
+                      variant="outline"
+                      className="bg-purple-50 text-purple-600 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400"
+                    >
+                      <BookOpen className="h-3.5 w-3.5 mr-1" /> Internship Opportunities
+                    </Badge>
+                  )}
+                  {program.exchange_opportunities && (
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400"
+                    >
+                      <Globe className="h-3.5 w-3.5 mr-1" /> Exchange Opportunities
+                    </Badge>
+                  )}
+                  {program.religious_facilities && (
+                    <Badge variant="outline">
+                      <Heart className="h-3.5 w-3.5 mr-1" /> Religious Facilities
+                    </Badge>
+                  )}
+                  {program.halal_food_availability && (
+                    <Badge variant="outline">
+                      <Check className="h-3.5 w-3.5 mr-1" /> Halal Food Options
+                    </Badge>
+                  )}
+                </div>
 
-                        {program.advantages && (
-                          <div className="mt-6">
-                            <h4 className="font-semibold mb-3">Program Advantages</h4>
-                            <div className="prose max-w-none dark:prose-invert">
-                              <p className="text-muted-foreground">{program.advantages}</p>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                <Tabs defaultValue="details" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+                    <TabsTrigger value="details" className="text-xs sm:text-sm">
+                      Details
+                    </TabsTrigger>
+                    <TabsTrigger value="requirements" className="text-xs sm:text-sm">
+                      Requirements
+                    </TabsTrigger>
+                    <TabsTrigger value="costs" className="text-xs sm:text-sm">
+                      Costs
+                    </TabsTrigger>
+                    <TabsTrigger value="housing" className="text-xs sm:text-sm">
+                      Housing
+                    </TabsTrigger>
+                  </TabsList>
 
-                    {/* Key Features */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Star className="h-5 w-5 text-yellow-600" />
-                          Key Features
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                            <Globe className="h-5 w-5 text-blue-600" />
-                            <div>
-                              <div className="font-medium">Language</div>
-                              <div className="text-sm text-muted-foreground">{programLanguage}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                            <Clock className="h-5 w-5 text-green-600" />
-                            <div>
-                              <div className="font-medium">Duration</div>
-                              <div className="text-sm text-muted-foreground">
-                                {program.duration || `${program.duration_months || "N/A"} months`}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                            <GraduationCap className="h-5 w-5 text-purple-600" />
-                            <div>
-                              <div className="font-medium">Study Level</div>
-                              <div className="text-sm text-muted-foreground">{programLevel}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
-                            <BookOpen className="h-5 w-5 text-orange-600" />
-                            <div>
-                              <div className="font-medium">Field</div>
-                              <div className="text-sm text-muted-foreground">{program.field || "Not specified"}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <TabsContent value="details" className="pt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Field of Study</h4>
+                        <p className="text-sm text-muted-foreground">{program.field || "Not specified"}</p>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-2">Program Advantages</h4>
+                        <p className="text-sm text-muted-foreground">{program.advantages || "Details not provided."}</p>
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-2">Application Process</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {program.application_process ||
+                            "Contact an advisor for detailed application process information."}
+                        </p>
+                      </div>
+                    </div>
                   </TabsContent>
 
-                  <TabsContent value="requirements" className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                          Admission Requirements
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {requirements.length > 0 ? (
-                          <ul className="space-y-3">
+                  <TabsContent value="requirements" className="pt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Academic Requirements</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {program.academic_requirements ||
+                            program.admission_requirements ||
+                            "Standard academic requirements apply."}
+                        </p>
+                        {program.gpa_requirement && (
+                          <div className="mt-2 flex items-center">
+                            <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+                            <span className="text-sm">Minimum GPA: {program.gpa_requirement}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <h4 className="font-medium mb-2">Language Requirements</h4>
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            {program.language_test &&
+                              `${program.language_test}: ${program.language_test_score || "Score requirements vary"}`}
+                          </p>
+                          {program.language_test_exemptions && (
+                            <p className="text-sm text-muted-foreground">
+                              <span className="font-medium">Exemptions:</span> {program.language_test_exemptions}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {requirements.length > 0 && (
+                        <div>
+                          <h4 className="font-medium mb-2">Additional Requirements</h4>
+                          <ul className="space-y-1">
                             {requirements.map((req: string, index: number) => (
-                              <li key={index} className="flex items-start gap-3">
-                                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm sm:text-base">{req}</span>
+                              <li key={index} className="flex items-start">
+                                <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">{req}</span>
                               </li>
                             ))}
                           </ul>
-                        ) : (
-                          <div className="text-center py-8">
-                            <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <p className="text-muted-foreground">
-                              Specific requirements are not listed. Please contact the university directly for detailed
-                              admission requirements.
-                            </p>
-                          </div>
-                        )}
-
-                        {program.gpa_requirement && (
-                          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                            <h4 className="font-semibold mb-2">GPA Requirement</h4>
-                            <p className="text-sm text-muted-foreground">Minimum GPA: {program.gpa_requirement}</p>
-                          </div>
-                        )}
-
-                        {program.language_test && (
-                          <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                            <h4 className="font-semibold mb-2">Language Test Requirement</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {program.language_test}
-                              {program.language_test_score && ` - Minimum Score: ${program.language_test_score}`}
-                            </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                        </div>
+                      )}
+                    </div>
                   </TabsContent>
 
-                  <TabsContent value="application" className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Calendar className="h-5 w-5 text-blue-600" />
-                          Application Information
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                          <div>
-                            <h4 className="font-medium text-sm text-muted-foreground mb-2">Application Deadline</h4>
-                            <p className="font-semibold text-lg">
-                              {program.application_deadline
-                                ? new Date(program.application_deadline).toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  })
-                                : "Contact university"}
-                            </p>
-                          </div>
+                  <TabsContent value="costs" className="pt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Tuition Fees</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {tuitionMax > tuitionFee
+                            ? `${formatCurrency(tuitionFee)} - ${formatCurrency(tuitionMax)} per year`
+                            : `${formatCurrency(tuitionFee)} per year`}
+                        </p>
+                      </div>
 
-                          {program.application_fee && (
-                            <div>
-                              <h4 className="font-medium text-sm text-muted-foreground mb-2">Application Fee</h4>
-                              <p className="font-semibold text-lg text-green-600">
-                                {formatCurrency(program.application_fee)}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator />
-
+                      {program.living_cost_min && program.living_cost_max && (
                         <div>
-                          <h4 className="font-medium text-sm text-muted-foreground mb-3">Intake Periods</h4>
-                          {intakePeriods.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                              {intakePeriods.map((period: string, index: number) => (
-                                <Badge key={index} variant="outline" className="text-sm">
-                                  {period}
-                                </Badge>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground">Contact university for intake information</p>
-                          )}
+                          <h4 className="font-medium mb-2">Living Costs</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Estimated monthly living expenses: {formatCurrency(program.living_cost_min)} -{" "}
+                            {formatCurrency(program.living_cost_max)}
+                          </p>
                         </div>
+                      )}
 
-                        <Separator />
-
-                        {/* Guest Application Prompt */}
-                        <div className="p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-lg border-2 border-dashed border-primary/20">
-                          <div className="text-center">
-                            <Info className="h-12 w-12 text-primary mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold mb-2">Ready to Apply?</h3>
-                            <p className="text-muted-foreground mb-4">
-                              Create an account to start your application process and track your progress.
-                            </p>
-                            <Button onClick={handleApply} size="lg" className="w-full sm:w-auto">
-                              Create Account & Apply
-                            </Button>
-                          </div>
+                      <div>
+                        <h4 className="font-medium mb-2">Additional Fees</h4>
+                        <div className="space-y-1 text-sm">
+                          <p>
+                            <span className="text-muted-foreground">Application Fee:</span>{" "}
+                            {program.application_fee ? formatCurrency(program.application_fee) : "N/A"}
+                          </p>
+                          <p>
+                            <span className="text-muted-foreground">Visa Fee:</span>{" "}
+                            {program.visa_fee ? formatCurrency(program.visa_fee) : "Varies by nationality"}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
+                      </div>
 
-                  <TabsContent value="details" className="space-y-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Building2 className="h-5 w-5 text-gray-600" />
-                          University Details
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
+                      {program.scholarship_available && (
                         <div>
-                          <h4 className="font-medium mb-2">{program.university}</h4>
-                          <p className="text-muted-foreground text-sm">Located in {programLocation}</p>
-                        </div>
-
-                        {program.ranking && (
-                          <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
-                            <Star className="h-5 w-5 text-yellow-600 fill-current" />
-                            <div>
-                              <div className="font-medium">University Ranking</div>
-                              <div className="text-sm text-muted-foreground">#{program.ranking} globally</div>
-                            </div>
-                          </div>
-                        )}
-
-                        <Separator />
-
-                        <div className="space-y-3">
-                          <h4 className="font-medium">Campus Facilities</h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="flex items-center gap-2">
-                              {program.religious_facilities ? (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <X className="h-4 w-4 text-red-500" />
-                              )}
-                              <span className="text-sm">Religious Facilities</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {program.halal_food_availability ? (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <X className="h-4 w-4 text-red-500" />
-                              )}
-                              <span className="text-sm">Halal Food Available</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Cost Breakdown */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Euro className="h-5 w-5 text-green-600" />
-                          Cost Breakdown
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">Annual Tuition</span>
-                            <span className="font-bold text-green-600">
-                              {tuitionMax > tuitionFee
-                                ? `${formatCurrency(tuitionFee)} - ${formatCurrency(tuitionMax)}`
-                                : formatCurrency(tuitionFee)}
-                            </span>
-                          </div>
-
-                          {program.living_cost_min && program.living_cost_max && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium">Monthly Living Costs</span>
-                              <span className="font-medium text-blue-600">
-                                {formatCurrency(program.living_cost_min)} - {formatCurrency(program.living_cost_max)}
-                              </span>
-                            </div>
-                          )}
-
-                          {program.application_fee && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium">Application Fee</span>
-                              <span className="font-medium text-orange-600">
-                                {formatCurrency(program.application_fee)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {program.scholarship_available && (
-                          <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Award className="h-5 w-5 text-green-600" />
-                              <span className="font-medium text-green-800 dark:text-green-200">
-                                Scholarship Available
-                              </span>
-                            </div>
-                            <p className="text-sm text-green-700 dark:text-green-300">
-                              Financial aid opportunities are available for qualified students. Contact the university
-                              for more details about scholarship requirements and amounts.
+                          <h4 className="font-medium mb-2">Scholarship Information</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {program.scholarship_details ||
+                              "Scholarships available based on academic merit and financial need."}
+                          </p>
+                          {program.scholarship_amount && (
+                            <p className="text-sm font-medium mt-1">
+                              Up to {formatCurrency(program.scholarship_amount)} available
                             </p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
+                          )}
+                          {program.scholarship_deadline && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Deadline: {program.scholarship_deadline}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </TabsContent>
-                </div>
-              </Tabs>
-            </div>
 
-            {/* Right Column - Sidebar */}
-            <div className="space-y-6">
-              {/* Quick Actions */}
-              <Card className="sticky top-24">
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button onClick={handleApply} className="w-full" size="lg">
-                    Apply Now
-                  </Button>
-                  <Button variant="outline" className="w-full bg-transparent" onClick={toggleFavorite}>
-                    <Heart className={cn("h-4 w-4 mr-2", isFavorited && "fill-current text-red-500")} />
-                    Save Program
-                  </Button>
-                  <Button variant="outline" className="w-full bg-transparent">
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Brochure
-                  </Button>
-                  <Button variant="outline" className="w-full bg-transparent">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    University Website
-                  </Button>
-                </CardContent>
-              </Card>
+                  <TabsContent value="housing" className="pt-4">
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Housing Options</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {program.housing_availability || "Contact the university for housing information."}
+                        </p>
+                      </div>
 
-              {/* Contact Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">Email</div>
-                        <div className="text-sm text-muted-foreground">admissions@university.edu</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Phone className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">Phone</div>
-                        <div className="text-sm text-muted-foreground">+33 1 23 45 67 89</div>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-5 w-5 text-red-600 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-sm">Address</div>
-                        <div className="text-sm text-muted-foreground">{programLocation}</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      {program.housing_cost_min && program.housing_cost_max && (
+                        <div>
+                          <h4 className="font-medium mb-2">Housing Costs</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Estimated monthly housing costs: {formatCurrency(program.housing_cost_min)} -{" "}
+                            {formatCurrency(program.housing_cost_max)}
+                          </p>
+                        </div>
+                      )}
 
-              {/* Similar Programs */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Similar Programs</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {mockSimilarPrograms.map((similarProgram) => (
-                      <div
-                        key={similarProgram.id}
-                        className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                        onClick={() => navigate(`/guest/programs/${similarProgram.id}`)}
-                      >
-                        <h4 className="font-medium text-sm mb-1">{similarProgram.name}</h4>
-                        <p className="text-xs text-muted-foreground mb-2">{similarProgram.university}</p>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-green-600 font-medium">
-                            {formatCurrency(similarProgram.tuition_min)}
-                            {similarProgram.tuition_max > similarProgram.tuition_min &&
-                              ` - ${formatCurrency(similarProgram.tuition_max)}`}
-                          </span>
-                          <Badge variant="outline" className="text-xs">
-                            {similarProgram.match_score}% match
+                      {program.north_african_community_size && (
+                        <div>
+                          <h4 className="font-medium mb-2">Community</h4>
+                          <p className="text-sm text-muted-foreground">
+                            North African community size: {program.north_african_community_size}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {program.religious_facilities && (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-600 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400"
+                          >
+                            Religious Facilities Available
                           </Badge>
-                        </div>
+                        )}
+                        {program.halal_food_availability && (
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400"
+                          >
+                            Halal Food Options
+                          </Badge>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </div>
-        </motion.div>
-      </div>
 
-      {/* Image Modal */}
-      <AnimatePresence>
-        {showImageModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-            onClick={() => setShowImageModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-              className="relative max-w-4xl max-h-[90vh] w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <img
-                src={mockGalleryImages[currentImageIndex] || "/placeholder.svg"}
-                alt={`Campus image ${currentImageIndex + 1}`}
-                className="w-full h-full object-contain rounded-lg"
-              />
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="border-b">
+                <CardTitle>Application</CardTitle>
+                <div className="text-sm text-muted-foreground">Key information about applying</div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Deadline</h3>
+                    <div className="flex items-center text-base">
+                      <CalendarDays className="h-4 w-4 mr-2 text-primary" />
+                      <span>
+                        {program.application_deadline
+                          ? new Date(program.application_deadline).toLocaleDateString()
+                          : "Contact for details"}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Navigation */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
-                onClick={prevImage}
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
-                onClick={nextImage}
-              >
-                <ChevronRight className="h-6 w-6" />
-              </Button>
+                  {program.available_places !== null && (
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Available Places</h3>
+                      <div className="flex items-center text-base">
+                        <Users className="h-4 w-4 mr-2 text-primary" />
+                        <span>
+                          {program.available_places} / {program.total_places || "∞"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Close Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
-                onClick={() => setShowImageModal(false)}
-              >
-                <X className="h-6 w-6" />
-              </Button>
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Application Fee</h3>
+                    <div className="flex items-center text-base">
+                      <CircleDollarSign className="h-4 w-4 mr-2 text-primary" />
+                      <span>
+                        {program.application_fee ? formatCurrency(program.application_fee) : "Contact for details"}
+                      </span>
+                    </div>
+                  </div>
 
-              {/* Image Counter */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                {currentImageIndex + 1} / {mockGalleryImages.length}
+                  <Separator />
+
+                  <div>
+                    <h3 className="font-medium mb-3">Required Documents</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <span className="text-sm">Academic transcripts</span>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <span className="text-sm">Language proficiency test results</span>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <span className="text-sm">Passport copy</span>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <span className="text-sm">Motivation letter</span>
+                      </li>
+                    </ul>
+
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4 bg-transparent"
+                      onClick={() => openDialog("requirements")}
+                    >
+                      View All Requirements
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium mb-1">Our Services</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-primary mt-0.5" />
+                        <span>Application preparation</span>
+                      </div>
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-primary mt-0.5" />
+                        <span>Document verification</span>
+                      </div>
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-primary mt-0.5" />
+                        <span>Visa guidance</span>
+                      </div>
+                      <div className="flex items-start">
+                        <Check className="h-4 w-4 mr-2 text-primary mt-0.5" />
+                        <span>Pre-departure orientation</span>
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full bg-transparent"
+                      onClick={() => navigate("/guest/services")}
+                    >
+                      View Our Services
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+              <div className="p-6 pt-0 flex flex-col gap-2">
+                <Button className="w-full" onClick={handleApply}>
+                  Apply Now
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  onClick={() => navigate("/guest/consultation")}
+                >
+                  Get Consultation
+                </Button>
+                <Button variant={isFavorited ? "secondary" : "outline"} className="w-full" onClick={toggleFavorite}>
+                  <Heart className={`mr-2 h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
+                  {isFavorited ? "Saved to Favorites" : "Save to Favorites"}
+                </Button>
+
+                <Button variant="outline" className="w-full bg-transparent" onClick={handleShare}>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share Program
+                </Button>
               </div>
+            </Card>
+
+            {/* Similar Programs */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Similar Programs</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {mockSimilarPrograms.map((similarProgram) => (
+                    <div
+                      key={similarProgram.id}
+                      className="p-3 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                      onClick={() => navigate(`/guest/programs/${similarProgram.id}`)}
+                    >
+                      <h4 className="font-medium text-sm mb-1">{similarProgram.name}</h4>
+                      <p className="text-xs text-muted-foreground mb-2">{similarProgram.university}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-green-600 font-medium">
+                          {formatCurrency(similarProgram.tuition_min)}
+                          {similarProgram.tuition_max > similarProgram.tuition_min &&
+                            ` - ${formatCurrency(similarProgram.tuition_max)}`}
+                        </span>
+                        <Badge variant="outline" className="text-xs">
+                          {similarProgram.match_score}% match
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Guest Application Prompt */}
+            <Card className="border-2 border-dashed border-primary/20 bg-primary/5">
+              <CardContent className="p-6 text-center">
+                <div className="max-w-md mx-auto">
+                  <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Ready to Apply?</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create an account to start your application process and track your progress.
+                  </p>
+                  <Button onClick={handleApply} size="lg" className="w-full">
+                    Create Account & Apply
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Dialog for detailed content */}
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {dialogContent === "requirements" ? "Application Requirements" : "University Details"}
+              </DialogTitle>
+              <div className="text-sm text-muted-foreground">
+                {program.name} at {program.university}
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {dialogContent === "requirements" && (
+                <>
+                  <div>
+                    <h3 className="font-semibold mb-2">Academic Requirements</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {program.academic_requirements ||
+                        program.admission_requirements ||
+                        "Standard academic requirements apply."}
+                    </p>
+
+                    {program.gpa_requirement && (
+                      <div className="mt-2">
+                        <h4 className="font-medium">Minimum GPA</h4>
+                        <p>{program.gpa_requirement}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Language Requirements</h3>
+                    <p>Required test: {program.language_test || "Not specified"}</p>
+                    {program.language_test_score && <p>Minimum score: {program.language_test_score}</p>}
+
+                    {program.language_test_exemptions && (
+                      <div className="mt-2">
+                        <h4 className="font-medium">Exemptions</h4>
+                        <p>{program.language_test_exemptions}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Required Documents</h3>
+                    <ul className="space-y-2">
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <div>
+                          <span className="font-medium">Academic transcripts</span>
+                          <p className="text-sm text-muted-foreground">
+                            Official transcripts from all previously attended institutions
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <div>
+                          <span className="font-medium">Language proficiency proof</span>
+                          <p className="text-sm text-muted-foreground">IELTS, TOEFL, or equivalent as specified</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <div>
+                          <span className="font-medium">Passport copy</span>
+                          <p className="text-sm text-muted-foreground">
+                            Valid for at least 6 months beyond program end date
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <div>
+                          <span className="font-medium">Motivation letter</span>
+                          <p className="text-sm text-muted-foreground">
+                            Statement explaining your interest in the program
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <div>
+                          <span className="font-medium">Recommendation letters</span>
+                          <p className="text-sm text-muted-foreground">
+                            2-3 letters from academic or professional references
+                          </p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <div>
+                          <span className="font-medium">Curriculum Vitae/Resume</span>
+                          <p className="text-sm text-muted-foreground">Detailed academic and professional history</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start">
+                        <FileCheck className="h-4 w-4 mr-2 text-primary mt-1" />
+                        <div>
+                          <span className="font-medium">Financial documents</span>
+                          <p className="text-sm text-muted-foreground">Proof of ability to fund your studies</p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Application Process</h3>
+                    <p>
+                      {program.application_process ||
+                        "Detailed application process information will be provided during consultation."}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Image Modal */}
+        <AnimatePresence>
+          {showImageModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+              onClick={() => setShowImageModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                className="relative max-w-4xl max-h-[90vh] w-full"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <img
+                  src={mockGalleryImages[currentImageIndex] || "/placeholder.svg"}
+                  alt={`Campus image ${currentImageIndex + 1}`}
+                  className="w-full h-full object-contain rounded-lg"
+                />
+
+                {/* Navigation */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                  onClick={prevImage}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+
+                {/* Close Button */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
+                  onClick={() => setShowImageModal(false)}
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+
+                {/* Image Counter */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                  {currentImageIndex + 1} / {mockGalleryImages.length}
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
+
 
 
 
