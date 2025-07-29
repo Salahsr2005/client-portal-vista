@@ -1,591 +1,458 @@
-import type { Tables } from "@/integrations/supabase/types"
+import { supabase } from "@/integrations/supabase/client"
 
-export type DestinationData = Tables<"destinations">
-
-export interface ConsultationPreferences {
+export interface DestinationPreferences {
   studyLevel: string
   userLanguage: "en" | "fr" | "ar"
   tuitionBudgetRange: [number, number]
   livingCostsBudgetRange: [number, number]
   serviceFeesBudgetRange: [number, number]
   budgetFlexibility: "strict" | "flexible" | "very_flexible"
-  currentGPA: "excellent" | "good" | "intermediate" | "improving"
   preferredLanguages: string[]
   languageLevel: "beginner" | "intermediate" | "advanced"
   hasLanguageCertificate: boolean
   intakePeriods: string[]
   urgency: "urgent" | "moderate" | "flexible"
-  workWhileStudying: boolean
+  currentGPA: "excellent" | "good" | "intermediate" | "improving"
   scholarshipRequired: boolean
   religiousFacilities: boolean
   halalFood: boolean
-  priorityFactors: string[]
-  preferredRegions: string[]
-  avoidRegions: string[]
+  workWhileStudying: boolean
+  preferredRegions?: string[]
+  avoidRegions?: string[]
+  priorityFactors?: string[]
 }
 
-export interface MatchedDestination {
-  destination: DestinationData
+export interface DestinationMatch {
+  destination: any
   score: number
   reasons: string[]
   warnings: string[]
-  recommendation: "highly_recommended" | "recommended" | "consider" | "not_recommended"
-  budgetFit: "excellent" | "good" | "acceptable" | "challenging"
   estimatedCosts: {
     tuitionRange: [number, number]
     livingCosts: number
     serviceFees: number
-    totalRange: [number, number]
+    totalEstimate: number
   }
 }
 
 export class DestinationMatchingService {
-  /**
-   * Safely parse JSON field with fallback
-   */
-  private static parseJsonField(field: any): string[] {
-    if (!field) return []
-    if (Array.isArray(field)) return field
+  private static parseJsonField(field: any, fallback: any = []): any {
+    if (!field) return fallback
     if (typeof field === "string") {
-      // Handle comma-separated values
-      if (field.includes(",") && !field.startsWith("[")) {
-        return field
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean)
-      }
       try {
-        const parsed = JSON.parse(field)
-        return Array.isArray(parsed) ? parsed : [field]
+        return JSON.parse(field)
       } catch {
-        // If JSON parsing fails, treat as comma-separated string
+        // If JSON parsing fails, try to split by comma
         return field
           .split(",")
-          .map((item) => item.trim())
+          .map((item: string) => item.trim())
           .filter(Boolean)
       }
     }
-    return []
+    return Array.isArray(field) ? field : fallback
   }
 
-  /**
-   * Main matching function - Works with real Supabase data only
-   */
-  static findMatchingDestinations(
-    destinations: DestinationData[],
-    preferences: ConsultationPreferences,
-  ): MatchedDestination[] {
-    console.log("🔍 Starting destination matching with real data...")
-    console.log("📊 Destinations received:", destinations?.length || 0)
-    console.log("⚙️ User preferences:", preferences)
-
-    if (!destinations || destinations.length === 0) {
-      console.warn("❌ No destinations available for matching")
-      return []
+  private static safeParseNumber(value: any, fallback = 0): number {
+    if (typeof value === "number") return value
+    if (typeof value === "string") {
+      const parsed = Number.parseFloat(value)
+      return isNaN(parsed) ? fallback : parsed
     }
-
-    // Filter active destinations only
-    const activeDestinations = destinations.filter((dest) => !dest.status || dest.status.toLowerCase() === "active")
-
-    console.log("✅ Active destinations:", activeDestinations.length)
-
-    // Score each destination
-    const matches = activeDestinations
-      .map((destination) => this.scoreDestination(destination, preferences))
-      .filter((match) => match.score >= 20) // Minimum threshold
-      .sort((a, b) => b.score - a.score) // Sort by score descending
-
-    console.log("🏆 Final matches found:", matches.length)
-    console.log(
-      "📈 Top 3 scores:",
-      matches.slice(0, 3).map((m) => ({
-        name: m.destination.name,
-        score: m.score,
-        country: m.destination.country,
-      })),
-    )
-
-    return matches
+    return fallback
   }
 
-  /**
-   * Enhanced scoring system
-   */
-  private static scoreDestination(
-    destination: DestinationData,
-    preferences: ConsultationPreferences,
-  ): MatchedDestination {
-    let totalScore = 0
+  static async findMatches(preferences: DestinationPreferences): Promise<DestinationMatch[]> {
+    try {
+      console.log("🔍 Fetching destinations from database...")
+
+      // Fetch all destinations from Supabase
+      const { data: destinations, error } = await supabase.from("destinations").select("*").order("name")
+
+      if (error) {
+        console.error("❌ Error fetching destinations:", error)
+        throw error
+      }
+
+      if (!destinations || destinations.length === 0) {
+        console.warn("⚠️ No destinations found in database")
+        return []
+      }
+
+      console.log(`📊 Found ${destinations.length} destinations, analyzing matches...`)
+
+      const matches: DestinationMatch[] = []
+
+      for (const destination of destinations) {
+        try {
+          const match = this.analyzeDestination(destination, preferences)
+          if (match.score > 0) {
+            matches.push(match)
+          }
+        } catch (error) {
+          console.error(`❌ Error analyzing destination ${destination.name}:`, error)
+          // Continue with other destinations
+        }
+      }
+
+      // Sort by score (highest first)
+      matches.sort((a, b) => b.score - a.score)
+
+      console.log(`✅ Found ${matches.length} matching destinations`)
+      return matches.slice(0, 10) // Return top 10 matches
+    } catch (error) {
+      console.error("❌ Error in findMatches:", error)
+      throw error
+    }
+  }
+
+  private static analyzeDestination(destination: any, preferences: DestinationPreferences): DestinationMatch {
+    let score = 0
     const reasons: string[] = []
     const warnings: string[] = []
+    const maxScore = 100
 
-    console.log(`🎯 Scoring destination: ${destination.name} (${destination.country})`)
+    // Parse destination data safely
+    const availablePrograms = this.parseJsonField(destination.available_programs, [])
+    const programLanguages = this.parseJsonField(destination.program_languages, [])
+    const intakePeriods = this.parseJsonField(destination.intake_periods, [])
+    const specialFeatures = this.parseJsonField(destination.special_features, [])
 
-    // 1. Study Level Availability (30 points)
-    const levelScore = this.calculateLevelScore(destination, preferences)
-    totalScore += levelScore.score
-    reasons.push(...levelScore.reasons)
-    warnings.push(...levelScore.warnings)
+    // Study Level Match (20 points)
+    if (
+      availablePrograms.some((program: string) => program.toLowerCase().includes(preferences.studyLevel.toLowerCase()))
+    ) {
+      score += 20
+      reasons.push(`Offers ${preferences.studyLevel} programs`)
+    } else if (availablePrograms.length > 0) {
+      score += 5
+      warnings.push(`Limited ${preferences.studyLevel} program options`)
+    }
 
-    // 2. Budget Compatibility (25 points)
-    const budgetScore = this.calculateBudgetScore(destination, preferences)
-    totalScore += budgetScore.score
+    // Budget Analysis (25 points)
+    const budgetScore = this.analyzeBudget(destination, preferences)
+    score += budgetScore.score
     reasons.push(...budgetScore.reasons)
     warnings.push(...budgetScore.warnings)
 
-    // 3. Language Compatibility (20 points)
-    const languageScore = this.calculateLanguageScore(destination, preferences)
-    totalScore += languageScore.score
+    // Language Match (20 points)
+    const languageScore = this.analyzeLanguages(programLanguages, preferences)
+    score += languageScore.score
     reasons.push(...languageScore.reasons)
     warnings.push(...languageScore.warnings)
 
-    // 4. Timeline Compatibility (15 points)
-    const timelineScore = this.calculateTimelineScore(destination, preferences)
-    totalScore += timelineScore.score
+    // Timeline Match (15 points)
+    const timelineScore = this.analyzeTimeline(intakePeriods, preferences)
+    score += timelineScore.score
     reasons.push(...timelineScore.reasons)
     warnings.push(...timelineScore.warnings)
 
-    // 5. Special Requirements (10 points)
-    const specialScore = this.calculateSpecialScore(destination, preferences)
-    totalScore += specialScore.score
+    // Special Requirements (10 points)
+    const specialScore = this.analyzeSpecialRequirements(specialFeatures, destination, preferences)
+    score += specialScore.score
     reasons.push(...specialScore.reasons)
     warnings.push(...specialScore.warnings)
+
+    // Academic Requirements (10 points)
+    const academicScore = this.analyzeAcademicRequirements(destination, preferences)
+    score += academicScore.score
+    reasons.push(...academicScore.reasons)
+    warnings.push(...academicScore.warnings)
 
     // Calculate estimated costs
     const estimatedCosts = this.calculateEstimatedCosts(destination, preferences)
 
-    // Determine recommendation and budget fit
-    const recommendation = this.getRecommendationLevel(totalScore, warnings.length)
-    const budgetFit = this.getBudgetFit(estimatedCosts, preferences)
-
-    const finalScore = Math.round(Math.max(0, Math.min(100, totalScore)))
-
-    console.log(`📊 ${destination.name} final score: ${finalScore}%`)
-
     return {
       destination,
-      score: finalScore,
+      score: Math.min(Math.round(score), maxScore),
       reasons: reasons.filter(Boolean),
       warnings: warnings.filter(Boolean),
-      recommendation,
-      budgetFit,
       estimatedCosts,
     }
   }
 
-  /**
-   * Calculate study level compatibility
-   */
-  private static calculateLevelScore(destination: DestinationData, preferences: ConsultationPreferences) {
+  private static analyzeBudget(destination: any, preferences: DestinationPreferences) {
+    let score = 0
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 0
 
-    const studyLevel = preferences.studyLevel.toLowerCase()
-    const availablePrograms = this.parseJsonField(destination.available_programs)
+    // Get budget ranges with safe parsing
+    const tuitionMin = this.safeParseNumber(destination.bachelor_tuition_min, 0)
+    const tuitionMax = this.safeParseNumber(destination.bachelor_tuition_max, 50000)
+    const livingMin = this.safeParseNumber(destination.living_cost_min, 400)
+    const livingMax = this.safeParseNumber(destination.living_cost_max, 1200)
 
-    console.log(`  📚 Checking study level: ${studyLevel}`)
-    console.log(`  📋 Available programs:`, availablePrograms)
-
-    // Check if the destination has programs for the requested level
-    const hasLevelData = this.hasDataForLevel(destination, studyLevel)
-
-    if (hasLevelData) {
-      score += 30
-      reasons.push(`${preferences.studyLevel} programs available`)
-      console.log(`  ✅ Level data found (+30)`)
-    } else if (availablePrograms.length === 0) {
-      // If no specific programs listed, check if we have tuition data for the level
-      score += 20
-      reasons.push(`Programs likely available (contact for confirmation)`)
-      console.log(`  ⚠️ No specific programs listed (+20)`)
-    } else {
-      // Check for partial matches
-      const hasPartialMatch = availablePrograms.some(
-        (program) => program.toLowerCase().includes(studyLevel) || studyLevel.includes(program.toLowerCase()),
-      )
-
-      if (hasPartialMatch) {
-        score += 25
-        reasons.push(`${preferences.studyLevel} programs may be available`)
-        console.log(`  ⚠️ Partial match found (+25)`)
-      } else {
+    // Tuition budget analysis
+    const [userTuitionMin, userTuitionMax] = preferences.tuitionBudgetRange
+    if (tuitionMin <= userTuitionMax && tuitionMax >= userTuitionMin) {
+      if (tuitionMax <= userTuitionMax) {
         score += 10
-        warnings.push(`${preferences.studyLevel} programs may not be available`)
-        console.log(`  ❌ No matching programs found (+10)`)
+        reasons.push("Tuition within budget")
+      } else {
+        score += 5
+        if (preferences.budgetFlexibility === "strict") {
+          warnings.push("Tuition may exceed budget")
+        }
       }
+    } else if (preferences.budgetFlexibility !== "strict") {
+      score += 2
+      warnings.push("Tuition above preferred range")
     }
 
-    return { score, reasons, warnings }
-  }
-
-  /**
-   * Check if destination has data for specific study level
-   */
-  private static hasDataForLevel(destination: DestinationData, level: string): boolean {
-    switch (level) {
-      case "bachelor":
-        return !!(destination.bachelor_tuition_min !== null || destination.bachelor_requirements)
-      case "master":
-        return !!(destination.master_tuition_min !== null || destination.master_requirements)
-      case "phd":
-        return !!(destination.phd_tuition_min !== null || destination.phd_requirements)
-      default:
-        return false
-    }
-  }
-
-  /**
-   * Calculate budget compatibility
-   */
-  private static calculateBudgetScore(destination: DestinationData, preferences: ConsultationPreferences) {
-    const reasons: string[] = []
-    const warnings: string[] = []
-    let score = 0
-
-    const studyLevel = preferences.studyLevel.toLowerCase()
-    const userMaxBudget = preferences.tuitionBudgetRange[1]
-
-    console.log(`  💰 Checking budget compatibility for ${studyLevel}`)
-    console.log(`  💵 User max budget: €${userMaxBudget}`)
-
-    // Get tuition for study level
-    let tuitionMin = 0
-    let tuitionMax = 0
-
-    switch (studyLevel) {
-      case "bachelor":
-        tuitionMin = destination.bachelor_tuition_min || 0
-        tuitionMax = destination.bachelor_tuition_max || 0
-        break
-      case "master":
-        tuitionMin = destination.master_tuition_min || 0
-        tuitionMax = destination.master_tuition_max || 0
-        break
-      case "phd":
-        tuitionMin = destination.phd_tuition_min || 0
-        tuitionMax = destination.phd_tuition_max || 0
-        break
+    // Living costs analysis
+    const [userLivingMin, userLivingMax] = preferences.livingCostsBudgetRange
+    if (livingMin <= userLivingMax && livingMax >= userLivingMin) {
+      if (livingMax <= userLivingMax) {
+        score += 10
+        reasons.push("Living costs affordable")
+      } else {
+        score += 5
+        warnings.push("Living costs may be higher than expected")
+      }
+    } else if (preferences.budgetFlexibility !== "strict") {
+      score += 2
+      warnings.push("Living costs above preferred range")
     }
 
-    // If no specific tuition data, use general fees as fallback
-    if (tuitionMin === 0 && tuitionMax === 0 && destination.fees) {
-      tuitionMin = Math.round(destination.fees * 0.8)
-      tuitionMax = Math.round(destination.fees * 1.2)
-      console.log(`  📊 Using general fees as fallback: €${tuitionMin}-€${tuitionMax}`)
-    }
-
-    // If still no data, skip budget scoring but don't penalize
-    if (tuitionMin === 0 && tuitionMax === 0) {
-      score += 15 // Neutral score
-      warnings.push("Tuition information not available - contact for details")
-      console.log(`  ⚠️ No tuition data available (+15)`)
-      return { score, reasons, warnings }
-    }
-
-    console.log(`  💸 Destination tuition: €${tuitionMin}-€${tuitionMax}`)
-
-    // Score based on budget fit
-    const flexibilityMultiplier = {
-      strict: 1.0,
-      flexible: 1.2,
-      very_flexible: 1.5,
-    }[preferences.budgetFlexibility]
-
-    const adjustedBudget = userMaxBudget * flexibilityMultiplier
-
-    if (tuitionMax <= userMaxBudget * 0.7) {
-      score += 25
-      reasons.push(`Tuition (€${tuitionMin}-€${tuitionMax}) well within budget`)
-      console.log(`  ✅ Excellent budget fit (+25)`)
-    } else if (tuitionMax <= userMaxBudget) {
-      score += 22
-      reasons.push(`Tuition fits within your budget range`)
-      console.log(`  ✅ Good budget fit (+22)`)
-    } else if (tuitionMax <= adjustedBudget) {
-      score += 18
-      reasons.push(`Tuition manageable with ${preferences.budgetFlexibility} budget`)
-      console.log(`  ⚠️ Acceptable with flexibility (+18)`)
-    } else if (tuitionMin <= userMaxBudget) {
-      score += 12
-      warnings.push(`Higher tuition options may exceed budget`)
-      console.log(`  ⚠️ Partial budget fit (+12)`)
-    } else {
+    // Service fees analysis
+    const serviceFees = this.safeParseNumber(destination.service_fees, 500)
+    const [userServiceMin, userServiceMax] = preferences.serviceFeesBudgetRange
+    if (serviceFees <= userServiceMax) {
       score += 5
-      warnings.push(`Tuition may exceed your budget significantly`)
-      console.log(`  ❌ Poor budget fit (+5)`)
+      reasons.push("Service fees reasonable")
+    } else if (preferences.budgetFlexibility !== "strict") {
+      score += 2
+      warnings.push("Service fees above preferred range")
     }
 
     return { score, reasons, warnings }
   }
 
-  /**
-   * Calculate language compatibility
-   */
-  private static calculateLanguageScore(destination: DestinationData, preferences: ConsultationPreferences) {
+  private static analyzeLanguages(programLanguages: string[], preferences: DestinationPreferences) {
+    let score = 0
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 0
 
-    const userLanguages = preferences.preferredLanguages
-    const langReq = (destination.language_requirements || "").toLowerCase()
+    // Check if destination offers programs in preferred languages
+    const matchingLanguages = programLanguages.filter((lang) =>
+      preferences.preferredLanguages.some((prefLang) => lang.toLowerCase().includes(prefLang.toLowerCase())),
+    )
 
-    console.log(`  🗣️ Checking language compatibility`)
-    console.log(`  👤 User languages:`, userLanguages)
-    console.log(`  🏛️ Destination requirements:`, langReq || "Not specified")
-
-    // If no language requirements specified, assume flexibility
-    if (!langReq || langReq.trim() === "") {
+    if (matchingLanguages.length > 0) {
       score += 15
-      reasons.push("Language requirements flexible")
-      console.log(`  ✅ No specific language requirements (+15)`)
-    }
+      reasons.push(`Programs available in ${matchingLanguages.join(", ")}`)
 
-    // Check language compatibility
-    let hasMatch = false
-    for (const userLang of userLanguages) {
-      if (userLang.toLowerCase() === "any") {
-        hasMatch = true
-        score += 20
-        reasons.push("Flexible with any language")
-        console.log(`  ✅ User accepts any language (+20)`)
-        break
-      }
-
-      // Check for direct matches
-      const langLower = userLang.toLowerCase()
-      if (
-        langReq.includes(langLower) ||
-        (langLower === "english" && (langReq.includes("eng") || langReq.includes("international"))) ||
-        (langLower === "french" && (langReq.includes("fr") || langReq.includes("français"))) ||
-        (langLower === "german" && (langReq.includes("deutsch") || langReq.includes("german")))
-      ) {
-        hasMatch = true
-        score += 20
-        reasons.push(`Programs available in ${userLang}`)
-        console.log(`  ✅ Language match found: ${userLang} (+20)`)
-        break
-      }
-    }
-
-    if (!hasMatch && langReq) {
-      score += 8
-      warnings.push("Limited programs in your preferred language(s)")
-      console.log(`  ❌ No language match (+8)`)
-    }
-
-    // Bonus for language proficiency
-    if (hasMatch) {
+      // Bonus for language proficiency level
       if (preferences.languageLevel === "advanced") {
         score += 5
-        reasons.push("Strong language skills advantage")
-        console.log(`  🌟 Language proficiency bonus (+5)`)
-      }
-
-      if (preferences.hasLanguageCertificate) {
+        reasons.push("Advanced language skills advantage")
+      } else if (preferences.languageLevel === "intermediate") {
         score += 3
-        reasons.push("Official language certificate")
-        console.log(`  📜 Certificate bonus (+3)`)
-      }
-    }
-
-    return { score, reasons, warnings }
-  }
-
-  /**
-   * Calculate timeline compatibility
-   */
-  private static calculateTimelineScore(destination: DestinationData, preferences: ConsultationPreferences) {
-    const reasons: string[] = []
-    const warnings: string[] = []
-    let score = 10 // Base score
-
-    const userIntakes = preferences.intakePeriods
-    const availableIntakes = this.parseJsonField(destination.intake_periods)
-
-    console.log(`  📅 Checking timeline compatibility`)
-    console.log(`  👤 User preferred intakes:`, userIntakes)
-    console.log(`  🏛️ Available intakes:`, availableIntakes)
-
-    if (userIntakes.includes("Any") || userIntakes.includes("Flexible")) {
-      score += 15
-      reasons.push("Flexible with intake timing")
-      console.log(`  ✅ User is flexible with timing (+15)`)
-    } else if (availableIntakes.length === 0) {
-      score += 10
-      reasons.push("Intake periods to be confirmed")
-      console.log(`  ⚠️ No intake info available (+10)`)
-    } else {
-      let matchFound = false
-      for (const userIntake of userIntakes) {
-        for (const availableIntake of availableIntakes) {
-          if (
-            availableIntake.toLowerCase().includes(userIntake.toLowerCase()) ||
-            userIntake.toLowerCase().includes(availableIntake.toLowerCase())
-          ) {
-            matchFound = true
-            break
-          }
-        }
-        if (matchFound) break
-      }
-
-      if (matchFound) {
-        score += 15
-        reasons.push("Your preferred intake periods are available")
-        console.log(`  ✅ Intake match found (+15)`)
       } else {
-        score += 5
-        warnings.push("Your preferred intake periods may not be available")
-        console.log(`  ❌ No intake match (+5)`)
+        warnings.push("May need language preparation")
       }
+    } else if (programLanguages.includes("English") && !preferences.preferredLanguages.includes("English")) {
+      score += 5
+      warnings.push("Programs mainly in English")
+    } else {
+      warnings.push("Limited language options")
+    }
+
+    // Language certificate bonus
+    if (preferences.hasLanguageCertificate && matchingLanguages.length > 0) {
+      score += 2
+      reasons.push("Language certification advantage")
     }
 
     return { score, reasons, warnings }
   }
 
-  /**
-   * Calculate special requirements score
-   */
-  private static calculateSpecialScore(destination: DestinationData, preferences: ConsultationPreferences) {
+  private static analyzeTimeline(intakePeriods: string[], preferences: DestinationPreferences) {
+    let score = 0
     const reasons: string[] = []
     const warnings: string[] = []
-    let score = 5 // Base score
 
-    console.log(`  🎯 Checking special requirements`)
+    // Check intake period matches
+    const matchingIntakes = intakePeriods.filter((intake) =>
+      preferences.intakePeriods.some(
+        (prefIntake) => intake.toLowerCase().includes(prefIntake.toLowerCase()) || prefIntake === "Any",
+      ),
+    )
 
-    // Work while studying (EU countries generally allow this)
-    if (preferences.workWhileStudying) {
-      const euCountries = ["france", "germany", "belgium", "netherlands", "spain", "italy", "luxembourg", "malta"]
-      if (euCountries.includes(destination.country.toLowerCase())) {
+    if (matchingIntakes.length > 0 || preferences.intakePeriods.includes("Any")) {
+      score += 10
+      reasons.push(`Suitable intake periods available`)
+
+      // Urgency bonus/penalty
+      if (preferences.urgency === "urgent") {
+        if (matchingIntakes.some((intake) => intake.includes("January") || intake.includes("September"))) {
+          score += 5
+          reasons.push("Quick start options available")
+        } else {
+          warnings.push("Limited immediate start options")
+        }
+      } else if (preferences.urgency === "flexible") {
         score += 3
-        reasons.push("Work opportunities available in EU")
-        console.log(`  💼 Work opportunities in EU (+3)`)
+        reasons.push("Flexible timeline advantage")
       }
+    } else {
+      score += 2
+      warnings.push("Limited intake period options")
     }
+
+    return { score, reasons, warnings }
+  }
+
+  private static analyzeSpecialRequirements(
+    specialFeatures: string[],
+    destination: any,
+    preferences: DestinationPreferences,
+  ) {
+    let score = 0
+    const reasons: string[] = []
+    const warnings: string[] = []
 
     // Scholarship requirements
     if (preferences.scholarshipRequired) {
-      const description = (destination.description || "").toLowerCase()
-      if (description.includes("scholarship") || description.includes("bourse") || description.includes("funding")) {
+      if (
+        specialFeatures.some((feature) => feature.toLowerCase().includes("scholarship")) ||
+        destination.scholarship_available
+      ) {
         score += 5
-        reasons.push("Scholarship opportunities mentioned")
-        console.log(`  🎓 Scholarships available (+5)`)
+        reasons.push("Scholarships available")
+      } else {
+        warnings.push("Limited scholarship opportunities")
       }
     }
 
-    // Success rate bonus
-    const successRate = destination.admission_success_rate || destination.success_rate || 50
-    if (successRate && successRate >= 70) {
-      score += 3
-      reasons.push(`High success rate (${successRate}%)`)
-      console.log(`  📈 High success rate (+3)`)
+    // Religious facilities
+    if (preferences.religiousFacilities) {
+      if (
+        specialFeatures.some(
+          (feature) =>
+            feature.toLowerCase().includes("religious") ||
+            feature.toLowerCase().includes("prayer") ||
+            feature.toLowerCase().includes("mosque") ||
+            feature.toLowerCase().includes("islamic"),
+        )
+      ) {
+        score += 3
+        reasons.push("Religious facilities available")
+      } else {
+        warnings.push("Limited religious facilities")
+      }
+    }
+
+    // Halal food
+    if (preferences.halalFood) {
+      if (
+        specialFeatures.some(
+          (feature) =>
+            feature.toLowerCase().includes("halal") ||
+            feature.toLowerCase().includes("muslim") ||
+            feature.toLowerCase().includes("islamic"),
+        )
+      ) {
+        score += 2
+        reasons.push("Halal food options available")
+      } else {
+        warnings.push("Limited halal food options")
+      }
+    }
+
+    // Work while studying
+    if (preferences.workWhileStudying) {
+      if (
+        specialFeatures.some(
+          (feature) =>
+            feature.toLowerCase().includes("work") ||
+            feature.toLowerCase().includes("employment") ||
+            feature.toLowerCase().includes("part-time"),
+        ) ||
+        destination.work_permit_available
+      ) {
+        score += 3
+        reasons.push("Work opportunities available")
+      } else {
+        warnings.push("Limited work opportunities")
+      }
     }
 
     return { score, reasons, warnings }
   }
 
-  /**
-   * Calculate estimated costs
-   */
-  private static calculateEstimatedCosts(destination: DestinationData, preferences: ConsultationPreferences) {
-    const studyLevel = preferences.studyLevel.toLowerCase()
+  private static analyzeAcademicRequirements(destination: any, preferences: DestinationPreferences) {
+    let score = 0
+    const reasons: string[] = []
+    const warnings: string[] = []
 
-    let tuitionMin = 0
-    let tuitionMax = 0
+    // GPA requirements analysis
+    const minGPA = this.safeParseNumber(destination.min_gpa_requirement, 2.5)
 
-    switch (studyLevel) {
-      case "bachelor":
-        tuitionMin = destination.bachelor_tuition_min || 0
-        tuitionMax = destination.bachelor_tuition_max || 0
+    let userGPAEstimate = 2.0
+    switch (preferences.currentGPA) {
+      case "excellent":
+        userGPAEstimate = 3.8
         break
-      case "master":
-        tuitionMin = destination.master_tuition_min || 0
-        tuitionMax = destination.master_tuition_max || 0
+      case "good":
+        userGPAEstimate = 3.3
         break
-      case "phd":
-        tuitionMin = destination.phd_tuition_min || 0
-        tuitionMax = destination.phd_tuition_max || 0
+      case "intermediate":
+        userGPAEstimate = 2.7
+        break
+      case "improving":
+        userGPAEstimate = 2.2
         break
     }
 
-    // Fallback to general fees
-    if (tuitionMin === 0 && tuitionMax === 0 && destination.fees) {
-      tuitionMin = Math.round(destination.fees * 0.8)
-      tuitionMax = Math.round(destination.fees * 1.2)
-    }
+    if (userGPAEstimate >= minGPA) {
+      score += 8
+      reasons.push("Meets academic requirements")
 
-    // If still no data, use reasonable defaults based on level
-    if (tuitionMin === 0 && tuitionMax === 0) {
-      switch (studyLevel) {
-        case "bachelor":
-          tuitionMin = 2000
-          tuitionMax = 8000
-          break
-        case "master":
-          tuitionMin = 3000
-          tuitionMax = 10000
-          break
-        case "phd":
-          tuitionMin = 1000
-          tuitionMax = 6000
-          break
+      if (userGPAEstimate > minGPA + 0.5) {
+        score += 2
+        reasons.push("Strong academic profile")
+      }
+    } else {
+      const gap = minGPA - userGPAEstimate
+      if (gap <= 0.3) {
+        score += 3
+        warnings.push("Close to academic requirements")
+      } else {
+        warnings.push("May not meet academic requirements")
       }
     }
 
-    const livingCosts = Math.round((preferences.livingCostsBudgetRange[0] + preferences.livingCostsBudgetRange[1]) / 2)
-    const serviceFees =
-      (destination.application_fee || 0) + (destination.service_fee || 0) + (destination.visa_processing_fee || 0) ||
-      500
+    return { score, reasons, warnings }
+  }
+
+  private static calculateEstimatedCosts(destination: any, preferences: DestinationPreferences) {
+    const tuitionMin = this.safeParseNumber(destination.bachelor_tuition_min, 0)
+    const tuitionMax = this.safeParseNumber(destination.bachelor_tuition_max, 50000)
+    const livingMin = this.safeParseNumber(destination.living_cost_min, 400)
+    const livingMax = this.safeParseNumber(destination.living_cost_max, 1200)
+    const serviceFees = this.safeParseNumber(destination.service_fees, 500)
+
+    // Adjust for study level
+    let tuitionMultiplier = 1
+    if (preferences.studyLevel === "Master") {
+      tuitionMultiplier = 1.2
+    } else if (preferences.studyLevel === "PhD") {
+      tuitionMultiplier = 0.8 // Often funded
+    }
+
+    const adjustedTuitionMin = tuitionMin * tuitionMultiplier
+    const adjustedTuitionMax = tuitionMax * tuitionMultiplier
+    const estimatedLivingCosts = (livingMin + livingMax) / 2
 
     return {
-      tuitionRange: [tuitionMin, tuitionMax] as [number, number],
-      livingCosts,
+      tuitionRange: [adjustedTuitionMin, adjustedTuitionMax] as [number, number],
+      livingCosts: estimatedLivingCosts * 12, // Annual
       serviceFees,
-      totalRange: [tuitionMin + livingCosts + serviceFees, tuitionMax + livingCosts + serviceFees] as [number, number],
-    }
-  }
-
-  /**
-   * Get recommendation level
-   */
-  private static getRecommendationLevel(
-    score: number,
-    warningCount: number,
-  ): "highly_recommended" | "recommended" | "consider" | "not_recommended" {
-    if (score >= 75 && warningCount <= 1) {
-      return "highly_recommended"
-    } else if (score >= 55 && warningCount <= 3) {
-      return "recommended"
-    } else if (score >= 30) {
-      return "consider"
-    } else {
-      return "not_recommended"
-    }
-  }
-
-  /**
-   * Get budget fit assessment
-   */
-  private static getBudgetFit(
-    estimatedCosts: any,
-    preferences: ConsultationPreferences,
-  ): "excellent" | "good" | "acceptable" | "challenging" {
-    const userMaxBudget =
-      preferences.tuitionBudgetRange[1] + preferences.livingCostsBudgetRange[1] + preferences.serviceFeesBudgetRange[1]
-    const destinationMaxCost = estimatedCosts.totalRange[1]
-
-    if (destinationMaxCost <= userMaxBudget * 0.8) {
-      return "excellent"
-    } else if (destinationMaxCost <= userMaxBudget) {
-      return "good"
-    } else if (destinationMaxCost <= userMaxBudget * 1.2) {
-      return "acceptable"
-    } else {
-      return "challenging"
+      totalEstimate: adjustedTuitionMax + estimatedLivingCosts * 12 + serviceFees,
     }
   }
 }
+
 
 
 
