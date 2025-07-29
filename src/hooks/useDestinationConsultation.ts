@@ -19,97 +19,6 @@ export interface ConsultationStep {
   completed: boolean
 }
 
-// Mock destinations for fallback when database is unavailable
-const mockDestinations = [
-  {
-    id: "1",
-    name: "France Study Programs",
-    country: "France",
-    city: "Paris",
-    region: "Western Europe",
-    fees: 8000,
-    description: "Comprehensive study programs in France with excellent academic reputation and cultural diversity.",
-    status: "Active",
-    bachelor_tuition_min: 2000,
-    bachelor_tuition_max: 8000,
-    master_tuition_min: 3000,
-    master_tuition_max: 12000,
-    phd_tuition_min: 1000,
-    phd_tuition_max: 5000,
-    available_programs: ["Bachelor", "Master", "PhD"],
-    program_languages: ["French", "English"],
-    language_requirements: "French B2 or English B2",
-    intake_periods: ["September", "January"],
-    religious_facilities: true,
-    halal_food_availability: true,
-    living_cost_min: 800,
-    living_cost_max: 1200,
-    application_fee: 100,
-    service_fee: 500,
-    visa_processing_fee: 99,
-    admission_success_rate: 75,
-    image_url: "/placeholder.svg?height=300&width=400&text=France",
-  },
-  {
-    id: "2",
-    name: "Germany Study Programs",
-    country: "Germany",
-    city: "Berlin",
-    region: "Western Europe",
-    fees: 1000,
-    description: "High-quality education in Germany with minimal tuition fees and strong industry connections.",
-    status: "Active",
-    bachelor_tuition_min: 0,
-    bachelor_tuition_max: 500,
-    master_tuition_min: 0,
-    master_tuition_max: 1000,
-    phd_tuition_min: 0,
-    phd_tuition_max: 500,
-    available_programs: ["Bachelor", "Master", "PhD"],
-    program_languages: ["German", "English"],
-    language_requirements: "German B2 or English B2",
-    intake_periods: ["September", "March"],
-    religious_facilities: true,
-    halal_food_availability: true,
-    living_cost_min: 700,
-    living_cost_max: 1100,
-    application_fee: 75,
-    service_fee: 400,
-    visa_processing_fee: 75,
-    admission_success_rate: 80,
-    image_url: "/placeholder.svg?height=300&width=400&text=Germany",
-  },
-  {
-    id: "3",
-    name: "Canada Study Programs",
-    country: "Canada",
-    city: "Toronto",
-    region: "North America",
-    fees: 15000,
-    description: "World-class education in Canada with diverse programs and excellent post-graduation opportunities.",
-    status: "Active",
-    bachelor_tuition_min: 12000,
-    bachelor_tuition_max: 25000,
-    master_tuition_min: 15000,
-    master_tuition_max: 35000,
-    phd_tuition_min: 8000,
-    phd_tuition_max: 20000,
-    available_programs: ["Bachelor", "Master", "PhD"],
-    program_languages: ["English", "French"],
-    language_requirements: "English IELTS 6.5 or French TEF B2",
-    intake_periods: ["September", "January", "May"],
-    religious_facilities: true,
-    halal_food_availability: true,
-    living_cost_min: 1000,
-    living_cost_max: 1500,
-    application_fee: 150,
-    service_fee: 600,
-    visa_processing_fee: 150,
-    admission_success_rate: 70,
-    image_url: "/placeholder.svg?height=300&width=400&text=Canada",
-  },
-]
-
 export const useDestinationConsultation = () => {
   const { user } = useAuth()
   const { toast } = useToast()
@@ -122,29 +31,18 @@ export const useDestinationConsultation = () => {
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false)
   const [analysisError, setAnalysisError] = useState<Error | null>(null)
 
-  // Get destinations with fallback to mock data
-  const getDestinations = () => {
-    if (destinations?.destinations && destinations.destinations.length > 0) {
-      return destinations.destinations
-    }
-    console.log("🔄 Using mock destinations as fallback")
-    return mockDestinations
-  }
-
-  // Find matching destinations
+  // Find matching destinations - Only works with real data
   const findMatches = async (preferences: ConsultationPreferences): Promise<MatchedDestination[]> => {
     console.log("🔍 Starting destination matching process...")
-
-    const availableDestinations = getDestinations()
-    console.log("📊 Available destinations:", availableDestinations?.length || 0)
+    console.log("📊 Available destinations:", destinations?.destinations?.length || 0)
     console.log("⚙️ User preferences:", preferences)
 
-    if (!availableDestinations || availableDestinations.length === 0) {
+    if (!destinations?.destinations || destinations.destinations.length === 0) {
       console.warn("❌ No destinations available for matching")
-      throw new Error("No destinations available")
+      throw new Error("No destinations available. Please try again later.")
     }
 
-    const matches = DestinationMatchingService.findMatchingDestinations(availableDestinations, preferences)
+    const matches = DestinationMatchingService.findMatchingDestinations(destinations.destinations, preferences)
 
     console.log("✅ Matching completed. Found:", matches.length, "matches")
     setMatchedDestinations(matches)
@@ -164,7 +62,7 @@ export const useDestinationConsultation = () => {
 
       const consultationResult = {
         user_id: user.id,
-        study_level: data.preferences.studyLevel,
+        study_level: data.preferences.studyLevel as any,
         budget:
           data.preferences.tuitionBudgetRange[1] +
           data.preferences.livingCostsBudgetRange[1] +
@@ -185,6 +83,8 @@ export const useDestinationConsultation = () => {
         consultation_date: new Date().toISOString(),
         work_while_studying: data.preferences.workWhileStudying,
         scholarship_required: data.preferences.scholarshipRequired,
+        religious_facilities_required: data.preferences.religiousFacilities,
+        halal_food_required: data.preferences.halalFood,
       }
 
       const { data: result, error } = await supabase
@@ -298,17 +198,27 @@ export const useDestinationConsultation = () => {
     setAnalysisError(null)
 
     try {
-      const availableDestinations = getDestinations()
-      console.log("🏛️ Available destinations:", availableDestinations?.length || 0)
-
-      if (!availableDestinations || availableDestinations.length === 0) {
-        console.log("❌ No destinations data available")
-        setMatchedDestinations([])
+      // Wait for destinations to load if they're still loading
+      if (destinationsLoading) {
+        console.log("⏳ Waiting for destinations to load...")
         return
       }
 
+      if (destinationsError) {
+        console.error("❌ Destinations loading error:", destinationsError)
+        throw destinationsError
+      }
+
+      console.log("🏛️ Available destinations:", destinations?.destinations?.length || 0)
+
+      if (!destinations || !destinations.destinations || destinations.destinations.length === 0) {
+        console.log("❌ No destinations data available")
+        setMatchedDestinations([])
+        throw new Error("No destinations data available. Please try again later.")
+      }
+
       // Analyze destinations using the matching service
-      const results = DestinationMatchingService.findMatchingDestinations(availableDestinations, preferences)
+      const results = DestinationMatchingService.findMatchingDestinations(destinations.destinations, preferences)
 
       console.log("📊 Found matches:", results.length)
       setMatchedDestinations(results)
@@ -316,6 +226,7 @@ export const useDestinationConsultation = () => {
       console.error("❌ Error in destination analysis:", err)
       setAnalysisError(err as Error)
       setMatchedDestinations([])
+      throw err
     } finally {
       setIsLoadingAnalysis(false)
     }
@@ -334,7 +245,7 @@ export const useDestinationConsultation = () => {
 
     // Data
     consultationHistory,
-    destinations: getDestinations(),
+    destinations: destinations?.destinations || [],
     analysisError,
 
     // Actions
@@ -352,4 +263,5 @@ export const useDestinationConsultation = () => {
     isSaving: saveConsultationMutation.isPending,
   }
 }
+
 
