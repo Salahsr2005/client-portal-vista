@@ -1,150 +1,114 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { supabase } from "@/integrations/supabase/client"
-import type { Program } from "@/types/Program"
+import type { Tables } from "@/integrations/supabase/types"
 
-export const usePrograms = (filters?: any) => {
-  const [data, setData] = useState<Program[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+export interface ProgramsQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  country?: string
+  level?: Tables<"programs">["study_level"]
+  field?: Tables<"programs">["field"]
+  language?: string
+  maxBudget?: number
+  withScholarship?: boolean
+}
 
-  useEffect(() => {
-    const fetchPrograms = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
+export interface ProgramsResponse {
+  programs: Tables<"programs">[]
+  totalCount: number
+  totalPages: number
+  currentPage: number
+}
 
-        let query = supabase.from("programs").select("*").eq("status", "Active")
+export const usePrograms = (params: ProgramsQueryParams = {}) => {
+  return useQuery({
+    queryKey: ["programs", params],
+    queryFn: async (): Promise<ProgramsResponse> => {
+      let query = supabase.from("programs").select("*", { count: "exact" }).eq("status", "Active")
 
-        // Apply filters if provided
-        if (filters) {
-          if (filters.study_level) {
-            query = query.eq("study_level", filters.study_level)
-          }
-          if (filters.country) {
-            query = query.eq("country", filters.country)
-          }
-          if (filters.field) {
-            query = query.eq("field", filters.field)
-          }
-          if (filters.program_language) {
-            query = query.eq("program_language", filters.program_language)
-          }
-        }
-
-        const { data: programs, error: fetchError } = await query.order("created_at", { ascending: false })
-
-        if (fetchError) {
-          console.error("Error fetching programs:", fetchError)
-          throw fetchError
-        }
-
-        console.log("✅ Programs fetched successfully:", programs?.length || 0)
-        setData(programs || [])
-      } catch (err) {
-        console.error("❌ Error in usePrograms:", err)
-        setError(err as Error)
-      } finally {
-        setIsLoading(false)
+      // Apply filters
+      if (params.search) {
+        query = query.or(
+          `name.ilike.%${params.search}%,university.ilike.%${params.search}%,description.ilike.%${params.search}%`,
+        )
       }
-    }
 
-    fetchPrograms()
-  }, [filters])
+      if (params.country) {
+        query = query.eq("country", params.country)
+      }
 
-  return { data, isLoading, error }
+      if (params.level) {
+        query = query.eq("study_level", params.level)
+      }
+
+      if (params.field) {
+        query = query.eq("field", params.field)
+      }
+
+      if (params.language) {
+        query = query.eq("program_language", params.language)
+      }
+
+      if (params.maxBudget) {
+        query = query.lte("tuition_max", params.maxBudget)
+      }
+
+      if (params.withScholarship) {
+        query = query.eq("scholarship_available", true)
+      }
+
+      // Pagination
+      const page = params.page || 1
+      const limit = params.limit || 12
+      const from = (page - 1) * limit
+      const to = from + limit - 1
+
+      query = query.range(from, to)
+
+      const { data, error, count } = await query
+
+      if (error) {
+        console.error("Error fetching programs:", error)
+        throw error
+      }
+
+      const totalCount = count || 0
+      const totalPages = Math.ceil(totalCount / limit)
+
+      return {
+        programs: data || [],
+        totalCount,
+        totalPages,
+        currentPage: page,
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+  })
 }
 
 export const useProgram = (id: string) => {
-  const [data, setData] = useState<Program | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  return useQuery({
+    queryKey: ["program", id],
+    queryFn: async () => {
+      if (!id) return null
 
-  useEffect(() => {
-    const fetchProgram = async () => {
-      if (!id) {
-        setIsLoading(false)
-        return
+      const { data, error } = await supabase.from("programs").select("*").eq("id", id).single()
+
+      if (error) {
+        console.error("Error fetching program:", error)
+        throw error
       }
 
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        console.log("🔍 Fetching program with ID:", id)
-
-        const { data: program, error: fetchError } = await supabase.from("programs").select("*").eq("id", id).single()
-
-        if (fetchError) {
-          console.error("❌ Error fetching program:", fetchError)
-          throw fetchError
-        }
-
-        if (!program) {
-          console.warn("⚠️ No program found with ID:", id)
-          setData(null)
-        } else {
-          console.log("✅ Program fetched successfully:", program.name)
-          setData(program)
-        }
-      } catch (err) {
-        console.error("❌ Error in useProgram:", err)
-        setError(err as Error)
-        setData(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchProgram()
-  }, [id])
-
-  return { data, isLoading, error }
+      return data
+    },
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
+  })
 }
 
-export const useProgramsByDestination = (destinationId: string) => {
-  const [data, setData] = useState<Program[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    const fetchPrograms = async () => {
-      if (!destinationId) {
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        setIsLoading(true)
-        setError(null)
-
-        const { data: programs, error: fetchError } = await supabase
-          .from("programs")
-          .select("*")
-          .eq("destination_id", destinationId)
-          .eq("status", "Active")
-          .order("created_at", { ascending: false })
-
-        if (fetchError) {
-          console.error("Error fetching programs by destination:", fetchError)
-          throw fetchError
-        }
-
-        setData(programs || [])
-      } catch (err) {
-        console.error("Error in useProgramsByDestination:", err)
-        setError(err as Error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchPrograms()
-  }, [destinationId])
-
-  return { data, isLoading, error }
-}
 
 
 
