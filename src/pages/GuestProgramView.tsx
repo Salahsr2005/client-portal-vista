@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useProgram } from "@/hooks/usePrograms"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { getMockProgramById } from "@/utils/mockData"
 import {
   ArrowLeft,
   MapPin,
@@ -24,7 +25,6 @@ import {
   Download,
   TrendingUp,
   Play,
-  ExternalLink,
   Heart,
   Zap,
   Phone,
@@ -59,8 +59,11 @@ export default function GuestProgramView() {
   const [showImageModal, setShowImageModal] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
 
-  // Fetch program data using the hook
-  const { data: program, isLoading: programLoading, error } = useProgram(id || "")
+  // Try to fetch program data from database first, then fallback to mock data
+  const { data: dbProgram, isLoading: programLoading, error } = useProgram(id || "")
+
+  // Use mock data as fallback if database fetch fails or returns null
+  const program = dbProgram || getMockProgramById(id || "")
 
   // Mock gallery images - in real app, these would come from the program data
   const mockGalleryImages = [
@@ -85,21 +88,12 @@ export default function GuestProgramView() {
     },
     {
       id: "3",
-      name: "Master in European Business",
-      university: "INSEAD",
-      country: "France",
-      tuition_min: 20000,
-      tuition_max: 25000,
+      name: "Master in Computer Science",
+      university: "Technical University of Munich",
+      country: "Germany",
+      tuition_min: 0,
+      tuition_max: 500,
       match_score: 88,
-    },
-    {
-      id: "4",
-      name: "International Management Master",
-      university: "IE Business School",
-      country: "Spain",
-      tuition_min: 22000,
-      tuition_max: 27000,
-      match_score: 85,
     },
   ]
 
@@ -114,11 +108,11 @@ export default function GuestProgramView() {
 
   const handleApply = () => {
     toast({
-      title: "Sign Up Required",
-      description: "Please create an account to apply for this program.",
+      title: "Service Coming Soon",
+      description: "Applications will be available starting September 1st, 2025. Continue exploring in guest mode!",
       action: (
-        <Button variant="outline" size="sm" onClick={() => navigate("/register")}>
-          Sign Up
+        <Button variant="outline" size="sm" onClick={() => navigate("/guest")}>
+          Explore More
         </Button>
       ),
     })
@@ -176,7 +170,7 @@ export default function GuestProgramView() {
     )
   }
 
-  if (error || !program) {
+  if (!program) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/20 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
@@ -1037,20 +1031,21 @@ export default function GuestProgramView() {
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 backdrop-blur-sm sticky top-24">
                   <CardContent className={cn(isMobile ? "p-4" : "p-6")}>
                     <div className="text-center mb-4">
-                      <h3 className={cn("font-semibold mb-2", isMobile ? "text-base" : "text-lg")}>Ready to Apply?</h3>
+                      <h3 className={cn("font-semibold mb-2", isMobile ? "text-base" : "text-lg")}>Coming Soon!</h3>
                       <p className={cn("text-muted-foreground", isMobile ? "text-xs" : "text-sm")}>
-                        Join thousands of students who chose this program
+                        Applications open September 1st, 2025
                       </p>
                     </div>
 
                     <div className="space-y-3">
                       <Button
                         onClick={handleApply}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
                         size={isMobile ? "sm" : "default"}
+                        disabled
                       >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Apply Now
+                        <Clock className="w-4 h-4 mr-2" />
+                        Apply (Coming Soon)
                       </Button>
                       <Button variant="outline" className="w-full bg-transparent" size={isMobile ? "sm" : "default"}>
                         <Heart className="w-4 h-4 mr-2" />
@@ -1071,12 +1066,8 @@ export default function GuestProgramView() {
 
                     <div className={cn("space-y-2", isMobile ? "text-xs" : "text-sm")}>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Application Deadline:</span>
-                        <span className="font-medium">
-                          {program.application_deadline
-                            ? new Date(program.application_deadline).toLocaleDateString()
-                            : "Rolling"}
-                        </span>
+                        <span className="text-muted-foreground">Application Opens:</span>
+                        <span className="font-medium">Sept 1, 2025</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Application Fee:</span>
@@ -1108,26 +1099,28 @@ export default function GuestProgramView() {
                         variant="outline"
                         className="w-full justify-start bg-transparent"
                         size={isMobile ? "sm" : "default"}
+                        disabled
                       >
                         <Phone className="w-4 h-4 mr-2" />
-                        Call Admissions
+                        Call Admissions (Coming Soon)
                       </Button>
                       <Button
                         variant="outline"
                         className="w-full justify-start bg-transparent"
                         size={isMobile ? "sm" : "default"}
+                        disabled
                       >
                         <Mail className="w-4 h-4 mr-2" />
-                        Email Support
+                        Email Support (Coming Soon)
                       </Button>
                       <Button
                         variant="outline"
                         className="w-full justify-start bg-transparent"
                         size={isMobile ? "sm" : "default"}
-                        onClick={() => navigate("/guest/chat")}
+                        onClick={() => navigate("/guest")}
                       >
                         <MessageCircle className="w-4 h-4 mr-2" />
-                        Live Chat
+                        Explore More
                       </Button>
                     </div>
                   </CardContent>
@@ -1253,6 +1246,7 @@ export default function GuestProgramView() {
     </div>
   )
 }
+
 
 
 
