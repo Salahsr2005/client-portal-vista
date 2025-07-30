@@ -23,7 +23,8 @@ export interface Program {
   duration?: string
   duration_months?: number
   description?: string
-  requirements?: string[] | string
+  admission_requirements?: string
+  academic_requirements?: string
   application_deadline?: string
   intake_periods?: string[] | string
   scholarship_available?: boolean
@@ -44,6 +45,23 @@ export interface Program {
   hasHalalFood?: boolean
   matchScore?: number
   bgColorClass?: string
+  visa_fee?: number
+  language_test?: string
+  language_test_score?: string
+  language_test_exemptions?: string
+  gpa_requirement?: number
+  scholarship_details?: string
+  scholarship_amount?: number
+  scholarship_deadline?: string
+  application_process?: string
+  available_places?: number
+  total_places?: number
+  internship_opportunities?: boolean
+  exchange_opportunities?: boolean
+  north_african_community_size?: string
+  housing_availability?: string
+  housing_cost_min?: number
+  housing_cost_max?: number
 }
 
 export interface ProgramsQueryParams {
@@ -54,8 +72,7 @@ export interface ProgramsQueryParams {
   level?: string
   field?: string
   language?: string
-  minTuition?: number
-  maxTuition?: number
+  minBudget?: number
   maxBudget?: number
   withScholarship?: boolean
   sortBy?: string
@@ -88,6 +105,7 @@ export function usePrograms(params?: ProgramsQueryParams) {
         level,
         field,
         language,
+        minBudget,
         maxBudget,
         withScholarship,
         sortBy = "name",
@@ -100,29 +118,31 @@ export function usePrograms(params?: ProgramsQueryParams) {
 
       // Apply filters
       if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,university.ilike.%${search}%,field.ilike.%${search}%,description.ilike.%${search}%`,
-        )
+        query = query.or(`name.ilike.%${search}%,university.ilike.%${search}%,country.ilike.%${search}%`)
       }
 
-      if (country && country !== "all") {
+      if (country) {
         query = query.eq("country", country)
       }
 
-      if (level && level !== "all") {
-        query = query.or(`level.eq.${level},study_level.eq.${level}`)
+      if (level) {
+        query = query.eq("study_level", level)
       }
 
-      if (field && field !== "all") {
+      if (field) {
         query = query.eq("field", field)
       }
 
-      if (language && language !== "all") {
-        query = query.or(`language.ilike.%${language}%,program_language.ilike.%${language}%`)
+      if (language) {
+        query = query.eq("program_language", language)
+      }
+
+      if (minBudget !== undefined && minBudget > 0) {
+        query = query.gte("tuition_min", minBudget)
       }
 
       if (maxBudget !== undefined && maxBudget > 0) {
-        query = query.or(`tuition_fee.lte.${maxBudget},tuition_min.lte.${maxBudget}`)
+        query = query.lte("tuition_max", maxBudget)
       }
 
       if (withScholarship) {
@@ -130,7 +150,7 @@ export function usePrograms(params?: ProgramsQueryParams) {
       }
 
       // Apply sorting
-      const sortColumn = sortBy === "tuition_min" ? "tuition_fee" : sortBy
+      const sortColumn = sortBy === "tuition_min" ? "tuition_min" : sortBy
       query = query.order(sortColumn, { ascending: sortOrder === "asc" })
 
       // Apply pagination
@@ -149,7 +169,7 @@ export function usePrograms(params?: ProgramsQueryParams) {
         ...program,
         location: program.location || `${program.city || "Unknown"}, ${program.country}`,
         duration: program.duration || (program.duration_months ? `${program.duration_months} months` : "Not specified"),
-        requirements: parseJsonField(program.requirements, []),
+        requirements: parseJsonField(program.admission_requirements, []),
         intake_periods: parseJsonField(program.intake_periods, []),
         hasScholarship: program.scholarship_available,
         hasReligiousFacilities: program.religious_facilities,
@@ -213,7 +233,7 @@ export function usePrograms(params?: ProgramsQueryParams) {
         duration:
           programData.duration ||
           (programData.duration_months ? `${programData.duration_months} months` : "Not specified"),
-        requirements: parseJsonField(programData.requirements, []),
+        requirements: parseJsonField(programData.admission_requirements, []),
         intake_periods: parseJsonField(programData.intake_periods, []),
         hasScholarship: programData.scholarship_available,
         hasReligiousFacilities: programData.religious_facilities,
@@ -232,20 +252,6 @@ export function usePrograms(params?: ProgramsQueryParams) {
       return null
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const getUniqueValues = async (column: string): Promise<string[]> => {
-    try {
-      const { data, error } = await supabase.from("programs").select(column).not(column, "is", null)
-
-      if (error) throw error
-
-      const uniqueValues = [...new Set(data?.map((item) => item[column]).filter(Boolean))]
-      return uniqueValues.sort()
-    } catch (err) {
-      console.error(`❌ Error fetching unique ${column}:`, err)
-      return []
     }
   }
 
@@ -279,6 +285,7 @@ export function usePrograms(params?: ProgramsQueryParams) {
     params?.level,
     params?.field,
     params?.language,
+    params?.minBudget,
     params?.maxBudget,
     params?.withScholarship,
     params?.sortBy,
@@ -291,11 +298,12 @@ export function usePrograms(params?: ProgramsQueryParams) {
     error,
     fetchPrograms,
     fetchProgramById,
-    getUniqueValues,
     clearData: () => setData(null),
     clearError: () => setError(null),
+    refetch: () => (params ? fetchPrograms(params) : Promise.resolve({} as ProgramsResponse)),
   }
 }
+
 
 
 
