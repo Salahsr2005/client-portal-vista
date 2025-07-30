@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { supabase } from "@/integrations/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,6 +61,10 @@ import {
   PieChart,
   DollarSign,
   CreditCard,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react"
 
 interface Program {
@@ -109,6 +113,8 @@ interface Program {
   employment_rate: number
   created_at: string
   updated_at: string
+  ranking: number
+  status: string
 }
 
 export default function ProgramView() {
@@ -126,6 +132,9 @@ export default function ProgramView() {
   const [activeTab, setActiveTab] = useState("overview")
   const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const [viewCount, setViewCount] = useState(0)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [showImageModal, setShowImageModal] = useState(false)
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
 
   useEffect(() => {
     const fetchProgramDetails = async () => {
@@ -141,6 +150,16 @@ export default function ProgramView() {
 
         if (data) {
           setProgram(data)
+
+          // Generate gallery images based on program data
+          const images = [
+            data.image_url || `/placeholder.svg?height=400&width=800&text=${encodeURIComponent(data.university)}`,
+            `/placeholder.svg?height=400&width=600&text=${encodeURIComponent(data.name)}`,
+            `/placeholder.svg?height=400&width=600&text=${encodeURIComponent(data.university + " Campus")}`,
+            `/placeholder.svg?height=400&width=600&text=${encodeURIComponent(data.city + ", " + data.country)}`,
+          ]
+          setGalleryImages(images)
+
           // Increment view count
           await incrementViewCount()
         }
@@ -304,10 +323,32 @@ export default function ProgramView() {
     setExpandedSection(expandedSection === section ? null : section)
   }
 
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % galleryImages.length)
+  }
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length)
+  }
+
+  const formatCurrency = (amount: number | undefined) => {
+    if (amount === undefined) return "Not specified"
+
+    return new Intl.NumberFormat("de-DE", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]" />
+
+        <div className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
           {/* Hero Section Skeleton */}
           <div className="relative mb-8">
             <Skeleton className="h-80 w-full rounded-2xl" />
@@ -343,7 +384,14 @@ export default function ProgramView() {
   if (!program) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center relative z-10"
+        >
           <Card className="max-w-md mx-auto">
             <CardContent className="flex flex-col items-center justify-center p-8">
               <Info className="h-16 w-16 text-muted-foreground mb-4" />
@@ -369,6 +417,9 @@ export default function ProgramView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)] dark:bg-[linear-gradient(to_right,#1e  dark:bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)]" />
+
       {/* Floating Background Elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -377,6 +428,12 @@ export default function ProgramView() {
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+        {/* Back Button */}
+        <Button variant="ghost" onClick={() => navigate("/programs")} className="mb-6">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Programs
+        </Button>
+
         {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -396,10 +453,10 @@ export default function ProgramView() {
                     {program.study_level}
                   </Badge>
 
-                  {program.university_ranking && (
+                  {program.ranking && (
                     <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 px-3 py-1">
                       <Award className="mr-1 h-3 w-3" />
-                      Rank #{program.university_ranking}
+                      Rank #{program.ranking}
                     </Badge>
                   )}
 
@@ -470,7 +527,7 @@ export default function ProgramView() {
                   <div className="text-center p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20">
                     <CircleDollarSign className="h-8 w-8 text-green-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-green-600">
-                      ${Math.round((program.tuition_min + program.tuition_max) / 2 / 1000)}K
+                      {formatCurrency(Math.round((program.tuition_min + program.tuition_max) / 2))}
                     </div>
                     <div className="text-sm text-muted-foreground">Avg. Tuition</div>
                   </div>
@@ -645,11 +702,11 @@ export default function ProgramView() {
                               <span className="text-muted-foreground">Country</span>
                               <span className="font-medium">{program.country}</span>
                             </div>
-                            {program.university_ranking && (
+                            {program.ranking && (
                               <div className="flex justify-between items-center py-2">
                                 <span className="text-muted-foreground">University Ranking</span>
                                 <Badge className="bg-gradient-to-r from-amber-500 to-orange-600">
-                                  #{program.university_ranking}
+                                  #{program.ranking}
                                 </Badge>
                               </div>
                             )}
@@ -678,8 +735,7 @@ export default function ProgramView() {
                             Academic Requirements
                           </h4>
                           <p className="text-muted-foreground mb-4 leading-relaxed">
-                            {program.academic_requirements ||
-                              "Standard academic requirements apply based on your previous education level."}
+                            {program.academic_requirements || program.description}
                           </p>
                           {program.gpa_requirement && (
                             <div className="flex items-center bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
@@ -723,34 +779,12 @@ export default function ProgramView() {
                             <FileCheck className="mr-2 h-5 w-5 text-green-600" />
                             Required Documents
                           </h4>
-                          <div className="grid md:grid-cols-2 gap-4">
-                            {[
-                              {
-                                icon: FileCheck,
-                                title: "Academic Transcripts",
-                                desc: "Official transcripts from all institutions",
-                              },
-                              { icon: Languages, title: "Language Test Results", desc: "IELTS, TOEFL, or equivalent" },
-                              { icon: Shield, title: "Passport Copy", desc: "Valid for at least 6 months" },
-                              { icon: BookOpen, title: "Motivation Letter", desc: "Statement of purpose" },
-                              {
-                                icon: Users,
-                                title: "Recommendation Letters",
-                                desc: "2-3 academic/professional references",
-                              },
-                              { icon: FileCheck, title: "CV/Resume", desc: "Detailed academic and work history" },
-                            ].map((doc, index) => (
-                              <div
-                                key={index}
-                                className="flex items-start bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg"
-                              >
-                                <doc.icon className="h-5 w-5 text-green-600 mr-3 mt-0.5" />
-                                <div>
-                                  <div className="font-medium">{doc.title}</div>
-                                  <div className="text-sm text-muted-foreground">{doc.desc}</div>
-                                </div>
+                          <div className="space-y-4">
+                            {program.admission_requirements && (
+                              <div className="text-muted-foreground leading-relaxed">
+                                {program.admission_requirements}
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       </div>
@@ -766,7 +800,7 @@ export default function ProgramView() {
                             </h4>
                             <div className="text-center">
                               <div className="text-3xl font-bold text-blue-600 mb-2">
-                                ${program.tuition_min?.toLocaleString()} - ${program.tuition_max?.toLocaleString()}
+                                {formatCurrency(program.tuition_min)} - {formatCurrency(program.tuition_max)}
                               </div>
                               <div className="text-sm text-muted-foreground">Per year</div>
                             </div>
@@ -774,7 +808,7 @@ export default function ProgramView() {
                               <div className="flex justify-between text-sm">
                                 <span>Average:</span>
                                 <span className="font-medium">
-                                  ${Math.round((program.tuition_min + program.tuition_max) / 2).toLocaleString()}
+                                  {formatCurrency(Math.round((program.tuition_min + program.tuition_max) / 2))}
                                 </span>
                               </div>
                             </div>
@@ -787,8 +821,7 @@ export default function ProgramView() {
                             </h4>
                             <div className="text-center">
                               <div className="text-2xl font-bold text-green-600 mb-2">
-                                ${program.living_cost_min?.toLocaleString()} - $
-                                {program.living_cost_max?.toLocaleString()}
+                                {formatCurrency(program.living_cost_min)} - {formatCurrency(program.living_cost_max)}
                               </div>
                               <div className="text-sm text-muted-foreground">Per month</div>
                             </div>
@@ -804,13 +837,11 @@ export default function ProgramView() {
                             <div className="space-y-3">
                               <div className="flex justify-between items-center bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
                                 <span className="text-muted-foreground">Application Fee</span>
-                                <span className="font-medium">
-                                  ${program.application_fee?.toLocaleString() || "TBD"}
-                                </span>
+                                <span className="font-medium">{formatCurrency(program.application_fee)}</span>
                               </div>
                               <div className="flex justify-between items-center bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
                                 <span className="text-muted-foreground">Visa Fee</span>
-                                <span className="font-medium">${program.visa_fee?.toLocaleString() || "Varies"}</span>
+                                <span className="font-medium">{formatCurrency(program.visa_fee)}</span>
                               </div>
                             </div>
                           </div>
@@ -825,7 +856,7 @@ export default function ProgramView() {
                                 {program.scholarship_amount && (
                                   <div className="text-center bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg">
                                     <div className="text-2xl font-bold text-amber-600">
-                                      Up to ${program.scholarship_amount?.toLocaleString()}
+                                      Up to {formatCurrency(program.scholarship_amount)}
                                     </div>
                                     <div className="text-sm text-muted-foreground">Available</div>
                                   </div>
@@ -854,26 +885,26 @@ export default function ProgramView() {
                         <div className="grid md:grid-cols-3 gap-4">
                           <div className="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                             <div className="text-2xl font-bold text-blue-600">
-                              ${Math.round((program.tuition_min + program.tuition_max) / 2).toLocaleString()}
+                              {formatCurrency(Math.round((program.tuition_min + program.tuition_max) / 2))}
                             </div>
                             <div className="text-sm text-muted-foreground">Tuition</div>
                           </div>
                           <div className="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                             <div className="text-2xl font-bold text-green-600">
-                              $
-                              {Math.round(
-                                ((program.living_cost_min + program.living_cost_max) / 2) * 12,
-                              ).toLocaleString()}
+                              {formatCurrency(
+                                Math.round(((program.living_cost_min + program.living_cost_max) / 2) * 12),
+                              )}
                             </div>
                             <div className="text-sm text-muted-foreground">Living (12 months)</div>
                           </div>
                           <div className="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                             <div className="text-2xl font-bold text-purple-600">
-                              $
-                              {Math.round(
-                                (program.tuition_min + program.tuition_max) / 2 +
-                                  ((program.living_cost_min + program.living_cost_max) / 2) * 12,
-                              ).toLocaleString()}
+                              {formatCurrency(
+                                Math.round(
+                                  (program.tuition_min + program.tuition_max) / 2 +
+                                    ((program.living_cost_min + program.living_cost_max) / 2) * 12,
+                                ),
+                              )}
                             </div>
                             <div className="text-sm text-muted-foreground">Total</div>
                           </div>
@@ -902,8 +933,7 @@ export default function ProgramView() {
                             </h4>
                             <div className="text-center">
                               <div className="text-2xl font-bold text-green-600 mb-2">
-                                ${program.housing_cost_min?.toLocaleString()} - $
-                                {program.housing_cost_max?.toLocaleString()}
+                                {formatCurrency(program.housing_cost_min)} - {formatCurrency(program.housing_cost_max)}
                               </div>
                               <div className="text-sm text-muted-foreground">Per month</div>
                             </div>
@@ -1041,9 +1071,7 @@ export default function ProgramView() {
                       <CircleDollarSign className="h-5 w-5 text-green-600 mr-3" />
                       <div>
                         <div className="font-medium">Application Fee</div>
-                        <div className="text-sm text-muted-foreground">
-                          ${program.application_fee?.toLocaleString() || "Contact for details"}
-                        </div>
+                        <div className="text-sm text-muted-foreground">{formatCurrency(program.application_fee)}</div>
                       </div>
                     </div>
                   </div>
@@ -1070,13 +1098,8 @@ export default function ProgramView() {
                     Quick Requirements
                   </h4>
                   <div className="space-y-2">
-                    {["Academic transcripts", "Language proficiency test", "Passport copy", "Motivation letter"].map(
-                      (req, index) => (
-                        <div key={index} className="flex items-center text-sm">
-                          <Check className="h-4 w-4 text-green-600 mr-2" />
-                          <span>{req}</span>
-                        </div>
-                      ),
+                    {program.admission_requirements && (
+                      <div className="text-sm text-muted-foreground line-clamp-3">{program.admission_requirements}</div>
                     )}
                   </div>
 
@@ -1220,8 +1243,7 @@ export default function ProgramView() {
                 Academic Requirements
               </h3>
               <p className="text-muted-foreground mb-4 leading-relaxed">
-                {program.academic_requirements ||
-                  "Standard academic requirements apply based on your previous education level and the program you're applying for."}
+                {program.academic_requirements || program.description}
               </p>
 
               {program.gpa_requirement && (
@@ -1271,59 +1293,10 @@ export default function ProgramView() {
                 <FileCheck className="mr-2 h-6 w-6 text-green-600" />
                 Required Documents
               </h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                {[
-                  {
-                    icon: FileCheck,
-                    title: "Academic Transcripts",
-                    desc: "Official transcripts from all previously attended institutions, translated if necessary",
-                  },
-                  {
-                    icon: Languages,
-                    title: "Language Test Results",
-                    desc: "IELTS, TOEFL, or equivalent as specified by the program",
-                  },
-                  {
-                    icon: Shield,
-                    title: "Passport Copy",
-                    desc: "Valid passport copy, must be valid for at least 6 months beyond program end date",
-                  },
-                  {
-                    icon: BookOpen,
-                    title: "Motivation Letter",
-                    desc: "Personal statement explaining your interest and goals for the program",
-                  },
-                  {
-                    icon: Users,
-                    title: "Recommendation Letters",
-                    desc: "2-3 letters from academic or professional references",
-                  },
-                  {
-                    icon: FileCheck,
-                    title: "Curriculum Vitae",
-                    desc: "Detailed academic and professional history",
-                  },
-                  {
-                    icon: DollarSign,
-                    title: "Financial Documents",
-                    desc: "Proof of financial ability to fund your studies",
-                  },
-                  {
-                    icon: Award,
-                    title: "Certificates",
-                    desc: "Any relevant certificates, awards, or additional qualifications",
-                  },
-                ].map((doc, index) => (
-                  <div key={index} className="bg-white/50 dark:bg-gray-800/50 p-4 rounded-lg">
-                    <div className="flex items-start">
-                      <doc.icon className="h-5 w-5 text-green-600 mr-3 mt-1" />
-                      <div>
-                        <div className="font-medium text-green-800 dark:text-green-400">{doc.title}</div>
-                        <div className="text-sm text-muted-foreground mt-1">{doc.desc}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                {program.admission_requirements && (
+                  <div className="text-muted-foreground leading-relaxed">{program.admission_requirements}</div>
+                )}
               </div>
             </div>
 
@@ -1335,17 +1308,6 @@ export default function ProgramView() {
                   Application Process
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">{program.application_process}</p>
-              </div>
-            )}
-
-            {/* Admission Requirements */}
-            {program.admission_requirements && (
-              <div className="bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20 p-6 rounded-xl">
-                <h3 className="font-semibold text-xl mb-4 flex items-center">
-                  <Target className="mr-2 h-6 w-6 text-gray-600" />
-                  Additional Admission Requirements
-                </h3>
-                <p className="text-muted-foreground leading-relaxed">{program.admission_requirements}</p>
               </div>
             )}
           </div>
@@ -1367,7 +1329,68 @@ export default function ProgramView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Image Modal */}
+      <AnimatePresence>
+        {showImageModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowImageModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="relative max-w-4xl max-h-[90vh] w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={galleryImages[currentImageIndex] || "/placeholder.svg"}
+                alt={`Campus image ${currentImageIndex + 1}`}
+                className="w-full h-full object-contain rounded-lg"
+              />
+
+              {/* Navigation */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                onClick={prevImage}
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white"
+                onClick={nextImage}
+              >
+                <ChevronRight className="h-6 w-6" />
+              </Button>
+
+              {/* Close Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white"
+                onClick={() => setShowImageModal(false)}
+              >
+                <X className="h-6 w-6" />
+              </Button>
+
+              {/* Image Counter */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                {currentImageIndex + 1} / {galleryImages.length}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
+
 
