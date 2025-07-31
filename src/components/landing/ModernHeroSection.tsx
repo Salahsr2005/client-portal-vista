@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { ArrowRight, Clock, Users, Globe, Award, Star, Sparkles, User } from "lucide-react"
-
+import { useRouter } from "next/navigation"
 // Animated Counter Hook
 const useAnimatedCounter = (end: number, duration = 2000, start = 0) => {
   const [count, setCount] = useState(start)
@@ -365,9 +365,9 @@ export const ModernHeroSection = () => {
 
               {/* Disabled Buttons with Explanation */}
               <div className="flex flex-col sm:flex-row gap-4 ">
-                <ElegantButton variant="guest" onClick={() => {}} icon={User}>
+                <ElegantButton variant="guest" onClick={handleGuestMode} icon={User}>
                   {t("modernHero.guestMode")} 
-                </ElegantButton>
+                 </ElegantButton>
                 <ElegantButton
                   variant="primary"
                   onClick={() => {}}
