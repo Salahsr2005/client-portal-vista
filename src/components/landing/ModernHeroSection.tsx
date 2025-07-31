@@ -83,7 +83,6 @@ const ElegantButton = ({
       hover:bg-slate-700/50 text-slate-200 font-semibold
       px-8 py-4 rounded-lg transition-all duration-300
       transform hover:scale-[1.02] group
-      ${disabled ? "opacity-50 cursor-not-allowed hover:scale-100" : ""}
     `,
   }
 
