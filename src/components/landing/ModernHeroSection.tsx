@@ -365,7 +365,7 @@ export const ModernHeroSection = () => {
               </div>
 
               {/* Disabled Buttons with Explanation */}
-              <div className="flex flex-col sm:flex-row gap-4 opacity-60">
+              <div className="flex flex-col sm:flex-row gap-4 ">
                 <ElegantButton variant="guest" onClick={() => {}} icon={User}>
                   {t("modernHero.guestMode")} 
                 </ElegantButton>
