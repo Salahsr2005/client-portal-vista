@@ -79,7 +79,7 @@ export default {
       success: "Success Rate",
     },
     countdown: {
-      title: "We're Currently Updating Our Platform",
+      title: "We're Currently on vacation we will be back in",
       subtitle: "We're coming back in:",
     },
   },
