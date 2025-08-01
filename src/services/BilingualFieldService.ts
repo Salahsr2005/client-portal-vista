@@ -19,24 +19,8 @@ export class BilingualFieldService {
     {
       english: "Accounting",
       french: "Comptabilité",
-      keywords_en: [
-        "accounting",
-        "bookkeeping",
-        "financial reporting",
-        "auditing",
-        "taxation",
-        "CPA",
-        "financial statements",
-      ],
-      keywords_fr: [
-        "comptabilité",
-        "tenue de livres",
-        "rapport financier",
-        "audit",
-        "fiscalité",
-        "états financiers",
-        "comptable",
-      ],
+      keywords_en: ["accounting", "bookkeeping", "financial reporting"],
+      keywords_fr: ["comptabilité", "tenue de livres", "rapport financier"],
       category: "Business",
     },
     {
@@ -940,3 +924,4 @@ export class BilingualFieldService {
     return { exactMatch, partialMatch, matchScore, matchedKeywords }
   }
 }
+
