@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { ArrowRight, Clock, Users, Globe, Award, Star, Sparkles, User } from "lucide-react"
-import { useRouter } from "next/navigation"
+
 // Animated Counter Hook
 const useAnimatedCounter = (end: number, duration = 2000, start = 0) => {
   const [count, setCount] = useState(start)
@@ -59,7 +59,7 @@ const useAnimatedCounter = (end: number, duration = 2000, start = 0) => {
   return { count, ref: countRef }
 }
 
-// Elegant Button Component
+// Enhanced Elegant Button Component with Sparkles
 const ElegantButton = ({
   children,
   variant = "primary",
@@ -67,6 +67,7 @@ const ElegantButton = ({
   onClick,
   icon: Icon,
   disabled = false,
+  sparkle = false,
   ...props
 }) => {
   const variants = {
@@ -79,10 +80,16 @@ const ElegantButton = ({
       ${disabled ? "opacity-50 cursor-not-allowed hover:scale-100" : ""}
     `,
     guest: `
-      relative overflow-hidden bg-slate-800/50 backdrop-blur-sm border border-slate-600/30
-      hover:bg-slate-700/50 text-slate-200 font-semibold
-      px-8 py-4 rounded-lg transition-all duration-300
-      transform hover:scale-[1.02] group
+      relative overflow-hidden bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600
+      hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700
+      text-white font-semibold px-8 py-4 rounded-lg
+      shadow-lg hover:shadow-2xl transition-all duration-500
+      transform hover:scale-[1.05] group
+      ${sparkle ? "animate-pulse" : ""}
+      before:absolute before:inset-0 before:bg-gradient-to-r 
+      before:from-white/20 before:via-transparent before:to-white/20
+      before:translate-x-[-100%] hover:before:translate-x-[100%]
+      before:transition-transform before:duration-1000
     `,
   }
 
@@ -93,10 +100,62 @@ const ElegantButton = ({
       disabled={disabled}
       {...props}
     >
+      {/* Sparkle Effects for Guest Button */}
+      {sparkle && variant === "guest" && (
+        <>
+          <div className="absolute inset-0 overflow-hidden rounded-lg">
+            <div
+              className="absolute -top-1 -left-1 w-3 h-3 bg-white rounded-full opacity-70 animate-ping"
+              style={{ animationDelay: "0s", animationDuration: "2s" }}
+            />
+            <div
+              className="absolute top-1/4 right-1/4 w-2 h-2 bg-yellow-300 rounded-full opacity-80 animate-ping"
+              style={{ animationDelay: "0.5s", animationDuration: "1.5s" }}
+            />
+            <div
+              className="absolute bottom-1/4 left-1/3 w-2 h-2 bg-pink-300 rounded-full opacity-70 animate-ping"
+              style={{ animationDelay: "1s", animationDuration: "2.5s" }}
+            />
+            <div
+              className="absolute top-1/2 right-1/6 w-1 h-1 bg-blue-300 rounded-full opacity-90 animate-ping"
+              style={{ animationDelay: "1.5s", animationDuration: "1s" }}
+            />
+            <div
+              className="absolute bottom-1/6 right-1/3 w-2 h-2 bg-purple-300 rounded-full opacity-60 animate-ping"
+              style={{ animationDelay: "0.3s", animationDuration: "3s" }}
+            />
+            <div
+              className="absolute top-1/6 left-1/4 w-1 h-1 bg-indigo-300 rounded-full opacity-80 animate-ping"
+              style={{ animationDelay: "2s", animationDuration: "1.8s" }}
+            />
+          </div>
+
+          {/* Floating sparkles */}
+          <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-white rounded-full opacity-70"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animation: `sparkle-float 3s infinite ${Math.random() * 2}s ease-in-out`,
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
       <span className="relative z-10 flex items-center gap-3">
         {Icon && <Icon className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />}
         {children}
       </span>
+
+      {/* Additional glow effect for guest button */}
+      {sparkle && variant === "guest" && (
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-600/50 via-purple-600/50 to-pink-600/50 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
+      )}
     </button>
   )
 }
@@ -291,135 +350,157 @@ export const ModernHeroSection = () => {
   const typewriterTexts = [t("modernHero.subtitle"), t("modernHero.subtitle2"), t("modernHero.subtitle3")]
 
   return (
-    <section className="relative min-h-screen bg-slate-900 overflow-hidden">
-      {/* Elegant Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px),linear-gradient(to_bottom,#334155_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-30" />
+    <>
+      {/* Add sparkle animation styles */}
+      <style jsx>{`
+        @keyframes sparkle-float {
+          0%, 100% { 
+            transform: translateY(0px) rotate(0deg); 
+            opacity: 0.7; 
+          }
+          25% { 
+            transform: translateY(-10px) rotate(90deg); 
+            opacity: 1; 
+          }
+          50% { 
+            transform: translateY(-5px) rotate(180deg); 
+            opacity: 0.8; 
+          }
+          75% { 
+            transform: translateY(-15px) rotate(270deg); 
+            opacity: 0.9; 
+          }
+        }
+      `}</style>
 
-      {/* Corner Spotlights */}
-      <div
-        className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 50%, transparent 100%)",
-        }}
-      />
-      <div
-        className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, rgba(147, 51, 234, 0.1) 50%, transparent 100%)",
-        }}
-      />
-      <div
-        className="absolute bottom-0 left-0 w-96 h-96 rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 50%, transparent 100%)",
-        }}
-      />
-      <div
-        className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 50%, transparent 100%)",
-        }}
-      />
+      <section className="relative min-h-screen bg-slate-900 overflow-hidden">
+        {/* Elegant Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#334155_1px,transparent_1px),linear-gradient(to_bottom,#334155_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-30" />
 
-      {/* Subtle Gradient Overlays */}
-      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-800/20 via-transparent to-slate-800/20" />
+        {/* Corner Spotlights */}
+        <div
+          className="absolute top-0 left-0 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 50%, transparent 100%)",
+          }}
+        />
+        <div
+          className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(147, 51, 234, 0.2) 0%, rgba(147, 51, 234, 0.1) 50%, transparent 100%)",
+          }}
+        />
+        <div
+          className="absolute bottom-0 left-0 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.1) 50%, transparent 100%)",
+          }}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-96 h-96 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.1) 50%, transparent 100%)",
+          }}
+        />
 
-      <div className="relative z-10 container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Guest Mode Badge */}
-        <div className="flex justify-center mb-12">
-          <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-600/30 rounded-full px-4 py-2">
-            <Sparkles className="h-4 w-4 text-blue-400" />
-            <span className="text-slate-300 text-sm font-medium">{t("modernHero.badge")}</span>
-          </div>
-        </div>
+        {/* Subtle Gradient Overlays */}
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-slate-800/20 via-transparent to-slate-800/20" />
 
-        {/* Main Hero Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
-          {/* Left Content */}
-          <div className="space-y-8">
-            {/* Hero Title with Typewriter Effect */}
-            <div className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
-                <span className="block text-slate-200 mb-2">{t("modernHero.title")}</span>
-                <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 min-h-[1.2em]">
-                  <TypewriterText texts={typewriterTexts} />
-                </span>
-                <span className="block text-slate-200">à l'étranger</span>
-              </h1>
-            </div>
-
-            {/* Description */}
-            <p className="text-lg text-slate-300 leading-relaxed max-w-2xl">{t("modernHero.description")}</p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col items-center space-y-6">
-              {/* Application Season Countdown */}
-              <div className="text-center">
-                <h3 className="text-xl sm:text-2xl font-bold text-slate-200 mb-4">{t("modernHero.countdown.title")}</h3>
-                <CountdownTimer targetDate="2025-09-01T00:00:00" />
-              </div>
-
-              {/* Disabled Buttons with Explanation */}
-              <div className="flex flex-col sm:flex-row gap-4 ">
-                <ElegantButton variant="guest" onClick={handleGuestMode} icon={User}>
-                  {t("modernHero.guestMode")} 
-                 </ElegantButton>
-                <ElegantButton
-                  variant="primary"
-                  onClick={() => {}}
-                  icon={ArrowRight}
-                  disabled
-                  className="cursor-not-allowed"
-                >
-                  {t("modernHero.joinUs")} - Coming Soon
-                </ElegantButton>
-              </div>
-
-              <p className="text-sm text-slate-400 text-center max-w-md">
-                Registration and applications will open on September 1st, 2025. Get ready for the new academic season!
-              </p>
+        <div className="relative z-10 container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Guest Mode Badge */}
+          <div className="flex justify-center mb-12">
+            <div className="flex items-center gap-2 bg-slate-800/50 backdrop-blur-sm border border-slate-600/30 rounded-full px-4 py-2">
+              <Sparkles className="h-4 w-4 text-blue-400" />
+              <span className="text-slate-300 text-sm font-medium">{t("modernHero.badge")}</span>
             </div>
           </div>
 
-          {/* Right Content - Professional Image */}
-          <div className="relative">
-            <div className="relative overflow-hidden rounded-2xl shadow-2xl border border-slate-600/30 bg-slate-800/20 backdrop-blur-sm">
-              <img
-                src="/assets/hero-image?height=500&width=600"
-                alt="Euro Visa Professional"
-                className="w-full h-[500px] object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-              <div className="absolute bottom-6 left-6 text-slate-200">
-                <h3 className="text-2xl font-bold mb-1">Euro Visa</h3>
-                <p className="text-slate-300">Votre passerelle vers l'Europe</p>
+          {/* Main Hero Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-20">
+            {/* Left Content */}
+            <div className="space-y-8">
+              {/* Hero Title with Typewriter Effect */}
+              <div className="space-y-6">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+                  <span className="block text-slate-200 mb-2">{t("modernHero.title")}</span>
+                  <span className="block bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2 min-h-[1.2em]">
+                    <TypewriterText texts={typewriterTexts} />
+                  </span>
+                  <span className="block text-slate-200">à l'étranger</span>
+                </h1>
+              </div>
+
+              {/* Description */}
+              <p className="text-lg text-slate-300 leading-relaxed max-w-2xl">{t("modernHero.description")}</p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col items-center space-y-6">
+                {/* Application Season Countdown */}
+                <div className="text-center">
+                  <h3 className="text-xl sm:text-2xl font-bold text-slate-200 mb-4">
+                    {t("modernHero.countdown.title")}
+                  </h3>
+                  <CountdownTimer targetDate="2025-09-01T00:00:00" />
+                </div>
+
+                {/* Enhanced Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <ElegantButton variant="guest" onClick={handleGuestMode} icon={User} sparkle={true}>
+                    {t("modernHero.guestMode")}
+                  </ElegantButton>
+                  <ElegantButton
+                    variant="primary"
+                    onClick={() => {}}
+                    icon={ArrowRight}
+                    disabled
+                    className="cursor-not-allowed"
+                  >
+                    {t("modernHero.joinUs")} - Coming Soon
+                  </ElegantButton>
+                </div>
+
+                <p className="text-sm text-slate-400 text-center max-w-md">
+                  Registration and applications will open on September 1st, 2025. Get ready for the new academic season!
+                </p>
+              </div>
+            </div>
+
+            {/* Right Content - Professional Image */}
+            <div className="relative">
+              <div className="relative overflow-hidden rounded-2xl shadow-2xl border border-slate-600/30 bg-slate-800/20 backdrop-blur-sm">
+                <img
+                  src="/assets/hero-image.jpg"
+                  alt="Euro Visa Professional"
+                  className="w-full h-[500px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
+                <div className="absolute bottom-6 left-6 text-slate-200">
+                  <h3 className="text-2xl font-bold mb-1">Euro Visa</h3>
+                  <p className="text-slate-300">Votre passerelle vers l'Europe</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Stats Grid with Animated Counters */}
-        <div className="mb-20">
-          <StatsGrid />
-        </div>
+          {/* Stats Grid with Animated Counters */}
+          <div className="mb-20">
+            <StatsGrid />
+          </div>
 
-        {/* Countdown Section */}
-        <div className="text-center">
-          <h3 className="text-2xl font-bold text-slate-200 mb-8">{t("modernHero.countdown.title")}</h3>
-          <CountdownTimer targetDate="2025-09-01T00:00:00" />
+          {/* Countdown Section */}
+          <div className="text-center">
+            <h3 className="text-2xl font-bold text-slate-200 mb-8">{t("modernHero.countdown.title")}</h3>
+            <CountdownTimer targetDate="2025-09-01T00:00:00" />
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   )
 }
 
 // Default export for compatibility
 export default ModernHeroSection
-
-
-
-
