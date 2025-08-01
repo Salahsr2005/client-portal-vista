@@ -6,14 +6,16 @@ import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Lock, CreditCard, User, ArrowRight, Sparkles } from "lucide-react"
+import { Eye, Lock, CreditCard, User, ArrowRight, Sparkles, Star } from "lucide-react" // Added Star icon
 import { useGuestMode } from "@/contexts/GuestModeContext"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { LanguageSelector } from "@/components/LanguageSelector"
+import { useTranslation } from "react-i18next" // Import useTranslation
 
 export default function Guest() {
   const navigate = useNavigate()
   const { enableGuestMode } = useGuestMode()
+  const { t } = useTranslation() // Initialize useTranslation
 
   useEffect(() => {
     enableGuestMode()
@@ -22,8 +24,8 @@ export default function Guest() {
   const guestFeatures = [
     {
       icon: <Eye className="h-6 w-6" />,
-      title: "Browse Destinations",
-      description: "Explore universities and programs worldwide",
+      title: t("guest.features.browseDestinations.title"), // Translated
+      description: t("guest.features.browseDestinations.description"), // Translated
       path: "/guest/destinations",
       gradient: "from-blue-500/10 to-cyan-500/10",
       iconBg: "bg-blue-500/10 group-hover:bg-blue-500",
@@ -31,8 +33,8 @@ export default function Guest() {
     },
     {
       icon: <Eye className="h-6 w-6" />,
-      title: "View Programs",
-      description: "Discover academic programs and requirements",
+      title: t("guest.features.viewPrograms.title"), // Translated
+      description: t("guest.features.viewPrograms.description"), // Translated
       path: "/guest/programs",
       gradient: "from-purple-500/10 to-pink-500/10",
       iconBg: "bg-purple-500/10 group-hover:bg-purple-500",
@@ -40,8 +42,8 @@ export default function Guest() {
     },
     {
       icon: <Eye className="h-6 w-6" />,
-      title: "Check Services",
-      description: "See our comprehensive service offerings",
+      title: t("guest.features.checkServices.title"), // Translated
+      description: t("guest.features.checkServices.description"), // Translated
       path: "/guest/services",
       gradient: "from-green-500/10 to-emerald-500/10",
       iconBg: "bg-green-500/10 group-hover:bg-green-500",
@@ -49,27 +51,36 @@ export default function Guest() {
     },
     {
       icon: <Eye className="h-6 w-6" />,
-      title: "Try Consultation",
-      description: "Experience our automated consultation tool",
+      title: t("guest.features.tryConsultation.title"), // Translated
+      description: t("guest.features.tryConsultation.description"), // Translated
       path: "/guest/consultation",
       gradient: "from-orange-500/10 to-red-500/10",
       iconBg: "bg-orange-500/10 group-hover:bg-orange-500",
       color: "text-orange-600",
+    },
+    {
+      icon: <Star className="h-6 w-6" />, // Star icon for Dawini
+      title: t("guest.features.dawiniService.title"), // Translated
+      description: t("guest.features.dawiniService.description"), // Translated
+      path: "/guest/dawini-service", // New path for Dawini service
+      gradient: "from-amber-400/10 to-yellow-500/10", // Golden gradient
+      iconBg: "bg-amber-400/10 group-hover:bg-amber-400", // Golden icon background
+      color: "text-amber-600", // Golden text color
     },
   ]
 
   const restrictions = [
     {
       icon: <Lock className="h-5 w-5" />,
-      text: "Cannot apply to programs",
+      text: t("guest.restrictions.applyPrograms"), // Translated
     },
     {
       icon: <CreditCard className="h-5 w-5" />,
-      text: "No payment features",
+      text: t("guest.restrictions.noPaymentFeatures"), // Translated
     },
     {
       icon: <User className="h-5 w-5" />,
-      text: "Limited profile access",
+      text: t("guest.restrictions.limitedProfileAccess"), // Translated
     },
   ]
 
@@ -144,7 +155,7 @@ export default function Guest() {
                 className="border-2 border-blue-200/50 bg-blue-50/50 text-blue-700 px-4 py-2 rounded-full backdrop-blur-sm dark:border-blue-800/50 dark:bg-blue-950/50 dark:text-blue-300"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Guest Mode
+                {t("guest.badge")} {/* Translated */}
               </Badge>
             </motion.div>
 
@@ -154,7 +165,7 @@ export default function Guest() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
-              Explore Euro Visa
+              {t("guest.title")} {/* Translated */}
             </motion.h1>
 
             <motion.p
@@ -163,8 +174,7 @@ export default function Guest() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
             >
-              Browse our platform and discover the possibilities. Sign up anytime to unlock full features and start your
-              journey.
+              {t("guest.description")} {/* Translated */}
             </motion.p>
           </motion.div>
 
@@ -182,7 +192,6 @@ export default function Guest() {
                 whileHover="hover"
                 whileTap={{ scale: 0.98 }}
                 initial="rest"
-                className="group"
               >
                 <motion.div variants={cardHoverVariants}>
                   <Card
@@ -241,7 +250,7 @@ export default function Guest() {
                     <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <h3 className="text-xl lg:text-2xl font-bold text-amber-800 dark:text-amber-200">
-                    Guest Mode Limitations
+                    {t("guest.limitations.title")} {/* Translated */}
                   </h3>
                 </div>
 
@@ -282,7 +291,7 @@ export default function Guest() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 1.2 }}
                 >
-                  Ready to unlock full access?
+                  {t("guest.cta.title")} {/* Translated */}
                 </motion.h3>
 
                 <motion.div
@@ -297,7 +306,7 @@ export default function Guest() {
                       size="lg"
                       className="px-8 py-4 rounded-2xl text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 group"
                     >
-                      <span>Sign Up Free</span>
+                      <span>{t("guest.cta.signUpFree")}</span> {/* Translated */}
                       <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </motion.div>
@@ -309,7 +318,7 @@ export default function Guest() {
                       size="lg"
                       className="px-8 py-4 rounded-2xl text-lg font-semibold border-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300"
                     >
-                      Sign In
+                      {t("guest.cta.signIn")} {/* Translated */}
                     </Button>
                   </motion.div>
                 </motion.div>
@@ -321,4 +330,5 @@ export default function Guest() {
     </div>
   )
 }
+
 
