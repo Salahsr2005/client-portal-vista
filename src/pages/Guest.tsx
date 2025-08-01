@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Eye, Lock, CreditCard, User, ArrowRight, Sparkles, Star } from "lucide-react" // Added Star icon
+import { Eye, Lock, CreditCard, User, ArrowRight, Sparkles, Pill } from "lucide-react" // Changed Star to Pill icon
 import { useGuestMode } from "@/contexts/GuestModeContext"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { LanguageSelector } from "@/components/LanguageSelector"
@@ -59,13 +59,15 @@ export default function Guest() {
       color: "text-orange-600",
     },
     {
-      icon: <Star className="h-6 w-6" />, // Star icon for Dawini
+      icon: <Pill className="h-6 w-6" />, // Pill icon for Dawini
       title: t("guest.features.dawiniService.title"), // Translated
       description: t("guest.features.dawiniService.description"), // Translated
       path: "/guest/dawini-service", // New path for Dawini service
-      gradient: "from-amber-400/10 to-yellow-500/10", // Golden gradient
-      iconBg: "bg-amber-400/10 group-hover:bg-amber-400", // Golden icon background
-      color: "text-amber-600", // Golden text color
+      // Enhanced golden styling
+      gradient:
+        "from-amber-200/20 via-yellow-300/20 to-amber-400/20 group-hover:from-amber-400 group-hover:via-yellow-500 group-hover:to-amber-600",
+      iconBg: "bg-amber-400/20 group-hover:bg-amber-500",
+      color: "text-amber-700",
     },
   ]
 
@@ -195,7 +197,7 @@ export default function Guest() {
               >
                 <motion.div variants={cardHoverVariants}>
                   <Card
-                    className={`relative overflow-hidden p-6 lg:p-8 cursor-pointer border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-gradient-to-br ${feature.gradient} backdrop-blur-sm hover:bg-white/90 dark:hover:bg-slate-800/90 group-hover:border-white/20`}
+                    className={`relative overflow-hidden p-6 lg:p-8 cursor-pointer border-0 shadow-lg hover:shadow-2xl transition-all duration-500 bg-gradient-to-br ${feature.gradient} backdrop-blur-sm hover:bg-white/90 dark:hover:bg-slate-800/90 group-hover:border-white/20 ${feature.title === t("guest.features.dawiniService.title") ? "border-2 border-amber-300/50 dark:border-amber-700/50" : ""}`}
                     onClick={() => navigate(feature.path)}
                   >
                     {/* Hover Gradient Overlay */}
@@ -330,5 +332,6 @@ export default function Guest() {
     </div>
   )
 }
+
 
 
