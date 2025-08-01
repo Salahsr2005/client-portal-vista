@@ -463,7 +463,6 @@ export default {
       active: "Active filters",
       clear: "Clear All",
       country: "Country",
-      allCountries: "All Countries",
       level: "Level",
       allLevels: "All Levels",
       field: "Field",
@@ -850,6 +849,50 @@ export default {
     of: "of",
     servicesText: "services",
   },
+  guest: {
+    // New section for Guest page translations
+    badge: "Guest Mode",
+    title: "Explore Euro Visa",
+    description:
+      "Browse our platform and discover the possibilities. Sign up anytime to unlock full features and start your journey.",
+    features: {
+      browseDestinations: {
+        title: "Browse Destinations",
+        description: "Explore universities and programs worldwide",
+      },
+      viewPrograms: {
+        title: "View Programs",
+        description: "Discover academic programs and requirements",
+      },
+      checkServices: {
+        title: "Check Services",
+        description: "See our comprehensive service offerings",
+      },
+      tryConsultation: {
+        title: "Try Consultation",
+        description: "Experience our automated consultation tool",
+      },
+      dawiniService: {
+        // New Dawini service translation
+        title: "Dawini Service",
+        description: "Access exclusive medical and health services",
+      },
+    },
+    limitations: {
+      title: "Guest Mode Limitations",
+    },
+    restrictions: {
+      applyPrograms: "Cannot apply to programs",
+      noPaymentFeatures: "No payment features",
+      limitedProfileAccess: "Limited profile access",
+    },
+    cta: {
+      title: "Ready to unlock full access?",
+      signUpFree: "Sign Up Free",
+      signIn: "Sign In",
+    },
+  },
 }
+
 
 
