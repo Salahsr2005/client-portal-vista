@@ -179,7 +179,7 @@ export default {
     features: {
       consultation: {
         title: "Consultation Intelligente",
-        description: "Conseils alimentés par l'IA pour votre correspondance de programme parfaite",
+        description: "Conseils alimentés par l'AI pour votre correspondance de programme parfaite",
       },
       destinations: {
         title: "Explorateur de Destinations",
@@ -644,7 +644,51 @@ export default {
     of: "sur",
     servicesText: "services",
   },
+  guest: {
+    // New section for Guest page translations
+    badge: "Mode Invité",
+    title: "Explorez Euro Visa",
+    description:
+      "Parcourez notre plateforme et découvrez les possibilités. Inscrivez-vous à tout moment pour débloquer toutes les fonctionnalités et commencer votre voyage.",
+    features: {
+      browseDestinations: {
+        title: "Parcourir les Destinations",
+        description: "Explorez les universités et les programmes du monde entier",
+      },
+      viewPrograms: {
+        title: "Voir les Programmes",
+        description: "Découvrez les programmes académiques et les exigences",
+      },
+      checkServices: {
+        title: "Vérifier les Services",
+        description: "Découvrez nos offres de services complètes",
+      },
+      tryConsultation: {
+        title: "Essayer la Consultation",
+        description: "Découvrez notre outil de consultation automatisé",
+      },
+      dawiniService: {
+        // New Dawini service translation
+        title: "Service Dawini",
+        description: "Accédez à des services médicaux et de santé exclusifs",
+      },
+    },
+    limitations: {
+      title: "Limitations du Mode Invité",
+    },
+    restrictions: {
+      applyPrograms: "Impossible de postuler aux programmes",
+      noPaymentFeatures: "Pas de fonctionnalités de paiement",
+      limitedProfileAccess: "Accès limité au profil",
+    },
+    cta: {
+      title: "Prêt à débloquer l'accès complet ?",
+      signUpFree: "S'inscrire Gratuitement",
+      signIn: "Se Connecter",
+    },
+  },
 }
+
 
 
 
