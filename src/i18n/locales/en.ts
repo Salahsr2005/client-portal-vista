@@ -440,7 +440,7 @@ export default {
     subtitle: "Discover your next destination",
     viewAll: "Explore All Destinations",
   },
-  programs: {
+  programsGlobal: {
     title: "Our Programs",
     subtitle: "Explore opportunities around the world",
     viewAll: "View All Programs",
@@ -644,5 +644,122 @@ export default {
       description: "There was an error analyzing destinations. Please try again.",
     },
   },
+  programs: {
+    title: "Study Programs",
+    subtitle: "Discover your perfect educational journey with advanced filtering",
+    search: "Search programs, universities, or fields...",
+    filters: {
+      country: "Country",
+      level: "Level", 
+      field: "Field",
+      language: "Language",
+      allCountries: "All Countries",
+      allLevels: "All Levels",
+      allFields: "All Fields",
+      allLanguages: "All Languages",
+      advanced: "Advanced Filters",
+      clear: "Clear Filters"
+    },
+    card: {
+      viewDetails: "View Details",
+      apply: "Apply Now",
+      addToCompare: "Add to Compare",
+      university: "University",
+      location: "Location",
+      duration: "Duration",
+      tuition: "Tuition",
+      scholarship: "Scholarship Available",
+      deadline: "Application Deadline",
+      language: "Language"
+    },
+    pagination: {
+      previous: "Previous",
+      next: "Next"
+    },
+    comparison: {
+      title: "Compare Programs",
+      limit: "Comparison Limit",
+      limitDesc: "You can compare up to 3 programs at once.",
+      added: "Added to Comparison",
+      addedDesc: "Program added to comparison list.",
+      removed: "Removed from Comparison",
+      removedDesc: "Program removed from comparison list."
+    },
+    signupRequired: "Sign Up Required",
+    signupDesc: "Please create an account to apply for programs.",
+    signup: "Sign Up"
+  },
+  programView: {
+    overview: "Overview",
+    requirements: "Requirements", 
+    costs: "Costs & Fees",
+    application: "Application",
+    university: "University",
+    location: "Location",
+    duration: "Duration",
+    language: "Language",
+    level: "Level",
+    field: "Field",
+    tuition: "Tuition",
+    livingCosts: "Living Costs",
+    applicationFee: "Application Fee",
+    deadline: "Application Deadline",
+    apply: "Apply Now",
+    favorite: "Add to Favorites",
+    scholarship: "Scholarship Available",
+    religiousFacilities: "Religious Facilities",
+    halalFood: "Halal Food Available"
+  },
+  servicesPage: {
+    title: "Services",
+    subtitle: "Browse and book services to assist with your international journey",
+    book: "Book a Service",
+    available: "Available Services",
+    search: "Search services...",
+    categories: {
+      all: "All",
+      document: "Document Processing",
+      financial: "Financial Services", 
+      education: "Education",
+      consultation: "Consultation",
+      visa: "Visa Services",
+      accommodation: "Accommodation"
+    },
+    card: {
+      available: "Available",
+      unavailable: "Unavailable",
+      learnMore: "Learn More", 
+      bookNow: "Book Now",
+      duration: "Duration",
+      completion: "Completion Time",
+      support: "Support Included",
+      price: "Price",
+      included: "What's Included",
+      requirements: "Requirements",
+      process: "Process",
+      timeline: "Timeline"
+    },
+    filters: {
+      sort: "Sort By",
+      priceLowHigh: "Price (Low to High)",
+      priceHighLow: "Price (High to Low)",
+      filter: "Filter By",
+      online: "Online Services",
+      inPerson: "In-person Services"
+    },
+    booking: {
+      title: "Book Service",
+      notes: "Additional Notes (Optional)",
+      notesPlaceholder: "Any special requirements or questions...",
+      cancel: "Cancel",
+      book: "Book Service",
+      authRequired: "Authentication Required",
+      authDesc: "Please log in to book services"
+    },
+    noResults: "No services found matching your criteria.",
+    showing: "Showing",
+    of: "of",
+    servicesText: "services"
+  }
 }
 

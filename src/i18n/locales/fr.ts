@@ -420,7 +420,7 @@ export default {
     termsOfService: "Conditions d'Utilisation",
     cookiePolicy: "Politique de Cookies",
   },
-  programs: {
+  programsGlobal: {
     title: "Nos Programmes",
     subtitle: "Explorez les opportunités dans le monde entier",
     viewAll: "Voir Tous les Programmes",
@@ -435,6 +435,123 @@ export default {
     subtitle: "Assistance professionnelle pour vos besoins de visa",
     viewAll: "Voir Tous les Services",
   },
+  programs: {
+    title: "Programmes d'Études",
+    subtitle: "Découvrez votre parcours éducatif parfait avec un filtrage avancé",
+    search: "Rechercher des programmes, universités ou domaines...",
+    filters: {
+      country: "Pays",
+      level: "Niveau", 
+      field: "Domaine",
+      language: "Langue",
+      allCountries: "Tous les Pays",
+      allLevels: "Tous les Niveaux",
+      allFields: "Tous les Domaines",
+      allLanguages: "Toutes les Langues",
+      advanced: "Filtres Avancés",
+      clear: "Effacer les Filtres"
+    },
+    card: {
+      viewDetails: "Voir les Détails",
+      apply: "Postuler Maintenant",
+      addToCompare: "Ajouter à la Comparaison",
+      university: "Université",
+      location: "Lieu",
+      duration: "Durée",
+      tuition: "Frais de Scolarité",
+      scholarship: "Bourse Disponible",
+      deadline: "Date Limite de Candidature",
+      language: "Langue"
+    },
+    pagination: {
+      previous: "Précédent",
+      next: "Suivant"
+    },
+    comparison: {
+      title: "Comparer les Programmes",
+      limit: "Limite de Comparaison",
+      limitDesc: "Vous pouvez comparer jusqu'à 3 programmes à la fois.",
+      added: "Ajouté à la Comparaison",
+      addedDesc: "Programme ajouté à la liste de comparaison.",
+      removed: "Retiré de la Comparaison",
+      removedDesc: "Programme retiré de la liste de comparaison."
+    },
+    signupRequired: "Inscription Requise",
+    signupDesc: "Veuillez créer un compte pour postuler aux programmes.",
+    signup: "S'inscrire"
+  },
+  programView: {
+    overview: "Aperçu",
+    requirements: "Exigences", 
+    costs: "Coûts et Frais",
+    application: "Candidature",
+    university: "Université",
+    location: "Lieu",
+    duration: "Durée",
+    language: "Langue",
+    level: "Niveau",
+    field: "Domaine",
+    tuition: "Frais de Scolarité",
+    livingCosts: "Coûts de la Vie",
+    applicationFee: "Frais de Candidature",
+    deadline: "Date Limite de Candidature",
+    apply: "Postuler Maintenant",
+    favorite: "Ajouter aux Favoris",
+    scholarship: "Bourse Disponible",
+    religiousFacilities: "Installations Religieuses",
+    halalFood: "Nourriture Halal Disponible"
+  },
+  servicesPage: {
+    title: "Services",
+    subtitle: "Parcourez et réservez des services pour vous aider dans votre parcours international",
+    book: "Réserver un Service",
+    available: "Services Disponibles",
+    search: "Rechercher des services...",
+    categories: {
+      all: "Tous",
+      document: "Traitement de Documents",
+      financial: "Services Financiers", 
+      education: "Éducation",
+      consultation: "Consultation",
+      visa: "Services de Visa",
+      accommodation: "Logement"
+    },
+    card: {
+      available: "Disponible",
+      unavailable: "Indisponible",
+      learnMore: "En Savoir Plus", 
+      bookNow: "Réserver Maintenant",
+      duration: "Durée",
+      completion: "Temps de Réalisation",
+      support: "Support Inclus",
+      price: "Prix",
+      included: "Ce qui est Inclus",
+      requirements: "Exigences",
+      process: "Processus",
+      timeline: "Calendrier"
+    },
+    filters: {
+      sort: "Trier Par",
+      priceLowHigh: "Prix (Bas vers Haut)",
+      priceHighLow: "Prix (Haut vers Bas)",
+      filter: "Filtrer Par",
+      online: "Services en Ligne",
+      inPerson: "Services en Personne"
+    },
+    booking: {
+      title: "Réserver un Service",
+      notes: "Notes Supplémentaires (Optionnel)",
+      notesPlaceholder: "Exigences spéciales ou questions...",
+      cancel: "Annuler",
+      book: "Réserver le Service",
+      authRequired: "Authentification Requise",
+      authDesc: "Veuillez vous connecter pour réserver des services"
+    },
+    noResults: "Aucun service trouvé correspondant à vos critères.",
+    showing: "Affichage de",
+    of: "sur",
+    servicesText: "services"
+  }
 }
 
 
