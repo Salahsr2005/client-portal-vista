@@ -441,7 +441,7 @@ export default {
     search: "Rechercher des programmes, universités ou domaines...",
     filters: {
       country: "Pays",
-      level: "Niveau", 
+      level: "Niveau",
       field: "Domaine",
       language: "Langue",
       allCountries: "Tous les Pays",
@@ -449,7 +449,7 @@ export default {
       allFields: "Tous les Domaines",
       allLanguages: "Toutes les Langues",
       advanced: "Filtres Avancés",
-      clear: "Effacer les Filtres"
+      clear: "Effacer les Filtres",
     },
     card: {
       viewDetails: "Voir les Détails",
@@ -461,11 +461,11 @@ export default {
       tuition: "Frais de Scolarité",
       scholarship: "Bourse Disponible",
       deadline: "Date Limite de Candidature",
-      language: "Langue"
+      language: "Langue",
     },
     pagination: {
       previous: "Précédent",
-      next: "Suivant"
+      next: "Suivant",
     },
     comparison: {
       title: "Comparer les Programmes",
@@ -474,15 +474,15 @@ export default {
       added: "Ajouté à la Comparaison",
       addedDesc: "Programme ajouté à la liste de comparaison.",
       removed: "Retiré de la Comparaison",
-      removedDesc: "Programme retiré de la liste de comparaison."
+      removedDesc: "Programme retiré de la liste de comparaison.",
     },
     signupRequired: "Inscription Requise",
     signupDesc: "Veuillez créer un compte pour postuler aux programmes.",
-    signup: "S'inscrire"
+    signup: "S'inscrire",
   },
   programView: {
     overview: "Aperçu",
-    requirements: "Exigences", 
+    requirements: "Exigences",
     costs: "Coûts et Frais",
     application: "Candidature",
     university: "Université",
@@ -499,7 +499,99 @@ export default {
     favorite: "Ajouter aux Favoris",
     scholarship: "Bourse Disponible",
     religiousFacilities: "Installations Religieuses",
-    halalFood: "Nourriture Halal Disponible"
+    halalFood: "Nourriture Halal Disponible",
+    backToPrograms: "Retour aux Programmes",
+    scholarshipAvailable: "Bourse Disponible",
+    signUpRequired: {
+      title: "Inscription Requise",
+      description: "Veuillez créer un compte pour postuler aux programmes.",
+      action: "S'inscrire",
+    },
+    favorite: {
+      added: "Ajouté aux Favoris",
+      addedDescription: "Programme ajouté à vos favoris",
+      removed: "Retiré des Favoris",
+      removedDescription: "Programme retiré de vos favoris",
+    },
+    share: {
+      copied: "Lien Copié",
+      copiedDescription: "Lien du programme copié dans le presse-papiers",
+    },
+    error: {
+      title: "Programme Non Trouvé",
+      notFound: "Le programme que vous recherchez n'a pas pu être trouvé.",
+      backToPrograms: "Retour aux Programmes",
+      loadFailed: "Échec du chargement des détails du programme",
+    },
+    tabs: {
+      overview: "Aperçu",
+      curriculum: "Programme d'Études",
+      requirements: "Exigences",
+      career: "Carrière",
+      contact: "Contact",
+    },
+    overview: {
+      title: "Aperçu du Programme",
+      description: "Description",
+      field: "Domaine",
+      duration: "Durée",
+      months: "mois",
+      startDate: "Date de Début",
+      tbd: "À Déterminer",
+      ranking: "Classement",
+      globally: "mondialement",
+      accreditation: "Accréditation",
+      facilities: "Installations",
+    },
+    curriculum: {
+      title: "Programme d'Études",
+      notAvailable: "Informations sur le programme d'études non disponibles.",
+    },
+    requirements: {
+      title: "Exigences",
+      academicRequirements: "Exigences Académiques",
+      minimumGPA: "GPA Minimum",
+      languageRequirements: "Exigences Linguistiques",
+      general: "Exigences Générales",
+      documentsRequired: "Documents Requis",
+      applicationDeadline: "Date Limite de Candidature",
+    },
+    career: {
+      title: "Perspectives de Carrière",
+      description: "Ce programme vous prépare aux opportunités de carrière suivantes :",
+      notAvailable: "Informations sur la carrière non disponibles.",
+    },
+    contact: {
+      title: "Informations de Contact",
+      email: "Email",
+      phone: "Téléphone",
+      website: "Site Web",
+      getInTouch: "Entrer en Contact",
+      description:
+        "Vous avez des questions sur ce programme ? Contactez l'équipe d'admission pour plus d'informations.",
+      inquire: "Faire une Demande",
+      visitWebsite: "Visiter le Site Web",
+    },
+    quickInfo: {
+      title: "Informations Rapides",
+      tuitionFees: "Frais de Scolarité",
+      applicationFee: "Frais de Candidature",
+      duration: "Durée",
+      months: "mois",
+      language: "Langue",
+      deadline: "Date Limite",
+      applyNow: "Postuler Maintenant",
+      save: "Sauvegarder",
+      share: "Partager",
+      scholarshipTitle: "Bourse Disponible",
+      scholarshipDescription:
+        "Des opportunités d'aide financière peuvent être disponibles pour les étudiants qualifiés.",
+    },
+    similarPrograms: {
+      title: "Programmes Similaires",
+      description: "Découvrez d'autres programmes qui pourraient vous intéresser.",
+      explore: "Explorer les Programmes",
+    },
   },
   servicesPage: {
     title: "Services",
@@ -510,16 +602,16 @@ export default {
     categories: {
       all: "Tous",
       document: "Traitement de Documents",
-      financial: "Services Financiers", 
+      financial: "Services Financiers",
       education: "Éducation",
       consultation: "Consultation",
       visa: "Services de Visa",
-      accommodation: "Logement"
+      accommodation: "Logement",
     },
     card: {
       available: "Disponible",
       unavailable: "Indisponible",
-      learnMore: "En Savoir Plus", 
+      learnMore: "En Savoir Plus",
       bookNow: "Réserver Maintenant",
       duration: "Durée",
       completion: "Temps de Réalisation",
@@ -528,7 +620,7 @@ export default {
       included: "Ce qui est Inclus",
       requirements: "Exigences",
       process: "Processus",
-      timeline: "Calendrier"
+      timeline: "Calendrier",
     },
     filters: {
       sort: "Trier Par",
@@ -536,7 +628,7 @@ export default {
       priceHighLow: "Prix (Haut vers Bas)",
       filter: "Filtrer Par",
       online: "Services en Ligne",
-      inPerson: "Services en Personne"
+      inPerson: "Services en Personne",
     },
     booking: {
       title: "Réserver un Service",
@@ -545,13 +637,14 @@ export default {
       cancel: "Annuler",
       book: "Réserver le Service",
       authRequired: "Authentification Requise",
-      authDesc: "Veuillez vous connecter pour réserver des services"
+      authDesc: "Veuillez vous connecter pour réserver des services",
     },
     noResults: "Aucun service trouvé correspondant à vos critères.",
     showing: "Affichage de",
     of: "sur",
-    servicesText: "services"
-  }
+    servicesText: "services",
+  },
 }
+
 
 
