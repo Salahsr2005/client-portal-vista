@@ -650,7 +650,7 @@ export default {
     search: "Search programs, universities, or fields...",
     filters: {
       country: "Country",
-      level: "Level", 
+      level: "Level",
       field: "Field",
       language: "Language",
       allCountries: "All Countries",
@@ -658,7 +658,7 @@ export default {
       allFields: "All Fields",
       allLanguages: "All Languages",
       advanced: "Advanced Filters",
-      clear: "Clear Filters"
+      clear: "Clear Filters",
     },
     card: {
       viewDetails: "View Details",
@@ -670,11 +670,11 @@ export default {
       tuition: "Tuition",
       scholarship: "Scholarship Available",
       deadline: "Application Deadline",
-      language: "Language"
+      language: "Language",
     },
     pagination: {
       previous: "Previous",
-      next: "Next"
+      next: "Next",
     },
     comparison: {
       title: "Compare Programs",
@@ -683,15 +683,15 @@ export default {
       added: "Added to Comparison",
       addedDesc: "Program added to comparison list.",
       removed: "Removed from Comparison",
-      removedDesc: "Program removed from comparison list."
+      removedDesc: "Program removed from comparison list.",
     },
     signupRequired: "Sign Up Required",
     signupDesc: "Please create an account to apply for programs.",
-    signup: "Sign Up"
+    signup: "Sign Up",
   },
   programView: {
     overview: "Overview",
-    requirements: "Requirements", 
+    requirements: "Requirements",
     costs: "Costs & Fees",
     application: "Application",
     university: "University",
@@ -708,7 +708,96 @@ export default {
     favorite: "Add to Favorites",
     scholarship: "Scholarship Available",
     religiousFacilities: "Religious Facilities",
-    halalFood: "Halal Food Available"
+    halalFood: "Halal Food Available",
+    backToPrograms: "Back to Programs",
+    signUpRequired: {
+      title: "Sign Up Required",
+      description: "Please create an account to apply for programs.",
+      action: "Sign Up",
+    },
+    favorite: {
+      added: "Added to Favorites",
+      addedDescription: "Program added to your favorites",
+      removed: "Removed from Favorites",
+      removedDescription: "Program removed from your favorites",
+    },
+    share: {
+      copied: "Link Copied",
+      copiedDescription: "Program link copied to clipboard",
+    },
+    error: {
+      title: "Program Not Found",
+      notFound: "The program you're looking for could not be found.",
+      backToPrograms: "Back to Programs",
+      loadFailed: "Failed to load program details",
+    },
+    tabs: {
+      overview: "Overview",
+      curriculum: "Curriculum",
+      requirements: "Requirements",
+      career: "Career",
+      contact: "Contact",
+    },
+    overview: {
+      title: "Program Overview",
+      description: "Description",
+      field: "Field",
+      duration: "Duration",
+      months: "months",
+      startDate: "Start Date",
+      tbd: "TBD",
+      ranking: "Ranking",
+      globally: "globally",
+      accreditation: "Accreditation",
+      facilities: "Facilities",
+    },
+    curriculum: {
+      title: "Curriculum",
+      notAvailable: "Curriculum information not available.",
+    },
+    requirements: {
+      title: "Requirements",
+      academicRequirements: "Academic Requirements",
+      minimumGPA: "Minimum GPA",
+      languageRequirements: "Language Requirements",
+      general: "General Requirements",
+      documentsRequired: "Required Documents",
+      applicationDeadline: "Application Deadline",
+    },
+    career: {
+      title: "Career Prospects",
+      description: "This program prepares you for the following career opportunities:",
+      notAvailable: "Career information not available.",
+    },
+    contact: {
+      title: "Contact Information",
+      email: "Email",
+      phone: "Phone",
+      website: "Website",
+      getInTouch: "Get in Touch",
+      description: "Have questions about this program? Contact the admissions team for more information.",
+      inquire: "Make Inquiry",
+      visitWebsite: "Visit Website",
+    },
+    quickInfo: {
+      title: "Quick Info",
+      tuitionFees: "Tuition Fees",
+      applicationFee: "Application Fee",
+      duration: "Duration",
+      months: "months",
+      language: "Language",
+      deadline: "Deadline",
+      applyNow: "Apply Now",
+      save: "Save",
+      share: "Share",
+      scholarshipTitle: "Scholarship Available",
+      scholarshipDescription: "Financial aid opportunities may be available for qualified students.",
+    },
+    similarPrograms: {
+      title: "Similar Programs",
+      description: "Discover other programs that might interest you.",
+      explore: "Explore Programs",
+    },
   },
   servicesPage: {
     title: "Services",
@@ -719,16 +808,16 @@ export default {
     categories: {
       all: "All",
       document: "Document Processing",
-      financial: "Financial Services", 
+      financial: "Financial Services",
       education: "Education",
       consultation: "Consultation",
       visa: "Visa Services",
-      accommodation: "Accommodation"
+      accommodation: "Accommodation",
     },
     card: {
       available: "Available",
       unavailable: "Unavailable",
-      learnMore: "Learn More", 
+      learnMore: "Learn More",
       bookNow: "Book Now",
       duration: "Duration",
       completion: "Completion Time",
@@ -737,7 +826,7 @@ export default {
       included: "What's Included",
       requirements: "Requirements",
       process: "Process",
-      timeline: "Timeline"
+      timeline: "Timeline",
     },
     filters: {
       sort: "Sort By",
@@ -745,7 +834,7 @@ export default {
       priceHighLow: "Price (High to Low)",
       filter: "Filter By",
       online: "Online Services",
-      inPerson: "In-person Services"
+      inPerson: "In-person Services",
     },
     booking: {
       title: "Book Service",
@@ -754,12 +843,13 @@ export default {
       cancel: "Cancel",
       book: "Book Service",
       authRequired: "Authentication Required",
-      authDesc: "Please log in to book services"
+      authDesc: "Please log in to book services",
     },
     noResults: "No services found matching your criteria.",
     showing: "Showing",
     of: "of",
-    servicesText: "services"
-  }
+    servicesText: "services",
+  },
 }
+
 
