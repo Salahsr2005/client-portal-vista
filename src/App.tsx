@@ -1,83 +1,89 @@
+"use client"
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { useAuth } from "@/contexts/AuthContext";
-import { GuestModeProvider } from "@/contexts/GuestModeContext";
-import { useEffect } from "react";
+import type React from "react"
+import GuestDawini from "./pages/GuestDawini"
+
+import { Toaster } from "@/components/ui/toaster"
+import { Toaster as Sonner } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
+import { ThemeProvider } from "@/components/ThemeProvider"
+import { AuthProvider } from "@/contexts/AuthContext"
+import { useAuth } from "@/contexts/AuthContext"
+import { GuestModeProvider } from "@/contexts/GuestModeContext"
+import { useEffect } from "react"
 
 // Pages
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import Messages from "./pages/Messages";
-import Programs from "./pages/Programs";
-import ProgramView from "./pages/ProgramView";
-import Applications from "./pages/Applications";
-import NewApplication from "./pages/NewApplication"; 
-import ApplicationView from "./pages/ApplicationView";
-import Appointments from "./pages/Appointments";
-import AppointmentDetails from "./pages/AppointmentDetails";
-import Services from "./pages/Services";
-import Notifications from "./pages/Notifications";
-import Payments from "./pages/Payments";
-import PaymentCheckout from "./pages/PaymentCheckout";
-import Destinations from "./pages/Destinations";
-import ModernDestinations from "./pages/ModernDestinations";
-import DestinationDetails from "./pages/DestinationDetails";
-import Consultation from "./pages/Consultation";
-import ChatSupport from "./pages/ChatSupport";
-import Settings from "./pages/Settings";
-import Guest from "./pages/Guest";
-import GuestPrograms from "./pages/GuestPrograms";
-import GuestProgramView from "./pages/GuestProgramView";
-import GuestDestinations from "./pages/GuestDestinations";
-import GuestServices from "./pages/GuestServices";
-import GuestDestinationDetails from "./pages/GuestDestinationDetails";
-import GuestConsultation from "./pages/GuestConsultation";
+import Index from "./pages/Index"
+import Login from "./pages/Login"
+import Register from "./pages/Register"
+import NotFound from "./pages/NotFound"
+import Dashboard from "./pages/Dashboard"
+import Profile from "./pages/Profile"
+import Messages from "./pages/Messages"
+import Programs from "./pages/Programs"
+import ProgramView from "./pages/ProgramView"
+import Applications from "./pages/Applications"
+import NewApplication from "./pages/NewApplication"
+import ApplicationView from "./pages/ApplicationView"
+import Appointments from "./pages/Appointments"
+import AppointmentDetails from "./pages/AppointmentDetails"
+import Services from "./pages/Services"
+import Notifications from "./pages/Notifications"
+import Payments from "./pages/Payments"
+import PaymentCheckout from "./pages/PaymentCheckout"
+import ModernDestinations from "./pages/ModernDestinations"
+import DestinationDetails from "./pages/DestinationDetails"
+import Consultation from "./pages/Consultation"
+import ChatSupport from "./pages/ChatSupport"
+import Settings from "./pages/Settings"
+import Guest from "./pages/Guest"
+import GuestPrograms from "./pages/GuestPrograms"
+import GuestProgramView from "./pages/GuestProgramView"
+import GuestDestinations from "./pages/GuestDestinations"
+import GuestServices from "./pages/GuestServices"
+import GuestDestinationDetails from "./pages/GuestDestinationDetails"
+import GuestConsultation from "./pages/GuestConsultation"
+import Dawini from "./pages/Dawini"
 
 // Layout
-import { DashboardLayout } from "./components/layout/DashboardLayout";
+import { DashboardLayout } from "./components/layout/DashboardLayout"
 
 // Scroll to top on route change component
 const ScrollToTop = () => {
-  const { pathname } = useLocation();
+  const { pathname } = useLocation()
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+    window.scrollTo(0, 0)
+  }, [pathname])
 
-  return null;
-};
+  return null
+}
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-  
+  const { user, loading } = useAuth()
+  const location = useLocation()
+
   if (loading) {
-    return <div className="flex h-screen w-screen items-center justify-center">
-      <div className="animate-pulse flex flex-col items-center">
-        <div className="h-12 w-12 rounded-full border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent animate-spin"></div>
-        <p className="mt-4 text-muted-foreground">Loading...</p>
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-12 w-12 rounded-full border-4 border-t-primary border-r-transparent border-b-primary border-l-transparent animate-spin"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
       </div>
-    </div>;
+    )
   }
-  
+
   if (!user) {
     // Save the location they were trying to access for redirect after login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
-  
-  return <>{children}</>;
-};
+
+  return <>{children}</>
+}
 
 // Create QueryClient with better error handling
 const queryClient = new QueryClient({
@@ -88,7 +94,7 @@ const queryClient = new QueryClient({
       staleTime: 30000,
     },
   },
-});
+})
 
 // App Routes Component
 const AppRoutes = () => {
@@ -101,7 +107,7 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/guest" element={<Guest />} />
-        
+
         {/* Guest Mode Routes - Public access to view content */}
         <Route path="/guest/programs" element={<GuestPrograms />} />
         <Route path="/guest/programs/:programId" element={<GuestProgramView />} />
@@ -109,13 +115,16 @@ const AppRoutes = () => {
         <Route path="/guest/destinations/:id" element={<GuestDestinationDetails />} />
         <Route path="/guest/consultation" element={<GuestConsultation />} />
         <Route path="/guest/services" element={<GuestServices />} />
-        
+        <Route path="/guest/dawini" element={<GuestDawini />} />
+
         {/* Protected Dashboard Routes */}
-        <Route element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }>
+        <Route
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/applications" element={<Applications />} />
@@ -135,14 +144,15 @@ const AppRoutes = () => {
           <Route path="/consultation" element={<Consultation />} />
           <Route path="/chat" element={<ChatSupport />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/dawini" element={<Dawini />} />
         </Route>
-        
+
         {/* Catch-all route for 404 - this must be last */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
-  );
-};
+  )
+}
 
 // App with proper basename handling for deployment
 const App = () => (
@@ -162,6 +172,7 @@ const App = () => (
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>
-);
+)
 
-export default App;
+export default App
+
