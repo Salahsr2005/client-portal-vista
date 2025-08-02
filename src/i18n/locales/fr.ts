@@ -179,7 +179,7 @@ export default {
     features: {
       consultation: {
         title: "Consultation Intelligente",
-        description: "Conseils alimentés par l'AI pour votre correspondance de programme parfaite",
+        description: "Conseils alimentés par l'IA pour votre correspondance de programme parfaite",
       },
       destinations: {
         title: "Explorateur de Destinations",
@@ -207,7 +207,7 @@ export default {
       transfer: {
         title: "Frais de transfert d'argent élevés et délais frustrants ?",
         description:
-          "Et si vous pouviez envoyer de l'argent entre l'Europe et l'Afrique instantanément, avec des frais minimes...",
+          "Et si vous pouviez envoyer de l'argent entre l'Europe et l'Afrique instantanément, avec des frais minimaux...",
         status: "SOLUTION BIENTÔT DISPONIBLE",
       },
       procedures: {
@@ -507,7 +507,7 @@ export default {
       description: "Veuillez créer un compte pour postuler aux programmes.",
       action: "S'inscrire",
     },
-    favoriteActions: {
+    favorite: {
       added: "Ajouté aux Favoris",
       addedDescription: "Programme ajouté à vos favoris",
       removed: "Retiré des Favoris",
@@ -530,7 +530,7 @@ export default {
       career: "Carrière",
       contact: "Contact",
     },
-    overviewTab: {
+    overview: {
       title: "Aperçu du Programme",
       description: "Description",
       field: "Domaine",
@@ -547,7 +547,7 @@ export default {
       title: "Programme d'Études",
       notAvailable: "Informations sur le programme d'études non disponibles.",
     },
-    requirementsTab: {
+    requirements: {
       title: "Exigences",
       academicRequirements: "Exigences Académiques",
       minimumGPA: "GPA Minimum",
@@ -687,89 +687,113 @@ export default {
       signIn: "Se Connecter",
     },
   },
-  
-  dawini: {
-    title: "Dawini",
-    subtitle: "Réseau Communautaire de Médicaments",
-    description: "Une plateforme d'entraide où les membres de la communauté s'aident mutuellement à accéder aux médicaments essentiels",
-    hero: {
-      title: "Où la Communauté Prend Soin",
-      subtitle: "Connecter les voisins pour aider les voisins",
-      description: "Rejoignez une communauté compatissante où les gens s'entraident pour accéder aux médicaments essentiels grâce au soutien mutuel et aux ressources partagées."
+  translation: {
+    dawini: {
+      hero: {
+        title: "Dawini",
+        subtitle: "Connecter les patients aux fournisseurs de médicaments",
+        description:
+          "Une plateforme révolutionnaire où les patients ayant besoin de médicaments peuvent se connecter directement avec des fournisseurs vérifiés, garantissant des soins de santé sûrs et accessibles à tous.",
+        joinButton: "Rejoindre l'accès anticipé",
+        learnMoreButton: "En savoir plus",
+      },
+      launchCounter: {
+        title: "Lancement Prochain",
+        subtitle: "Accès Révolutionnaire aux Soins de Santé",
+        days: "Jours",
+        hours: "Heures",
+        minutes: "Minutes",
+        seconds: "Secondes",
+      },
+      notice: {
+        badge: "AVIS IMPORTANT",
+        textPart1: "est une plateforme de partage de médicaments vérifiée par ordonnance, lancée le",
+        launchDate: "1er septembre 2025",
+        textPart2: "Tous les échanges de médicaments nécessitent des",
+        prescriptionRequired: "ordonnances valides",
+        textPart3: "et une",
+        medicalVerification: "vérification médicale",
+        textPart4: "pour la sécurité et la conformité légale.",
+        prescriptionRequiredShort: "Ordonnance Requise",
+        medicalVerificationShort: "Vérification Médicale",
+        legalCompliance: "Conformité Légale",
+      },
+      howItWorks: {
+        badge: "Processus Alimenté par l'IA",
+        title: "Comment Dawini Fonctionne",
+        descriptionPart1: "Découvrez l'avenir de l'accès aux médicaments avec notre système de correspondance",
+        descriptionHighlight: "alimenté par l'IA, sécurisé et instantané",
+        descriptionPart2: "",
+        step1: {
+          title: "Demande du Patient",
+          description: "Le patient télécharge l'ordonnance et les détails du médicament",
+        },
+        step2: {
+          title: "Vérification par l'IA",
+          description: "L'IA avancée vérifie l'authenticité et la sécurité de l'ordonnance",
+        },
+        step3: {
+          title: "Correspondance Intelligente",
+          description: "L'IA met en correspondance avec des fournisseurs vérifiés dans votre région",
+        },
+        step4: {
+          title: "Connexion Sécurisée",
+          description: "Le fournisseur contacte le patient pour un transfert de médicament sécurisé",
+        },
+      },
+      whyChoose: {
+        title: "Pourquoi Choisir Dawini ?",
+        description: "Construit avec la sécurité, l'accessibilité et le soutien communautaire au cœur",
+      },
+      features: {
+        prescriptionVerified: {
+          title: "Ordonnance Vérifiée",
+          description:
+            "Toutes les demandes de médicaments nécessitent des ordonnances valides et une vérification médicale pour la sécurité.",
+        },
+        locationBasedMatching: {
+          title: "Correspondance Basée sur la Localisation",
+          description:
+            "Connectez-vous avec des fournisseurs à proximité pour un accès rapide et pratique aux médicaments.",
+        },
+        urgentCarePriority: {
+          title: "Priorité aux Soins Urgents",
+          description:
+            "Les besoins critiques en médicaments sont priorisés pour assurer un accès rapide aux soins de santé.",
+        },
+        communitySupport: {
+          title: "Soutien Communautaire",
+          description: "Construit sur le principe de l'entraide entre les membres de la communauté en cas de besoin.",
+        },
+      },
+      cta: {
+        title: "Prêt à Transformer l'Accès aux Soins de Santé ?",
+        description:
+          "Rejoignez la révolution de l'accessibilité aux médicaments. Aidez à construire une communauté où personne ne manque de soins de santé essentiels.",
+        joinButton: "Rejoindre l'accès anticipé",
+        benefit1: {
+          title: "100% Sécurisé",
+          subtitle: "Plateforme vérifiée par ordonnance",
+        },
+        benefit2: {
+          title: "Axé sur la Communauté",
+          subtitle: "Des gens qui aident des gens",
+        },
+        benefit3: {
+          title: "Toujours Disponible",
+          subtitle: "Accès aux médicaments 24/7",
+        },
+      },
+      footer: {
+        textPart1: "Dawini est une plateforme de partage de médicaments vérifiée par ordonnance, lancée le",
+        launchDate: "1er septembre 2025",
+        textPart2:
+          "Tous les échanges de médicaments nécessitent des ordonnances valides et une vérification médicale pour la sécurité et la conformité légale.",
+      },
     },
-    launch: {
-      title: "Bientôt Disponible",
-      subtitle: "Compte à Rebours du Lancement",
-      date: "1er septembre 2025"
-    },
-    community: {
-      title: "Comment Notre Communauté Fonctionne",
-      subtitle: "Basée sur la confiance, alimentée par la compassion",
-      steps: {
-        request: {
-          title: "Partagez Votre Besoin",
-          description: "Publiez votre demande de médicament à la communauté avec les détails de ce dont vous avez besoin et votre localisation."
-        },
-        connect: {
-          title: "La Communauté Répond",
-          description: "Les voisins et membres de la communauté qui peuvent aider vous contacteront directement pour offrir leur assistance."
-        },
-        help: {
-          title: "Soutien Mutuel",
-          description: "Connectez-vous avec des aidants pour partager, échanger ou acheter des médicaments à des prix communautaires équitables."
-        },
-        grow: {
-          title: "Rendez la Pareille",
-          description: "Aidez les autres en retour quand vous le pouvez, créant un cycle de soins et de soutien communautaires."
-        }
-      }
-    },
-    features: {
-      title: "Pourquoi Rejoindre Notre Communauté?",
-      subtitle: "Construite par la communauté, pour la communauté",
-      list: {
-        verified: {
-          title: "Membres Vérifiés",
-          description: "Tous les membres de la communauté sont vérifiés pour la sécurité et la confiance"
-        },
-        local: {
-          title: "Connexions Locales",
-          description: "Connectez-vous avec les voisins et membres de la communauté à proximité"
-        },
-        mutual: {
-          title: "Aide Mutuelle",
-          description: "Aidez les autres et recevez de l'aide en retour quand nécessaire"
-        },
-        transparent: {
-          title: "Prix Équitables",
-          description: "Prix communautaires sans majoration ni exploitation"
-        },
-        caring: {
-          title: "Compatissant",
-          description: "Une communauté bienveillante qui veille à la santé de chacun"
-        },
-        secure: {
-          title: "Sûr et Privé",
-          description: "Vos informations et transactions sont protégées"
-        }
-      }
-    },
-    cta: {
-      title: "Prêt à Rejoindre une Communauté Bienveillante?",
-      subtitle: "Faites partie d'un réseau où les voisins aident les voisins à accéder aux médicaments essentiels",
-      joinButton: "Rejoindre Notre Communauté",
-      loginButton: "Se Connecter",
-      benefits: {
-        free: "Gratuit",
-        community: "Support Communautaire 24/7",
-        verified: "Réseau Vérifié"
-      }
-    },
-    footer: {
-      disclaimer: "Dawini est une plateforme communautaire connectant les personnes pour l'accès aux médicaments. Consultez toujours des professionnels de la santé et vérifiez les prescriptions."
-    }
-  }
+  },
 }
+
 
 
 
