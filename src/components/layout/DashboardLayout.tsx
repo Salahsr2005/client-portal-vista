@@ -1,16 +1,16 @@
+"use client"
 
-import { useState, useEffect } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/contexts/AuthContext";
-import SidebarBackground from './SidebarBackground';
-import NotificationBell from '../NotificationBell';
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useTheme } from "@/components/ThemeProvider";
-import { useHasChatAccess } from "@/hooks/usePayments";
+import { useState, useEffect } from "react"
+import { Link, useLocation, Outlet } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import { useAuth } from "@/contexts/AuthContext"
+import SidebarBackground from "./SidebarBackground"
+import NotificationBell from "../NotificationBell"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { useTheme } from "@/components/ThemeProvider"
+import { useHasChatAccess } from "@/hooks/usePayments"
 import {
-  ChevronRight,
   Home,
   User,
   FileText,
@@ -18,114 +18,110 @@ import {
   MessageSquare,
   Bell,
   CreditCard,
-  Globe,
   LogOut,
   Menu,
   X,
   Settings,
-  Package,
   Search,
   Sparkles,
   GraduationCap,
   MapPin,
   HeadphonesIcon,
-  Palette
-} from "lucide-react";
+  Pill,
+} from "lucide-react"
 
 const sidebarSections = [
   {
     title: "OVERVIEW",
-    items: [
-      { label: "Dashboard", icon: Home, path: "/dashboard" }
-    ]
+    items: [{ label: "Dashboard", icon: Home, path: "/dashboard" }],
   },
   {
-    title: "ACADEMIC", 
+    title: "ACADEMIC",
     items: [
       { label: "Programs", icon: GraduationCap, path: "/programs" },
       { label: "Destinations", icon: MapPin, path: "/destinations", badge: "New", badgeColor: "bg-green-500" },
-      { label: "Services", icon: HeadphonesIcon, path: "/services" }
-    ]
+      { label: "Services", icon: HeadphonesIcon, path: "/services" },
+    ],
+  },
+  {
+    title: "HEALTH & WELLNESS",
+    items: [{ label: "Dawini", icon: Pill, path: "/dawini", badge: "New", badgeColor: "bg-amber-500" }],
   },
   {
     title: "CONSULTATION",
     items: [
-      { label: "AI Consultation", icon: Sparkles, path: "/consultation", badge: "AI", badgeColor: "bg-purple-500" }
-    ]
+      { label: "AI Consultation", icon: Sparkles, path: "/consultation", badge: "AI", badgeColor: "bg-purple-500" },
+    ],
   },
   {
     title: "MY APPLICATIONS",
-    items: [
-      { label: "Applications", icon: FileText, path: "/applications", badge: "3", badgeColor: "bg-blue-500" }
-    ]
+    items: [{ label: "Applications", icon: FileText, path: "/applications", badge: "3", badgeColor: "bg-blue-500" }],
   },
   {
     title: "APPOINTMENTS & PAYMENTS",
     items: [
       { label: "Appointments", icon: Calendar, path: "/appointments" },
-      { label: "Payments", icon: CreditCard, path: "/payments" }
-    ]
+      { label: "Payments", icon: CreditCard, path: "/payments" },
+    ],
   },
   {
     title: "COMMUNICATION",
     items: [
       { label: "Messages", icon: MessageSquare, path: "/chat", badge: "2", badgeColor: "bg-pink-500" },
-      { label: "Notifications", icon: Bell, path: "/notifications", badge: "5", badgeColor: "bg-yellow-500" }
-    ]
+      { label: "Notifications", icon: Bell, path: "/notifications", badge: "5", badgeColor: "bg-yellow-500" },
+    ],
   },
   {
     title: "PROFILE",
-    items: [
-      { label: "Profile", icon: User, path: "/profile" }
-    ]
-  }
-];
+    items: [{ label: "Profile", icon: User, path: "/profile" }],
+  },
+]
 
 // Legacy items for backwards compatibility
-const sidebarItems = sidebarSections.flatMap(section => section.items);
+const sidebarItems = sidebarSections.flatMap((section) => section.items)
 
 export function DashboardLayout() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [sidebarTheme, setSidebarTheme] = useState('violet');
-  const isMobile = useIsMobile();
-  const location = useLocation();
-  const { signOut } = useAuth();
-  const { theme } = useTheme();
-  const { data: hasChatAccess } = useHasChatAccess();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [sidebarTheme, setSidebarTheme] = useState("violet")
+  const isMobile = useIsMobile()
+  const location = useLocation()
+  const { signOut } = useAuth()
+  const { theme } = useTheme()
+  const { data: hasChatAccess } = useHasChatAccess()
 
   const themeColors = {
-    violet: 'from-violet-600 via-purple-600 to-indigo-700',
-    blue: 'from-blue-600 via-cyan-600 to-teal-700',
-    emerald: 'from-emerald-600 via-green-600 to-teal-700',
-    orange: 'from-orange-600 via-red-600 to-pink-700'
-  };
+    violet: "from-violet-600 via-purple-600 to-indigo-700",
+    blue: "from-blue-600 via-cyan-600 to-teal-700",
+    emerald: "from-emerald-600 via-green-600 to-teal-700",
+    orange: "from-orange-600 via-red-600 to-pink-700",
+  }
 
   useEffect(() => {
     const checkMobile = () => {
       if (window.innerWidth < 1024) {
-        setIsSidebarOpen(false);
+        setIsSidebarOpen(false)
       } else {
-        setIsSidebarOpen(true);
+        setIsSidebarOpen(true)
       }
-    };
+    }
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+
     return () => {
-      window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
+      window.removeEventListener("resize", checkMobile)
+    }
+  }, [])
 
   useEffect(() => {
     if (isMobile) {
-      setIsSidebarOpen(false);
+      setIsSidebarOpen(false)
     }
-  }, [location, isMobile]);
+  }, [location, isMobile])
 
   const handleLogout = async () => {
-    await signOut();
-  };
+    await signOut()
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
@@ -136,16 +132,18 @@ export function DashboardLayout() {
         } transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 overflow-hidden`}
       >
         {/* Background */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${themeColors[sidebarTheme]} transition-all duration-700 ease-in-out`}>
+        <div
+          className={`absolute inset-0 bg-gradient-to-br ${themeColors[sidebarTheme]} transition-all duration-700 ease-in-out`}
+        >
           <SidebarBackground />
         </div>
-        
+
         <div className="relative z-10 flex flex-col h-full p-4">
           {/* Logo and Theme Switcher */}
           <div className="flex items-center justify-between mb-6 mt-2">
             <div className="flex flex-col">
               <Link
-                to="/dashboard"  
+                to="/dashboard"
                 className="text-xl font-bold tracking-tight text-white drop-shadow-lg hover:scale-105 transition-transform duration-200"
               >
                 EuroVisa
@@ -159,18 +157,21 @@ export function DashboardLayout() {
                   <button
                     key={colorName}
                     onClick={() => {
-                      setSidebarTheme(colorName as keyof typeof themeColors);
+                      setSidebarTheme(colorName as keyof typeof themeColors)
                       // Force re-render by updating a state that affects the gradient
                     }}
                     className={`w-6 h-6 rounded-full transition-all duration-300 ${
-                      sidebarTheme === colorName 
-                        ? 'ring-2 ring-white/60 scale-110 shadow-lg' 
-                        : 'hover:scale-105 hover:ring-1 hover:ring-white/30'
+                      sidebarTheme === colorName
+                        ? "ring-2 ring-white/60 scale-110 shadow-lg"
+                        : "hover:scale-105 hover:ring-1 hover:ring-white/30"
                     } ${
-                      colorName === 'violet' ? 'bg-violet-500' :
-                      colorName === 'blue' ? 'bg-blue-500' :
-                      colorName === 'emerald' ? 'bg-emerald-500' :
-                      'bg-orange-500'
+                      colorName === "violet"
+                        ? "bg-violet-500"
+                        : colorName === "blue"
+                          ? "bg-blue-500"
+                          : colorName === "emerald"
+                            ? "bg-emerald-500"
+                            : "bg-orange-500"
                     }`}
                   />
                 ))}
@@ -190,15 +191,15 @@ export function DashboardLayout() {
           <nav className="space-y-4 flex-1 overflow-y-auto scrollbar-hide">
             {sidebarSections.map((section) => {
               // Filter out Messages if user doesn't have chat access
-              const filteredItems = section.items.filter(item => {
-                if (item.path === '/chat' && !hasChatAccess) {
-                  return false;
+              const filteredItems = section.items.filter((item) => {
+                if (item.path === "/chat" && !hasChatAccess) {
+                  return false
                 }
-                return true;
-              });
+                return true
+              })
 
               // Don't show section if no items remain after filtering
-              if (filteredItems.length === 0) return null;
+              if (filteredItems.length === 0) return null
 
               return (
                 <div key={section.title} className="space-y-1">
@@ -207,35 +208,39 @@ export function DashboardLayout() {
                   </h3>
                   <div className="space-y-1">
                     {filteredItems.map((item, index) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`group flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
-                        location.pathname === item.path
-                          ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/20 scale-[1.02]"
-                          : "hover:bg-white/10 text-white/90 hover:text-white"
-                      }`}
-                      style={{ 
-                        animationDelay: `${index * 50}ms`,
-                        animation: 'slideInLeft 0.6s ease-out forwards'
-                      }}
-                    >
-                      <div className="flex items-center">
-                        <item.icon className={`h-4 w-4 mr-3 shrink-0 transition-all duration-200 ${
-                          location.pathname === item.path ? 'scale-110' : 'group-hover:scale-110'
-                        }`} />
-                        <span className="text-sm font-medium">{item.label}</span>
-                      </div>
-                      {item.badge && (
-                        <span className={`px-1.5 py-0.5 text-xs font-medium text-white rounded-full ${item.badgeColor} animate-pulse`}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`group flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg ${
+                          location.pathname === item.path
+                            ? "bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/20 scale-[1.02]"
+                            : "hover:bg-white/10 text-white/90 hover:text-white"
+                        }`}
+                        style={{
+                          animationDelay: `${index * 50}ms`,
+                          animation: "slideInLeft 0.6s ease-out forwards",
+                        }}
+                      >
+                        <div className="flex items-center">
+                          <item.icon
+                            className={`h-4 w-4 mr-3 shrink-0 transition-all duration-200 ${
+                              location.pathname === item.path ? "scale-110" : "group-hover:scale-110"
+                            }`}
+                          />
+                          <span className="text-sm font-medium">{item.label}</span>
+                        </div>
+                        {item.badge && (
+                          <span
+                            className={`px-1.5 py-0.5 text-xs font-medium text-white rounded-full ${item.badgeColor} animate-pulse`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
                     ))}
                   </div>
                 </div>
-              );
+              )
             })}
           </nav>
 
@@ -247,8 +252,8 @@ export function DashboardLayout() {
                 Settings
               </Button>
             </Link>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-start text-red-200 hover:bg-red-500/20 hover:text-red-100"
               onClick={handleLogout}
             >
@@ -262,7 +267,9 @@ export function DashboardLayout() {
       {/* Main Content */}
       <main className="flex-1">
         {/* Header */}
-        <header className={`sticky top-0 z-40 glass-light dark:glass-dark ${isMobile ? 'px-2 py-2' : 'px-4 py-3'} flex items-center justify-between shadow-sm border-b border-violet-100/50`}>
+        <header
+          className={`sticky top-0 z-40 glass-light dark:glass-dark ${isMobile ? "px-2 py-2" : "px-4 py-3"} flex items-center justify-between shadow-sm border-b border-violet-100/50`}
+        >
           <div className="flex items-center">
             <Button
               variant="ghost"
@@ -273,43 +280,51 @@ export function DashboardLayout() {
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent`}>
+              <h1
+                className={`${isMobile ? "text-lg" : "text-xl"} font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent`}
+              >
                 {sidebarItems.find((item) => item.path === location.pathname)?.label || "Dashboard"}
               </h1>
               {!isMobile && (
                 <p className="text-xs text-muted-foreground">
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {new Date().toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
                   })}
                 </p>
               )}
             </div>
           </div>
-          <div className={`flex items-center ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
+          <div className={`flex items-center ${isMobile ? "space-x-1" : "space-x-2"}`}>
             {/* Search Button */}
             {!isMobile && (
               <Button variant="ghost" size="icon" className="hover:bg-violet-100">
                 <Search className="h-5 w-5" />
               </Button>
             )}
-            
+
             {/* Notification Bell */}
             <NotificationBell />
-            
+
             <ThemeToggle />
             <Link to="/profile">
-              <Button variant="ghost" size="icon" className="rounded-full bg-gradient-to-r from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200">
-                <User className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-violet-600`} />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full bg-gradient-to-r from-violet-100 to-purple-100 hover:from-violet-200 hover:to-purple-200"
+              >
+                <User className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} text-violet-600`} />
               </Button>
             </Link>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className={`${isMobile ? 'p-2' : 'p-6'} h-[calc(100vh-4rem)] overflow-auto bg-gradient-to-br from-violet-50/30 to-purple-50/30`}>
+        <div
+          className={`${isMobile ? "p-2" : "p-6"} h-[calc(100vh-4rem)] overflow-auto bg-gradient-to-br from-violet-50/30 to-purple-50/30`}
+        >
           <Outlet />
         </div>
       </main>
@@ -322,5 +337,6 @@ export function DashboardLayout() {
         />
       )}
     </div>
-  );
+  )
 }
+
