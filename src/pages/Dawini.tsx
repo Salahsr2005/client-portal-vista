@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,8 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { GoldenCard } from "@/components/ui/golden-card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import {
   Dialog,
@@ -22,37 +21,30 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
   Pill,
-  Search,
   MapPin,
   Clock,
-  Phone,
-  Mail,
   AlertTriangle,
   CheckCircle,
   Users,
-  Shield,
+  Heart,
   Zap,
   Star,
   MessageCircle,
   Calendar,
-  DollarSign,
-  FileText,
   User,
-  Plus,
-  Target,
-  Activity,
+  Sparkles,
+  Globe,
+  HandHeart,
+  Share2,
+  Shield,
+  Rocket,
+  GroupIcon as Community,
+  UserCheck,
+  Gift,
+  HelpCircle,
+  Send,
+  Lightbulb,
 } from "lucide-react"
 
 interface MedicationRequest {
@@ -60,120 +52,73 @@ interface MedicationRequest {
   patientName: string
   medicationName: string
   dosage: string
-  urgency: "low" | "medium" | "high" | "critical"
+  urgency: "critical" | "high" | "medium" | "low"
   location: string
   contactPhone: string
   contactEmail: string
   description: string
-  prescriptionRequired: boolean
-  maxPrice: number
+  maxPrice?: number
   dateNeeded: string
   responses: number
   status: "active" | "fulfilled" | "expired"
   createdAt: string
   category: string
+  isSharing: boolean // true if offering to share, false if requesting
+  sharingType: "free" | "cost" | "exchange"
 }
 
-interface Provider {
+interface CommunityMember {
   id: string
   name: string
   location: string
   rating: number
   verified: boolean
+  helpedCount: number
+  joinedDate: string
   specialties: string[]
   responseTime: string
-  successRate: number
+  trustScore: number
+  avatar: string
 }
-
-const mockRequests: MedicationRequest[] = [
-  {
-    id: "1",
-    patientName: "Sarah M.",
-    medicationName: "Insulin Glargine",
-    dosage: "100 units/mL",
-    urgency: "critical",
-    location: "New York, NY",
-    contactPhone: "+1-555-0123",
-    contactEmail: "sarah.m@email.com",
-    description: "Urgent need for insulin. My regular pharmacy is out of stock and I'm running low.",
-    prescriptionRequired: true,
-    maxPrice: 150,
-    dateNeeded: "2024-01-15",
-    responses: 3,
-    status: "active",
-    createdAt: "2024-01-14",
-    category: "Diabetes",
-  },
-  {
-    id: "2",
-    patientName: "John D.",
-    medicationName: "Albuterol Inhaler",
-    dosage: "90 mcg",
-    urgency: "high",
-    location: "Los Angeles, CA",
-    contactPhone: "+1-555-0456",
-    contactEmail: "john.d@email.com",
-    description: "Need asthma inhaler for emergency backup. Traveling and forgot mine.",
-    prescriptionRequired: true,
-    maxPrice: 75,
-    dateNeeded: "2024-01-16",
-    responses: 1,
-    status: "active",
-    createdAt: "2024-01-14",
-    category: "Respiratory",
-  },
-  {
-    id: "3",
-    patientName: "Maria L.",
-    medicationName: "Metformin",
-    dosage: "500mg",
-    urgency: "medium",
-    location: "Chicago, IL",
-    contactPhone: "+1-555-0789",
-    contactEmail: "maria.l@email.com",
-    description: "Regular medication for diabetes management. Looking for cost-effective option.",
-    prescriptionRequired: true,
-    maxPrice: 30,
-    dateNeeded: "2024-01-20",
-    responses: 0,
-    status: "active",
-    createdAt: "2024-01-13",
-    category: "Diabetes",
-  },
-]
-
-const mockProviders: Provider[] = [
-  {
-    id: "1",
-    name: "MediCare Pharmacy",
-    location: "Manhattan, NY",
-    rating: 4.8,
-    verified: true,
-    specialties: ["Diabetes", "Cardiology", "General"],
-    responseTime: "< 2 hours",
-    successRate: 95,
-  },
-  {
-    id: "2",
-    name: "HealthFirst Supplies",
-    location: "Brooklyn, NY",
-    rating: 4.6,
-    verified: true,
-    specialties: ["Respiratory", "Emergency", "Pediatric"],
-    responseTime: "< 1 hour",
-    successRate: 92,
-  },
-]
 
 export default function Dawini() {
   const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState("requests")
+  const [activeTab, setActiveTab] = useState("community")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedUrgency, setSelectedUrgency] = useState("all")
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
-  const [isProviderDialogOpen, setIsProviderDialogOpen] = useState(false)
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState<MedicationRequest | null>(null)
+
+  // Countdown state
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  })
+
+  // Launch countdown effect
+  useEffect(() => {
+    const targetDate = new Date("2025-09-01T00:00:00").getTime()
+
+    const timer = setInterval(() => {
+      const now = new Date().getTime()
+      const difference = targetDate - now
+
+      if (difference > 0) {
+        setTimeLeft({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        })
+      }
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
 
   // Form states
   const [requestForm, setRequestForm] = useState({
@@ -184,14 +129,117 @@ export default function Dawini() {
     contactPhone: "",
     contactEmail: "",
     description: "",
-    prescriptionRequired: true,
     maxPrice: "",
     dateNeeded: "",
     category: "",
+    isSharing: false,
+    sharingType: "free",
   })
 
+  const mockRequests: MedicationRequest[] = [
+    {
+      id: "1",
+      patientName: "Sarah M.",
+      medicationName: "Insulin Glargine",
+      dosage: "100 units/mL",
+      urgency: "critical",
+      location: "New York, NY",
+      contactPhone: "+1-555-0123",
+      contactEmail: "sarah.m@email.com",
+      description:
+        "I have extra insulin that I can share with someone in need. My prescription changed and I have unopened vials.",
+      dateNeeded: "2024-01-15",
+      responses: 8,
+      status: "active",
+      createdAt: "2024-01-14",
+      category: "Diabetes",
+      isSharing: true,
+      sharingType: "free",
+    },
+    {
+      id: "2",
+      patientName: "Michael R.",
+      medicationName: "Albuterol Inhaler",
+      dosage: "90 mcg",
+      urgency: "high",
+      location: "Los Angeles, CA",
+      contactPhone: "+1-555-0456",
+      contactEmail: "michael.r@email.com",
+      description:
+        "Looking for someone who might have an extra inhaler. Willing to pay or exchange with other medications I have.",
+      dateNeeded: "2024-01-16",
+      responses: 3,
+      status: "active",
+      createdAt: "2024-01-14",
+      category: "Respiratory",
+      isSharing: false,
+      sharingType: "cost",
+    },
+    {
+      id: "3",
+      patientName: "Emma L.",
+      medicationName: "Metformin",
+      dosage: "500mg",
+      urgency: "medium",
+      location: "Chicago, IL",
+      contactPhone: "+1-555-0789",
+      contactEmail: "emma.l@email.com",
+      description:
+        "I have extra Metformin tablets from my previous prescription. Happy to share with someone who needs them.",
+      dateNeeded: "2024-01-20",
+      responses: 5,
+      status: "active",
+      createdAt: "2024-01-13",
+      category: "Diabetes",
+      isSharing: true,
+      sharingType: "free",
+    },
+  ]
+
+  const mockCommunityMembers: CommunityMember[] = [
+    {
+      id: "1",
+      name: "Dr. Jennifer K.",
+      location: "Manhattan, NY",
+      rating: 4.9,
+      verified: true,
+      helpedCount: 47,
+      joinedDate: "2024-01-01",
+      specialties: ["Diabetes Care", "Emergency Medications", "Pediatric"],
+      responseTime: "< 30 minutes",
+      trustScore: 98,
+      avatar: "/placeholder.svg?height=40&width=40&text=JK",
+    },
+    {
+      id: "2",
+      name: "Maria S.",
+      location: "Brooklyn, NY",
+      rating: 4.8,
+      verified: true,
+      helpedCount: 32,
+      joinedDate: "2024-01-05",
+      specialties: ["Respiratory Care", "Chronic Conditions"],
+      responseTime: "< 1 hour",
+      trustScore: 95,
+      avatar: "/placeholder.svg?height=40&width=40&text=MS",
+    },
+    {
+      id: "3",
+      name: "Ahmed H.",
+      location: "Queens, NY",
+      rating: 4.7,
+      verified: true,
+      helpedCount: 28,
+      joinedDate: "2024-01-10",
+      specialties: ["General Medicine", "Emergency Support"],
+      responseTime: "< 2 hours",
+      trustScore: 92,
+      avatar: "/placeholder.svg?height=40&width=40&text=AH",
+    },
+  ]
+
   const categories = ["all", "Diabetes", "Respiratory", "Cardiology", "Neurology", "Oncology", "Pediatric", "Emergency"]
-  const urgencyLevels = ["all", "low", "medium", "high", "critical"]
+  const urgencyLevels = ["all", "critical", "high", "medium", "low"]
 
   const filteredRequests = mockRequests.filter((request) => {
     const matchesSearch =
@@ -204,7 +252,6 @@ export default function Dawini() {
   })
 
   const handleSubmitRequest = () => {
-    // Validate form
     if (!requestForm.medicationName || !requestForm.contactPhone || !requestForm.contactEmail) {
       toast({
         title: "Missing Information",
@@ -215,8 +262,10 @@ export default function Dawini() {
     }
 
     toast({
-      title: "Request Submitted Successfully",
-      description: "Your medication request has been posted. Providers will contact you directly.",
+      title: "Request Posted Successfully",
+      description: requestForm.isSharing
+        ? "Your sharing offer has been posted to the community!"
+        : "Your request has been posted. Community members will reach out to help!",
     })
 
     setIsRequestDialogOpen(false)
@@ -228,15 +277,12 @@ export default function Dawini() {
       contactPhone: "",
       contactEmail: "",
       description: "",
-      prescriptionRequired: true,
       maxPrice: "",
       dateNeeded: "",
       category: "",
+      isSharing: false,
+      sharingType: "free",
     })
-  }
-
-  const handleContactProvider = (request: MedicationRequest) => {
-    setSelectedRequest(request)
   }
 
   const getUrgencyColor = (urgency: string) => {
@@ -269,71 +315,166 @@ export default function Dawini() {
     }
   }
 
+  const CountdownCard = ({ value, label }: { value: number; label: string }) => (
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="relative"
+    >
+      <div className="bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-2xl">
+        <div className="text-center">
+          <motion.div
+            key={value}
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="text-4xl md:text-5xl font-bold text-white mb-2"
+          >
+            {value.toString().padStart(2, "0")}
+          </motion.div>
+          <div className="text-blue-100 text-sm uppercase tracking-wider font-medium">{label}</div>
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-2xl blur-xl -z-10" />
+      </div>
+    </motion.div>
+  )
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white">
-        <div className="absolute inset-0 bg-black/20" />
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23ffffff' fillOpacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-slate-950 dark:via-blue-950 dark:to-purple-950">
+      {/* Hero Section with Countdown */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800 text-white">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.1)_50%,transparent_75%)] bg-[length:20px_20px] animate-pulse" />
+          <motion.div
+            animate={{
+              backgroundPosition: ["0% 0%", "100% 100%"],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Number.POSITIVE_INFINITY,
+              repeatType: "reverse",
+            }}
+            className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20"
+          />
+        </div>
 
         <div className="relative container mx-auto px-4 py-24">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-center max-w-4xl mx-auto"
+            className="text-center max-w-6xl mx-auto"
           >
-            <div className="flex justify-center mb-6">
+            {/* Logo Animation */}
+            <div className="flex justify-center mb-8">
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                className="p-4 bg-white/10 rounded-full backdrop-blur-sm"
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ duration: 1, type: "spring", bounce: 0.5 }}
+                className="relative"
               >
-                <Pill className="h-16 w-16 text-amber-300" />
+                <div className="p-6 bg-gradient-to-br from-white/20 to-white/5 rounded-full backdrop-blur-xl border border-white/20 shadow-2xl">
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                  >
+                    <HandHeart className="h-20 w-20 text-amber-300" />
+                  </motion.div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-pink-400/20 rounded-full blur-2xl -z-10" />
               </motion.div>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+            {/* Title */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent"
+            >
               Dawini
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100">
-              Connecting patients with medication providers when you need it most
-            </p>
-            <p className="text-lg mb-12 text-blue-200 max-w-2xl mx-auto">
-              A community-driven platform that helps people find essential medications through verified providers and
-              pharmacies
-            </p>
+            </motion.h1>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="text-2xl md:text-3xl mb-4 text-blue-100 font-light"
+            >
+              Community Medication Sharing
+            </motion.p>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.8 }}
+              className="text-lg md:text-xl mb-12 text-blue-200 max-w-3xl mx-auto leading-relaxed"
+            >
+              A revolutionary community platform where people help each other by sharing medications, offering support,
+              and building connections. Together, we make healthcare more accessible for everyone.
+            </motion.p>
+
+            {/* Launch Countdown */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.9, duration: 0.8 }}
+              className="mb-12"
+            >
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <Rocket className="h-6 w-6 text-amber-300" />
+                <span className="text-xl font-semibold text-amber-100">Launching Soon</span>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4 max-w-2xl mx-auto mb-8">
+                <CountdownCard value={timeLeft.days} label="Days" />
+                <CountdownCard value={timeLeft.hours} label="Hours" />
+                <CountdownCard value={timeLeft.minutes} label="Minutes" />
+                <CountdownCard value={timeLeft.seconds} label="Seconds" />
+              </div>
+
+              <div className="text-center">
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-2 text-lg font-semibold">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  September 1st, 2025
+                </Badge>
+              </div>
+            </motion.div>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.1, duration: 0.8 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+            >
               <Button
                 size="lg"
-                className="bg-amber-500 hover:bg-amber-600 text-amber-900 font-semibold px-8 py-4 text-lg"
-                onClick={() => setIsRequestDialogOpen(true)}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-8 py-4 text-lg shadow-2xl hover:shadow-amber-500/25 transition-all duration-300"
+                onClick={() => setIsJoinDialogOpen(true)}
               >
-                <Plus className="mr-2 h-5 w-5" />
-                Request Medication
+                <Heart className="mr-2 h-5 w-5" />
+                Join the Community
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg bg-transparent"
-                onClick={() => setIsProviderDialogOpen(true)}
+                className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg bg-transparent backdrop-blur-sm"
+                onClick={() => setIsRequestDialogOpen(true)}
               >
-                <Shield className="mr-2 h-5 w-5" />
-                Become a Provider
+                <Share2 className="mr-2 h-5 w-5" />
+                Preview Platform
               </Button>
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </div>
 
-      {/* How It Works Section */}
-      <div className="py-24 bg-white">
+      {/* Community Values Section */}
+      <div className="py-24 bg-white dark:bg-slate-900">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -341,34 +482,40 @@ export default function Dawini() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold mb-4 text-gray-900">How Dawini Works</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Simple, secure, and fast medication access through our verified network
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Built on Community Values
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Dawini is more than a platform—it's a movement of people helping people, creating a world where no one
+              goes without essential medications.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {[
               {
-                step: "1",
-                title: "Post Your Request",
-                description: "Submit your medication needs with prescription details and urgency level",
-                icon: <FileText className="h-8 w-8" />,
-                color: "from-blue-500 to-cyan-500",
+                icon: <HandHeart className="h-12 w-12" />,
+                title: "Peer-to-Peer Sharing",
+                description:
+                  "Community members directly help each other by sharing extra medications, creating genuine human connections.",
+                color: "from-pink-500 to-rose-500",
+                bgColor: "from-pink-50 to-rose-50 dark:from-pink-950/20 dark:to-rose-950/20",
               },
               {
-                step: "2",
-                title: "Get Connected",
-                description: "Verified providers in your area will contact you directly with availability",
-                icon: <Users className="h-8 w-8" />,
-                color: "from-purple-500 to-pink-500",
-              },
-              {
-                step: "3",
-                title: "Secure Transaction",
-                description: "Complete your purchase safely with our verified provider network",
-                icon: <Shield className="h-8 w-8" />,
+                icon: <Shield className="h-12 w-12" />,
+                title: "Trust & Safety",
+                description:
+                  "Built-in verification system and community ratings ensure safe, reliable medication sharing experiences.",
                 color: "from-green-500 to-emerald-500",
+                bgColor: "from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20",
+              },
+              {
+                icon: <Globe className="h-12 w-12" />,
+                title: "Global Impact",
+                description:
+                  "Creating a worldwide network of compassionate individuals making healthcare accessible to all.",
+                color: "from-blue-500 to-cyan-500",
+                bgColor: "from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20",
               },
             ].map((item, index) => (
               <motion.div
@@ -377,97 +524,158 @@ export default function Dawini() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.2 }}
-                className="text-center"
+                whileHover={{ y: -10, scale: 1.02 }}
+                className={`relative p-8 rounded-3xl bg-gradient-to-br ${item.bgColor} border border-gray-200/50 dark:border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-300`}
               >
                 <div
-                  className={`w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center text-white shadow-lg`}
+                  className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-r ${item.color} flex items-center justify-center text-white shadow-lg`}
                 >
                   {item.icon}
                 </div>
-                <div className="mb-4">
-                  <span className="inline-block w-8 h-8 bg-gray-100 rounded-full text-gray-600 font-bold text-sm flex items-center justify-center mb-2">
-                    {item.step}
-                  </span>
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900">{item.title}</h3>
-                <p className="text-gray-600">{item.description}</p>
+                <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white text-center">{item.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300 text-center leading-relaxed">{item.description}</p>
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-3xl" />
               </motion.div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
-            <TabsList className="grid w-full lg:w-auto grid-cols-2 bg-white shadow-md">
-              <TabsTrigger value="requests" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Active Requests
-              </TabsTrigger>
-              <TabsTrigger value="providers" className="flex items-center gap-2">
+      {/* How It Works Section */}
+      <div className="py-24 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-900">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900 dark:text-white">How Dawini Works</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Simple steps to connect, share, and help your community access essential medications
+            </p>
+          </motion.div>
+
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {[
+                {
+                  step: "1",
+                  title: "Join Community",
+                  description: "Sign up and become part of our trusted medication sharing network",
+                  icon: <UserCheck className="h-8 w-8" />,
+                  color: "from-blue-500 to-cyan-500",
+                },
+                {
+                  step: "2",
+                  title: "Share or Request",
+                  description: "Post what you can share or what you need from community members",
+                  icon: <Share2 className="h-8 w-8" />,
+                  color: "from-purple-500 to-pink-500",
+                },
+                {
+                  step: "3",
+                  title: "Connect Directly",
+                  description: "Community members reach out to each other directly to coordinate",
+                  icon: <MessageCircle className="h-8 w-8" />,
+                  color: "from-green-500 to-emerald-500",
+                },
+                {
+                  step: "4",
+                  title: "Help & Be Helped",
+                  description: "Complete the exchange and build lasting community connections",
+                  icon: <Heart className="h-8 w-8" />,
+                  color: "from-orange-500 to-red-500",
+                },
+              ].map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.15 }}
+                  className="relative text-center group"
+                >
+                  {/* Connection Line */}
+                  {index < 3 && (
+                    <div className="hidden lg:block absolute top-10 left-full w-full h-0.5 bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600 z-0" />
+                  )}
+
+                  <div className="relative z-10">
+                    <motion.div
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      className={`w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-r ${item.color} flex items-center justify-center text-white shadow-xl group-hover:shadow-2xl transition-all duration-300`}
+                    >
+                      {item.icon}
+                    </motion.div>
+
+                    <div className="mb-4">
+                      <span className="inline-block w-10 h-10 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full text-gray-700 dark:text-gray-300 font-bold text-lg flex items-center justify-center mb-3 shadow-lg">
+                        {item.step}
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">{item.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{item.description}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Section */}
+      <div className="py-24 bg-white dark:bg-slate-900">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Platform Preview
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Get a glimpse of how our community will connect and share medications
+            </p>
+          </motion.div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-6xl mx-auto">
+            <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl">
+              <TabsTrigger value="community" className="flex items-center gap-2 rounded-xl">
                 <Users className="h-4 w-4" />
-                Providers
+                Community Posts
+              </TabsTrigger>
+              <TabsTrigger value="sharing" className="flex items-center gap-2 rounded-xl">
+                <Gift className="h-4 w-4" />
+                Sharing Offers
+              </TabsTrigger>
+              <TabsTrigger value="members" className="flex items-center gap-2 rounded-xl">
+                <Community className="h-4 w-4" />
+                Members
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search medications..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full sm:w-64"
-                />
-              </div>
-
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category === "all" ? "All Categories" : category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={selectedUrgency} onValueChange={setSelectedUrgency}>
-                <SelectTrigger className="w-full sm:w-32">
-                  <SelectValue placeholder="Urgency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {urgencyLevels.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {level === "all" ? "All Levels" : level.charAt(0).toUpperCase() + level.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <TabsContent value="requests" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence>
-                {filteredRequests.map((request, index) => {
-                  const RequestCard = request.urgency === "critical" ? GoldenCard : Card
-
-                  return (
+            <TabsContent value="community" className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {filteredRequests.map((request, index) => (
                     <motion.div
                       key={request.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ delay: index * 0.1 }}
+                      whileHover={{ y: -5, scale: 1.02 }}
                     >
-                      <RequestCard
-                        isUrgent={request.urgency === "critical"}
-                        className="h-full hover:shadow-lg transition-all duration-300"
+                      <Card
+                        className={`h-full transition-all duration-300 hover:shadow-xl ${
+                          request.isSharing
+                            ? "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800"
+                            : "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800"
+                        }`}
                       >
                         <CardHeader className="pb-3">
                           <div className="flex justify-between items-start mb-2">
@@ -475,9 +683,24 @@ export default function Dawini() {
                               {getUrgencyIcon(request.urgency)}
                               {request.urgency.toUpperCase()}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {request.category}
-                            </Badge>
+                            <div className="flex gap-2">
+                              <Badge variant="outline" className="text-xs">
+                                {request.category}
+                              </Badge>
+                              <Badge className={request.isSharing ? "bg-green-500" : "bg-blue-500"}>
+                                {request.isSharing ? (
+                                  <>
+                                    <Gift className="h-3 w-3 mr-1" />
+                                    Sharing
+                                  </>
+                                ) : (
+                                  <>
+                                    <HelpCircle className="h-3 w-3 mr-1" />
+                                    Requesting
+                                  </>
+                                )}
+                              </Badge>
+                            </div>
                           </div>
                           <CardTitle className="text-lg">{request.medicationName}</CardTitle>
                           <CardDescription className="flex items-center gap-2">
@@ -489,7 +712,7 @@ export default function Dawini() {
                         <CardContent className="space-y-3">
                           <div className="text-sm space-y-2">
                             <div className="flex items-center gap-2">
-                              <Pill className="h-4 w-4 text-blue-500" />
+                              <Pill className="h-4 w-4 text-purple-500" />
                               <span className="font-medium">Dosage:</span> {request.dosage}
                             </div>
                             <div className="flex items-center gap-2">
@@ -497,171 +720,238 @@ export default function Dawini() {
                               <span className="font-medium">Location:</span> {request.location}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-purple-500" />
-                              <span className="font-medium">Needed by:</span> {request.dateNeeded}
+                              <Calendar className="h-4 w-4 text-blue-500" />
+                              <span className="font-medium">Date:</span> {request.dateNeeded}
                             </div>
-                            <div className="flex items-center gap-2">
-                              <DollarSign className="h-4 w-4 text-amber-500" />
-                              <span className="font-medium">Max Price:</span> ${request.maxPrice}
-                            </div>
+                            {request.sharingType && (
+                              <div className="flex items-center gap-2">
+                                <Star className="h-4 w-4 text-amber-500" />
+                                <span className="font-medium">Type:</span>
+                                <Badge variant="secondary" className="text-xs">
+                                  {request.sharingType === "free"
+                                    ? "Free"
+                                    : request.sharingType === "cost"
+                                      ? "Cost Sharing"
+                                      : "Exchange"}
+                                </Badge>
+                              </div>
+                            )}
                           </div>
 
-                          <p className="text-sm text-gray-600 line-clamp-2">{request.description}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{request.description}</p>
 
-                          <div className="flex items-center justify-between text-xs text-gray-500">
+                          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                             <span className="flex items-center gap-1">
                               <MessageCircle className="h-3 w-3" />
                               {request.responses} responses
                             </span>
                             <span>{request.createdAt}</span>
                           </div>
+
+                          <Button className="w-full mt-4" variant={request.isSharing ? "default" : "outline"}>
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            {request.isSharing ? "Request This" : "Offer Help"}
+                          </Button>
                         </CardContent>
-
-                        <CardFooter className="pt-3">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-                                <Phone className="mr-2 h-4 w-4" />
-                                Contact Patient
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Contact Information</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  You can contact {request.patientName} directly using the information below:
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <div className="space-y-3 py-4">
-                                <div className="flex items-center gap-3">
-                                  <Phone className="h-5 w-5 text-green-500" />
-                                  <span className="font-mono">{request.contactPhone}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <Mail className="h-5 w-5 text-blue-500" />
-                                  <span className="font-mono">{request.contactEmail}</span>
-                                </div>
-                                <Separator />
-                                <div className="text-sm text-gray-600">
-                                  <p>
-                                    <strong>Medication:</strong> {request.medicationName} ({request.dosage})
-                                  </p>
-                                  <p>
-                                    <strong>Urgency:</strong> {request.urgency}
-                                  </p>
-                                  <p>
-                                    <strong>Prescription Required:</strong>{" "}
-                                    {request.prescriptionRequired ? "Yes" : "No"}
-                                  </p>
-                                </div>
-                              </div>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Close</AlertDialogCancel>
-                                <AlertDialogAction>Mark as Contacted</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </CardFooter>
-                      </RequestCard>
+                      </Card>
                     </motion.div>
-                  )
-                })}
-              </AnimatePresence>
-            </div>
-          </TabsContent>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </TabsContent>
 
-          <TabsContent value="providers" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {mockProviders.map((provider, index) => (
+            <TabsContent value="sharing" className="space-y-6">
+              <div className="text-center py-12">
                 <motion.div
-                  key={provider.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", bounce: 0.5 }}
+                  className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6"
                 >
-                  <Card className="h-full hover:shadow-lg transition-all duration-300">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{provider.name}</CardTitle>
-                        {provider.verified && (
-                          <Badge className="bg-green-500 text-white flex items-center gap-1">
-                            <Shield className="h-3 w-3" />
-                            Verified
-                          </Badge>
-                        )}
-                      </div>
-                      <CardDescription className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        {provider.location}
-                      </CardDescription>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < Math.floor(provider.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm font-medium">{provider.rating}</span>
-                      </div>
-
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-blue-500" />
-                          <span>Response time: {provider.responseTime}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Target className="h-4 w-4 text-green-500" />
-                          <span>Success rate: {provider.successRate}%</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-medium mb-2">Specialties:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {provider.specialties.map((specialty) => (
-                            <Badge key={specialty} variant="outline" className="text-xs">
-                              {specialty}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-
-                    <CardFooter>
-                      <Button className="w-full bg-transparent" variant="outline">
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        Contact Provider
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                  <Gift className="h-12 w-12 text-white" />
                 </motion.div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+                <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Sharing Economy</h3>
+                <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                  Community members can offer medications they have extra of, creating a sustainable sharing ecosystem
+                  where everyone benefits from collective resources.
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="members" className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {mockCommunityMembers.map((member, index) => (
+                  <motion.div
+                    key={member.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ y: -5, scale: 1.02 }}
+                  >
+                    <Card className="h-full hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900">
+                      <CardHeader>
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <img
+                              src={member.avatar || "/placeholder.svg"}
+                              alt={member.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            {member.verified && (
+                              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                <CheckCircle className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <CardTitle className="text-lg">{member.name}</CardTitle>
+                            <CardDescription className="flex items-center gap-2">
+                              <MapPin className="h-4 w-4" />
+                              {member.location}
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star
+                                key={i}
+                                className={`h-4 w-4 ${
+                                  i < Math.floor(member.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                            <span className="text-sm font-medium ml-1">{member.rating}</span>
+                          </div>
+                          <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            Trust: {member.trustScore}%
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Heart className="h-4 w-4 text-red-500" />
+                            <span>Helped {member.helpedCount} people</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-blue-500" />
+                            <span>Response: {member.responseTime}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-green-500" />
+                            <span>Joined {member.joinedDate}</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-medium mb-2">Specialties:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {member.specialties.map((specialty, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {specialty}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+
+                        <Button className="w-full bg-transparent" variant="outline">
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          Connect
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
 
-      {/* Request Medication Dialog */}
-      <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      {/* Join Community Dialog */}
+      <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Pill className="h-5 w-5 text-blue-500" />
-              Request Medication
+              <Heart className="h-5 w-5 text-red-500" />
+              Join the Dawini Community
             </DialogTitle>
             <DialogDescription>
-              Fill out the form below to post your medication request. Verified providers will contact you directly.
+              Be part of the movement to make medications accessible through community sharing.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <Sparkles className="h-8 w-8 text-white" />
+              </motion.div>
+              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">Early Access Registration</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                Register now to get early access when we launch and be among the first to join our community.
+              </p>
+              <div className="space-y-3">
+                <Input placeholder="Your email address" type="email" />
+                <Input placeholder="Your location (city, country)" />
+                <Textarea placeholder="Tell us why you want to join Dawini..." rows={3} />
+              </div>
+              <Button className="w-full mt-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+                <Send className="mr-2 h-4 w-4" />
+                Register for Early Access
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsJoinDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Request Dialog */}
+      <Dialog open={isRequestDialogOpen} onOpenChange={setIsRequestDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-blue-500" />
+              Platform Preview - Post Request
+            </DialogTitle>
+            <DialogDescription>
+              This is a preview of how community members will post sharing offers and requests.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20">
+              <Lightbulb className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-700 dark:text-blue-300">
+                <strong>Preview Mode:</strong> This is a demonstration of the platform features. Actual functionality
+                will be available at launch.
+              </AlertDescription>
+            </Alert>
+
+            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <input
+                type="checkbox"
+                id="isSharing"
+                checked={requestForm.isSharing}
+                onChange={(e) => setRequestForm({ ...requestForm, isSharing: e.target.checked })}
+                className="w-4 h-4 text-blue-600 rounded"
+              />
+              <Label htmlFor="isSharing" className="text-sm font-medium">
+                I'm offering to share medication (check this if you have extra medication to share)
+              </Label>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="medicationName">Medication Name *</Label>
@@ -725,26 +1015,48 @@ export default function Dawini() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {requestForm.isSharing && (
               <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  placeholder="City, State"
-                  value={requestForm.location}
-                  onChange={(e) => setRequestForm({ ...requestForm, location: e.target.value })}
-                />
+                <Label htmlFor="sharingType">Sharing Type</Label>
+                <Select
+                  value={requestForm.sharingType}
+                  onValueChange={(value) => setRequestForm({ ...requestForm, sharingType: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">Free - No cost</SelectItem>
+                    <SelectItem value="cost">Cost Sharing - Split the cost</SelectItem>
+                    <SelectItem value="exchange">Exchange - Trade for other medication</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="dateNeeded">Date Needed</Label>
-                <Input
-                  id="dateNeeded"
-                  type="date"
-                  value={requestForm.dateNeeded}
-                  onChange={(e) => setRequestForm({ ...requestForm, dateNeeded: e.target.value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                placeholder="City, State/Country"
+                value={requestForm.location}
+                onChange={(e) => setRequestForm({ ...requestForm, location: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">{requestForm.isSharing ? "Sharing Details" : "Request Details"}</Label>
+              <Textarea
+                id="description"
+                placeholder={
+                  requestForm.isSharing
+                    ? "Describe what you're sharing, expiration dates, storage conditions, etc..."
+                    : "Describe your situation, any specific requirements, or additional information..."
+                }
+                value={requestForm.description}
+                onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
+                rows={3}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -769,89 +1081,18 @@ export default function Dawini() {
                 />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="maxPrice">Maximum Price ($)</Label>
-              <Input
-                id="maxPrice"
-                type="number"
-                placeholder="150"
-                value={requestForm.maxPrice}
-                onChange={(e) => setRequestForm({ ...requestForm, maxPrice: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Additional Details</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe your situation, any specific requirements, or additional information..."
-                value={requestForm.description}
-                onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="prescriptionRequired"
-                checked={requestForm.prescriptionRequired}
-                onChange={(e) => setRequestForm({ ...requestForm, prescriptionRequired: e.target.checked })}
-                className="rounded border-gray-300"
-              />
-              <Label htmlFor="prescriptionRequired" className="text-sm">
-                Prescription required for this medication
-              </Label>
-            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>
-              Cancel
+              Close Preview
             </Button>
             <Button
               onClick={handleSubmitRequest}
               className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Submit Request
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Provider Registration Dialog */}
-      <Dialog open={isProviderDialogOpen} onOpenChange={setIsProviderDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-green-500" />
-              Become a Provider
-            </DialogTitle>
-            <DialogDescription>
-              Join our network of verified medication providers and help people in need.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="text-center p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
-              <Shield className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Provider Registration</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                We're currently setting up our provider verification system. Leave your information and we'll contact
-                you soon.
-              </p>
-              <Button className="bg-green-500 hover:bg-green-600">
-                <Mail className="mr-2 h-4 w-4" />
-                Get Notified
-              </Button>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsProviderDialogOpen(false)}>
-              Close
+              <Send className="mr-2 h-4 w-4" />
+              Preview Submit
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -859,3 +1100,4 @@ export default function Dawini() {
     </div>
   )
 }
+
