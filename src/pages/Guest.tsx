@@ -31,6 +31,8 @@ export default function Guest() {
       iconBg: "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 group-hover:from-blue-500 group-hover:to-cyan-500",
       color: "text-blue-600 dark:text-blue-400",
       borderColor: "border-blue-200/50 dark:border-blue-800/50",
+      size: "large", // Large card
+      position: "top-left"
     },
     {
       icon: <Eye className="h-6 w-6" />,
@@ -41,6 +43,8 @@ export default function Guest() {
       iconBg: "bg-gradient-to-br from-purple-500/20 to-pink-500/20 group-hover:from-purple-500 group-hover:to-pink-500",
       color: "text-purple-600 dark:text-purple-400",
       borderColor: "border-purple-200/50 dark:border-purple-800/50",
+      size: "large", // Large card
+      position: "top-center"
     },
     {
       icon: <Eye className="h-6 w-6" />,
@@ -52,6 +56,8 @@ export default function Guest() {
         "bg-gradient-to-br from-green-500/20 to-emerald-500/20 group-hover:from-green-500 group-hover:to-emerald-500",
       color: "text-green-600 dark:text-green-400",
       borderColor: "border-green-200/50 dark:border-green-800/50",
+      size: "medium", // Medium card
+      position: "top-right"
     },
     {
       icon: <Eye className="h-6 w-6" />,
@@ -62,6 +68,8 @@ export default function Guest() {
       iconBg: "bg-gradient-to-br from-orange-500/20 to-red-500/20 group-hover:from-orange-500 group-hover:to-red-500",
       color: "text-orange-600 dark:text-orange-400",
       borderColor: "border-orange-200/50 dark:border-orange-800/50",
+      size: "medium", // Medium card
+      position: "bottom-left"
     },
     {
       icon: <Pill className="h-6 w-6" />,
@@ -74,6 +82,8 @@ export default function Guest() {
       color: "text-amber-800 dark:text-amber-200",
       borderColor: "border-amber-300/60 dark:border-amber-700/60",
       isSpecial: true,
+      size: "full", // Full width card
+      position: "bottom"
     },
   ]
 
@@ -242,92 +252,126 @@ export default function Guest() {
             </motion.div>
           </motion.div>
 
-          {/* Enhanced Features Grid */}
+          {/* Custom Grid Layout - Matching Your Image */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 mb-16 lg:mb-20"
+            className="mb-16 lg:mb-20"
           >
-            {guestFeatures.map((feature, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover="hover"
-                whileTap={{ scale: 0.98 }}
-                initial="rest"
-                className={feature.isSpecial ? "xl:col-span-3" : ""}
-              >
-                <motion.div variants={cardHoverVariants}>
-                  <Card
-                    className={`relative overflow-hidden p-8 lg:p-10 cursor-pointer border-2 shadow-xl hover:shadow-2xl transition-all duration-500 bg-gradient-to-br ${feature.gradient} backdrop-blur-sm hover:bg-white/90 dark:hover:bg-slate-800/90 group ${feature.borderColor} ${
-                      feature.isSpecial ? "ring-2 ring-amber-300/50 dark:ring-amber-700/50" : ""
-                    }`}
-                    onClick={() => navigate(feature.path)}
+            {/* Custom Grid Container */}
+            <div className="grid grid-cols-4 grid-rows-3 gap-6 lg:gap-8 h-[800px] lg:h-[900px]">
+              {guestFeatures.map((feature, index) => {
+                // Define grid positioning based on your image layout
+                let gridClass = "";
+                let cardHeight = "";
+                
+                switch(feature.position) {
+                  case "top-left":
+                    gridClass = "col-span-2 row-span-2"; // Large card top-left
+                    cardHeight = "h-full";
+                    break;
+                  case "top-center":
+                    gridClass = "col-span-1 row-span-2"; // Large card top-center
+                    cardHeight = "h-full";
+                    break;
+                  case "top-right":
+                    gridClass = "col-span-1 row-span-1"; // Medium card top-right
+                    cardHeight = "h-full";
+                    break;
+                  case "bottom-left":
+                    gridClass = "col-span-1 row-span-1"; // Medium card bottom-left
+                    cardHeight = "h-full";
+                    break;
+                  case "bottom":
+                    gridClass = "col-span-4 row-span-1"; // Full width bottom card
+                    cardHeight = "h-full";
+                    break;
+                  default:
+                    gridClass = "col-span-1 row-span-1";
+                    cardHeight = "h-full";
+                }
+
+                return (
+                  <motion.div
+                    key={index}
+                    variants={itemVariants}
+                    whileHover="hover"
+                    whileTap={{ scale: 0.98 }}
+                    initial="rest"
+                    className={gridClass}
                   >
-                    {/* Enhanced Hover Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-
-                    {/* Special Golden Shimmer for Dawini */}
-                    {feature.isSpecial && (
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/20 to-transparent -skew-x-12 animate-shimmer" />
-                    )}
-
-                    <div className="relative z-10">
-                      <div
-                        className={`flex ${feature.isSpecial ? "flex-col items-center text-center" : "flex-col sm:flex-row items-start"} space-y-6 ${!feature.isSpecial && "sm:space-y-0 sm:space-x-6"}`}
+                    <motion.div variants={cardHoverVariants} className="h-full">
+                      <Card
+                        className={`relative overflow-hidden ${cardHeight} cursor-pointer border-2 shadow-xl hover:shadow-2xl transition-all duration-500 bg-gradient-to-br ${feature.gradient} backdrop-blur-sm hover:bg-white/90 dark:hover:bg-slate-800/90 group ${feature.borderColor} ${
+                          feature.isSpecial ? "ring-2 ring-amber-300/50 dark:ring-amber-700/50" : ""
+                        }`}
+                        onClick={() => navigate(feature.path)}
                       >
-                        <motion.div
-                          className={`w-16 h-16 lg:w-20 lg:h-20 rounded-3xl ${feature.iconBg} flex items-center justify-center ${feature.color} group-hover:text-white transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-lg ${
-                            feature.isSpecial ? "mb-4" : ""
-                          }`}
-                          whileHover={{ rotate: 12, scale: 1.15 }}
-                        >
-                          {feature.icon}
-                        </motion.div>
+                        {/* Enhanced Hover Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
 
-                        <div className={`flex-1 min-w-0 ${feature.isSpecial ? "max-w-2xl" : ""}`}>
-                          <h3
-                            className={`text-2xl lg:text-3xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-slate-800 dark:group-hover:text-white transition-colors ${
-                              feature.isSpecial ? "text-center" : ""
-                            }`}
-                          >
-                            {feature.title}
-                          </h3>
-                          <p
-                            className={`text-slate-600 dark:text-slate-300 text-base lg:text-lg leading-relaxed ${
-                              feature.isSpecial ? "text-center" : ""
-                            }`}
-                          >
-                            {feature.description}
-                          </p>
+                        {/* Special Golden Shimmer for Dawini */}
+                        {feature.isSpecial && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/20 to-transparent -skew-x-12 animate-shimmer" />
+                        )}
 
-                          {feature.isSpecial && (
-                            <div className="mt-6 flex justify-center">
-                              <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-300 px-4 py-2">
-                                <Sparkles className="h-4 w-4 mr-2" />
-                                Premium Service
-                              </Badge>
+                        <div className="relative z-10 p-6 lg:p-8 h-full flex flex-col">
+                          {/* Icon and Content Container */}
+                          <div className={`flex ${feature.size === "full" ? "flex-col items-center text-center" : "flex-col"} h-full`}>
+                            {/* Icon */}
+                            <motion.div
+                              className={`w-12 h-12 lg:w-16 lg:h-16 rounded-2xl ${feature.iconBg} flex items-center justify-center ${feature.color} group-hover:text-white transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-lg mb-4 flex-shrink-0`}
+                              whileHover={{ rotate: 12, scale: 1.15 }}
+                            >
+                              {feature.icon}
+                            </motion.div>
+
+                            {/* Content */}
+                            <div className={`flex-1 min-w-0 flex flex-col ${feature.size === "full" ? "items-center text-center max-w-2xl mx-auto" : ""}`}>
+                              <h3
+                                className={`text-xl lg:text-2xl xl:text-3xl font-bold mb-3 text-slate-900 dark:text-white group-hover:text-slate-800 dark:group-hover:text-white transition-colors ${
+                                  feature.size === "full" ? "text-center" : ""
+                                }`}
+                              >
+                                {feature.title}
+                              </h3>
+                              <p
+                                className={`text-slate-600 dark:text-slate-300 text-sm lg:text-base leading-relaxed flex-1 ${
+                                  feature.size === "full" ? "text-center" : ""
+                                }`}
+                              >
+                                {feature.description}
+                              </p>
+
+                              {feature.isSpecial && (
+                                <div className="mt-4 flex justify-center">
+                                  <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-300 px-4 py-2">
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    Premium Service
+                                  </Badge>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
+                          </div>
 
-                      {/* Enhanced Arrow Icon */}
-                      <motion.div
-                        className="absolute top-8 right-8 opacity-0 group-hover:opacity-100 transition-all duration-300"
-                        initial={{ x: -10, opacity: 0 }}
-                        whileHover={{ x: 0, opacity: 1 }}
-                      >
-                        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                          <ArrowRight className="h-5 w-5 text-slate-600 group-hover:text-slate-800 dark:group-hover:text-slate-200" />
+                          {/* Enhanced Arrow Icon */}
+                          <motion.div
+                            className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300"
+                            initial={{ x: -10, opacity: 0 }}
+                            whileHover={{ x: 0, opacity: 1 }}
+                          >
+                            <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                              <ArrowRight className="h-4 w-4 text-slate-600 group-hover:text-slate-800 dark:group-hover:text-slate-200" />
+                            </div>
+                          </motion.div>
                         </div>
-                      </motion.div>
-                    </div>
-                  </Card>
-                </motion.div>
-              </motion.div>
-            ))}
+                      </Card>
+                    </motion.div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </motion.div>
 
           {/* Enhanced Restrictions Notice */}
