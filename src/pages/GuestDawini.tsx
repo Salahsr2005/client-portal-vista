@@ -5,219 +5,238 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
-import { GoldenCard } from "@/components/ui/golden-card"
+import { LaunchCounter } from "@/components/ui/launch-counter"
+import { FloatingIcons } from "@/components/ui/floating-icons"
+import { GradientCard } from "@/components/ui/gradient-card"
+import { SpotlightGrid } from "@/components/ui/spotlight-grid"
+import { useTranslation } from "@/i18n"
 import {
-  Pill,
-  Shield,
-  Clock,
+  Heart,
   Users,
   MapPin,
   CheckCircle,
-  AlertTriangle,
-  Heart,
   Zap,
   ArrowRight,
-  FileText,
-  DollarSign,
-  Lock,
   UserPlus,
   MessageCircle,
   Sparkles,
+  Shield,
+  HandHeart,
+  Globe,
+  Star,
+  Rocket,
+  Clock
 } from "lucide-react"
 
 export default function GuestDawini() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
-  const processSteps = [
+  const communitySteps = [
     {
       step: "1",
-      title: "Post Your Request",
-      description: "Submit your medication needs with prescription details, urgency level, and location",
-      icon: <FileText className="h-8 w-8" />,
-      color: "from-blue-500 to-cyan-500",
-      features: ["Medication name & dosage", "Urgency classification", "Location details", "Contact information"],
+      title: t("dawini.community.steps.request.title"),
+      description: t("dawini.community.steps.request.description"),
+      icon: <MessageCircle className="h-8 w-8" />,
+      gradient: "from-blue-500/20 via-cyan-500/20 to-blue-600/20",
+      iconColor: "text-blue-500",
     },
     {
-      step: "2",
-      title: "Provider Matching",
-      description: "Our system matches you with verified providers and pharmacies in your area",
+      step: "2", 
+      title: t("dawini.community.steps.connect.title"),
+      description: t("dawini.community.steps.connect.description"),
       icon: <Users className="h-8 w-8" />,
-      color: "from-purple-500 to-pink-500",
-      features: ["Verified providers only", "Location-based matching", "Specialty filtering", "Real-time availability"],
+      gradient: "from-purple-500/20 via-pink-500/20 to-purple-600/20",
+      iconColor: "text-purple-500",
     },
     {
       step: "3",
-      title: "Direct Contact",
-      description: "Providers contact you directly with availability and pricing information",
-      icon: <MessageCircle className="h-8 w-8" />,
-      color: "from-green-500 to-emerald-500",
-      features: ["Direct communication", "Price negotiation", "Availability confirmation", "Prescription verification"],
+      title: t("dawini.community.steps.help.title"),
+      description: t("dawini.community.steps.help.description"),
+      icon: <HandHeart className="h-8 w-8" />,
+      gradient: "from-green-500/20 via-emerald-500/20 to-green-600/20",
+      iconColor: "text-green-500",
     },
     {
       step: "4",
-      title: "Secure Transaction",
-      description: "Complete your purchase safely through our verified provider network",
-      icon: <Shield className="h-8 w-8" />,
-      color: "from-orange-500 to-red-500",
-      features: ["Secure payments", "Provider verification", "Transaction protection", "Delivery coordination"],
-    },
-  ]
-
-  const urgencyLevels = [
-    {
-      level: "Critical",
-      description: "Life-threatening situations requiring immediate attention",
-      color: "bg-red-500",
-      icon: <AlertTriangle className="h-5 w-5" />,
-      responseTime: "< 30 minutes",
-      cardType: "Golden Card Priority",
-    },
-    {
-      level: "High",
-      description: "Urgent medical needs that cannot wait",
-      color: "bg-orange-500",
-      icon: <Zap className="h-5 w-5" />,
-      responseTime: "< 2 hours",
-      cardType: "Priority Listing",
-    },
-    {
-      level: "Medium",
-      description: "Important medications needed within days",
-      color: "bg-yellow-500",
-      icon: <Clock className="h-5 w-5" />,
-      responseTime: "< 24 hours",
-      cardType: "Standard Listing",
-    },
-    {
-      level: "Low",
-      description: "Routine medications with flexible timing",
-      color: "bg-green-500",
-      icon: <CheckCircle className="h-5 w-5" />,
-      responseTime: "< 48 hours",
-      cardType: "Standard Listing",
+      title: t("dawini.community.steps.grow.title"),
+      description: t("dawini.community.steps.grow.description"),
+      icon: <Sparkles className="h-8 w-8" />,
+      gradient: "from-orange-500/20 via-amber-500/20 to-orange-600/20",
+      iconColor: "text-orange-500",
     },
   ]
 
   const features = [
     {
       icon: <Shield className="h-6 w-6" />,
-      title: "Verified Providers",
-      description: "All providers are verified and licensed professionals",
+      title: t("dawini.features.list.verified.title"),
+      description: t("dawini.features.list.verified.description"),
+      gradient: "from-blue-500/10 to-cyan-500/10"
     },
     {
       icon: <MapPin className="h-6 w-6" />,
-      title: "Location-Based",
-      description: "Find providers and pharmacies in your local area",
+      title: t("dawini.features.list.local.title"), 
+      description: t("dawini.features.list.local.description"),
+      gradient: "from-green-500/10 to-emerald-500/10"
     },
     {
-      icon: <Clock className="h-6 w-6" />,
-      title: "Fast Response",
-      description: "Get responses from providers within hours, not days",
+      icon: <HandHeart className="h-6 w-6" />,
+      title: t("dawini.features.list.mutual.title"),
+      description: t("dawini.features.list.mutual.description"),
+      gradient: "from-purple-500/10 to-pink-500/10"
     },
     {
-      icon: <DollarSign className="h-6 w-6" />,
-      title: "Price Transparency",
-      description: "Compare prices and negotiate directly with providers",
+      icon: <Globe className="h-6 w-6" />,
+      title: t("dawini.features.list.transparent.title"),
+      description: t("dawini.features.list.transparent.description"),
+      gradient: "from-orange-500/10 to-amber-500/10"
     },
     {
       icon: <Heart className="h-6 w-6" />,
-      title: "Community Driven",
-      description: "Built by the community, for the community's health needs",
+      title: t("dawini.features.list.caring.title"),
+      description: t("dawini.features.list.caring.description"),
+      gradient: "from-red-500/10 to-pink-500/10"
     },
     {
-      icon: <Lock className="h-6 w-6" />,
-      title: "Secure & Private",
-      description: "Your medical information is protected and confidential",
+      icon: <Star className="h-6 w-6" />,
+      title: t("dawini.features.list.secure.title"),
+      description: t("dawini.features.list.secure.description"),
+      gradient: "from-indigo-500/10 to-purple-500/10"
     },
-  ]
-
-  const stats = [
-    { number: "10,000+", label: "Medication Requests Fulfilled" },
-    { number: "500+", label: "Verified Providers" },
-    { number: "50+", label: "Cities Covered" },
-    { number: "98%", label: "Success Rate" },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950/20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 dark:from-background dark:via-background/95 dark:to-primary/10">
       {/* Hero Section */}
-      <div className="relative overflow-hidden dawini-hero-bg text-white">
-        <div className="absolute inset-0 bg-black/20" />
-
-        <div className="relative container mx-auto px-4 py-24">
+      <SpotlightGrid className="relative overflow-hidden">
+        <FloatingIcons />
+        
+        <div className="relative container mx-auto px-4 py-24 lg:py-32">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-center max-w-4xl mx-auto"
+            className="text-center max-w-5xl mx-auto"
           >
-            <div className="flex justify-center mb-6">
+            {/* Logo Animation */}
+            <div className="flex justify-center mb-8">
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                className="p-4 bg-white/10 rounded-full backdrop-blur-sm"
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 1, type: "spring", stiffness: 200 }}
+                className="relative"
               >
-                <Pill className="h-16 w-16 text-amber-300" />
+                <motion.div
+                  animate={{ 
+                    rotate: [0, 5, -5, 0],
+                    scale: [1, 1.05, 1, 1.05, 1]
+                  }}
+                  transition={{ 
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="p-6 bg-gradient-to-br from-primary/20 via-purple-500/20 to-pink-500/20 rounded-full backdrop-blur-sm border border-primary/30 shadow-2xl"
+                >
+                  <Heart className="h-16 w-16 md:h-20 md:w-20 text-primary" />
+                </motion.div>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-purple-500/30 to-pink-500/30 rounded-full blur-xl animate-pulse" />
               </motion.div>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-              Dawini
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100">Medication Access Network</p>
-            <p className="text-lg mb-12 text-blue-200 max-w-2xl mx-auto">
-              Connecting patients with medication providers when you need it most. A community-driven platform that
-              helps people find essential medications through verified providers and pharmacies.
-            </p>
+            {/* Title with Gradient */}
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="text-6xl md:text-8xl lg:text-9xl font-bold mb-6 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent leading-tight"
+            >
+              {t("dawini.title")}
+            </motion.h1>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-amber-500 hover:bg-amber-600 text-amber-900 font-semibold px-8 py-4 text-lg"
-                onClick={() => navigate("/register")}
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="text-xl md:text-2xl lg:text-3xl mb-4 text-primary font-semibold"
+            >
+              {t("dawini.hero.title")}
+            </motion.p>
+
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.8 }}
+              className="text-lg md:text-xl mb-8 text-muted-foreground font-medium"
+            >
+              {t("dawini.hero.subtitle")}
+            </motion.p>
+
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.8 }}
+              className="text-base md:text-lg mb-12 text-muted-foreground max-w-3xl mx-auto leading-relaxed"
+            >
+              {t("dawini.hero.description")}
+            </motion.p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 0.8 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
+            >
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <UserPlus className="mr-2 h-5 w-5" />
-                Join Dawini Network
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg bg-transparent"
-                onClick={() => navigate("/login")}
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground font-semibold px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => navigate("/register")}
+                >
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  {t("dawini.cta.joinButton")}
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Shield className="mr-2 h-5 w-5" />
-                Sign In
-              </Button>
-            </div>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-primary/30 hover:bg-primary/10 px-8 py-4 text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => navigate("/login")}
+                >
+                  <Shield className="mr-2 h-5 w-5" />
+                  {t("dawini.cta.loginButton")}
+                </Button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </SpotlightGrid>
+
+      {/* Launch Counter Section */}
+      <div className="py-16 bg-gradient-to-r from-primary/5 via-purple-500/5 to-pink-500/5">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <LaunchCounter targetDate="2025-09-01T00:00:00" />
           </motion.div>
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="py-16 bg-white dark:bg-slate-900">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="text-center"
-              >
-                <div className="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                  {stat.number}
-                </div>
-                <div className="text-gray-600 dark:text-gray-300 text-sm md:text-base">{stat.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* How It Works Section */}
-      <div className="py-24 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-900">
+      {/* How Community Works Section */}
+      <div className="py-24 bg-gradient-to-br from-muted/30 to-primary/5">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -225,133 +244,64 @@ export default function GuestDawini() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">How Dawini Works</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Simple, secure, and fast medication access through our verified network
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              {t("dawini.community.title")}
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              {t("dawini.community.subtitle")}
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
-            {processSteps.map((step, index) => (
+            {communitySteps.map((step, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-                className="process-step"
+                transition={{ delay: index * 0.2, duration: 0.6 }}
               >
-                <Card className="h-full hover:shadow-lg transition-all duration-300 border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
-                  <CardHeader className="text-center pb-4">
-                    <div
-                      className={`w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r ${step.color} flex items-center justify-center text-white shadow-lg`}
-                    >
-                      {step.icon}
+                <GradientCard 
+                  gradient={step.gradient}
+                  className="h-full"
+                >
+                  <div className="text-center">
+                    {/* Step Icon */}
+                    <div className="flex justify-center mb-6">
+                      <motion.div
+                        whileHover={{ rotate: 10, scale: 1.1 }}
+                        transition={{ type: "spring", stiffness: 300 }}
+                        className={`w-20 h-20 rounded-full bg-gradient-to-br ${step.gradient} border border-primary/20 flex items-center justify-center ${step.iconColor} shadow-lg`}
+                      >
+                        {step.icon}
+                      </motion.div>
                     </div>
-                    <div className="mb-4">
-                      <span className="inline-block w-8 h-8 bg-gray-100 dark:bg-slate-700 rounded-full text-gray-600 dark:text-gray-300 font-bold text-sm flex items-center justify-center">
+
+                    {/* Step Number */}
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      whileInView={{ scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.2 + 0.3, type: "spring", stiffness: 300 }}
+                      className="mb-4"
+                    >
+                      <span className="inline-flex items-center justify-center w-8 h-8 bg-primary/10 border border-primary/20 rounded-full text-primary font-bold text-sm">
                         {step.step}
                       </span>
-                    </div>
-                    <CardTitle className="text-xl mb-3">{step.title}</CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-300">{step.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {step.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                    </motion.div>
+
+                    <h3 className="text-xl font-semibold mb-3 text-foreground">{step.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
+                  </div>
+                </GradientCard>
               </motion.div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Urgency Levels Section */}
-      <div className="py-24 bg-white dark:bg-slate-900">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">Urgency Classification</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              We prioritize requests based on medical urgency to ensure critical needs are met first
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-            {urgencyLevels.map((level, index) => {
-              const CardComponent = level.level === "Critical" ? GoldenCard : Card
-
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <CardComponent
-                    isUrgent={level.level === "Critical"}
-                    className="h-full hover:shadow-lg transition-all duration-300"
-                  >
-                    <CardHeader className="text-center">
-                      <div className="flex justify-center mb-4">
-                        <Badge className={`${level.color} text-white flex items-center gap-2 px-4 py-2`}>
-                          {level.icon}
-                          {level.level}
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-lg">{level.cardType}</CardTitle>
-                      <CardDescription>{level.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-center gap-2 text-sm">
-                          <Clock className="h-4 w-4 text-blue-500" />
-                          <span className="font-medium">Response Time:</span>
-                        </div>
-                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{level.responseTime}</div>
-                      </div>
-                    </CardContent>
-                  </CardComponent>
-                </motion.div>
-              )
-            })}
-          </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12 text-center"
-          >
-            <Card className="max-w-2xl mx-auto p-6 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20 border-amber-200 dark:border-amber-800">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <Sparkles className="h-6 w-6 text-amber-600" />
-                <h3 className="text-xl font-bold text-amber-800 dark:text-amber-200">Golden Card Priority</h3>
-              </div>
-              <p className="text-amber-700 dark:text-amber-300">
-                Critical medication requests receive our premium Golden Card treatment with immediate visibility,
-                priority matching, and expedited provider responses to ensure life-saving medications reach patients
-                quickly.
-              </p>
-            </Card>
-          </motion.div>
-        </div>
-      </div>
-
       {/* Features Section */}
-      <div className="py-24 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-800 dark:to-slate-900">
+      <div className="py-24 bg-gradient-to-br from-background to-muted/20">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -359,9 +309,11 @@ export default function GuestDawini() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl font-bold mb-4 text-gray-900 dark:text-white">Why Choose Dawini?</h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Built with patient safety and accessibility at the core
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              {t("dawini.features.title")}
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              {t("dawini.features.subtitle")}
             </p>
           </motion.div>
 
@@ -372,19 +324,23 @@ export default function GuestDawini() {
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+                transition={{ delay: index * 0.1, duration: 0.6 }}
               >
-                <Card className="h-full p-6 hover:shadow-lg transition-all duration-300 medication-card bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
+                <GradientCard gradient={feature.gradient} className="h-full p-6">
                   <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
+                    <motion.div 
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                      className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center text-primary flex-shrink-0 shadow-lg"
+                    >
                       {feature.icon}
-                    </div>
+                    </motion.div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">{feature.title}</h3>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm">{feature.description}</p>
+                      <h3 className="text-lg font-semibold mb-2 text-foreground">{feature.title}</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
                     </div>
                   </div>
-                </Card>
+                </GradientCard>
               </motion.div>
             ))}
           </div>
@@ -392,28 +348,38 @@ export default function GuestDawini() {
       </div>
 
       {/* CTA Section */}
-      <div className="py-24 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white">
+      <div className="py-24 bg-gradient-to-r from-primary via-purple-500 to-pink-500">
         <div className="container mx-auto px-4 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="max-w-4xl mx-auto"
+            className="max-w-4xl mx-auto text-white"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Access Medications When You Need Them?</h2>
-            <p className="text-xl mb-12 text-blue-100">
-              Join thousands of patients and providers in our trusted medication access network
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="mb-8"
+            >
+              <Rocket className="h-16 w-16 mx-auto text-white/90" />
+            </motion.div>
+
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              {t("dawini.cta.title")}
+            </h2>
+            <p className="text-xl mb-12 text-white/90 max-w-3xl mx-auto">
+              {t("dawini.cta.subtitle")}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   size="lg"
-                  className="bg-amber-500 hover:bg-amber-600 text-amber-900 font-semibold px-8 py-4 text-lg"
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/30 font-semibold px-8 py-4 text-lg backdrop-blur-sm"
                   onClick={() => navigate("/register")}
                 >
                   <UserPlus className="mr-2 h-5 w-5" />
-                  Create Free Account
+                  {t("dawini.cta.joinButton")}
                 </Button>
               </motion.div>
 
@@ -421,39 +387,53 @@ export default function GuestDawini() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg bg-transparent"
+                  className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg bg-transparent backdrop-blur-sm"
                   onClick={() => navigate("/login")}
                 >
                   <ArrowRight className="mr-2 h-5 w-5" />
-                  Sign In to Continue
+                  {t("dawini.cta.loginButton")}
                 </Button>
               </motion.div>
             </div>
 
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <div>
-                <div className="text-2xl font-bold mb-2">Free to Join</div>
-                <div className="text-blue-200">No membership fees</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold mb-2">24/7 Access</div>
-                <div className="text-blue-200">Post requests anytime</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold mb-2">Verified Network</div>
-                <div className="text-blue-200">Licensed providers only</div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+              >
+                <div className="text-2xl font-bold mb-2">{t("dawini.cta.benefits.free")}</div>
+                <div className="text-white/80">No membership fees</div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="text-2xl font-bold mb-2">{t("dawini.cta.benefits.community")}</div>
+                <div className="text-white/80">Always available help</div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="text-2xl font-bold mb-2">{t("dawini.cta.benefits.verified")}</div>
+                <div className="text-white/80">Trusted members only</div>
+              </motion.div>
             </div>
           </motion.div>
         </div>
       </div>
 
       {/* Footer Note */}
-      <div className="py-8 bg-gray-50 dark:bg-slate-900 border-t">
+      <div className="py-8 bg-muted/50 border-t">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            <strong>Important:</strong> Dawini is a platform connecting patients with medication providers. Always
-            consult with healthcare professionals and verify prescriptions before purchasing medications.
+          <p className="text-muted-foreground text-sm max-w-4xl mx-auto">
+            <strong>Important:</strong> {t("dawini.footer.disclaimer")}
           </p>
         </div>
       </div>

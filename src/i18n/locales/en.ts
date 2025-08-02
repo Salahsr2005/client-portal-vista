@@ -704,7 +704,7 @@ export default {
     applicationFee: "Application Fee",
     deadline: "Application Deadline",
     apply: "Apply Now",
-    favorite: "Add to Favorites",
+    favoriteButton: "Add to Favorites",
     scholarship: "Scholarship Available",
     religiousFacilities: "Religious Facilities",
     halalFood: "Halal Food Available",
@@ -737,7 +737,7 @@ export default {
       career: "Career",
       contact: "Contact",
     },
-    overview: {
+    overviewTab: {
       title: "Program Overview",
       description: "Description",
       field: "Field",
@@ -754,7 +754,7 @@ export default {
       title: "Curriculum",
       notAvailable: "Curriculum information not available.",
     },
-    requirements: {
+    requirementsTab: {
       title: "Requirements",
       academicRequirements: "Academic Requirements",
       minimumGPA: "Minimum GPA",
@@ -892,6 +892,88 @@ export default {
       signIn: "Sign In",
     },
   },
+  
+  dawini: {
+    title: "Dawini",
+    subtitle: "Community Medication Network",
+    description: "A peer-to-peer platform where community members help each other access essential medications",
+    hero: {
+      title: "Where Community Cares",
+      subtitle: "Connecting neighbors to help neighbors",
+      description: "Join a compassionate community where people help each other access essential medications through mutual support and shared resources."
+    },
+    launch: {
+      title: "Coming Soon",
+      subtitle: "Launch Countdown",
+      date: "September 1st, 2025"
+    },
+    community: {
+      title: "How Our Community Works",
+      subtitle: "Built on trust, powered by compassion",
+      steps: {
+        request: {
+          title: "Share Your Need",
+          description: "Post your medication request to the community with details about what you need and your location."
+        },
+        connect: {
+          title: "Community Responds", 
+          description: "Neighbors and community members who can help will reach out directly to offer assistance."
+        },
+        help: {
+          title: "Mutual Support",
+          description: "Connect with helpers for sharing, trading, or purchasing medications at fair community prices."
+        },
+        grow: {
+          title: "Pay It Forward",
+          description: "Help others in return when you can, creating a cycle of community care and support."
+        }
+      }
+    },
+    features: {
+      title: "Why Join Our Community?",
+      subtitle: "Built by the community, for the community",
+      list: {
+        verified: {
+          title: "Verified Members",
+          description: "All community members are verified for safety and trust"
+        },
+        local: {
+          title: "Local Connections",
+          description: "Connect with neighbors and community members nearby"
+        },
+        mutual: {
+          title: "Mutual Aid",
+          description: "Help others and receive help in return when needed"
+        },
+        transparent: {
+          title: "Fair Pricing",
+          description: "Community-driven pricing with no markup or exploitation"
+        },
+        caring: {
+          title: "Compassionate",
+          description: "A caring community that looks out for each other's health"
+        },
+        secure: {
+          title: "Safe & Private",
+          description: "Your information and transactions are protected"
+        }
+      }
+    },
+    cta: {
+      title: "Ready to Join a Caring Community?",
+      subtitle: "Be part of a network where neighbors help neighbors access essential medications",
+      joinButton: "Join Our Community",
+      loginButton: "Sign In",
+      benefits: {
+        free: "Free to Join",
+        community: "24/7 Community Support", 
+        verified: "Verified Network"
+      }
+    },
+    footer: {
+      disclaimer: "Dawini is a community platform connecting people for medication access. Always consult healthcare professionals and verify prescriptions."
+    }
+  }
 }
 
 

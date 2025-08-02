@@ -507,7 +507,7 @@ export default {
       description: "Veuillez créer un compte pour postuler aux programmes.",
       action: "S'inscrire",
     },
-    favorite: {
+    favoriteActions: {
       added: "Ajouté aux Favoris",
       addedDescription: "Programme ajouté à vos favoris",
       removed: "Retiré des Favoris",
@@ -530,7 +530,7 @@ export default {
       career: "Carrière",
       contact: "Contact",
     },
-    overview: {
+    overviewTab: {
       title: "Aperçu du Programme",
       description: "Description",
       field: "Domaine",
@@ -547,7 +547,7 @@ export default {
       title: "Programme d'Études",
       notAvailable: "Informations sur le programme d'études non disponibles.",
     },
-    requirements: {
+    requirementsTab: {
       title: "Exigences",
       academicRequirements: "Exigences Académiques",
       minimumGPA: "GPA Minimum",
@@ -687,6 +687,88 @@ export default {
       signIn: "Se Connecter",
     },
   },
+  
+  dawini: {
+    title: "Dawini",
+    subtitle: "Réseau Communautaire de Médicaments",
+    description: "Une plateforme d'entraide où les membres de la communauté s'aident mutuellement à accéder aux médicaments essentiels",
+    hero: {
+      title: "Où la Communauté Prend Soin",
+      subtitle: "Connecter les voisins pour aider les voisins",
+      description: "Rejoignez une communauté compatissante où les gens s'entraident pour accéder aux médicaments essentiels grâce au soutien mutuel et aux ressources partagées."
+    },
+    launch: {
+      title: "Bientôt Disponible",
+      subtitle: "Compte à Rebours du Lancement",
+      date: "1er septembre 2025"
+    },
+    community: {
+      title: "Comment Notre Communauté Fonctionne",
+      subtitle: "Basée sur la confiance, alimentée par la compassion",
+      steps: {
+        request: {
+          title: "Partagez Votre Besoin",
+          description: "Publiez votre demande de médicament à la communauté avec les détails de ce dont vous avez besoin et votre localisation."
+        },
+        connect: {
+          title: "La Communauté Répond",
+          description: "Les voisins et membres de la communauté qui peuvent aider vous contacteront directement pour offrir leur assistance."
+        },
+        help: {
+          title: "Soutien Mutuel",
+          description: "Connectez-vous avec des aidants pour partager, échanger ou acheter des médicaments à des prix communautaires équitables."
+        },
+        grow: {
+          title: "Rendez la Pareille",
+          description: "Aidez les autres en retour quand vous le pouvez, créant un cycle de soins et de soutien communautaires."
+        }
+      }
+    },
+    features: {
+      title: "Pourquoi Rejoindre Notre Communauté?",
+      subtitle: "Construite par la communauté, pour la communauté",
+      list: {
+        verified: {
+          title: "Membres Vérifiés",
+          description: "Tous les membres de la communauté sont vérifiés pour la sécurité et la confiance"
+        },
+        local: {
+          title: "Connexions Locales",
+          description: "Connectez-vous avec les voisins et membres de la communauté à proximité"
+        },
+        mutual: {
+          title: "Aide Mutuelle",
+          description: "Aidez les autres et recevez de l'aide en retour quand nécessaire"
+        },
+        transparent: {
+          title: "Prix Équitables",
+          description: "Prix communautaires sans majoration ni exploitation"
+        },
+        caring: {
+          title: "Compatissant",
+          description: "Une communauté bienveillante qui veille à la santé de chacun"
+        },
+        secure: {
+          title: "Sûr et Privé",
+          description: "Vos informations et transactions sont protégées"
+        }
+      }
+    },
+    cta: {
+      title: "Prêt à Rejoindre une Communauté Bienveillante?",
+      subtitle: "Faites partie d'un réseau où les voisins aident les voisins à accéder aux médicaments essentiels",
+      joinButton: "Rejoindre Notre Communauté",
+      loginButton: "Se Connecter",
+      benefits: {
+        free: "Gratuit",
+        community: "Support Communautaire 24/7",
+        verified: "Réseau Vérifié"
+      }
+    },
+    footer: {
+      disclaimer: "Dawini est une plateforme communautaire connectant les personnes pour l'accès aux médicaments. Consultez toujours des professionnels de la santé et vérifiez les prescriptions."
+    }
+  }
 }
 
 
