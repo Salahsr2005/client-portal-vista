@@ -17,7 +17,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
-import { useTranslation } from "@/i18n"
 import {
   Search,
   Filter,
@@ -40,7 +39,6 @@ export default function GuestPrograms() {
   const navigate = useNavigate()
   const isMobile = useIsMobile()
   const { toast } = useToast()
-  const { t } = useTranslation()
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [showFilters, setShowFilters] = useState(false)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
@@ -121,6 +119,36 @@ export default function GuestPrograms() {
     studyModes: ["Full-time", "Part-time", "Online", "Hybrid"],
   }
 
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country)
+    setCurrentPage(1)
+  }
+
+  const handleLevelChange = (level: string) => {
+    setSelectedLevel(level)
+    setCurrentPage(1)
+  }
+
+  const handleFieldChange = (field: string) => {
+    setSelectedField(field)
+    setCurrentPage(1)
+  }
+
+  const handleLanguageChange = (language: string) => {
+    setSelectedLanguage(language)
+    setCurrentPage(1)
+  }
+
+  const handleBudgetChange = (budget: number) => {
+    setMaxBudget(budget)
+    setCurrentPage(1)
+  }
+
+  const handleScholarshipChange = (scholarship: boolean) => {
+    setWithScholarship(scholarship)
+    setCurrentPage(1)
+  }
+
   const handleAdvancedFiltersChange = (newFilters: typeof advancedFilters) => {
     setAdvancedFilters(newFilters)
     setCurrentPage(1)
@@ -158,8 +186,8 @@ export default function GuestPrograms() {
   const addToCompare = (programId: string) => {
     if (compareList.length >= 3) {
       toast({
-        title: t("programs.compare.title"),
-        description: t("programs.compare.limit"),
+        title: "Comparison Limit",
+        description: "You can compare up to 3 programs at once.",
         variant: "destructive",
       })
       return
@@ -168,7 +196,7 @@ export default function GuestPrograms() {
     if (!compareList.includes(programId)) {
       setCompareList([...compareList, programId])
       toast({
-        title: t("programs.compare.addToCompare"),
+        title: "Added to Comparison",
         description: "Program added to comparison list.",
       })
     }
@@ -177,7 +205,7 @@ export default function GuestPrograms() {
   const removeFromCompare = (programId: string) => {
     setCompareList(compareList.filter((id) => id !== programId))
     toast({
-      title: t("programs.compare.removeFromCompare"),
+      title: "Removed from Comparison",
       description: "Program removed from comparison list.",
     })
   }
@@ -193,7 +221,7 @@ export default function GuestPrograms() {
       limit: isMobile ? 6 : 12,
       search: advancedFilters.search || searchQuery || undefined,
       country: advancedFilters.countries.length > 0 ? advancedFilters.countries[0] : selectedCountry || undefined,
-      level: (advancedFilters.levels.length > 0 ? advancedFilters.levels[0] : selectedLevel) || undefined,
+      level: ((advancedFilters.levels.length > 0 ? advancedFilters.levels[0] : selectedLevel) as any) || undefined,
       field: advancedFilters.fields.length > 0 ? advancedFilters.fields[0] : selectedField || undefined,
       language: advancedFilters.languages.length > 0 ? advancedFilters.languages[0] : selectedLanguage || undefined,
       maxBudget: advancedFilters.budgetRange[1] < 100000 ? advancedFilters.budgetRange[1] : maxBudget || undefined,
@@ -223,11 +251,11 @@ export default function GuestPrograms() {
 
   const handleApply = (program: any) => {
     toast({
-      title: t("programs.signUpRequired.title"),
-      description: t("programs.signUpRequired.description"),
+      title: "Sign Up Required",
+      description: "Please create an account to apply for programs.",
       action: (
         <Button variant="outline" size="sm" onClick={() => navigate("/register")}>
-          {t("programs.signUpRequired.action")}
+          Sign Up
         </Button>
       ),
     })
@@ -258,7 +286,7 @@ export default function GuestPrograms() {
           className="bg-white/80 dark:bg-slate-800/80"
         >
           <ChevronLeft className="h-4 w-4" />
-          {!isMobile && t("programs.pagination.previous")}
+          {!isMobile && "Previous"}
         </Button>
 
         <div className="flex gap-1">
@@ -310,7 +338,7 @@ export default function GuestPrograms() {
           disabled={currentPage === totalPages}
           className="bg-white/80 dark:bg-slate-800/80"
         >
-          {!isMobile && t("programs.pagination.next")}
+          {!isMobile && "Next"}
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -346,11 +374,11 @@ export default function GuestPrograms() {
                     isMobile ? "text-2xl" : "text-4xl",
                   )}
                 >
-                  {t("programs.title")}
+                  Study Programs
                 </h1>
               </div>
               <p className={cn("text-slate-600 dark:text-slate-400", isMobile ? "text-sm" : "text-lg")}>
-                {t("programs.subtitle")}
+                Discover your perfect educational journey with advanced filtering
               </p>
             </div>
 
@@ -384,7 +412,7 @@ export default function GuestPrograms() {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 dark:text-slate-400 h-4 w-4" />
                       <Input
-                        placeholder={t("programs.searchPlaceholder")}
+                        placeholder="Search programs, universities, or fields..."
                         value={advancedFilters.search || searchQuery}
                         onChange={(e) => {
                           setSearchQuery(e.target.value)
@@ -397,16 +425,16 @@ export default function GuestPrograms() {
 
                   {/* Quick Filters - Desktop */}
                   {!isMobile && (
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2">
                       <Select
                         value={selectedCountry || "all"}
                         onValueChange={(value) => setSelectedCountry(value === "all" ? "" : value)}
                       >
                         <SelectTrigger className="w-[140px]">
-                          <SelectValue placeholder={t("programs.filters.country")} />
+                          <SelectValue placeholder="Country" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">{t("programs.filters.allCountries")}</SelectItem>
+                          <SelectItem value="all">All Countries</SelectItem>
                           {availableOptions.countries.map((country) => (
                             <SelectItem key={country} value={country}>
                               {country}
@@ -420,10 +448,10 @@ export default function GuestPrograms() {
                         onValueChange={(value) => setSelectedLevel(value === "all" ? "" : value)}
                       >
                         <SelectTrigger className="w-[120px]">
-                          <SelectValue placeholder={t("programs.filters.level")} />
+                          <SelectValue placeholder="Level" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">{t("programs.filters.allLevels")}</SelectItem>
+                          <SelectItem value="all">All Levels</SelectItem>
                           {availableOptions.levels.map((level) => (
                             <SelectItem key={level} value={level}>
                               {level}
@@ -438,7 +466,7 @@ export default function GuestPrograms() {
                         className="gap-2"
                       >
                         <SlidersHorizontal className="h-4 w-4" />
-                        {t("programs.filters.advancedFilters")}
+                        Advanced Filters
                       </Button>
                     </div>
                   )}
@@ -447,7 +475,7 @@ export default function GuestPrograms() {
                   {isMobile && (
                     <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="w-full gap-2">
                       <Filter className="h-4 w-4" />
-                      {t("programs.filters.advancedFilters")}
+                      Filters & Sort
                     </Button>
                   )}
                 </div>
@@ -460,42 +488,46 @@ export default function GuestPrograms() {
                   advancedFilters.countries.length > 0 ||
                   advancedFilters.levels.length > 0 ||
                   advancedFilters.fields.length > 0 ||
-                  advancedFilters.withScholarship ||
-                  advancedFilters.withReligiousFacilities ||
-                  advancedFilters.withHalalFood) && (
-                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t">
-                    {selectedCountry && (
+                  advancedFilters.withScholarship) && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {(selectedCountry || advancedFilters.countries.length > 0) && (
                       <Badge variant="secondary" className="gap-1">
                         <MapPin className="h-3 w-3" />
-                        {selectedCountry}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedCountry("")} />
-                      </Badge>
-                    )}
-                    {selectedLevel && (
-                      <Badge variant="secondary" className="gap-1">
-                        <GraduationCap className="h-3 w-3" />
-                        {selectedLevel}
-                        <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedLevel("")} />
-                      </Badge>
-                    )}
-                    {advancedFilters.countries.map((country) => (
-                      <Badge key={country} variant="secondary" className="gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {country}
+                        {selectedCountry || advancedFilters.countries.join(", ")}
                         <X
                           className="h-3 w-3 cursor-pointer"
-                          onClick={() =>
-                            setAdvancedFilters((prev) => ({
-                              ...prev,
-                              countries: prev.countries.filter((c) => c !== country),
-                            }))
-                          }
+                          onClick={() => {
+                            setSelectedCountry("")
+                            setAdvancedFilters((prev) => ({ ...prev, countries: [] }))
+                          }}
                         />
                       </Badge>
-                    ))}
-                    <Button variant="ghost" size="sm" onClick={clearAdvancedFilters} className="h-6 px-2 text-xs">
-                      {t("programs.filters.clearFilters")}
-                    </Button>
+                    )}
+                    {(selectedLevel || advancedFilters.levels.length > 0) && (
+                      <Badge variant="secondary" className="gap-1">
+                        <GraduationCap className="h-3 w-3" />
+                        {selectedLevel || advancedFilters.levels.join(", ")}
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => {
+                            setSelectedLevel("")
+                            setAdvancedFilters((prev) => ({ ...prev, levels: [] }))
+                          }}
+                        />
+                      </Badge>
+                    )}
+                    {(withScholarship || advancedFilters.withScholarship) && (
+                      <Badge variant="secondary" className="gap-1">
+                        Scholarship Available
+                        <X
+                          className="h-3 w-3 cursor-pointer"
+                          onClick={() => {
+                            setWithScholarship(false)
+                            setAdvancedFilters((prev) => ({ ...prev, withScholarship: false }))
+                          }}
+                        />
+                      </Badge>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -503,19 +535,14 @@ export default function GuestPrograms() {
           </motion.div>
 
           {/* Advanced Filters */}
-          {showAdvancedFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              {showAdvancedFilters && (
-                <div className="mt-4">
-                  <p className="text-sm text-muted-foreground">Advanced filters will be available soon.</p>
-                </div>
-              )}
-            </motion.div>
-          )}
+          <AdvancedFilters
+            filters={advancedFilters}
+            onFiltersChange={handleAdvancedFiltersChange}
+            onClearFilters={clearAdvancedFilters}
+            availableOptions={availableOptions}
+            isOpen={showAdvancedFilters}
+            onToggle={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          />
 
           {/* Mobile Filters */}
           {isMobile && showFilters && (
@@ -526,144 +553,184 @@ export default function GuestPrograms() {
               selectedLanguage={selectedLanguage}
               maxBudget={maxBudget}
               withScholarship={withScholarship}
-              onCountryChange={setSelectedCountry}
-              onLevelChange={setSelectedLevel}
-              onFieldChange={setSelectedField}
-              onLanguageChange={setSelectedLanguage}
-              onBudgetChange={setMaxBudget}
-              onScholarshipChange={setWithScholarship}
+              onCountryChange={handleCountryChange}
+              onLevelChange={handleLevelChange}
+              onFieldChange={handleFieldChange}
+              onLanguageChange={handleLanguageChange}
+              onBudgetChange={handleBudgetChange}
+              onScholarshipChange={handleScholarshipChange}
               onClose={() => setShowFilters(false)}
-              availableOptions={availableOptions}
             />
           )}
 
-          {/* Compare Button */}
+          {/* Comparison Bar */}
           {compareList.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="fixed bottom-4 right-4 z-50"
-            >
-              <Button
-                onClick={() => setShowCompareModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg gap-2"
-                size="lg"
-              >
-                <GitCompare className="h-5 w-5" />
-                {t("programs.compare.compareSelected")} ({compareList.length})
-              </Button>
-            </motion.div>
-          )}
-
-          {/* Loading State */}
-          {isLoading && (
-            <div className="space-y-4">
-              <div className="text-center text-slate-600 dark:text-slate-400">{t("programs.loading")}</div>
-              <div
-                className={cn(
-                  "grid gap-6",
-                  viewMode === "grid"
-                    ? isMobile
-                      ? "grid-cols-1"
-                      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                    : "grid-cols-1",
-                )}
-              >
-                {Array.from({ length: isMobile ? 6 : 8 }).map((_, index) => (
-                  <Card key={index} className="overflow-hidden">
-                    <Skeleton className="h-48 w-full" />
-                    <CardContent className="p-4 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {error && (
-            <div className="text-center py-12">
-              <div className="text-red-600 dark:text-red-400 mb-4">{t("programs.error")}</div>
-              <Button onClick={() => window.location.reload()} variant="outline">
-                Retry
-              </Button>
-            </div>
-          )}
-
-          {/* Programs Grid */}
-          {!isLoading && !error && data && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              {data.programs.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-slate-600 dark:text-slate-400 mb-4">{t("programs.noResults")}</div>
-                  <Button onClick={clearAdvancedFilters} variant="outline">
-                    {t("programs.filters.clearFilters")}
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="text-sm text-slate-600 dark:text-slate-400">
-                      {data.totalCount} programs found
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 backdrop-blur-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <GitCompare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-slate-800 dark:text-slate-200">
+                        {compareList.length} program{compareList.length > 1 ? "s" : ""} selected for comparison
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={() => setShowCompareModal(true)}
+                        disabled={compareList.length < 2}
+                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                      >
+                        Compare ({compareList.length})
+                      </Button>
+                      <Button variant="outline" onClick={clearCompareList} size="sm">
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div
-                    className={cn(
-                      "grid gap-6",
-                      viewMode === "grid"
-                        ? isMobile
-                          ? "grid-cols-1"
-                          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                        : "grid-cols-1",
-                    )}
-                  >
-                    {data.programs.map((program, index) => (
-                      <motion.div
-                        key={program.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <ProgramCardComponent
-                          program={{
-                            ...program,
-                            location: `${program.city}, ${program.country}`,
-                            duration: `${program.duration_months} months`,
-                          }}
-                          onViewDetails={() => handleViewDetails(program)}
-                          onApply={() => handleApply(program)}
-                          viewMode={viewMode}
-                        />
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
-                  {renderPagination()}
-                </>
-              )}
+                </CardContent>
+              </Card>
             </motion.div>
+          )}
+
+          {/* Results Header */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex justify-between items-center"
+          >
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              {data ? `${data.totalCount} programs found` : "Loading..."}
+            </div>
+            {data && data.totalPages > 1 && (
+              <div className="text-sm text-slate-600 dark:text-slate-400">
+                Page {data.currentPage} of {data.totalPages}
+              </div>
+            )}
+          </motion.div>
+
+          {/* Programs Grid */}
+          {isLoading ? (
+            <div
+              className={cn(
+                "grid gap-6",
+                isMobile
+                  ? "grid-cols-1"
+                  : viewMode === "grid"
+                    ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                    : "grid-cols-1",
+              )}
+            >
+              {Array.from({ length: isMobile ? 3 : 6 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden bg-white/80 dark:bg-slate-800/80">
+                  <Skeleton className="h-48 w-full" />
+                  <CardContent className="p-6">
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-1/2 mb-4" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : error ? (
+            <Card className="bg-white/80 dark:bg-slate-800/80">
+              <CardContent className="text-center py-12">
+                <p className="text-slate-600 dark:text-slate-400">Error loading programs. Please try again.</p>
+                <Button onClick={() => window.location.reload()} className="mt-4" variant="outline">
+                  Retry
+                </Button>
+              </CardContent>
+            </Card>
+          ) : data?.programs.length === 0 ? (
+            <Card className="bg-white/80 dark:bg-slate-800/80">
+              <CardContent className="text-center py-12">
+                <div className="text-6xl mb-4">🔍</div>
+                <h3 className="text-xl font-semibold mb-2">No programs found</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  Try adjusting your search criteria or filters to find more programs.
+                </p>
+                <Button onClick={clearAdvancedFilters} variant="outline">
+                  Clear All Filters
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className={cn(
+                  "grid gap-6",
+                  isMobile
+                    ? "grid-cols-1"
+                    : viewMode === "grid"
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                      : "grid-cols-1",
+                )}
+              >
+                {data?.programs.map((program, index) => (
+                  <motion.div
+                    key={program.id}
+                    className="relative group"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <ProgramCardComponent program={program} onViewDetails={handleViewDetails} onApply={handleApply} />
+
+                    {/* Compare Button Overlay */}
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      {compareList.includes(program.id) ? (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => removeFromCompare(program.id)}
+                          className="bg-green-100 hover:bg-green-200 text-green-800 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => addToCompare(program.id)}
+                          disabled={compareList.length >= 3}
+                          className="bg-blue-100 hover:bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Compare
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Pagination */}
+              {renderPagination()}
+            </>
           )}
         </div>
       </div>
 
-      {/* Compare Programs Modal */}
+      {/* Compare Modal */}
       <Dialog open={showCompareModal} onOpenChange={setShowCompareModal}>
-        <DialogContent className="max-w-7xl max-h-[90vh] overflow-auto">
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <GitCompare className="h-5 w-5" />
-              {t("programs.compare.title")}
-            </DialogTitle>
+            <DialogTitle>Compare Programs</DialogTitle>
           </DialogHeader>
-          <ComparePrograms
-            programIds={compareList}
-            onRemove={removeFromCompare}
-            onClear={clearCompareList}
-            onClose={() => setShowCompareModal(false)}
-          />
+          {data && (
+            <ComparePrograms
+              programs={data.programs.filter((p) => compareList.includes(p.id))}
+              onClose={() => setShowCompareModal(false)}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
