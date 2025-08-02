@@ -36,27 +36,37 @@ export class EnhancedProgramMatchingService {
     const warnings: string[] = []
     const details: any = {}
 
-    // 1. Study Level match (20% weight)
-    const levelWeight = 20
-    maxPossibleScore += levelWeight
-
-    if (program.study_level === consultationData.studyLevel) {
-      totalScore += levelWeight
-      reasons.push(`Perfect match for ${consultationData.studyLevel} level`)
-    } else {
-      warnings.push(`Program is for ${program.study_level}, you selected ${consultationData.studyLevel}`)
-    }
-
-    // 2. Enhanced Field/Subject match with exact matching only (40% weight - increased priority)
-    const fieldWeight = 40
+    // 1. Study Field Match (60% weight - Primary focus on field matching)
+    const fieldWeight = 60
     maxPossibleScore += fieldWeight
 
     let fieldScore = 0
     let fieldMatchFound = false
     let fieldMatchType = "none"
 
-    // Priority 1: Exact field match using bilingual service
-    if (consultationData.fieldSearchQuery) {
+    // Priority 1: Direct field name exact match
+    if (consultationData.fieldSearchQuery && program.field) {
+      const searchField = consultationData.fieldSearchQuery.toLowerCase().trim()
+      const programField = program.field.toLowerCase().trim()
+
+      // Exact field name match
+      if (programField === searchField || searchField === programField) {
+        fieldScore = fieldWeight
+        fieldMatchFound = true
+        fieldMatchType = "exact"
+        reasons.push(`Perfect field match: ${program.field}`)
+      }
+      // Field contains search term or vice versa (for compound field names)
+      else if (programField.includes(searchField) || searchField.includes(programField)) {
+        fieldScore = fieldWeight * 0.9
+        fieldMatchFound = true
+        fieldMatchType = "exact"
+        reasons.push(`Direct field match: ${program.field}`)
+      }
+    }
+
+    // Priority 2: Bilingual field matching
+    if (!fieldMatchFound && consultationData.fieldSearchQuery) {
       const fieldMatch = BilingualFieldService.matchProgramField(
         program,
         consultationData.fieldSearchQuery,
@@ -64,76 +74,92 @@ export class EnhancedProgramMatchingService {
       )
 
       if (fieldMatch.exactMatch) {
-        fieldScore = fieldWeight
+        fieldScore = fieldWeight * 0.95
         fieldMatchFound = true
         fieldMatchType = "exact"
-        reasons.push(`Exact field match: ${fieldMatch.matchedKeywords.join(", ")}`)
+        reasons.push(`Bilingual field match: ${fieldMatch.matchedKeywords.join(", ")}`)
       }
     }
 
-    // Priority 2: Subject keywords exact match only
+    // Priority 3: Field keywords exact matching
     if (!fieldMatchFound && consultationData.subjects && consultationData.subjects.length > 0) {
-      const userSubjects = consultationData.subjects.map((s) => s.toLowerCase())
+      const userSubjects = consultationData.subjects.map((s) => s.toLowerCase().trim())
 
       if (program.field_keywords && program.field_keywords.length > 0) {
-        const programKeywords = program.field_keywords.map((k: string) => k.toLowerCase())
+        const programKeywords = program.field_keywords.map((k: string) => k.toLowerCase().trim())
 
-        // Exact keyword matching only - no partial matches
-        const exactKeywordMatches = userSubjects.filter((subject) => {
-          // Direct exact keyword match
-          const directMatch = programKeywords.some((keyword) => keyword === subject || subject === keyword)
+        // Count exact keyword matches
+        const exactMatches = userSubjects.filter((subject) =>
+          programKeywords.some(
+            (keyword) =>
+              keyword === subject || subject === keyword || keyword.includes(subject) || subject.includes(keyword),
+          ),
+        )
 
-          // Bilingual exact keyword match
-          const bilingualMatch = BilingualFieldService.searchFields(subject, consultationData.userLanguage).some(
-            (field) => {
-              const fieldKeywords = consultationData.userLanguage === "fr" ? field.keywords_fr : field.keywords_en
-              return fieldKeywords.some((fk) =>
-                programKeywords.some((pk) => pk === fk.toLowerCase() || fk.toLowerCase() === pk),
-              )
-            },
-          )
-
-          return directMatch || bilingualMatch
-        })
-
-        if (exactKeywordMatches.length > 0) {
-          const matchRatio = exactKeywordMatches.length / userSubjects.length
+        if (exactMatches.length > 0) {
+          const matchRatio = exactMatches.length / userSubjects.length
           fieldScore = fieldWeight * 0.8 * matchRatio
           fieldMatchFound = true
           fieldMatchType = "exact"
-          reasons.push(`Exact subject keywords match: ${exactKeywordMatches.join(", ")}`)
+          reasons.push(`Field keywords match: ${exactMatches.join(", ")}`)
         }
       }
     }
 
-    // Priority 3: General field category exact match only
-    if (!fieldMatchFound && consultationData.fieldOfStudy && program.field) {
-      const fieldTranslation = BilingualFieldService.getFieldTranslation(program.field)
-      const searchField = consultationData.fieldOfStudy.toLowerCase()
+    // Priority 4: Program name field matching
+    if (!fieldMatchFound && consultationData.fieldSearchQuery && program.name) {
+      const searchField = consultationData.fieldSearchQuery.toLowerCase().trim()
+      const programName = program.name.toLowerCase().trim()
 
-      // Only exact field name matches
-      const englishExactMatch =
-        program.field.toLowerCase() === searchField || searchField === program.field.toLowerCase()
-      const frenchExactMatch =
-        fieldTranslation &&
-        (fieldTranslation.french.toLowerCase() === searchField || searchField === fieldTranslation.french.toLowerCase())
-
-      if (englishExactMatch || frenchExactMatch) {
+      if (programName.includes(searchField) || searchField.includes(programName)) {
         fieldScore = fieldWeight * 0.7
         fieldMatchFound = true
         fieldMatchType = "exact"
-        reasons.push(`Exact field category match`)
+        reasons.push(`Program name contains field: ${program.name}`)
+      }
+    }
+
+    // Priority 5: Field category matching
+    if (!fieldMatchFound && consultationData.fieldOfStudy && program.field) {
+      const fieldTranslation = BilingualFieldService.getFieldTranslation(program.field)
+      const searchField = consultationData.fieldOfStudy.toLowerCase().trim()
+      const programField = program.field.toLowerCase().trim()
+
+      const englishMatch = programField.includes(searchField) || searchField.includes(programField)
+      const frenchMatch =
+        fieldTranslation &&
+        (fieldTranslation.french.toLowerCase().includes(searchField) ||
+          searchField.includes(fieldTranslation.french.toLowerCase()))
+
+      if (englishMatch || frenchMatch) {
+        fieldScore = fieldWeight * 0.6
+        fieldMatchFound = true
+        fieldMatchType = "category"
+        reasons.push(`Field category match: ${program.field}`)
       }
     }
 
     if (fieldMatchFound) {
       totalScore += fieldScore
     } else {
-      warnings.push("No exact field match found")
+      warnings.push("No field match found - this program may not align with your study interests")
     }
 
-    // 3. Budget Analysis (25% weight)
-    const budgetWeight = 25
+    // 2. Study Level match (20% weight)
+    const levelWeight = 20
+    maxPossibleScore += levelWeight
+
+    if (program.study_level === consultationData.studyLevel) {
+      totalScore += levelWeight
+      reasons.push(`Perfect match for ${consultationData.studyLevel} level`)
+    } else {
+      const levelScore = levelWeight * 0.3 // Partial credit for different levels
+      totalScore += levelScore
+      warnings.push(`Program is for ${program.study_level}, you selected ${consultationData.studyLevel}`)
+    }
+
+    // 3. Budget Analysis (15% weight - reduced to prioritize field matching)
+    const budgetWeight = 15
     maxPossibleScore += budgetWeight
 
     const tuitionMin = program.tuition_min || 0
@@ -148,58 +174,34 @@ export class EnhancedProgramMatchingService {
       totalRange: [totalMinCost, totalMaxCost],
     }
 
-    // Enhanced budget matching with range consideration
-    if (consultationData.budgetMin && consultationData.budgetMax) {
-      const userBudgetRange = consultationData.budgetMax - consultationData.budgetMin
-      const programCostRange = totalMaxCost - totalMinCost
-
-      // Check for budget overlap
-      const overlapStart = Math.max(consultationData.budgetMin, totalMinCost)
-      const overlapEnd = Math.min(consultationData.budgetMax, totalMaxCost)
-      const hasOverlap = overlapStart <= overlapEnd
-
-      if (hasOverlap) {
-        const overlapSize = overlapEnd - overlapStart
-        const overlapRatio = overlapSize / Math.max(userBudgetRange, programCostRange)
-        totalScore += budgetWeight * overlapRatio
-        reasons.push(`Budget ranges overlap by ${Math.round(overlapRatio * 100)}%`)
-      }
+    if (consultationData.totalBudget >= totalMaxCost) {
+      totalScore += budgetWeight
+      reasons.push(
+        `Within budget (€${totalMaxCost.toLocaleString()} vs €${consultationData.totalBudget.toLocaleString()})`,
+      )
+    } else if (consultationData.totalBudget >= totalMinCost) {
+      const budgetRatio = (consultationData.totalBudget - totalMinCost) / (totalMaxCost - totalMinCost)
+      totalScore += budgetWeight * (0.5 + budgetRatio * 0.5)
+      reasons.push(`Partially within budget range`)
     } else {
-      // Fallback to total budget comparison
-      if (consultationData.totalBudget >= totalMaxCost) {
-        totalScore += budgetWeight
-        reasons.push(
-          `Comfortably within budget (€${totalMaxCost.toLocaleString()} vs €${consultationData.totalBudget.toLocaleString()})`,
-        )
-      } else if (consultationData.totalBudget >= totalMinCost) {
-        const budgetRatio = (consultationData.totalBudget - totalMinCost) / (totalMaxCost - totalMinCost)
-        totalScore += budgetWeight * (0.5 + budgetRatio * 0.5)
-        reasons.push(`Within budget range`)
-        if (consultationData.budgetFlexibility === "strict") {
-          warnings.push(
-            `May exceed strict budget by €${(totalMaxCost - consultationData.totalBudget).toLocaleString()}`,
-          )
-        }
-      } else {
-        const shortfall = totalMinCost - consultationData.totalBudget
-        const flexibilityMultiplier =
-          {
-            strict: 0,
-            flexible: 0.2,
-            very_flexible: 0.5,
-          }[consultationData.budgetFlexibility] || 0.2
+      const shortfall = totalMinCost - consultationData.totalBudget
+      const flexibilityMultiplier =
+        {
+          strict: 0,
+          flexible: 0.3,
+          very_flexible: 0.6,
+        }[consultationData.budgetFlexibility] || 0.3
 
-        if (shortfall <= consultationData.totalBudget * flexibilityMultiplier) {
-          totalScore += budgetWeight * 0.3
-          warnings.push(`Budget shortfall of €${shortfall.toLocaleString()}, but within flexibility range`)
-        } else {
-          warnings.push(`Exceeds budget by €${shortfall.toLocaleString()}`)
-        }
+      if (shortfall <= consultationData.totalBudget * flexibilityMultiplier) {
+        totalScore += budgetWeight * 0.4
+        warnings.push(`Budget shortfall of €${shortfall.toLocaleString()}, but within flexibility range`)
+      } else {
+        warnings.push(`Exceeds budget by €${shortfall.toLocaleString()}`)
       }
     }
 
-    // 4. Language Requirements (10% weight)
-    const languageWeight = 10
+    // 4. Language Requirements (5% weight)
+    const languageWeight = 5
     maxPossibleScore += languageWeight
 
     const userLanguage = consultationData.language.toLowerCase()
@@ -216,33 +218,8 @@ export class EnhancedProgramMatchingService {
 
       totalScore += languageWeight * proficiencyMultiplier
       reasons.push(`Language compatible (${consultationData.languageLevel} level)`)
-
-      if (consultationData.languageLevel === "beginner") {
-        warnings.push("May require language preparation")
-      }
     } else {
-      warnings.push("Language requirements may not match")
-    }
-
-    // 5. Duration match (5% weight)
-    const durationWeight = 5
-    maxPossibleScore += durationWeight
-
-    let preferredMonths = 0
-    if (consultationData.duration === "semester") preferredMonths = 6
-    else if (consultationData.duration === "year") preferredMonths = 12
-    else if (consultationData.duration === "two_years") preferredMonths = 24
-    else if (consultationData.duration === "full") preferredMonths = 36
-
-    if (preferredMonths > 0 && program.duration_months) {
-      const durationDiff = Math.abs(program.duration_months - preferredMonths)
-      if (durationDiff <= 3) {
-        totalScore += durationWeight
-        reasons.push("Duration matches preference")
-      } else if (durationDiff <= 6) {
-        totalScore += durationWeight * 0.7
-        reasons.push("Duration close to preference")
-      }
+      warnings.push("Language requirements may not match your preferences")
     }
 
     const finalScore = Math.min(100, Math.round((totalScore / maxPossibleScore) * 100))
@@ -260,57 +237,52 @@ export class EnhancedProgramMatchingService {
           }
         : null,
       recommendation:
-        finalScore >= 85
+        finalScore >= 80 && fieldMatchFound
           ? "highly_recommended"
-          : finalScore >= 70
+          : finalScore >= 60 && fieldMatchFound
             ? "recommended"
-            : finalScore >= 50
+            : finalScore >= 40
               ? "consider"
               : "not_recommended",
     }
   }
 
-  // Enhanced search functionality with exact matching only
+  // Enhanced search functionality prioritizing field matching
   static searchPrograms(programs: any[], searchQuery: string, language: "en" | "fr" = "en") {
     if (!searchQuery.trim()) return programs
 
     const query = searchQuery.toLowerCase().trim()
 
     return programs.filter((program) => {
-      // 1. Direct field name exact match
-      if (program.field && program.field.toLowerCase() === query) {
+      // 1. Direct field name match (highest priority)
+      if (
+        program.field &&
+        (program.field.toLowerCase().includes(query) || query.includes(program.field.toLowerCase()))
+      ) {
         return true
       }
 
-      // 2. Program name exact word match
-      if (program.name && program.name.toLowerCase().includes(query)) {
+      // 2. Program name field match
+      if (program.name && (program.name.toLowerCase().includes(query) || query.includes(program.name.toLowerCase()))) {
         return true
       }
 
-      // 3. University name exact word match
-      if (program.university && program.university.toLowerCase().includes(query)) {
-        return true
-      }
-
-      // 4. Field keywords exact match only
+      // 3. Field keywords match
       if (program.field_keywords && Array.isArray(program.field_keywords)) {
-        const exactKeywordMatch = program.field_keywords.some(
-          (keyword: string) => keyword.toLowerCase() === query || query === keyword.toLowerCase(),
+        const keywordMatch = program.field_keywords.some(
+          (keyword: string) => keyword.toLowerCase().includes(query) || query.includes(keyword.toLowerCase()),
         )
-        if (exactKeywordMatch) return true
+        if (keywordMatch) return true
       }
 
-      // 5. Bilingual field exact search only
+      // 4. Bilingual field search
       const fieldMatch = BilingualFieldService.matchProgramField(program, query, language)
       if (fieldMatch.exactMatch) {
         return true
       }
 
-      // 6. Country/City exact match
-      if (program.country && program.country.toLowerCase() === query) {
-        return true
-      }
-      if (program.city && program.city.toLowerCase() === query) {
+      // 5. University name (lower priority)
+      if (program.university && program.university.toLowerCase().includes(query)) {
         return true
       }
 
@@ -318,7 +290,7 @@ export class EnhancedProgramMatchingService {
     })
   }
 
-  // Sort programs by relevance with exact matching priority
+  // Sort programs by field relevance first
   static sortProgramsByRelevance(programs: any[], consultationData: EnhancedConsultationData) {
     return programs
       .map((program) => ({
@@ -326,26 +298,25 @@ export class EnhancedProgramMatchingService {
         matchResult: this.calculateEnhancedMatchScore(program, consultationData),
       }))
       .sort((a, b) => {
-        // Primary sort: Exact field match type priority
-        const fieldMatchOrder = { exact: 3, none: 1 }
-        const aFieldMatch = a.matchResult.fieldMatchDetails?.matchType || "none"
-        const bFieldMatch = b.matchResult.fieldMatchDetails?.matchType || "none"
+        // Primary sort: Field match presence and type
+        const aHasFieldMatch = a.matchResult.fieldMatchDetails !== null
+        const bHasFieldMatch = b.matchResult.fieldMatchDetails !== null
 
-        if (fieldMatchOrder[aFieldMatch] !== fieldMatchOrder[bFieldMatch]) {
-          return fieldMatchOrder[bFieldMatch] - fieldMatchOrder[aFieldMatch]
+        if (aHasFieldMatch !== bHasFieldMatch) {
+          return bHasFieldMatch ? 1 : -1
         }
 
-        // Secondary sort: Overall match score
+        // Secondary sort: Field match score
+        const aFieldScore = a.matchResult.fieldMatchDetails?.matchScore || 0
+        const bFieldScore = b.matchResult.fieldMatchDetails?.matchScore || 0
+
+        if (aFieldScore !== bFieldScore) {
+          return bFieldScore - aFieldScore
+        }
+
+        // Tertiary sort: Overall match score
         if (a.matchResult.score !== b.matchResult.score) {
           return b.matchResult.score - a.matchResult.score
-        }
-
-        // Tertiary sort: Budget compatibility
-        const aBudgetCompatible = a.matchResult.reasons.some((r: string) => r.includes("budget"))
-        const bBudgetCompatible = b.matchResult.reasons.some((r: string) => r.includes("budget"))
-
-        if (aBudgetCompatible !== bBudgetCompatible) {
-          return bBudgetCompatible ? 1 : -1
         }
 
         // Final sort: Program ranking (if available)
@@ -353,5 +324,6 @@ export class EnhancedProgramMatchingService {
       })
   }
 }
+
 
 
