@@ -1,5 +1,4 @@
-
-// This is a utility service for program matching functionality
+// Enhanced Program Matching Service - Field-Focused Matching
 
 // Function to get budget breakdown with more detailed calculations
 export const getBudgetBreakdown = (program: any) => {
@@ -58,17 +57,17 @@ export const getMatchExplanation = (program: any, matchScore: number) => {
   
   // Add match explanations based on match score
   if (matchScore > 90) {
-    explanations.push("Perfect match! This program aligns excellently with your preferences.");
+    explanations.push("Perfect match! This program aligns excellently with your field of interest.");
   } else if (matchScore > 80) {
-    explanations.push("Strong match with your preferences.");
+    explanations.push("Strong match with your field preferences.");
   } else if (matchScore > 70) {
-    explanations.push("Good match with your preferences.");
+    explanations.push("Good match with your field of study.");
   } else if (matchScore > 60) {
-    explanations.push("This program matches many of your preferences.");
+    explanations.push("This program partially matches your field interests.");
   } else if (matchScore > 50) {
-    explanations.push("This program partially matches your preferences.");
+    explanations.push("This program has some overlap with your field preferences.");
   } else {
-    explanations.push("Limited match, but may still be worth considering.");
+    explanations.push("Limited field match, but may still offer relevant content.");
   }
   
   // Add detailed explanations
@@ -121,169 +120,200 @@ export const getMatchExplanation = (program: any, matchScore: number) => {
   return explanations;
 };
 
-// New advanced matching algorithm that provides more accurate recommendations
+// Field-centric matching algorithm with other factors affecting percentage
 export const calculateMatchScore = (program: any, preferences: any) => {
   if (!program || !preferences) return 0;
   
-  let totalScore = 0;
-  let maxPossibleScore = 0;
+  // Check field match first (this determines if it's a match at all)
+  let fieldMatchScore = 0;
+  const maxFieldScore = 100;
   
-  // Study Level match (high importance)
-  const weightLevel = 20;
-  maxPossibleScore += weightLevel;
-  if (program.study_level === preferences.level) {
-    totalScore += weightLevel;
-  }
-  
-  // Field/Subject match (high importance)
-  const weightField = 20;
-  maxPossibleScore += weightField;
-  
-  // Check if any of the user's subjects match the program's field keywords
-  let fieldMatch = false;
+  // Field/Subject match is the primary matching criterion
   if (preferences.subjects && preferences.subjects.length > 0) {
     // Convert to lowercase for case-insensitive comparison
     const userSubjects = preferences.subjects.map((s: string) => s.toLowerCase());
     
+    let bestFieldMatch = 0;
+    
+    // Check against program field keywords
     if (program.field_keywords && program.field_keywords.length > 0) {
       const programKeywords = program.field_keywords.map((k: string) => k.toLowerCase());
       
-      // Check for any overlap between user subjects and program keywords
-      fieldMatch = userSubjects.some((subject: string) => 
-        programKeywords.some(keyword => keyword.includes(subject) || subject.includes(keyword))
+      // Calculate overlap percentage
+      const matchingKeywords = userSubjects.filter(subject => 
+        programKeywords.some(keyword => 
+          keyword.includes(subject) || 
+          subject.includes(keyword) ||
+          // Check for semantic similarity (basic)
+          areSimilarFields(subject, keyword)
+        )
       );
+      
+      bestFieldMatch = Math.max(bestFieldMatch, (matchingKeywords.length / userSubjects.length) * 100);
     }
     
     // Also check the main field
-    if (!fieldMatch && program.field) {
+    if (program.field) {
       const programField = program.field.toLowerCase();
-      fieldMatch = userSubjects.some((subject: string) => 
-        programField.includes(subject) || subject.includes(programField)
+      const matchingSubjects = userSubjects.filter(subject => 
+        programField.includes(subject) || 
+        subject.includes(programField) ||
+        areSimilarFields(subject, programField)
       );
+      
+      bestFieldMatch = Math.max(bestFieldMatch, (matchingSubjects.length / userSubjects.length) * 100);
+    }
+    
+    fieldMatchScore = Math.min(bestFieldMatch, maxFieldScore);
+  } else if (preferences.field && program.field) {
+    // Simple field comparison if no specific subjects
+    const userField = preferences.field.toLowerCase();
+    const programField = program.field.toLowerCase();
+    
+    if (userField === programField) {
+      fieldMatchScore = 100;
+    } else if (programField.includes(userField) || userField.includes(programField)) {
+      fieldMatchScore = 80;
+    } else if (areSimilarFields(userField, programField)) {
+      fieldMatchScore = 60;
     }
   }
   
-  if (fieldMatch) {
-    totalScore += weightField;
+  // If there's no significant field match, return low score
+  if (fieldMatchScore < 30) {
+    return Math.max(fieldMatchScore, 10); // Minimum 10% for any program
   }
   
-  // Budget match (medium-high importance)
-  const weightBudget = 15;
-  maxPossibleScore += weightBudget;
-  const userBudget = typeof preferences.budget === 'string' ? parseInt(preferences.budget, 10) : preferences.budget;
+  // Now calculate adjustment factors that modify the field score
+  let adjustmentFactor = 1.0; // Start with 100% of field score
   
+  // Study Level match (can boost or reduce by up to 20%)
+  if (program.study_level === preferences.level) {
+    adjustmentFactor += 0.1; // +10% bonus
+  } else if (preferences.level && program.study_level !== preferences.level) {
+    adjustmentFactor -= 0.15; // -15% penalty
+  }
+  
+  // Budget match (can reduce significantly if over budget)
+  const userBudget = typeof preferences.budget === 'string' ? parseInt(preferences.budget, 10) : preferences.budget;
   if (userBudget) {
     const programTotalCost = (program.tuition_min || 0) + ((program.living_cost_min || 0) * 12);
     
     if (userBudget >= programTotalCost) {
-      // Full budget match
-      totalScore += weightBudget;
+      adjustmentFactor += 0.05; // +5% bonus for affordable programs
     } else if (userBudget >= programTotalCost * 0.8) {
-      // 80% budget match
-      totalScore += Math.floor(weightBudget * 0.8);
+      // Within 20% of budget - slight penalty
+      adjustmentFactor -= 0.05;
     } else if (userBudget >= programTotalCost * 0.6) {
-      // 60% budget match
-      totalScore += Math.floor(weightBudget * 0.5);
+      // Significantly over budget
+      adjustmentFactor -= 0.2;
+    } else {
+      // Way over budget
+      adjustmentFactor -= 0.3;
     }
   }
   
-  // Language match (medium importance)
-  const weightLanguage = 15;
-  maxPossibleScore += weightLanguage;
+  // Language match (can boost or reduce by up to 15%)
   if (preferences.language && (
     program.program_language?.toLowerCase() === preferences.language.toLowerCase() ||
     program.secondary_language?.toLowerCase() === preferences.language.toLowerCase()
   )) {
-    totalScore += weightLanguage;
-  } else if (preferences.language === 'English' && program.program_language === 'English') {
-    totalScore += weightLanguage;
+    adjustmentFactor += 0.1; // +10% bonus
+  } else if (preferences.language && preferences.language !== 'English' && program.program_language !== preferences.language) {
+    adjustmentFactor -= 0.1; // -10% penalty for language mismatch
   }
   
-  // Location/Destination match (medium importance)
-  const weightLocation = 10;
-  maxPossibleScore += weightLocation;
+  // Location preference (can boost by up to 10%)
   if (preferences.destination && (
     program.country?.toLowerCase() === preferences.destination.toLowerCase() ||
     program.city?.toLowerCase() === preferences.destination.toLowerCase()
   )) {
-    totalScore += weightLocation;
+    adjustmentFactor += 0.1; // +10% bonus
   }
   
-  // Special requirements match (medium importance)
-  const weightSpecialReqs = 10;
-  maxPossibleScore += weightSpecialReqs;
-  
-  let specialReqsScore = 0;
+  // Special requirements (can boost by up to 15%)
+  let specialReqsBonus = 0;
   let specialReqCount = 0;
   
-  // Check religious facilities
   if (preferences.religiousFacilities || preferences.specialRequirements?.religiousFacilities) {
     specialReqCount++;
     if (program.religious_facilities) {
-      specialReqsScore++;
+      specialReqsBonus += 0.05;
     }
   }
   
-  // Check halal food
   if (preferences.halalFood || preferences.specialRequirements?.halalFood) {
     specialReqCount++;
     if (program.halal_food_availability) {
-      specialReqsScore++;
+      specialReqsBonus += 0.05;
     }
   }
   
-  // Check scholarship
   if (preferences.scholarshipRequired || preferences.specialRequirements?.scholarshipRequired) {
     specialReqCount++;
     if (program.scholarship_available) {
-      specialReqsScore++;
+      specialReqsBonus += 0.05;
     }
   }
   
-  // Calculate percentage of special requirements met
-  if (specialReqCount > 0) {
-    totalScore += Math.floor((specialReqsScore / specialReqCount) * weightSpecialReqs);
-  } else {
-    totalScore += weightSpecialReqs; // If no special requirements, give full score
-  }
+  adjustmentFactor += specialReqsBonus;
   
-  // Duration match (lower importance)
-  const weightDuration = 10;
-  maxPossibleScore += weightDuration;
-  
-  // Convert duration preference to months for comparison
-  let preferredMonths = 0;
-  if (preferences.duration === 'semester') {
-    preferredMonths = 6;
-  } else if (preferences.duration === 'year') {
-    preferredMonths = 12;
-  } else if (preferences.duration === 'two_years') {
-    preferredMonths = 24;
-  } else if (preferences.duration === 'full') {
-    preferredMonths = 36;
-  }
-  
-  if (preferredMonths > 0 && program.duration_months) {
-    const durationDiff = Math.abs(program.duration_months - preferredMonths);
+  // Duration preference (can adjust by up to 10%)
+  if (preferences.duration && program.duration_months) {
+    let preferredMonths = 0;
+    if (preferences.duration === 'semester') preferredMonths = 6;
+    else if (preferences.duration === 'year') preferredMonths = 12;
+    else if (preferences.duration === 'two_years') preferredMonths = 24;
+    else if (preferences.duration === 'full') preferredMonths = 36;
     
-    if (durationDiff <= 3) {
-      totalScore += weightDuration;
-    } else if (durationDiff <= 6) {
-      totalScore += Math.floor(weightDuration * 0.75);
-    } else if (durationDiff <= 12) {
-      totalScore += Math.floor(weightDuration * 0.5);
-    } else {
-      totalScore += Math.floor(weightDuration * 0.25);
+    if (preferredMonths > 0) {
+      const durationDiff = Math.abs(program.duration_months - preferredMonths);
+      if (durationDiff <= 3) {
+        adjustmentFactor += 0.05; // +5% for exact match
+      } else if (durationDiff > 12) {
+        adjustmentFactor -= 0.1; // -10% for significant difference
+      }
     }
   }
   
-  // Calculate final percentage score
-  return Math.round((totalScore / maxPossibleScore) * 100);
+  // Apply adjustment factor with bounds
+  adjustmentFactor = Math.max(0.3, Math.min(1.3, adjustmentFactor)); // Between 30% and 130%
+  
+  // Calculate final score
+  const finalScore = fieldMatchScore * adjustmentFactor;
+  
+  return Math.round(Math.max(10, Math.min(100, finalScore))); // Between 10% and 100%
 };
+
+// Helper function to check if two fields are semantically similar
+function areSimilarFields(field1: string, field2: string): boolean {
+  const similarFields = {
+    'computer science': ['cs', 'computing', 'informatics', 'software engineering', 'programming'],
+    'business': ['management', 'administration', 'commerce', 'entrepreneurship', 'finance'],
+    'engineering': ['technology', 'technical', 'applied sciences'],
+    'medicine': ['medical', 'health', 'healthcare', 'clinical'],
+    'arts': ['fine arts', 'creative', 'design', 'visual'],
+    'science': ['sciences', 'research', 'scientific'],
+    'economics': ['economic', 'finance', 'financial'],
+    'psychology': ['psychological', 'behavioral', 'cognitive'],
+    'mathematics': ['math', 'mathematical', 'statistics', 'statistical'],
+    'physics': ['physical', 'theoretical physics'],
+    'chemistry': ['chemical', 'biochemistry'],
+    'biology': ['biological', 'life sciences', 'biomedical']
+  };
+  
+  for (const [main, variants] of Object.entries(similarFields)) {
+    if ((field1.includes(main) || variants.some(v => field1.includes(v))) &&
+        (field2.includes(main) || variants.some(v => field2.includes(v)))) {
+      return true;
+    }
+  }
+  
+  return false;
+}
 
 // Function to get country flag image URL
 export const getCountryFlagUrl = (countryName: string) => {
-  // Map country names to ISO country codes for flags
   const countryCodeMap: {[key: string]: string} = {
     'france': 'fr',
     'germany': 'de',
@@ -302,7 +332,6 @@ export const getCountryFlagUrl = (countryName: string) => {
     'finland': 'fi',
     'norway': 'no',
     'switzerland': 'ch',
-    // Add more countries as needed
   };
   
   const countryCode = countryCodeMap[countryName.toLowerCase()] || '';
@@ -311,6 +340,5 @@ export const getCountryFlagUrl = (countryName: string) => {
     return `https://flagcdn.com/w80/${countryCode}.png`;
   }
   
-  // Return a placeholder if country code not found
   return `/placeholder.svg?text=${encodeURIComponent(countryName.substring(0, 2).toUpperCase())}`;
 };
