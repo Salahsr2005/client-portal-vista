@@ -274,8 +274,13 @@ export default function Dawini() {
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white">
         <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\"60\" height=\"60\" viewBox=\"0 0 60 60\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cg fill=\"none\" fillRule=\"evenodd\"%3E%3Cg fill=\"%23ffffff\" fillOpacity=\"0.1\"%3E%3Ccircle cx=\"30\" cy=\"30\" r=\"2\"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20" />
-        
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23ffffff' fillOpacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+
         <div className="relative container mx-auto px-4 py-24">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -292,7 +297,7 @@ export default function Dawini() {
                 <Pill className="h-16 w-16 text-amber-300" />
               </motion.div>
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
               Dawini
             </h1>
@@ -300,9 +305,10 @@ export default function Dawini() {
               Connecting patients with medication providers when you need it most
             </p>
             <p className="text-lg mb-12 text-blue-200 max-w-2xl mx-auto">
-              A community-driven platform that helps people find essential medications through verified providers and pharmacies
+              A community-driven platform that helps people find essential medications through verified providers and
+              pharmacies
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
@@ -348,22 +354,22 @@ export default function Dawini() {
                 title: "Post Your Request",
                 description: "Submit your medication needs with prescription details and urgency level",
                 icon: <FileText className="h-8 w-8" />,
-                color: "from-blue-500 to-cyan-500"
+                color: "from-blue-500 to-cyan-500",
               },
               {
                 step: "2",
                 title: "Get Connected",
                 description: "Verified providers in your area will contact you directly with availability",
                 icon: <Users className="h-8 w-8" />,
-                color: "from-purple-500 to-pink-500"
+                color: "from-purple-500 to-pink-500",
               },
               {
                 step: "3",
                 title: "Secure Transaction",
                 description: "Complete your purchase safely with our verified provider network",
                 icon: <Shield className="h-8 w-8" />,
-                color: "from-green-500 to-emerald-500"
-              }
+                color: "from-green-500 to-emerald-500",
+              },
             ].map((item, index) => (
               <motion.div
                 key={index}
@@ -373,7 +379,9 @@ export default function Dawini() {
                 transition={{ delay: index * 0.2 }}
                 className="text-center"
               >
-                <div className={`w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center text-white shadow-lg`}>
+                <div
+                  className={`w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center text-white shadow-lg`}
+                >
                   {item.icon}
                 </div>
                 <div className="mb-4">
@@ -414,13 +422,13 @@ export default function Dawini() {
                   className="pl-10 w-full sm:w-64"
                 />
               </div>
-              
+
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(category => (
+                  {categories.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category === "all" ? "All Categories" : category}
                     </SelectItem>
@@ -433,7 +441,7 @@ export default function Dawini() {
                   <SelectValue placeholder="Urgency" />
                 </SelectTrigger>
                 <SelectContent>
-                  {urgencyLevels.map(level => (
+                  {urgencyLevels.map((level) => (
                     <SelectItem key={level} value={level}>
                       {level === "all" ? "All Levels" : level.charAt(0).toUpperCase() + level.slice(1)}
                     </SelectItem>
@@ -448,7 +456,7 @@ export default function Dawini() {
               <AnimatePresence>
                 {filteredRequests.map((request, index) => {
                   const RequestCard = request.urgency === "critical" ? GoldenCard : Card
-                  
+
                   return (
                     <motion.div
                       key={request.id}
@@ -477,7 +485,7 @@ export default function Dawini() {
                             {request.patientName}
                           </CardDescription>
                         </CardHeader>
-                        
+
                         <CardContent className="space-y-3">
                           <div className="text-sm space-y-2">
                             <div className="flex items-center gap-2">
@@ -497,9 +505,9 @@ export default function Dawini() {
                               <span className="font-medium">Max Price:</span> ${request.maxPrice}
                             </div>
                           </div>
-                          
+
                           <p className="text-sm text-gray-600 line-clamp-2">{request.description}</p>
-                          
+
                           <div className="flex items-center justify-between text-xs text-gray-500">
                             <span className="flex items-center gap-1">
                               <MessageCircle className="h-3 w-3" />
@@ -508,7 +516,7 @@ export default function Dawini() {
                             <span>{request.createdAt}</span>
                           </div>
                         </CardContent>
-                        
+
                         <CardFooter className="pt-3">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -535,9 +543,16 @@ export default function Dawini() {
                                 </div>
                                 <Separator />
                                 <div className="text-sm text-gray-600">
-                                  <p><strong>Medication:</strong> {request.medicationName} ({request.dosage})</p>
-                                  <p><strong>Urgency:</strong> {request.urgency}</p>
-                                  <p><strong>Prescription Required:</strong> {request.prescriptionRequired ? "Yes" : "No"}</p>
+                                  <p>
+                                    <strong>Medication:</strong> {request.medicationName} ({request.dosage})
+                                  </p>
+                                  <p>
+                                    <strong>Urgency:</strong> {request.urgency}
+                                  </p>
+                                  <p>
+                                    <strong>Prescription Required:</strong>{" "}
+                                    {request.prescriptionRequired ? "Yes" : "No"}
+                                  </p>
                                 </div>
                               </div>
                               <AlertDialogFooter>
@@ -580,7 +595,7 @@ export default function Dawini() {
                         {provider.location}
                       </CardDescription>
                     </CardHeader>
-                    
+
                     <CardContent className="space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="flex items-center">
@@ -595,7 +610,7 @@ export default function Dawini() {
                         </div>
                         <span className="text-sm font-medium">{provider.rating}</span>
                       </div>
-                      
+
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-blue-500" />
@@ -606,7 +621,7 @@ export default function Dawini() {
                           <span>Success rate: {provider.successRate}%</span>
                         </div>
                       </div>
-                      
+
                       <div>
                         <p className="text-sm font-medium mb-2">Specialties:</p>
                         <div className="flex flex-wrap gap-1">
@@ -618,7 +633,7 @@ export default function Dawini() {
                         </div>
                       </div>
                     </CardContent>
-                    
+
                     <CardFooter>
                       <Button className="w-full bg-transparent" variant="outline">
                         <MessageCircle className="mr-2 h-4 w-4" />
@@ -645,7 +660,7 @@ export default function Dawini() {
               Fill out the form below to post your medication request. Verified providers will contact you directly.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -654,39 +669,49 @@ export default function Dawini() {
                   id="medicationName"
                   placeholder="e.g., Insulin Glargine"
                   value={requestForm.medicationName}
-                  onChange={(e) => setRequestForm({...requestForm, medicationName: e.target.value})}
+                  onChange={(e) => setRequestForm({ ...requestForm, medicationName: e.target.value })}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="dosage">Dosage</Label>
                 <Input
                   id="dosage"
                   placeholder="e.g., 100 units/mL"
                   value={requestForm.dosage}
-                  onChange={(e) => setRequestForm({...requestForm, dosage: e.target.value})}
+                  onChange={(e) => setRequestForm({ ...requestForm, dosage: e.target.value })}
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={requestForm.category} onValueChange={(value) => setRequestForm({...requestForm, category: value})}>
+                <Select
+                  value={requestForm.category}
+                  onValueChange={(value) => setRequestForm({ ...requestForm, category: value })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.filter(cat => cat !== "all").map(category => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
+                    {categories
+                      .filter((cat) => cat !== "all")
+                      .map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="urgency">Urgency Level</Label>
-                <Select value={requestForm.urgency} onValueChange={(value) => setRequestForm({...requestForm, urgency: value})}>
+                <Select
+                  value={requestForm.urgency}
+                  onValueChange={(value) => setRequestForm({ ...requestForm, urgency: value })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -699,7 +724,7 @@ export default function Dawini() {
                 </Select>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="location">Location</Label>
@@ -707,21 +732,21 @@ export default function Dawini() {
                   id="location"
                   placeholder="City, State"
                   value={requestForm.location}
-                  onChange={(e) => setRequestForm({...requestForm, location: e.target.value})}
+                  onChange={(e) => setRequestForm({ ...requestForm, location: e.target.value })}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="dateNeeded">Date Needed</Label>
                 <Input
                   id="dateNeeded"
                   type="date"
                   value={requestForm.dateNeeded}
-                  onChange={(e) => setRequestForm({...requestForm, dateNeeded: e.target.value})}
+                  onChange={(e) => setRequestForm({ ...requestForm, dateNeeded: e.target.value })}
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contactPhone">Phone Number *</Label>
@@ -729,10 +754,10 @@ export default function Dawini() {
                   id="contactPhone"
                   placeholder="+1-555-0123"
                   value={requestForm.contactPhone}
-                  onChange={(e) => setRequestForm({...requestForm, contactPhone: e.target.value})}
+                  onChange={(e) => setRequestForm({ ...requestForm, contactPhone: e.target.value })}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="contactEmail">Email Address *</Label>
                 <Input
@@ -740,11 +765,11 @@ export default function Dawini() {
                   type="email"
                   placeholder="your@email.com"
                   value={requestForm.contactEmail}
-                  onChange={(e) => setRequestForm({...requestForm, contactEmail: e.target.value})}
+                  onChange={(e) => setRequestForm({ ...requestForm, contactEmail: e.target.value })}
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="maxPrice">Maximum Price ($)</Label>
               <Input
@@ -752,27 +777,27 @@ export default function Dawini() {
                 type="number"
                 placeholder="150"
                 value={requestForm.maxPrice}
-                onChange={(e) => setRequestForm({...requestForm, maxPrice: e.target.value})}
+                onChange={(e) => setRequestForm({ ...requestForm, maxPrice: e.target.value })}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Additional Details</Label>
               <Textarea
                 id="description"
                 placeholder="Describe your situation, any specific requirements, or additional information..."
                 value={requestForm.description}
-                onChange={(e) => setRequestForm({...requestForm, description: e.target.value})}
+                onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
                 rows={3}
               />
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="prescriptionRequired"
                 checked={requestForm.prescriptionRequired}
-                onChange={(e) => setRequestForm({...requestForm, prescriptionRequired: e.target.checked})}
+                onChange={(e) => setRequestForm({ ...requestForm, prescriptionRequired: e.target.checked })}
                 className="rounded border-gray-300"
               />
               <Label htmlFor="prescriptionRequired" className="text-sm">
@@ -780,12 +805,15 @@ export default function Dawini() {
               </Label>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRequestDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmitRequest} className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
+            <Button
+              onClick={handleSubmitRequest}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Submit Request
             </Button>
@@ -805,14 +833,14 @@ export default function Dawini() {
               Join our network of verified medication providers and help people in need.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="text-center p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg">
               <Shield className="h-12 w-12 text-green-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Provider Registration</h3>
               <p className="text-sm text-gray-600 mb-4">
-                We're currently setting up our provider verification system. 
-                Leave your information and we'll contact you soon.
+                We're currently setting up our provider verification system. Leave your information and we'll contact
+                you soon.
               </p>
               <Button className="bg-green-500 hover:bg-green-600">
                 <Mail className="mr-2 h-4 w-4" />
@@ -820,7 +848,7 @@ export default function Dawini() {
               </Button>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsProviderDialogOpen(false)}>
               Close
