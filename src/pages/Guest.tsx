@@ -59,15 +59,16 @@ export default function Guest() {
       color: "text-orange-600",
     },
     {
-      icon: <Pill className="h-6 w-6" />, // Pill icon for Dawini
-      title: t("guest.features.dawiniService.title"), // Translated
-      description: t("guest.features.dawiniService.description"), // Translated
-      path: "/guest/dawini-service", // New path for Dawini service
-      // Enhanced golden styling
+      icon: <Pill className="h-6 w-6" />,
+      title: t("guest.features.dawiniService.title"),
+      description: t("guest.features.dawiniService.description"),
+      path: "/guest/dawini", // Updated path
+      // Enhanced golden styling with more prominent effects
       gradient:
-        "from-amber-200/20 via-yellow-300/20 to-amber-400/20 group-hover:from-amber-400 group-hover:via-yellow-500 group-hover:to-amber-600",
-      iconBg: "bg-amber-400/20 group-hover:bg-amber-500",
-      color: "text-amber-700",
+        "from-amber-300/30 via-yellow-400/30 to-amber-500/30 hover:from-amber-400/50 hover:via-yellow-500/50 hover:to-amber-600/50",
+      iconBg:
+        "bg-gradient-to-br from-amber-400/30 to-yellow-500/30 group-hover:from-amber-500 group-hover:to-yellow-600 shadow-lg shadow-amber-500/25",
+      color: "text-amber-800 dark:text-amber-200",
     },
   ]
 
@@ -332,6 +333,3 @@ export default function Guest() {
     </div>
   )
 }
-
-
-
