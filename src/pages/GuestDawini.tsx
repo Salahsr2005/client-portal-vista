@@ -1,34 +1,30 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion, useScroll, useTransform } from "framer-motion"
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNavigate } from "react-router-dom"
-import { useTranslation } from "@/i18n"
 import {
+  Pill,
   Heart,
-  Users,
-  HandHeart,
-  MessageCircle,
   Sparkles,
   Shield,
-  Star,
   Rocket,
   ArrowRight,
   UserPlus,
-  Crown,
-  Gem,
-  Compass,
-  Lightbulb,
-  Coffee,
-  BookOpen,
-  Camera,
-  Music,
-  Palette,
-  Code,
-  Briefcase,
+  Stethoscope,
+  FileText,
+  MapPin,
+  Clock,
+  CheckCircle,
+  Phone,
+  Search,
+  Package,
+  HandHeart,
+  Activity,
+  Cross,
 } from "lucide-react"
 
 // Advanced Launch Counter Component
@@ -66,72 +62,235 @@ const LaunchCounter = ({ targetDate }: { targetDate: string }) => {
       transition={{ duration: 1, type: "spring" }}
       className="relative"
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-orange-600/20 rounded-3xl blur-xl animate-pulse" />
-      <Card className="relative bg-white/10 dark:bg-slate-900/10 backdrop-blur-xl border-2 border-white/20 dark:border-slate-700/20 rounded-3xl overflow-hidden">
-        <CardContent className="p-8 lg:p-12">
-          <div className="text-center mb-8">
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-              className="inline-block mb-4"
-            >
-              <Rocket className="h-12 w-12 text-purple-400" />
-            </motion.div>
-            <h3 className="text-2xl lg:text-3xl font-bold mb-2 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-              Launching Soon
-            </h3>
-            <p className="text-slate-300 text-lg">Get ready for something amazing</p>
-          </div>
+      {/* Premium Gold Card Design */}
+      <div className="relative">
+        {/* Gold glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400/30 via-amber-400/40 to-yellow-600/30 rounded-3xl blur-2xl animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-br from-yellow-300/20 via-amber-300/30 to-orange-400/20 rounded-3xl blur-xl" />
 
-          <div className="grid grid-cols-4 gap-4 lg:gap-8">
-            {[
-              { label: "Days", value: timeLeft.days },
-              { label: "Hours", value: timeLeft.hours },
-              { label: "Minutes", value: timeLeft.minutes },
-              { label: "Seconds", value: timeLeft.seconds },
-            ].map((item, index) => (
+        {/* Main gold card */}
+        <Card className="relative bg-gradient-to-br from-yellow-400/90 via-amber-400/95 to-yellow-600/90 backdrop-blur-xl border-2 border-yellow-300/50 rounded-3xl overflow-hidden shadow-2xl">
+          {/* Gold texture overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/30 via-transparent to-amber-600/30 rounded-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,215,0,0.3),transparent_50%)] rounded-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(255,193,7,0.2),transparent_50%)] rounded-3xl" />
+
+          {/* Shimmer effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer" />
+
+          <CardContent className="relative z-10 p-8 lg:p-12">
+            <div className="text-center mb-8">
               <motion.div
-                key={item.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-                className="text-center"
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                className="inline-block mb-4"
               >
-                <motion.div
-                  key={item.value}
-                  initial={{ scale: 1.2, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl blur-sm" />
-                  <div className="relative bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/20 dark:border-slate-700/20">
-                    <div className="text-3xl lg:text-5xl font-bold bg-gradient-to-br from-white to-purple-200 bg-clip-text text-transparent">
-                      {item.value.toString().padStart(2, "0")}
-                    </div>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-600/50 to-yellow-600/50 rounded-full blur-lg" />
+                  <div className="relative bg-gradient-to-br from-yellow-200 to-amber-300 rounded-full p-3 shadow-xl">
+                    <Rocket className="h-12 w-12 text-amber-800" />
                   </div>
-                </motion.div>
-                <div className="text-sm lg:text-base text-slate-400 mt-2 font-medium">{item.label}</div>
+                </div>
               </motion.div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <h3 className="text-2xl lg:text-3xl font-bold mb-2 text-amber-900 drop-shadow-sm">Launching Soon</h3>
+              <p className="text-amber-800 text-lg font-medium">Revolutionary Healthcare Access</p>
+            </div>
+
+            <div className="grid grid-cols-4 gap-4 lg:gap-8">
+              {[
+                { label: "Days", value: timeLeft.days },
+                { label: "Hours", value: timeLeft.hours },
+                { label: "Minutes", value: timeLeft.minutes },
+                { label: "Seconds", value: timeLeft.seconds },
+              ].map((item, index) => (
+                <motion.div
+                  key={item.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.6 }}
+                  className="text-center"
+                >
+                  <motion.div
+                    key={item.value}
+                    initial={{ scale: 1.2, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="relative"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-300/30 to-yellow-500/30 rounded-2xl blur-sm" />
+                    <div className="relative bg-gradient-to-br from-yellow-200/80 to-amber-200/80 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-yellow-300/50 shadow-lg">
+                      <div className="text-3xl lg:text-5xl font-bold text-amber-900 drop-shadow-sm">
+                        {item.value.toString().padStart(2, "0")}
+                      </div>
+                    </div>
+                  </motion.div>
+                  <div className="text-sm lg:text-base text-amber-800 mt-2 font-semibold">{item.label}</div>
+                </motion.div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </motion.div>
   )
 }
 
-// Advanced Floating Icons Component
-const FloatingIcons = () => {
+// Advanced Stepper Component
+const MedicationStepper = () => {
+  const [activeStep, setActiveStep] = useState(0)
+
+  const steps = [
+    {
+      id: 1,
+      title: "Post Medication Need",
+      description: "Patient posts their medication requirement with prescription details",
+      icon: <FileText className="h-8 w-8" />,
+      color: "from-blue-500 to-cyan-500",
+      details: ["Upload prescription", "Specify medication name", "Add contact information", "Set urgency level"],
+    },
+    {
+      id: 2,
+      title: "Prescription Verification",
+      description: "System verifies prescription authenticity and medical requirements",
+      icon: <Shield className="h-8 w-8" />,
+      color: "from-green-500 to-emerald-500",
+      details: ["Prescription validation", "Medical history check", "Dosage verification", "Safety protocols"],
+    },
+    {
+      id: 3,
+      title: "Provider Matching",
+      description: "Available providers with the medication are notified and matched",
+      icon: <Search className="h-8 w-8" />,
+      color: "from-purple-500 to-pink-500",
+      details: ["Location-based matching", "Medication availability", "Provider verification", "Rating system"],
+    },
+    {
+      id: 4,
+      title: "Direct Connection",
+      description: "Provider contacts patient directly to arrange safe medication transfer",
+      icon: <Phone className="h-8 w-8" />,
+      color: "from-orange-500 to-amber-500",
+      details: ["Secure communication", "Meeting arrangement", "Safety protocols", "Transaction completion"],
+    },
+  ]
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % steps.length)
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="relative">
+      {/* Connection Lines */}
+      <div className="absolute top-20 left-0 right-0 h-1 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-orange-500/20 rounded-full" />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+        {steps.map((step, index) => (
+          <motion.div
+            key={step.id}
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.2, duration: 0.8 }}
+            className="relative"
+          >
+            <Card
+              className={`relative overflow-hidden transition-all duration-500 ${
+                activeStep === index
+                  ? "bg-gradient-to-br from-white/20 to-white/10 border-2 border-white/30 shadow-2xl scale-105"
+                  : "bg-white/5 border border-white/10 hover:bg-white/10"
+              } backdrop-blur-xl rounded-3xl`}
+            >
+              {/* Active step glow */}
+              <AnimatePresence>
+                {activeStep === index && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className={`absolute inset-0 bg-gradient-to-br ${step.color} opacity-20 rounded-3xl`}
+                  />
+                )}
+              </AnimatePresence>
+
+              <CardContent className="p-8 text-center relative z-10">
+                {/* Step Number */}
+                <motion.div
+                  animate={activeStep === index ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                  className="absolute -top-4 left-1/2 transform -translate-x-1/2"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full bg-gradient-to-r ${step.color} flex items-center justify-center text-white font-bold text-sm shadow-lg`}
+                  >
+                    {step.id}
+                  </div>
+                </motion.div>
+
+                {/* Icon */}
+                <motion.div
+                  whileHover={{ rotate: 10, scale: 1.1 }}
+                  animate={activeStep === index ? { y: [0, -5, 0] } : {}}
+                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                  className="mb-6 mt-4"
+                >
+                  <div
+                    className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${step.color} flex items-center justify-center text-white shadow-xl mx-auto`}
+                  >
+                    {step.icon}
+                  </div>
+                </motion.div>
+
+                {/* Content */}
+                <h3 className="text-xl font-bold mb-3 text-white">{step.title}</h3>
+                <p className="text-slate-300 text-sm mb-4 leading-relaxed">{step.description}</p>
+
+                {/* Details */}
+                <AnimatePresence>
+                  {activeStep === index && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-2"
+                    >
+                      {step.details.map((detail, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.1 }}
+                          className="flex items-center text-xs text-slate-400"
+                        >
+                          <CheckCircle className="h-3 w-3 mr-2 text-green-400" />
+                          {detail}
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Floating Medical Icons
+const FloatingMedicalIcons = () => {
   const icons = [
-    { Icon: Heart, color: "text-pink-400", delay: 0 },
-    { Icon: Users, color: "text-blue-400", delay: 1 },
-    { Icon: HandHeart, color: "text-green-400", delay: 2 },
-    { Icon: Sparkles, color: "text-purple-400", delay: 3 },
-    { Icon: Star, color: "text-yellow-400", delay: 4 },
-    { Icon: Crown, color: "text-orange-400", delay: 5 },
-    { Icon: Gem, color: "text-cyan-400", delay: 6 },
-    { Icon: Compass, color: "text-indigo-400", delay: 7 },
+    { Icon: Pill, color: "text-blue-400", delay: 0 },
+    { Icon: Stethoscope, color: "text-green-400", delay: 1 },
+    { Icon: Cross, color: "text-red-400", delay: 2 },
+    { Icon: Activity, color: "text-purple-400", delay: 3 },
+    { Icon: Heart, color: "text-pink-400", delay: 4 },
+    { Icon: Shield, color: "text-cyan-400", delay: 5 },
+    { Icon: Package, color: "text-orange-400", delay: 6 },
+    { Icon: FileText, color: "text-indigo-400", delay: 7 },
   ]
 
   return (
@@ -166,67 +325,51 @@ const FloatingIcons = () => {
 
 export default function GuestDawini() {
   const navigate = useNavigate()
-  const { t } = useTranslation()
   const { scrollYProgress } = useScroll()
   const y = useTransform(scrollYProgress, [0, 1], [0, -50])
 
-  const communityFeatures = [
+  const features = [
     {
-      icon: <MessageCircle className="h-8 w-8" />,
-      title: "Ask for Help",
-      description: "Need assistance with something? Post your request and let the community support you.",
-      gradient: "from-blue-500/20 via-cyan-500/20 to-blue-600/20",
+      icon: <Shield className="h-8 w-8" />,
+      title: "Prescription Verified",
+      description: "All medication requests require valid prescriptions and medical verification for safety.",
+      gradient: "from-blue-500/20 to-cyan-500/20",
       iconColor: "text-blue-400",
-      borderColor: "border-blue-500/30",
+    },
+    {
+      icon: <MapPin className="h-8 w-8" />,
+      title: "Location-Based Matching",
+      description: "Connect with nearby providers to ensure quick and convenient medication access.",
+      gradient: "from-green-500/20 to-emerald-500/20",
+      iconColor: "text-green-400",
+    },
+    {
+      icon: <Clock className="h-8 w-8" />,
+      title: "Urgent Care Priority",
+      description: "Critical medication needs are prioritized to ensure timely healthcare access.",
+      gradient: "from-red-500/20 to-pink-500/20",
+      iconColor: "text-red-400",
     },
     {
       icon: <HandHeart className="h-8 w-8" />,
-      title: "Offer Support",
-      description: "Share your skills and knowledge to help fellow community members achieve their goals.",
-      gradient: "from-green-500/20 via-emerald-500/20 to-green-600/20",
-      iconColor: "text-green-400",
-      borderColor: "border-green-500/30",
-    },
-    {
-      icon: <Users className="h-8 w-8" />,
-      title: "Build Connections",
-      description: "Form meaningful relationships with like-minded individuals who share your interests.",
-      gradient: "from-purple-500/20 via-pink-500/20 to-purple-600/20",
+      title: "Community Support",
+      description: "Built on the principle of community members helping each other in times of need.",
+      gradient: "from-purple-500/20 to-pink-500/20",
       iconColor: "text-purple-400",
-      borderColor: "border-purple-500/30",
     },
-    {
-      icon: <Sparkles className="h-8 w-8" />,
-      title: "Grow Together",
-      description: "Learn from each other's experiences and grow as a supportive community.",
-      gradient: "from-orange-500/20 via-amber-500/20 to-orange-600/20",
-      iconColor: "text-orange-400",
-      borderColor: "border-orange-500/30",
-    },
-  ]
-
-  const helpCategories = [
-    { icon: <BookOpen className="h-6 w-6" />, label: "Academic Support", color: "text-blue-400" },
-    { icon: <Briefcase className="h-6 w-6" />, label: "Career Guidance", color: "text-green-400" },
-    { icon: <Code className="h-6 w-6" />, label: "Tech Help", color: "text-purple-400" },
-    { icon: <Palette className="h-6 w-6" />, label: "Creative Projects", color: "text-pink-400" },
-    { icon: <Music className="h-6 w-6" />, label: "Arts & Music", color: "text-yellow-400" },
-    { icon: <Camera className="h-6 w-6" />, label: "Photography", color: "text-cyan-400" },
-    { icon: <Coffee className="h-6 w-6" />, label: "Life Advice", color: "text-orange-400" },
-    { icon: <Lightbulb className="h-6 w-6" />, label: "Innovation", color: "text-indigo-400" },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-900 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950/20 to-slate-900 relative overflow-hidden">
       {/* Advanced Background Elements */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-purple-600/30 to-pink-600/30 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-orange-600/25 to-amber-600/25 rounded-full blur-3xl animate-pulse delay-2000" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-600/30 to-cyan-600/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-gradient-to-r from-purple-600/25 to-pink-600/25 rounded-full blur-3xl animate-pulse delay-2000" />
       </div>
 
-      <FloatingIcons />
+      <FloatingMedicalIcons />
 
       {/* Hero Section */}
       <motion.div style={{ y }} className="relative z-10 py-16 sm:py-24 lg:py-32">
@@ -237,7 +380,7 @@ export default function GuestDawini() {
             transition={{ duration: 1 }}
             className="text-center max-w-6xl mx-auto"
           >
-            {/* Animated Logo */}
+            {/* Animated Medical Logo */}
             <div className="flex justify-center mb-12">
               <motion.div
                 initial={{ scale: 0.5, opacity: 0 }}
@@ -257,9 +400,9 @@ export default function GuestDawini() {
                   }}
                   className="relative"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/40 via-pink-600/40 to-orange-600/40 rounded-full blur-2xl animate-pulse" />
-                  <div className="relative p-8 bg-gradient-to-br from-purple-500/20 via-pink-500/20 to-orange-500/20 rounded-full backdrop-blur-xl border-2 border-white/20 shadow-2xl">
-                    <Heart className="h-20 w-20 md:h-24 md:w-24 text-pink-400" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600/40 via-green-600/40 to-cyan-600/40 rounded-full blur-2xl animate-pulse" />
+                  <div className="relative p-8 bg-gradient-to-br from-blue-500/20 via-green-500/20 to-cyan-500/20 rounded-full backdrop-blur-xl border-2 border-white/20 shadow-2xl">
+                    <Pill className="h-20 w-20 md:h-24 md:w-24 text-blue-400" />
                   </div>
                 </motion.div>
               </motion.div>
@@ -272,7 +415,7 @@ export default function GuestDawini() {
               transition={{ delay: 0.3, duration: 1 }}
               className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-bold mb-8 leading-tight"
             >
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-400 via-green-400 to-cyan-400 bg-clip-text text-transparent">
                 Dawini
               </span>
             </motion.h1>
@@ -284,7 +427,7 @@ export default function GuestDawini() {
               transition={{ delay: 0.5, duration: 1 }}
               className="text-2xl sm:text-3xl lg:text-4xl mb-6 font-semibold bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent"
             >
-              Community-Powered Mutual Support
+              Connecting Patients with Medication Providers
             </motion.p>
 
             {/* Description */}
@@ -294,8 +437,8 @@ export default function GuestDawini() {
               transition={{ delay: 0.7, duration: 1 }}
               className="text-lg sm:text-xl lg:text-2xl mb-12 text-slate-300 max-w-4xl mx-auto leading-relaxed"
             >
-              Where community members help each other grow, learn, and succeed together. No middlemen, no fees - just
-              genuine peer-to-peer support and collaboration.
+              A revolutionary platform where patients in need of medications can connect directly with verified
+              providers, ensuring safe and accessible healthcare for everyone.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -308,11 +451,11 @@ export default function GuestDawini() {
               <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }}>
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold px-10 py-4 text-lg shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 rounded-2xl border border-purple-500/50"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold px-10 py-4 text-lg shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 rounded-2xl border border-blue-500/50"
                   onClick={() => navigate("/register")}
                 >
                   <UserPlus className="mr-3 h-5 w-5" />
-                  Join the Community
+                  Join Early Access
                   <Sparkles className="ml-3 h-5 w-5" />
                 </Button>
               </motion.div>
@@ -320,10 +463,10 @@ export default function GuestDawini() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-2 border-purple-500/50 hover:bg-purple-500/10 text-purple-300 hover:text-purple-200 px-10 py-4 text-lg shadow-2xl hover:shadow-purple-500/25 transition-all duration-300 rounded-2xl backdrop-blur-sm bg-white/5"
+                  className="border-2 border-blue-500/50 hover:bg-blue-500/10 text-blue-300 hover:text-blue-200 px-10 py-4 text-lg shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 rounded-2xl backdrop-blur-sm bg-white/5"
                   onClick={() => navigate("/login")}
                 >
-                  <Shield className="mr-3 h-5 w-5" />
+                  <Stethoscope className="mr-3 h-5 w-5" />
                   Learn More
                 </Button>
               </motion.div>
@@ -333,7 +476,7 @@ export default function GuestDawini() {
       </motion.div>
 
       {/* Launch Counter Section */}
-      <div className="relative z-10 py-16 bg-gradient-to-r from-purple-900/20 via-pink-900/20 to-orange-900/20 backdrop-blur-sm">
+      <div className="relative z-10 py-16 bg-gradient-to-r from-blue-900/20 via-green-900/20 to-cyan-900/20 backdrop-blur-sm">
         <div className="container max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <LaunchCounter targetDate="2025-09-01T00:00:00" />
         </div>
@@ -348,20 +491,41 @@ export default function GuestDawini() {
             viewport={{ once: true }}
             className="text-center mb-20"
           >
-            <Badge className="mb-6 px-6 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 text-purple-300 rounded-full text-sm font-medium">
-              <Crown className="h-4 w-4 mr-2" />
-              Peer-to-Peer Community
+            <Badge className="mb-6 px-6 py-2 bg-gradient-to-r from-blue-500/20 to-green-500/20 border-blue-500/30 text-blue-300 rounded-full text-sm font-medium">
+              <Cross className="h-4 w-4 mr-2" />
+              Safe & Verified Process
             </Badge>
-            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-              How Our Community Works
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-green-400 to-cyan-400 bg-clip-text text-transparent">
+              How Dawini Works
             </h2>
             <p className="text-xl lg:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-              A revolutionary approach to mutual support where every member both gives and receives help
+              A secure, step-by-step process ensuring safe medication access through community support
+            </p>
+          </motion.div>
+
+          <MedicationStepper />
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="relative z-10 py-24 bg-gradient-to-br from-slate-900/50 to-blue-900/20 backdrop-blur-sm">
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-green-400 to-cyan-400 bg-clip-text text-transparent">
+              Why Choose Dawini?
+            </h2>
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+              Built with safety, accessibility, and community support at its core
             </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {communityFeatures.map((feature, index) => (
+            {features.map((feature, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
@@ -372,7 +536,7 @@ export default function GuestDawini() {
                 className="group"
               >
                 <Card
-                  className={`h-full bg-gradient-to-br ${feature.gradient} backdrop-blur-xl border-2 ${feature.borderColor} rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/20`}
+                  className={`h-full bg-gradient-to-br ${feature.gradient} backdrop-blur-xl border-2 border-white/10 rounded-3xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/20 hover:border-white/20`}
                 >
                   <CardContent className="p-8 text-center">
                     {/* Icon */}
@@ -389,7 +553,7 @@ export default function GuestDawini() {
                     </motion.div>
 
                     {/* Content */}
-                    <h3 className="text-xl lg:text-2xl font-bold mb-4 text-white group-hover:text-purple-100 transition-colors">
+                    <h3 className="text-xl lg:text-2xl font-bold mb-4 text-white group-hover:text-blue-100 transition-colors">
                       {feature.title}
                     </h3>
                     <p className="text-slate-300 leading-relaxed text-sm lg:text-base">{feature.description}</p>
@@ -401,54 +565,8 @@ export default function GuestDawini() {
         </div>
       </div>
 
-      {/* Help Categories Section */}
-      <div className="relative z-10 py-24 bg-gradient-to-br from-slate-900/50 to-purple-900/20 backdrop-blur-sm">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400 bg-clip-text text-transparent">
-              What Can You Share & Learn?
-            </h2>
-            <p className="text-xl text-slate-300 max-w-3xl mx-auto">
-              Our community covers every aspect of personal and professional growth
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
-            {helpCategories.map((category, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-                whileHover={{ scale: 1.05, y: -5 }}
-                className="group"
-              >
-                <Card className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-center hover:bg-white/10 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/20">
-                  <motion.div
-                    whileHover={{ rotate: 15 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                    className={`${category.color} mb-3 flex justify-center`}
-                  >
-                    {category.icon}
-                  </motion.div>
-                  <p className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
-                    {category.label}
-                  </p>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Final CTA Section */}
-      <div className="relative z-10 py-24 lg:py-32 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600">
+      <div className="relative z-10 py-24 lg:py-32 bg-gradient-to-r from-blue-600 via-green-600 to-cyan-600">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -463,15 +581,16 @@ export default function GuestDawini() {
             >
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-white/20 rounded-full blur-xl animate-pulse" />
-                <Rocket className="relative h-20 w-20 text-white/90" />
+                <Cross className="relative h-20 w-20 text-white/90" />
               </div>
             </motion.div>
 
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-8 leading-tight">
-              Ready to Join the Revolution?
+              Ready to Transform Healthcare Access?
             </h2>
             <p className="text-xl lg:text-2xl mb-12 text-white/90 max-w-4xl mx-auto leading-relaxed">
-              Be part of a community where everyone contributes, everyone benefits, and everyone grows together
+              Join the revolution in medication accessibility. Help build a community where no one goes without
+              essential healthcare.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
@@ -491,16 +610,20 @@ export default function GuestDawini() {
             {/* Benefits Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
               {[
-                { title: "100% Free", subtitle: "No hidden fees or charges", icon: <Heart className="h-8 w-8" /> },
                 {
-                  title: "Peer-to-Peer",
-                  subtitle: "Direct community connections",
-                  icon: <Users className="h-8 w-8" />,
+                  title: "100% Secure",
+                  subtitle: "Prescription verified platform",
+                  icon: <Shield className="h-8 w-8" />,
                 },
                 {
-                  title: "Verified Members",
-                  subtitle: "Safe and trusted environment",
-                  icon: <Shield className="h-8 w-8" />,
+                  title: "Community Driven",
+                  subtitle: "People helping people",
+                  icon: <HandHeart className="h-8 w-8" />,
+                },
+                {
+                  title: "Always Available",
+                  subtitle: "24/7 medication access",
+                  icon: <Clock className="h-8 w-8" />,
                 },
               ].map((benefit, index) => (
                 <motion.div
@@ -525,9 +648,9 @@ export default function GuestDawini() {
       <div className="relative z-10 py-8 bg-slate-950/80 backdrop-blur-sm border-t border-white/10">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-slate-400 text-sm max-w-4xl mx-auto">
-            <strong className="text-purple-400">Important:</strong> Dawini is a peer-to-peer community platform
-            launching September 1st, 2025. Join our early access to be among the first to experience true
-            community-powered mutual support.
+            <strong className="text-blue-400">Important:</strong> Dawini is a prescription-verified medication sharing
+            platform launching September 1st, 2025. All medication exchanges require valid prescriptions and medical
+            verification for safety and legal compliance.
           </p>
         </div>
       </div>
