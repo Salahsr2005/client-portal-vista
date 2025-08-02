@@ -47,12 +47,13 @@ export class EnhancedProgramMatchingService {
       warnings.push(`Program is for ${program.study_level}, you selected ${consultationData.studyLevel}`)
     }
 
-    // 2. Enhanced Field/Subject match with bilingual support (35% weight - increased priority)
-    const fieldWeight = 35
+    // 2. Enhanced Field/Subject match with exact matching only (40% weight - increased priority)
+    const fieldWeight = 40
     maxPossibleScore += fieldWeight
 
     let fieldScore = 0
     let fieldMatchFound = false
+    let fieldMatchType = "none"
 
     // Priority 1: Exact field match using bilingual service
     if (consultationData.fieldSearchQuery) {
@@ -65,32 +66,29 @@ export class EnhancedProgramMatchingService {
       if (fieldMatch.exactMatch) {
         fieldScore = fieldWeight
         fieldMatchFound = true
+        fieldMatchType = "exact"
         reasons.push(`Exact field match: ${fieldMatch.matchedKeywords.join(", ")}`)
-      } else if (fieldMatch.partialMatch) {
-        fieldScore = fieldWeight * 0.85
-        fieldMatchFound = true
-        reasons.push(`Field partially matches: ${fieldMatch.matchedKeywords.join(", ")}`)
       }
     }
 
-    // Priority 2: Subject keywords match with bilingual support
+    // Priority 2: Subject keywords exact match only
     if (!fieldMatchFound && consultationData.subjects && consultationData.subjects.length > 0) {
       const userSubjects = consultationData.subjects.map((s) => s.toLowerCase())
 
       if (program.field_keywords && program.field_keywords.length > 0) {
         const programKeywords = program.field_keywords.map((k: string) => k.toLowerCase())
 
-        // Enhanced keyword matching with bilingual support
-        const keywordMatches = userSubjects.filter((subject) => {
-          // Direct keyword match
-          const directMatch = programKeywords.some((keyword) => keyword.includes(subject) || subject.includes(keyword))
+        // Exact keyword matching only - no partial matches
+        const exactKeywordMatches = userSubjects.filter((subject) => {
+          // Direct exact keyword match
+          const directMatch = programKeywords.some((keyword) => keyword === subject || subject === keyword)
 
-          // Bilingual keyword match
+          // Bilingual exact keyword match
           const bilingualMatch = BilingualFieldService.searchFields(subject, consultationData.userLanguage).some(
             (field) => {
               const fieldKeywords = consultationData.userLanguage === "fr" ? field.keywords_fr : field.keywords_en
               return fieldKeywords.some((fk) =>
-                programKeywords.some((pk) => pk.includes(fk.toLowerCase()) || fk.toLowerCase().includes(pk)),
+                programKeywords.some((pk) => pk === fk.toLowerCase() || fk.toLowerCase() === pk),
               )
             },
           )
@@ -98,41 +96,43 @@ export class EnhancedProgramMatchingService {
           return directMatch || bilingualMatch
         })
 
-        if (keywordMatches.length > 0) {
-          const matchRatio = keywordMatches.length / userSubjects.length
-          fieldScore = fieldWeight * 0.75 * matchRatio
+        if (exactKeywordMatches.length > 0) {
+          const matchRatio = exactKeywordMatches.length / userSubjects.length
+          fieldScore = fieldWeight * 0.8 * matchRatio
           fieldMatchFound = true
-          reasons.push(`Subject keywords match: ${keywordMatches.join(", ")}`)
+          fieldMatchType = "exact"
+          reasons.push(`Exact subject keywords match: ${exactKeywordMatches.join(", ")}`)
         }
       }
     }
 
-    // Priority 3: General field category match
+    // Priority 3: General field category exact match only
     if (!fieldMatchFound && consultationData.fieldOfStudy && program.field) {
       const fieldTranslation = BilingualFieldService.getFieldTranslation(program.field)
       const searchField = consultationData.fieldOfStudy.toLowerCase()
 
-      const englishMatch =
-        program.field.toLowerCase().includes(searchField) || searchField.includes(program.field.toLowerCase())
-      const frenchMatch =
+      // Only exact field name matches
+      const englishExactMatch =
+        program.field.toLowerCase() === searchField || searchField === program.field.toLowerCase()
+      const frenchExactMatch =
         fieldTranslation &&
-        (fieldTranslation.french.toLowerCase().includes(searchField) ||
-          searchField.includes(fieldTranslation.french.toLowerCase()))
+        (fieldTranslation.french.toLowerCase() === searchField || searchField === fieldTranslation.french.toLowerCase())
 
-      if (englishMatch || frenchMatch) {
-        fieldScore = fieldWeight * 0.6
+      if (englishExactMatch || frenchExactMatch) {
+        fieldScore = fieldWeight * 0.7
         fieldMatchFound = true
-        reasons.push(`General field category match`)
+        fieldMatchType = "exact"
+        reasons.push(`Exact field category match`)
       }
     }
 
     if (fieldMatchFound) {
       totalScore += fieldScore
     } else {
-      warnings.push("Field may not match your interests")
+      warnings.push("No exact field match found")
     }
 
-    // 3. Budget Analysis (25% weight - increased priority)
+    // 3. Budget Analysis (25% weight)
     const budgetWeight = 25
     maxPossibleScore += budgetWeight
 
@@ -198,8 +198,8 @@ export class EnhancedProgramMatchingService {
       }
     }
 
-    // 4. Language Requirements (12% weight)
-    const languageWeight = 12
+    // 4. Language Requirements (10% weight)
+    const languageWeight = 10
     maxPossibleScore += languageWeight
 
     const userLanguage = consultationData.language.toLowerCase()
@@ -224,8 +224,8 @@ export class EnhancedProgramMatchingService {
       warnings.push("Language requirements may not match")
     }
 
-    // 5. Duration match (8% weight)
-    const durationWeight = 8
+    // 5. Duration match (5% weight)
+    const durationWeight = 5
     maxPossibleScore += durationWeight
 
     let preferredMonths = 0
@@ -254,7 +254,7 @@ export class EnhancedProgramMatchingService {
       details,
       fieldMatchDetails: fieldMatchFound
         ? {
-            matchType: fieldScore === fieldWeight ? "exact" : fieldScore >= fieldWeight * 0.7 ? "partial" : "category",
+            matchType: fieldMatchType,
             matchScore: fieldScore,
             language: consultationData.userLanguage,
           }
@@ -270,47 +270,47 @@ export class EnhancedProgramMatchingService {
     }
   }
 
-  // Enhanced search functionality with bilingual keyword support
+  // Enhanced search functionality with exact matching only
   static searchPrograms(programs: any[], searchQuery: string, language: "en" | "fr" = "en") {
     if (!searchQuery.trim()) return programs
 
     const query = searchQuery.toLowerCase().trim()
 
     return programs.filter((program) => {
-      // 1. Direct field name match
-      if (program.field && program.field.toLowerCase().includes(query)) {
+      // 1. Direct field name exact match
+      if (program.field && program.field.toLowerCase() === query) {
         return true
       }
 
-      // 2. Program name match
+      // 2. Program name exact word match
       if (program.name && program.name.toLowerCase().includes(query)) {
         return true
       }
 
-      // 3. University name match
+      // 3. University name exact word match
       if (program.university && program.university.toLowerCase().includes(query)) {
         return true
       }
 
-      // 4. Field keywords match
+      // 4. Field keywords exact match only
       if (program.field_keywords && Array.isArray(program.field_keywords)) {
-        const keywordMatch = program.field_keywords.some(
-          (keyword: string) => keyword.toLowerCase().includes(query) || query.includes(keyword.toLowerCase()),
+        const exactKeywordMatch = program.field_keywords.some(
+          (keyword: string) => keyword.toLowerCase() === query || query === keyword.toLowerCase(),
         )
-        if (keywordMatch) return true
+        if (exactKeywordMatch) return true
       }
 
-      // 5. Bilingual field search
+      // 5. Bilingual field exact search only
       const fieldMatch = BilingualFieldService.matchProgramField(program, query, language)
-      if (fieldMatch.exactMatch || fieldMatch.partialMatch) {
+      if (fieldMatch.exactMatch) {
         return true
       }
 
-      // 6. Country/City match
-      if (program.country && program.country.toLowerCase().includes(query)) {
+      // 6. Country/City exact match
+      if (program.country && program.country.toLowerCase() === query) {
         return true
       }
-      if (program.city && program.city.toLowerCase().includes(query)) {
+      if (program.city && program.city.toLowerCase() === query) {
         return true
       }
 
@@ -318,7 +318,7 @@ export class EnhancedProgramMatchingService {
     })
   }
 
-  // Sort programs by relevance
+  // Sort programs by relevance with exact matching priority
   static sortProgramsByRelevance(programs: any[], consultationData: EnhancedConsultationData) {
     return programs
       .map((program) => ({
@@ -326,8 +326,8 @@ export class EnhancedProgramMatchingService {
         matchResult: this.calculateEnhancedMatchScore(program, consultationData),
       }))
       .sort((a, b) => {
-        // Primary sort: Field match type (exact > partial > category > none)
-        const fieldMatchOrder = { exact: 4, partial: 3, category: 2, none: 1 }
+        // Primary sort: Exact field match type priority
+        const fieldMatchOrder = { exact: 3, none: 1 }
         const aFieldMatch = a.matchResult.fieldMatchDetails?.matchType || "none"
         const bFieldMatch = b.matchResult.fieldMatchDetails?.matchType || "none"
 
@@ -353,4 +353,5 @@ export class EnhancedProgramMatchingService {
       })
   }
 }
+
 
